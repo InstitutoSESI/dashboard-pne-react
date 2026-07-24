@@ -1986,29 +1986,94 @@
 }
 
 .fundeb-public-summary .siope-public-summary__grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.fundeb-public-summary .siope-public-summary__item {
+  min-height: var(--financial-summary-card-min-height);
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  gap: var(--space-2);
+}
+
+.fundeb-public-summary .siope-public-summary__label {
+  min-height: calc(var(--line-height-snug) * 2em + 26px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.fundeb-public-summary .siope-public-summary__item > strong {
+  color: var(--green-deep);
+  font-size: clamp(var(--font-size-sm), 1.35vw, var(--font-size-xl));
+  letter-spacing: -0.01em;
+}
+
+.fundeb-public-page > .siope-public-section {
+  padding: var(--space-5);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
   background: var(--surface-card);
+  box-shadow: none;
 }
 
 .fundeb-section-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
+  gap: var(--space-3);
 }
 
 .fundeb-lead-metric {
   height: 100%;
+  padding: var(--space-4);
+  border: var(--border-default);
+  background: var(--surface-soft);
+  gap: var(--space-2);
+}
+
+.fundeb-lead-metric > strong {
+  color: var(--green-deep);
+  font-size: clamp(var(--font-size-xl), 2.4vw, var(--font-size-3xl));
+}
+
+.fundeb-section-layout > .siope-application__primary-list {
+  padding-inline: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+}
+
+.fundeb-section-layout .fundeb-public-metric {
+  min-height: 94px;
+}
+
+.fundeb-public-metric strong {
+  color: var(--green-deep);
 }
 
 .fundeb-remuneration__layout {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.65fr);
-  align-items: start;
-  gap: var(--space-4);
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  align-items: stretch;
+  gap: var(--space-3);
 }
 
 .fundeb-remuneration__composition {
   min-width: 0;
-  border-block: var(--border-divider);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
   display: grid;
+  overflow: hidden;
 }
 
 .fundeb-remuneration__child-group {
@@ -2024,9 +2089,9 @@
   min-width: 0;
   margin: 0 0 var(--space-3) var(--space-4);
   padding: 0 var(--space-3);
-  border-left: 2px solid var(--border-card);
+  border-left: var(--border-divider);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: var(--surface-muted);
+  background: var(--surface-card);
   display: grid;
 }
 
@@ -2045,13 +2110,21 @@
 
 .fundeb-remuneration__rate,
 .fundeb-balances__secondary {
-  padding-top: var(--space-2);
-  border-top: var(--border-divider);
+  margin-top: 0;
+}
+
+.fundeb-remuneration__rate .fundeb-public-metric,
+.fundeb-balances__secondary .fundeb-public-metric {
+  min-height: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 .fundeb-balances {
   border-color: var(--border-card);
-  background: var(--surface-sand);
+  background: var(--surface-card);
 }
 
 .fundeb-balances__grid {
@@ -2069,7 +2142,14 @@
 }
 
 .fundeb-balances__secondary .fundeb-public-metric {
-  padding-inline: var(--space-3);
+  padding-inline: var(--space-4);
+}
+
+.financial-page .fundeb-public-page > .financial-sources-footer {
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 @media screen and (max-width: 1024px) {
@@ -2089,6 +2169,14 @@
   .siope-execution__layout,
   .fundeb-remuneration__layout {
     grid-template-columns: 1fr;
+  }
+
+  .financial-page .fundeb-public-summary .siope-public-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fundeb-public-summary .siope-public-summary__item:nth-child(n) {
+    border: var(--border-default);
   }
 }
 
@@ -2148,6 +2236,14 @@
   .siope-public-summary__item:nth-child(4) {
     border-inline-start: 0;
     border-top: var(--border-divider);
+  }
+
+  .financial-page .fundeb-public-summary .siope-public-summary__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fundeb-public-summary .siope-public-summary__item:nth-child(n) {
+    border: var(--border-default);
   }
 
   .siope-public-summary__item:first-child {
@@ -2233,6 +2329,31 @@
     grid-column: auto;
     justify-items: start;
     text-align: start;
+  }
+}
+
+@media print {
+  .fundeb-public-summary,
+  .fundeb-public-page > .siope-public-section,
+  .fundeb-public-summary .siope-public-summary__item,
+  .fundeb-public-metric,
+  .fundeb-lead-metric {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .financial-page .fundeb-public-summary .siope-public-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fundeb-public-page > .siope-public-section,
+  .fundeb-public-summary .siope-public-summary__item,
+  .fundeb-lead-metric,
+  .fundeb-remuneration__details,
+  .fundeb-remuneration__rate .fundeb-public-metric,
+  .fundeb-balances__grid .fundeb-public-metric {
+    background: #ffffff;
+    box-shadow: none;
   }
 }
 
@@ -2564,11 +2685,12 @@
 /* VAAR keeps its own result logic, but shares the same surface rhythm. */
 
 .vaar-panel {
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
-.vaar-panel > .page-card:not(.pne-expandable) {
-  border-color: var(--border-card);
+.vaar-panel > .page-card,
+.vaar-panel > .platform-support-disclosure {
+  border: var(--border-default);
   border-radius: var(--radius-md);
   background: var(--surface-card);
   box-shadow: none;
@@ -2576,7 +2698,8 @@
 
 .vaar-panel .vaar-executive-result,
 .vaar-panel .vaar-section {
-  padding: var(--financial-panel-padding);
+  padding: var(--space-5);
+  gap: var(--space-4);
 }
 
 .financial-hero--vaar.financial-hero--compact {
@@ -2592,14 +2715,17 @@
 .vaar-panel .vaar-executive-result__reading,
 .vaar-panel .vaar-executive-result__rule {
   margin: 0;
-  color: var(--text-body);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
 }
 
-.vaar-panel .vaar-executive-result__rule {
-  padding-top: var(--space-3);
-  border-top: var(--border-divider);
+.vaar-panel .vaar-executive-result__reading {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 .vaar-panel .vaar-result-summary {
@@ -2613,8 +2739,8 @@
 .vaar-panel .vaar-history-card,
 .vaar-panel .vaar-year-card,
 .vaar-panel .vaar-glossary-card {
-  border-color: var(--border-card);
-  border-radius: var(--radius-md);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
   box-shadow: none;
 }
 
@@ -2624,14 +2750,16 @@
 }
 
 .vaar-panel .vaar-result-metrics .metric-card {
-  min-height: 124px;
+  min-height: 132px;
   padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
   box-shadow: none;
-  align-content: center;
+  align-content: start;
+  justify-items: start;
   gap: var(--space-2);
-  text-align: center;
+  text-align: start;
 }
 
 .vaar-panel .vaar-result-metrics .metric-card__label {
@@ -2642,24 +2770,32 @@
 }
 
 .vaar-panel .vaar-result-metrics .metric-card__value {
-  color: var(--text-strong);
-  font-size: var(--font-size-lg);
+  color: var(--green-deep);
+  font-size: var(--font-size-xl);
   line-height: var(--line-height-snug);
 }
 
 .vaar-panel .vaar-result-metrics .metric-card__detail {
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: var(--border-divider);
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
 }
 
 .vaar-panel .vaar-explain-grid {
-  gap: var(--space-4);
+  align-items: stretch;
+  gap: var(--space-3);
 }
 
 .vaar-panel .vaar-component-card {
-  padding: var(--space-5);
+  min-height: 0;
+  height: 100%;
+  padding: var(--space-4);
   background: var(--surface-card);
+  gap: var(--space-3);
 }
 
 .vaar-panel .vaar-component-card__header {
@@ -2672,7 +2808,13 @@
 .vaar-panel .vaar-component-card__variation,
 .vaar-panel .vaar-component-card__evidence {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
+}
+
+.vaar-panel .vaar-component-card__variation,
+.vaar-panel .vaar-component-card__evidence {
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
 }
 
 .vaar-panel .vaar-component-card__result > span,
@@ -2694,6 +2836,7 @@
 
 .vaar-panel .vaar-component-card__evidence .vaar-metric-list {
   margin: 0;
+  padding: 0;
 }
 
 .vaar-panel .vaar-component-card > p,
@@ -2706,22 +2849,159 @@
 }
 
 .vaar-panel .vaar-attention-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
+  align-items: stretch;
 }
 
 .vaar-panel .vaar-insight-card {
+  min-height: 148px;
+  height: 100%;
+  padding: var(--space-4);
+  background: var(--surface-soft);
+}
+
+.vaar-panel .vaar-insight-values {
+  margin-top: auto;
+  padding: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-card);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+}
+
+.vaar-panel .vaar-insight-values div {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.vaar-panel .vaar-insight-values div + div {
+  border-left: var(--border-divider);
+}
+
+.vaar-panel .vaar-insight-values dt,
+.vaar-panel .vaar-insight-values dd {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  text-align: start;
+}
+
+.vaar-panel .vaar-insight-values dd {
+  color: var(--green-deep);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.vaar-panel .vaar-section > section {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vaar-panel .vaar-section > section + section {
+  padding-top: var(--space-4);
+  border-top: var(--border-divider);
+}
+
+.vaar-panel .vaar-history-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.vaar-panel .vaar-history-card {
   min-height: 0;
+  padding: var(--space-4);
+  background: var(--surface-card);
+}
+
+.vaar-panel .vaar-history-card.is-latest {
+  border-color: color-mix(in srgb, var(--green-primary) 24%, var(--border-card));
+  background: color-mix(in srgb, var(--surface-moss) 48%, var(--surface-card));
+}
+
+.vaar-panel .vaar-history-card .status-badge {
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-2xs);
 }
 
 .vaar-calculation-data {
   display: grid;
-  gap: var(--space-4);
+  gap: 0;
 }
 
 .vaar-calculation-data__items {
+  padding: var(--space-4);
+  border-top: var(--border-divider);
+  background: var(--surface-soft);
   display: grid;
   gap: var(--space-3);
+}
+
+.vaar-panel .vaar-detail-toggle {
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  overflow: hidden;
+}
+
+.vaar-panel .vaar-detail-toggle > summary::after {
+  content: "+";
+}
+
+.vaar-panel .vaar-detail-toggle[open] > summary::after {
+  content: "−";
+}
+
+.vaar-panel .vaar-detail-toggle[open] > summary {
+  border-bottom: var(--border-divider);
+}
+
+.vaar-panel .vaar-year-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.vaar-panel .vaar-year-card {
+  background: var(--surface-card);
+}
+
+.vaar-panel .vaar-year-card__header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-divider);
+  background: var(--surface-soft);
+}
+
+.vaar-panel .vaar-metric-list {
+  padding: var(--space-1) var(--space-4) var(--space-2);
+}
+
+.vaar-panel .vaar-metric-row {
+  min-height: 36px;
+  border-bottom: var(--border-divider);
+}
+
+.vaar-panel .vaar-glossary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.vaar-panel .vaar-glossary-card {
+  min-height: 0;
+  padding: var(--space-3);
+  background: var(--surface-card);
+}
+
+.financial-page .vaar-panel > .financial-sources-footer {
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
 }
 
 /* Overview rhythm */
@@ -3304,6 +3584,37 @@
   font-size: var(--font-size-2xl);
 }
 
+.municipal-finance-constitutional-metric__header {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.municipal-finance-constitutional-metric__header > span,
+.municipal-finance-constitutional-metric__primary-value > span,
+.municipal-finance-constitutional-rule--mde > span {
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-finance-constitutional-metric__header > span {
+  flex: 0 0 auto;
+}
+
+.municipal-finance-constitutional-metric__primary-value {
+  display: grid;
+  gap: 2px;
+}
+
+.municipal-finance-constitutional-metric__primary-value .municipal-finance-value {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+}
+
 .municipal-finance-constitutional-metric dl {
   margin: var(--space-3) 0 0;
   padding-top: var(--space-3);
@@ -3315,6 +3626,16 @@
   color: var(--text-body);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
+}
+
+.municipal-finance-constitutional-rule--mde {
+  display: grid;
+  gap: 2px;
+}
+
+.municipal-finance-constitutional-rule--mde > strong {
+  color: var(--text-body);
+  font-weight: var(--font-weight-regular);
 }
 
 .municipal-finance-constitutional-metric dt,
@@ -5122,6 +5443,24 @@
   color: var(--green-deep);
 }
 
+.dashboard-shell .content-area .financial-page--detail .fundeb-detail .financial-quick-reading {
+  min-height: 0;
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-color: color-mix(in srgb, var(--green-primary) 18%, var(--border-card));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-moss) 58%, var(--surface-card));
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.dashboard-shell .content-area .financial-page--detail .fundeb-detail .financial-quick-reading > .indicator-quick-reading__heading {
+  color: var(--green-deep);
+}
+
 .financial-page--detail .financial-detail-view > .financial-indicator-metadata {
   padding: var(--space-5);
   border: var(--border-default);
@@ -5327,31 +5666,31 @@
 }
 
 .municipal-finance-panorama .municipal-finance-summary {
-  padding: var(--space-2);
+  padding: var(--space-5);
   border: var(--border-default);
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background: var(--surface-card);
+  gap: var(--space-4);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0;
+  gap: var(--space-2);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card {
-  min-height: 140px;
+  min-height: 0;
   padding: var(--space-4);
-  border: 0;
-  border-left: var(--border-divider);
-  border-radius: 0;
-  background: transparent;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
   box-shadow: none;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr);
   gap: var(--space-2);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card:first-child {
-  border-left: 0;
+  border: var(--border-default);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card--forecast {
@@ -5359,47 +5698,46 @@
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-pill);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
   background: var(--surface-soft);
-  grid-row: auto;
+  grid-row: 1;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__icon svg {
-  width: 21px;
-  height: 21px;
+  width: 17px;
+  height: 17px;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card--forecast .municipal-finance-summary-card__icon {
   background: var(--surface-soft);
   color: var(--green-deep);
-  border-style: dashed;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card:nth-child(4) {
-  border-left-color: var(--border-strong-line);
+  border-left-color: var(--border-card);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__label {
-  min-height: 42px;
-  color: var(--text);
-  font-size: var(--font-size-sm);
+  min-height: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
   align-self: center;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__value,
 .municipal-finance-panorama .municipal-finance-summary-card > p {
-  grid-column: 1 / -1;
+  grid-column: 2;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__value {
-  margin-top: var(--space-2);
+  margin-top: 0;
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__value .municipal-finance-value {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   line-height: var(--line-height-tight);
 }
 
@@ -5552,6 +5890,156 @@
 .municipal-finance-constitutional-disclosure .municipal-finance-constitutional-source-grid > article,
 .municipal-finance-constitutional-disclosure .platform-support-disclosure__body > .municipal-finance-constitutional-source-meta {
   padding: var(--space-4);
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-application {
+  grid-template-columns: 1.05fr 0.88fr 1.17fr;
+  gap: var(--space-3);
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-card {
+  min-width: 0;
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: none;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.municipal-finance-constitutional-card__header {
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+}
+
+.municipal-finance-constitutional-card__header h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  text-wrap: balance;
+}
+
+.municipal-finance-constitutional-card__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  display: grid;
+  place-items: center;
+}
+
+.municipal-finance-constitutional-card__icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.municipal-finance-constitutional-card__year {
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}
+
+.municipal-finance-constitutional-card__primary-value {
+  min-height: 34px;
+  display: flex;
+  align-items: baseline;
+}
+
+.municipal-finance-constitutional-card__primary-value .municipal-finance-value {
+  color: var(--green-deep);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.municipal-finance-constitutional-card__status {
+  width: fit-content;
+  padding: 3px var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-finance-constitutional-card__status--above,
+.municipal-finance-constitutional-card__status--met {
+  border-color: color-mix(in srgb, var(--green-primary) 18%, transparent);
+  background: var(--surface-moss);
+  color: var(--green-deep);
+}
+
+.municipal-finance-constitutional-card__status--below {
+  border-color: color-mix(in srgb, var(--signal-ochre) 28%, transparent);
+  background: color-mix(in srgb, var(--signal-ochre) 10%, var(--surface-card));
+  color: var(--signal-ochre);
+}
+
+.municipal-finance-constitutional-card__secondary-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2);
+  color: var(--text-body);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-finance-constitutional-card__secondary-value .municipal-finance-value {
+  color: var(--green-deep);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.municipal-finance-constitutional-card__notice {
+  margin: 0;
+  color: var(--text-body);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.municipal-finance-constitutional-card__footer {
+  margin: auto 0 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary {
+  min-height: 46px;
+  padding: 5px var(--space-4);
+  align-items: center;
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary > div {
+  gap: 2px;
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary :is(h3, p) {
+  margin: 0;
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary h3 {
+  line-height: 16px;
+}
+
+.municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary p {
+  line-height: 14px;
 }
 
 .municipal-finance-budget {
@@ -6188,6 +6676,10 @@
     border: var(--border-default);
   }
 
+  .municipal-finance-constitutional-card--revenue {
+    grid-column: 1 / -1;
+  }
+
   .municipal-finance-programs {
     grid-template-columns: 1fr;
   }
@@ -6310,6 +6802,10 @@
     grid-column: auto;
     padding: var(--space-4);
     border: var(--border-default);
+  }
+
+  .municipal-finance-constitutional-card--revenue {
+    grid-column: auto;
   }
 
   .municipal-finance-constitutional-revenue {
@@ -6616,6 +7112,21 @@
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.financial-page .vaar-panel .vaar-result-metrics.metric-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.financial-page .vaar-panel .vaar-result-metrics.metric-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.financial-page .vaar-panel .vaar-result-metrics .metric-card {
+  min-height: 132px;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
 .financial-page .vaar-panel .vaar-detail-toggle {
   padding: 0;
 }
@@ -6625,6 +7136,66 @@
 .financial-page .vaar-panel .vaar-detail-toggle[open] > .vaar-reading__notes,
 .financial-page .vaar-panel .vaar-detail-toggle[open] > .vaar-empty-detail {
   padding: var(--space-4) var(--space-5);
+}
+
+@media screen and (max-width: 1080px) {
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--three,
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 820px) {
+  .financial-page .vaar-panel :is(
+    .vaar-explain-grid,
+    .vaar-history-grid,
+    .vaar-year-grid,
+    .vaar-glossary
+  ) {
+    grid-template-columns: 1fr;
+  }
+
+  .financial-page .vaar-panel > .financial-sources-footer {
+    padding: var(--space-4);
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--three,
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--four {
+    grid-template-columns: 1fr;
+  }
+
+  .financial-page .vaar-panel .vaar-result-metrics .metric-card {
+    min-height: 0;
+  }
+}
+
+@media print {
+  .vaar-panel > .page-card,
+  .vaar-panel > .platform-support-disclosure,
+  .vaar-panel .vaar-component-card,
+  .vaar-panel .vaar-insight-card,
+  .vaar-panel .vaar-history-card,
+  .vaar-panel .vaar-year-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--three,
+  .financial-page .vaar-panel .vaar-result-metrics.metric-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vaar-panel :is(
+    .vaar-result-metrics .metric-card,
+    .vaar-insight-card,
+    .vaar-history-card.is-latest,
+    .vaar-calculation-data__items
+  ) {
+    background: #ffffff;
+  }
 }
 
 .financial-overview-page .pne-overview-section--guided {
@@ -6879,14 +7450,79 @@
 
 /* PNATE: public reading hierarchy, keeping the detailed indicator contract available on demand. */
 
-.financial-page .pnate-summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.pnate-public-page {
+  gap: var(--space-3);
+}
+
+.pnate-public-page > .financial-section,
+.pnate-public-section {
+  padding: var(--space-5);
+}
+
+.dashboard-shell .content-area .financial-page .pnate-public-page .pnate-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.pnate-summary-card {
+  min-width: 0;
+  min-height: 128px;
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+.pnate-metric-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  display: inline-grid;
+  place-items: center;
+}
+
+.pnate-metric-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pnate-summary-card > span:not(.pnate-metric-icon) {
+  align-self: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.pnate-summary-card > strong,
+.pnate-summary-card > small {
+  grid-column: 1 / -1;
+}
+
+.pnate-summary-card > strong {
+  color: var(--green-deep);
+  font-size: var(--font-size-xl);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+  overflow-wrap: anywhere;
+}
+
+.pnate-summary-card > small {
+  color: var(--text-subtle);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
 }
 
 .pnate-public-section {
   display: grid;
-  gap: var(--space-5);
-  padding: var(--financial-panel-padding);
+  gap: var(--space-4);
 }
 
 .pnate-section-heading {
@@ -6897,17 +7533,16 @@
 .pnate-section-heading h2 {
   margin: 0;
   color: var(--text-strong);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   line-height: var(--line-height-snug);
   text-wrap: balance;
 }
 
-.pnate-program-layout,
-.pnate-students-layout {
+.pnate-program-layout {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
-  gap: var(--space-4);
+  grid-template-columns: minmax(240px, 2fr) minmax(0, 3fr);
+  gap: var(--space-3);
 }
 
 .pnate-program-lead,
@@ -6916,7 +7551,7 @@
 .pnate-adjustment-row {
   min-width: 0;
   border: var(--border-default);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--surface-card);
 }
 
@@ -6925,15 +7560,16 @@
   display: grid;
   align-content: start;
   gap: var(--space-2);
-  padding: var(--space-5);
+  padding: var(--space-4);
 }
 
 .pnate-program-lead {
+  align-self: start;
   background: var(--surface-soft);
 }
 
 .pnate-program-lead > span,
-.pnate-student-metric > span,
+.pnate-student-metric__label > span:last-child,
 .pnate-data-row span,
 .pnate-adjustment-row span {
   color: var(--text-secondary);
@@ -6943,10 +7579,10 @@
 }
 
 .pnate-program-lead > strong {
-  color: var(--text-strong);
-  font-size: clamp(var(--font-size-2xl), 3vw, var(--font-size-3xl));
+  color: var(--green-deep);
+  font-size: var(--font-size-2xl);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
   line-height: var(--line-height-tight);
   overflow-wrap: anywhere;
 }
@@ -6954,11 +7590,15 @@
 .pnate-student-metric > strong,
 .pnate-data-row strong,
 .pnate-adjustment-row strong {
-  color: var(--text-strong);
+  color: var(--green-deep);
   font-size: var(--font-size-lg);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
   overflow-wrap: anywhere;
+}
+
+.pnate-student-metric > strong {
+  font-size: var(--font-size-xl);
 }
 
 .pnate-program-lead small,
@@ -6971,16 +7611,21 @@
 }
 
 .pnate-program-rows,
-.pnate-student-networks,
 .pnate-adjustment-list {
   min-width: 0;
   display: grid;
-  gap: var(--space-3);
+  gap: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  overflow: hidden;
 }
 
 .pnate-data-row,
 .pnate-adjustment-row {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6994,23 +7639,30 @@
   gap: var(--space-1);
 }
 
+.pnate-data-row + .pnate-data-row,
+.pnate-adjustment-row + .pnate-adjustment-row {
+  border-top: var(--border-divider);
+}
+
 .pnate-data-row button,
 .pnate-program-lead button,
 .pnate-student-metric button,
 .pnate-adjustment-row button,
 .pnate-calculation-disclosure button {
   width: fit-content;
-  min-height: 36px;
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--green-deep);
   cursor: pointer;
   font: inherit;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .pnate-data-row button:hover,
@@ -7018,8 +7670,8 @@
 .pnate-student-metric button:hover,
 .pnate-adjustment-row button:hover,
 .pnate-calculation-disclosure button:hover {
-  border-color: var(--green-primary);
-  background: var(--green-soft);
+  color: var(--green-primary);
+  background: transparent;
 }
 
 .pnate-data-row button:focus-visible,
@@ -7031,12 +7683,23 @@
   outline-offset: 2px;
 }
 
-.pnate-student-networks {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.pnate-students-layout {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 .pnate-student-metric {
-  min-height: 150px;
+  min-height: 138px;
+  background: var(--surface-soft);
+}
+
+.pnate-student-metric__label {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .pnate-student-metric button,
@@ -7046,7 +7709,7 @@
 
 .pnate-section-note,
 .pnate-adjustment-row p,
-.pnate-adjustments-empty {
+.pnate-adjustments-empty p {
   max-width: var(--content-reading-max);
   margin: 0;
   color: var(--text-secondary);
@@ -7056,15 +7719,20 @@
 }
 
 .pnate-section-note {
+  width: 100%;
+  max-width: none;
   padding-top: var(--space-3);
   border-top: var(--border-divider);
 }
 
 .pnate-adjustments-empty {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .pnate-calculation-disclosure,
@@ -7076,28 +7744,17 @@
 
 .pnate-calculation-disclosure > summary,
 .pnate-indicator-technical-disclosure > summary {
-  min-height: 56px;
-  padding: var(--space-3) var(--space-4);
+  min-height: 64px;
   color: var(--text-strong);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
 }
 
-.pnate-calculation-disclosure > summary > span:first-child {
-  display: grid;
-  gap: 2px;
-}
-
-.pnate-calculation-disclosure > summary > span:last-child {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+.pnate-calculation-disclosure > summary p span {
+  margin-left: var(--space-2);
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 
 .pnate-calculation-disclosure > summary:focus-visible,
@@ -7107,8 +7764,8 @@
 }
 
 .pnate-calculation-disclosure__body {
+  min-width: 0;
   overflow-x: auto;
-  border-top: var(--border-divider);
 }
 
 .pnate-calculation-disclosure table {
@@ -7142,6 +7799,13 @@
 
 .pnate-calculation-disclosure tbody tr:last-child :is(th, td) {
   border-bottom: 0;
+}
+
+.pnate-public-page > .financial-sources-footer {
+  padding: var(--space-5);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
 }
 
 .pnate-indicator-technical-disclosure {
@@ -7503,36 +8167,31 @@
 }
 
 @media screen and (max-width: 1024px) {
-  .financial-page .pnate-summary-grid {
+  .dashboard-shell .content-area .financial-page .pnate-public-page .pnate-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .pnate-students-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .dashboard-shell .content-area .financial-page .pnate-public-page .pnate-summary-grid,
   .pnate-program-layout,
   .pnate-students-layout {
     grid-template-columns: 1fr;
   }
 
-  .pnate-students-layout {
-    gap: var(--space-3);
-  }
-}
-
-@media screen and (max-width: 700px) {
-  .financial-page .pnate-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pnate-public-section {
-    padding: var(--space-5) var(--space-4);
+  .pnate-public-page > .financial-section,
+  .pnate-public-section,
+  .pnate-public-page > .financial-sources-footer {
+    padding: var(--space-4);
   }
 
   .pnate-program-lead,
   .pnate-student-metric {
     padding: var(--space-4);
-  }
-
-  .pnate-student-networks {
-    grid-template-columns: 1fr;
   }
 
   .pnate-data-row,
@@ -7544,5 +8203,81 @@
   .pnate-calculation-disclosure > summary,
   .pnate-indicator-technical-disclosure > summary {
     padding-inline: var(--space-4);
+  }
+
+  .pnate-calculation-disclosure__body {
+    padding: var(--space-3);
+    overflow: visible;
+  }
+
+  .pnate-calculation-disclosure table,
+  .pnate-calculation-disclosure tbody,
+  .pnate-calculation-disclosure tr,
+  .pnate-calculation-disclosure th,
+  .pnate-calculation-disclosure td {
+    min-width: 0;
+    display: block;
+  }
+
+  .pnate-calculation-disclosure thead {
+    display: none;
+  }
+
+  .pnate-calculation-disclosure tbody {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .pnate-calculation-disclosure tr {
+    padding: var(--space-3);
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+  }
+
+  .pnate-calculation-disclosure th,
+  .pnate-calculation-disclosure td {
+    padding: var(--space-1) 0;
+    border: 0;
+  }
+
+  .pnate-calculation-disclosure td::before {
+    content: attr(data-label);
+    margin-right: var(--space-2);
+    color: var(--text-subtle);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+}
+
+@media print {
+  .pnate-public-page > .page-card,
+  .pnate-public-page > .financial-section,
+  .pnate-public-page > .platform-support-disclosure,
+  .pnate-public-page > .financial-sources-footer,
+  .pnate-summary-card,
+  .pnate-program-lead,
+  .pnate-data-row,
+  .pnate-student-metric,
+  .pnate-adjustment-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .dashboard-shell .content-area .financial-page .pnate-public-page .pnate-summary-grid,
+  .pnate-students-layout {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pnate-program-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+
+  .pnate-summary-card,
+  .pnate-program-lead,
+  .pnate-student-metric,
+  .pnate-adjustments-empty {
+    background: #ffffff;
   }
 }

@@ -236,8 +236,8 @@ function formatCurrency(value) {
   return Number(value).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })
 }
 
@@ -313,10 +313,7 @@ function VaarResultMetric({ label, value, note }) {
 
 function VaarAccordionSummary({ children }) {
   return (
-    <>
-      <span className="pne-expandable__summary"><span>{children}</span></span>
-      <span className="pne-expandable__marker" aria-hidden="true" />
-    </>
+    <div><h3>{children}</h3></div>
   )
 }
 
@@ -409,8 +406,8 @@ function TechnicalDetails({ title, rows, metrics }) {
   if (!visibleRows.length) return null
 
   return (
-    <details className="page-card pne-expandable vaar-detail-toggle vaar-technical-details">
-      <summary><VaarAccordionSummary>{title}</VaarAccordionSummary></summary>
+    <details className="platform-support-disclosure vaar-detail-toggle vaar-technical-details">
+      <summary className="platform-support-disclosure__summary"><VaarAccordionSummary>{title}</VaarAccordionSummary></summary>
       <div className="vaar-year-grid">
         {visibleRows.map((row) => (
           <article className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
@@ -431,8 +428,8 @@ function VaarHistoricalDetails({ rows }) {
   if (!visibleRows.length) return null
 
   return (
-    <details className="page-card pne-expandable vaar-detail-toggle vaar-technical-details">
-      <summary><VaarAccordionSummary>Consultar dados históricos de 2023/2024</VaarAccordionSummary></summary>
+    <details className="platform-support-disclosure vaar-detail-toggle vaar-technical-details">
+      <summary className="platform-support-disclosure__summary"><VaarAccordionSummary>Consultar dados históricos de 2023/2024</VaarAccordionSummary></summary>
       <div className="vaar-year-grid">
           {visibleRows.map((row) => (
             <article className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
@@ -682,8 +679,8 @@ function VaarCalculationData({ attendance, historicalRows, learning }) {
 
 function VaarGlossary() {
   return (
-    <details className="page-card pne-expandable vaar-detail-toggle vaar-technical-details">
-      <summary><VaarAccordionSummary>Conceito e interpretação</VaarAccordionSummary></summary>
+    <details className="platform-support-disclosure vaar-detail-toggle vaar-technical-details">
+      <summary className="platform-support-disclosure__summary"><VaarAccordionSummary>Conceito e interpretação</VaarAccordionSummary></summary>
       <div className="vaar-glossary">
         {GLOSSARY_ITEMS.map(([title, text]) => (
           <article className="platform-info-card vaar-glossary-card" key={title}>

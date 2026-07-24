@@ -19,6 +19,7 @@ import {
   isPublishableFinancialIndicator,
   isPublishableFinancialValue,
 } from '../utils/financialPresentation'
+import { FinancialIcon } from '../features/municipal-finance/FinancialPanoramaComponents'
 
 const FUNDEB_INDICATOR_GROUPS = Object.freeze({
   receitas: new Set([
@@ -225,11 +226,14 @@ function hasSameFundebSnapshot(left, right) {
   return Number.isFinite(leftValue) && Number.isFinite(rightValue) && leftValue === rightValue
 }
 
-function FundebSummaryMetric({ label, model }) {
+function FundebSummaryMetric({ icon, label, model }) {
   if (!model) return null
   return (
     <article className="siope-public-summary__item">
-      <span>{label}</span>
+      <div className="siope-public-summary__label">
+        <span className="siope-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
+        <span>{label}</span>
+      </div>
       <strong>{model.currentDisplay}</strong>
       <small>{model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}</small>
     </article>
@@ -317,12 +321,12 @@ export function FundebPanel({ municipioData, embedded = false, detailKey = '', o
   const revenueAndInflowsMatch = hasSameFundebSnapshot(declaredRevenueModel, declaredInflowsModel)
   const availabilityAndBalanceMatch = hasSameFundebSnapshot(finalAvailabilityModel, reconciledBalanceModel)
   const summaryMetrics = [
-    { label: 'Receita do Fundeb declarada', model: declaredRevenueModel },
+    { icon: 'fundeb', label: 'Receita do Fundeb declarada', model: declaredRevenueModel },
     revenueAndInflowsMatch
-      ? { label: 'Despesa do Fundeb com remuneração', model: remunerationModel }
-      : { label: 'Ingressos do Fundeb declarados no ano', model: declaredInflowsModel },
-    { label: 'Despesa total declarada do Fundeb', model: totalExpenseModel },
-    { label: 'Disponibilidade do Fundeb ao final do exercício', model: finalAvailabilityModel },
+      ? { icon: 'resources', label: 'Despesa do Fundeb com remuneração', model: remunerationModel }
+      : { icon: 'trend', label: 'Ingressos do Fundeb declarados no ano', model: declaredInflowsModel },
+    { icon: 'payment', label: 'Despesa total declarada do Fundeb', model: totalExpenseModel },
+    { icon: 'budget', label: 'Disponibilidade do Fundeb ao final do exercício', model: finalAvailabilityModel },
   ].filter(({ model }) => Boolean(model))
 
   useEffect(() => {
@@ -444,6 +448,7 @@ export function FundebPanel({ municipioData, embedded = false, detailKey = '', o
               indicator={selectedIndicatorModel}
               metadata={selectedMetadata}
               series={selectedIndicatorModel.series}
+              showDataDisclosure={false}
             />
           </section>
         </div>
@@ -456,8 +461,8 @@ export function FundebPanel({ municipioData, embedded = false, detailKey = '', o
                 <h2 id="fundeb-summary-title">Números mais recentes</h2>
               </div>
               <div className="siope-public-summary__grid">
-                {summaryMetrics.map(({ label, model }) => (
-                  <FundebSummaryMetric key={model.key} label={label} model={model} />
+                {summaryMetrics.map(({ icon, label, model }) => (
+                  <FundebSummaryMetric key={model.key} icon={icon} label={label} model={model} />
                 ))}
               </div>
             </section>

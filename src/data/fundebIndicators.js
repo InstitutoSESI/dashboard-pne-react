@@ -102,7 +102,8 @@ export function formatFundebValue(value, tipo) {
   return numeric.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   })
 }
 

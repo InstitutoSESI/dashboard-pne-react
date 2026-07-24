@@ -187,8 +187,11 @@ export function MunicipalFinancePanoramaPage({
   return (
     <PageFrame returnHref={buildAppHash(FINANCIAL_PAGE_KEYS.overview, { municipio: document.municipality.slug })}>
       {summaryCards.length ? (
-      <section className="municipal-finance-summary" aria-labelledby="municipal-finance-summary-title">
-        <h2 className="u-sr-only" id="municipal-finance-summary-title">Resumo financeiro municipal</h2>
+      <section className="page-card municipal-finance-summary" aria-labelledby="municipal-finance-summary-title">
+        <div className="siope-public-section-heading">
+          <span className="eyebrow">Resumo principal</span>
+          <h2 id="municipal-finance-summary-title">Números mais recentes</h2>
+        </div>
         <div className="municipal-finance-summary-grid">
           {summaryCards.map((card) => (
             <FinancialMetricCard
@@ -289,6 +292,18 @@ function BudgetExecutionSection({ document }: { document: MunicipalFinanceDocume
       </div>
     </section>
   )
+}
+
+function getMinimumStatus(value: number | null, minimum: number) {
+  if (value === null || !Number.isFinite(value)) return null
+  const difference = Number((value - minimum).toFixed(2))
+  if (difference === 0) {
+    return { label: 'Cumpriu o mínimo', tone: 'met' as const }
+  }
+  const distance = formatPercent(Math.abs(difference)).replace('%', ' p.p.')
+  return difference > 0
+    ? { label: `${distance} acima do mínimo`, tone: 'above' as const }
+    : { label: `${distance} abaixo do mínimo`, tone: 'below' as const }
 }
 
 function FundebOverviewPanel({
@@ -412,6 +427,15 @@ function ConstitutionalApplicationSection({
   const hasMdeAmount = canPublishMainValues && isPublishableFinancialValue(application.mdeAppliedAmount.canonical)
   const hasFundebRate = canPublishMainValues && isPublishableFinancialValue(application.fundebProfessionalRemunerationRate.canonical)
   const hasFundebRevenue = canPublishMainValues && isPublishableFinancialValue(application.fundebRevenueReceivedDeclared)
+  const mdeReferenceYear = hasMdeRate
+    ? application.mdeAppliedRate.canonical.referenceYear
+    : application.mdeAppliedAmount.canonical.referenceYear
+  const mdeMinimumStatus = hasMdeRate
+    ? getMinimumStatus(application.mdeAppliedRate.canonical.value, 25)
+    : null
+  const fundebMinimumStatus = hasFundebRate
+    ? getMinimumStatus(application.fundebProfessionalRemunerationRate.canonical.value, 70)
+    : null
   const displayedYears = [
     hasMdeRate ? application.mdeAppliedRate.canonical.referenceYear : null,
     hasMdeAmount ? application.mdeAppliedAmount.canonical.referenceYear : null,
@@ -436,66 +460,87 @@ function ConstitutionalApplicationSection({
     >
       <div className="municipal-finance-reference-heading">
         <h2 id="municipal-finance-constitutional-title">Aplicação constitucional da educação{sharedDisplayedYear ? ` — ${sharedDisplayedYear}` : ''}</h2>
-        <span>{sharedDisplayedYear ? `Valores de ${sharedDisplayedYear}` : 'Exercícios conforme indicador'}</span>
       </div>
 
       <div className="municipal-finance-constitutional-primary-grid">
         {hasMdeRate || hasMdeAmount ? (
-        <article className="municipal-finance-constitutional-metric municipal-finance-constitutional-metric--mde">
-          <h3>Aplicação em MDE <small>· {application.mdeAppliedRate.canonical.referenceYear}</small></h3>
+        <article
+          className="municipal-finance-constitutional-card municipal-finance-constitutional-card--mde"
+        >
+          <header className="municipal-finance-constitutional-card__header">
+            <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="allocation" /></span>
+            <h3>Aplicação em MDE</h3>
+            <span className="municipal-finance-constitutional-card__year">{mdeReferenceYear}</span>
+          </header>
           {hasMdeRate ? (
-          <>
-          <ConstitutionalCanonicalValue
-            canPublish={canPublishMainValues}
-            label="Percentual aplicado em MDE"
-            value={application.mdeAppliedRate.canonical}
-          />
-          </>
+          <div className="municipal-finance-constitutional-card__primary-value">
+            <ConstitutionalCanonicalValue
+              canPublish={canPublishMainValues}
+              label="Percentual aplicado em MDE"
+              value={application.mdeAppliedRate.canonical}
+            />
+          </div>
           ) : null}
-          {hasMdeAmount ? <dl>
-            <div>
-              <dt>Aplicados · {application.mdeAppliedAmount.canonical.referenceYear}</dt>
-              <dd>
-                <ConstitutionalCanonicalValue
-                  canPublish={canPublishMainValues}
-                  label="Despesa computada em MDE"
-                  value={application.mdeAppliedAmount.canonical}
-                />
-              </dd>
+          {mdeMinimumStatus ? (
+            <span className={`municipal-finance-constitutional-card__status municipal-finance-constitutional-card__status--${mdeMinimumStatus.tone}`}>
+              {mdeMinimumStatus.label}
+            </span>
+          ) : null}
+          {hasMdeAmount ? (
+            <div className="municipal-finance-constitutional-card__secondary-value">
+              <ConstitutionalCanonicalValue
+                canPublish={canPublishMainValues}
+                label="Despesa computada em MDE"
+                value={application.mdeAppliedAmount.canonical}
+              />
+              <span>aplicados em MDE</span>
             </div>
-          </dl> : null}
-          <p className="municipal-finance-constitutional-rule">Mínimo: 25% da receita de impostos</p>
+          ) : null}
+          <p className="municipal-finance-constitutional-card__footer">Mínimo constitucional: 25%</p>
         </article>
         ) : null}
 
         {hasFundebRate ? (
-        <article className="municipal-finance-constitutional-metric">
-          <h3>Remuneração dos profissionais <small>· {application.fundebProfessionalRemunerationRate.canonical.referenceYear}</small></h3>
-          <ConstitutionalCanonicalValue
-            canPublish={canPublishMainValues}
-            label="Percentual do Fundeb destinado à remuneração dos profissionais da educação"
-            value={application.fundebProfessionalRemunerationRate.canonical}
-          />
-          <p className="municipal-finance-constitutional-rule">Mínimo: 70% do Fundeb</p>
+        <article className="municipal-finance-constitutional-card municipal-finance-constitutional-card--remuneration">
+          <header className="municipal-finance-constitutional-card__header">
+            <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="resources" /></span>
+            <h3>Remuneração dos profissionais</h3>
+            <span className="municipal-finance-constitutional-card__year">{application.fundebProfessionalRemunerationRate.canonical.referenceYear}</span>
+          </header>
+          <div className="municipal-finance-constitutional-card__primary-value">
+            <ConstitutionalCanonicalValue
+              canPublish={canPublishMainValues}
+              label="Percentual do Fundeb destinado à remuneração dos profissionais da educação"
+              value={application.fundebProfessionalRemunerationRate.canonical}
+            />
+          </div>
+          {fundebMinimumStatus ? (
+            <span className={`municipal-finance-constitutional-card__status municipal-finance-constitutional-card__status--${fundebMinimumStatus.tone}`}>
+              {fundebMinimumStatus.label}
+            </span>
+          ) : null}
+          <p className="municipal-finance-constitutional-card__footer">Mínimo: 70% do Fundeb</p>
         </article>
         ) : null}
       </div>
 
       {hasFundebRevenue ? (
       <div className="municipal-finance-constitutional-strip">
-        <article className="municipal-finance-constitutional-revenue">
-          <span className="municipal-finance-constitutional-revenue__icon" aria-hidden="true"><FinancialIcon name="fundeb" /></span>
-          <div>
-            <span className="municipal-finance-constitutional-metric__label">Receita Fundeb declarada · {application.fundebRevenueReceivedDeclared.referenceYear}</span>
+        <article className="municipal-finance-constitutional-card municipal-finance-constitutional-card--revenue">
+          <header className="municipal-finance-constitutional-card__header">
+            <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="fundeb" /></span>
+            <h3>Receita Fundeb declarada</h3>
+            <span className="municipal-finance-constitutional-card__year">{application.fundebRevenueReceivedDeclared.referenceYear}</span>
+          </header>
+          <div className="municipal-finance-constitutional-card__primary-value">
             <ConstitutionalCanonicalValue
               canPublish={canPublishMainValues}
               label={`Receita Fundeb recebida declarada em ${application.fundebRevenueReceivedDeclared.referenceYear}`}
               value={application.fundebRevenueReceivedDeclared}
             />
           </div>
-          <p>
-            Valor declarado pelo município no SIOPE e no RREO. Não representa transferência efetiva confirmada pelo concedente nem saldo disponível.
-          </p>
+          <p className="municipal-finance-constitutional-card__notice">Valor declarado pelo município. Não equivale a uma transferência efetiva confirmada.</p>
+          <p className="municipal-finance-constitutional-card__footer">Fonte: SIOPE/RREO · Período: {application.fundebRevenueReceivedDeclared.referenceYear}</p>
         </article>
 
       </div>
@@ -537,6 +582,9 @@ function ConstitutionalApplicationSection({
             ) : null}
             <p className="municipal-finance-method-note">
               MDE constitucional e despesa da função Educação na DCA representam universos contábeis e legais diferentes e não devem ser comparados diretamente.
+            </p>
+            <p className="municipal-finance-method-note">
+              O valor da receita Fundeb é declarado pelo município no SIOPE e no RREO. Não representa transferência efetiva confirmada pelo concedente nem saldo disponível.
             </p>
           </div>
         </details>

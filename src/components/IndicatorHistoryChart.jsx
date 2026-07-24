@@ -28,6 +28,7 @@ export function IndicatorHistoryChart({
   chartType = 'line',
   chartWidth = undefined,
   domainOverride = undefined,
+  distributeBars = false,
   endYear,
   essentialLabels = false,
   formatDataLabel: formatDataLabelProp,
@@ -84,9 +85,10 @@ export function IndicatorHistoryChart({
         chartWidthOverride: responsiveChartWidth,
         chartMinWidthOverride: pneLayout ? 180 : 420,
         domainOverride,
+        distributeBars,
         paddingOverride: pneLayout ? PNE_CHART_GEOMETRY.main.padding : LEGACY_PADDING,
       }),
-    [adaptiveDomain, chartType, domainOverride, endYear, essentialLabels, floorNegativeValues, formatDataLabelProp, formatYAxisProp, labelMode, meta, missingLabel, pneLayout, resolvedUnit, responsiveChartHeight, responsiveChartWidth, series, showMetaLine, showMissingPoints, startYear, yTickCount],
+    [adaptiveDomain, chartType, distributeBars, domainOverride, endYear, essentialLabels, floorNegativeValues, formatDataLabelProp, formatYAxisProp, labelMode, meta, missingLabel, pneLayout, resolvedUnit, responsiveChartHeight, responsiveChartWidth, series, showMetaLine, showMissingPoints, startYear, yTickCount],
   )
 
   const validCount = chart.points.filter(p => p.valid !== false).length
@@ -334,6 +336,7 @@ function buildChartModel({
   chartMinWidthOverride,
   chartWidthOverride,
   domainOverride,
+  distributeBars,
   paddingOverride,
 }) {
   const padding = paddingOverride ?? LEGACY_PADDING
@@ -401,6 +404,13 @@ function buildChartModel({
   const effectivePlotWidth = Math.max(0, plotWidth - barEdgeInset * 2)
 
   const xScale = (year) => {
+    if (chartType === 'bar' && distributeBars) {
+      const pointIndex = points.findIndex((point) => point.year === year)
+      if (pointIndex >= 0) {
+        const bandWidth = plotWidth / Math.max(points.length, 1)
+        return padding.left + bandWidth * (pointIndex + 0.5)
+      }
+    }
     if (maxYear === minYear) return padding.left + plotWidth / 2
     return padding.left + barEdgeInset + ((year - minYear) / (maxYear - minYear)) * effectivePlotWidth
   }
@@ -713,15 +723,16 @@ function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidt
   const candidates = []
 
   // 1. Último ponto (prioridade 1 - mais alta)
+  const centerPointLabels = chartType === 'bar'
   const lastNeedsEndAnchor = lastPoint.x > plotRight - 30
   candidates.push({
-    anchor: lastNeedsEndAnchor ? 'end' : 'start',
+    anchor: centerPointLabels ? 'middle' : lastNeedsEndAnchor ? 'end' : 'start',
     isLast: true,
     isMeta: false,
     priority: 1,
     type: 'last',
     value: lastPoint.value,
-    x: lastNeedsEndAnchor ? lastPoint.x - 8 : lastPoint.x + 8,
+    x: centerPointLabels ? lastPoint.x : lastNeedsEndAnchor ? lastPoint.x - 8 : lastPoint.x + 8,
     y: pickLabelY(lastPoint.y, plotTop, plotBottom, LABEL_OFFSET_Y),
     year: lastPoint.year,
   })
@@ -819,7 +830,7 @@ function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidt
     }
 
     // Último ponto: refinamento de posição
-    if (label.isLast) {
+    if (label.isLast && !centerPointLabels) {
       if (isLastAtRightEdge(lastPoint.x, plotRight)) {
         label.anchor = 'end'
         label.x = lastPoint.x - 8

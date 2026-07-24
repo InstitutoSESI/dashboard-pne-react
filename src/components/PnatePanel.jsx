@@ -5,7 +5,6 @@ import { getFinancialIndicatorMetadata } from '../data/financialIndicatorMetadat
 import { DataSourceNote } from './DataSourceNote'
 import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { IndicatorHistoryChart } from '../components/IndicatorHistoryChart'
-import { EducationSummaryCard } from './EducationSummaryCard'
 import {
   FinancialChartFrame,
   FinancialDetailHeader,
@@ -17,6 +16,7 @@ import {
   FinancialPrimaryAnalysis,
   FinancialSourcesFooter,
 } from './FinancialIndicatorPrimitives'
+import { FinancialIcon } from '../features/municipal-finance/FinancialPanoramaComponents'
 import {
   isPublishableFinancialIndicator,
   isPublishableFinancialValue,
@@ -217,6 +217,18 @@ function PnateDetailButton({ model, onSelect, registerButton }) {
   )
 }
 
+function PnateSummaryMetric({ icon, label, model }) {
+  if (!model) return null
+  return (
+    <article className="pnate-summary-card">
+      <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
+      <span>{label}</span>
+      <strong>{model.currentDisplay}</strong>
+      <small>{formatPeriod(model.currentYear)}</small>
+    </article>
+  )
+}
+
 function PnateDataRow({ label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
@@ -231,11 +243,14 @@ function PnateDataRow({ label, model, onSelect, registerButton }) {
   )
 }
 
-function PnateStudentMetric({ className = '', label, model, onSelect, registerButton }) {
+function PnateStudentMetric({ icon, label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className={`pnate-student-metric${className ? ` ${className}` : ''}`}>
-      <span>{label}</span>
+    <article className="pnate-student-metric">
+      <div className="pnate-student-metric__label">
+        <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
+        <span>{label}</span>
+      </div>
       <strong>{model.currentDisplay}</strong>
       <small>{formatPeriod(model.currentYear)}</small>
       <PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />
@@ -317,7 +332,6 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
   const reportedAndMunicipalAmountMatch = hasSamePnateValue(reportedModel, municipalAmountModel)
   const summaryModels = [
     reportedModel,
-    reportedAndAuthorizedMatch ? null : authorizedModel,
     totalStudentsModel,
     perCapitaModel,
   ].filter(Boolean)
@@ -367,24 +381,18 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
   }
 
   return (
-    <div className="fundeb-panel-embedded">
+    <div className="fundeb-panel-embedded pnate-public-page">
       {hasSummary ? (
         <FinancialSection
           className="pnate-summary financial-metric-strip"
           eyebrow="Resumo principal"
-          title="Os principais valores do exercício"
+          title="Números mais recentes"
           titleId="pnate-summary-title"
         >
           <FinancialMetricStrip className="pnate-summary-grid">
-            {summaryModels.map((model) => (
-              <EducationSummaryCard
-                key={model.key}
-                label={getPnatePublicLabel(model.key, model.label)}
-                value={model.currentDisplay}
-                year={model.currentYear}
-                valueSize={model.raw.tipo === 'financeiro' ? 'compact' : 'default'}
-              />
-            ))}
+            <PnateSummaryMetric icon="payment" label={getPnatePublicLabel(reportedModel?.key, reportedModel?.label)} model={reportedModel} />
+            <PnateSummaryMetric icon="resources" label={getPnatePublicLabel(totalStudentsModel?.key, totalStudentsModel?.label)} model={totalStudentsModel} />
+            <PnateSummaryMetric icon="allocation" label={getPnatePublicLabel(perCapitaModel?.key, perCapitaModel?.label)} model={perCapitaModel} />
           </FinancialMetricStrip>
         </FinancialSection>
       ) : null}
@@ -421,9 +429,10 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
                   />
                 )}
               >
-                <IndicatorHistoryChart
+                  <IndicatorHistoryChart
                     chartType="bar"
                     chartHeight={300}
+                    distributeBars
                     endYear={validSeries[validSeries.length - 1].ano}
                     formatDataLabel={(v) => formatCompactDataLabel(v, selectedIndicator.tipo)}
                     formatYAxis={selectedIndicator.tipo === 'numero' ? formatCompactNumber : formatCompactCurrency}
@@ -454,6 +463,7 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
               indicator={selectedIndicatorModel}
               metadata={selectedMetadata}
               series={selectedIndicatorModel.series}
+              showDataDisclosure={false}
             />
 
             {ultimoRegistro?.repasse_autorizado === false && (
@@ -500,11 +510,9 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
               <h2 id="pnate-students-title">Quem entrou no cálculo?</h2>
             </div>
             <div className="pnate-students-layout">
-              <PnateStudentMetric className="pnate-student-total" label="Total de estudantes considerados" model={totalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
-              <div className="pnate-student-networks" aria-label="Estudantes por rede">
-                <PnateStudentMetric label="Estudantes da rede municipal" model={municipalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
-                <PnateStudentMetric label="Estudantes da rede estadual" model={stateStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
-              </div>
+              <PnateStudentMetric icon="resources" label="Total de estudantes considerados" model={totalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
+              <PnateStudentMetric icon="fundeb" label="Estudantes da rede municipal" model={municipalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
+              <PnateStudentMetric icon="fundeb" label="Estudantes da rede estadual" model={stateStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
             </div>
             <p className="pnate-section-note">Os estudantes da rede estadual compõem a base territorial do programa e não representam automaticamente despesa executada pelo município.</p>
           </section>
@@ -515,24 +523,29 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
               <h2 id="pnate-adjustments-title">Houve descontos ou saldos desconsiderados?</h2>
             </div>
             {noProgramAdjustments ? (
-              <p className="pnate-adjustments-empty">Não houve descontos nem saldo desconsiderado no exercício.</p>
+              <div className="pnate-adjustments-empty">
+                <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name="budget" /></span>
+                <p>Não houve descontos nem saldo desconsiderado no exercício.</p>
+              </div>
             ) : adjustmentModels.length ? (
               <div className="pnate-adjustment-list">
                 <PnateAdjustmentRow explanation="Desconto registrado no cálculo; reduz o valor considerado na autorização." model={discountModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
                 <PnateAdjustmentRow explanation="Saldo informado que foi desconsiderado no cálculo do valor autorizado." model={disregardedBalanceModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
               </div>
             ) : (
-              <p className="pnate-adjustments-empty">Não há ajustes informados para o exercício.</p>
+              <div className="pnate-adjustments-empty">
+                <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name="budget" /></span>
+                <p>Não há ajustes informados para o exercício.</p>
+              </div>
             )}
           </section>
 
-          <details className="page-card pnate-calculation-disclosure">
-            <summary>
-              <span>
-                <span className="eyebrow">Detalhamento</span>
-                <strong>Dados usados no cálculo</strong>
-              </span>
-              <span>{indicatorModels.length} indicadores</span>
+          <details className="platform-support-disclosure pnate-calculation-disclosure">
+            <summary className="platform-support-disclosure__summary">
+              <div>
+                <h3>Dados usados no cálculo</h3>
+                <p>Tabela anual, unidade e regra da leitura exibida. <span>{indicatorModels.length} indicadores</span></p>
+              </div>
             </summary>
             <div className="pnate-calculation-disclosure__body">
               <table>
@@ -548,9 +561,9 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
                   {indicatorModels.map((model) => (
                     <tr key={model.key}>
                       <th scope="row">{model.label}</th>
-                      <td>{model.currentDisplay}</td>
-                      <td>{formatPeriod(model.currentYear)}</td>
-                      <td><PnateDetailButton model={model} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} /></td>
+                      <td data-label="Valor mais recente">{model.currentDisplay}</td>
+                      <td data-label="Período">{formatPeriod(model.currentYear)}</td>
+                      <td data-label="Ação"><PnateDetailButton model={model} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} /></td>
                     </tr>
                   ))}
                 </tbody>
