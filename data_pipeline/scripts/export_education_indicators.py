@@ -2,7 +2,7 @@
 """
 Exportador JSON para Indicadores da Educacao.
 
-Le as views SQL do banco senai e gera JSONs estaticos em
+Le as views SQL do banco sesi e gera JSONs estaticos em
 public/data/educacao/ para consumo do dashboard React.
 
 Estrutura de saida:
@@ -26,7 +26,7 @@ import pandas as pd
 DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SENAI_DB_DIR  # noqa: E402
+from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SESI_DB_DIR  # noqa: E402
 
 # ── Logging ────────────────────────────────────────────────────────────────
 
@@ -58,15 +58,15 @@ class Timer:
 
 # ── Caminhos ─────────────────────────────────────────────────────────────
 
-SENAI_DB = SENAI_DB_DIR
+SESI_DB = SESI_DB_DIR
 SAIDA = EDUCATION_DATA_DIR
 SAIDA_MUN = SAIDA / "municipios"
 SAIDA_REG = SAIDA / "regioes"
 
-sys.path.insert(0, str(SENAI_DB))
+sys.path.insert(0, str(SESI_DB))
 from utils_educacao import get_engine  # noqa: E402
 
-engine = get_engine("senai")
+engine = get_engine("sesi")
 DATA_EXPORTACAO = datetime.now().strftime("%Y-%m-%d")
 
 # ── Helpers ───────────────────────────────────────────────────────────────

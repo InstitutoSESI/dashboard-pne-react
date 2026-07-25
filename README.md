@@ -54,7 +54,7 @@ Para validar um indicador sem publicar dados:
 npm run verify:indicator -- --cycle pne_2026_2036 --indicator creche --municipio "São Leopoldo"
 ```
 
-Para regenerar somente `public/data/educacao`, defina `SENAI_DB_DIR` para o projeto que fornece `utils_educacao` e execute:
+Para regenerar somente `public/data/educacao`, defina `SESI_DB_DIR` para o projeto que fornece `utils_educacao` e execute:
 
 ```powershell
 npm run update:education-data

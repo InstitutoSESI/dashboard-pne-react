@@ -473,7 +473,7 @@ def build_all_projections(municipios):
         Path(__file__).resolve().parents[3]
         / ".."
         / ".."
-        / "SENAI"
+        / "SESI"
         / "DB"
         / "data"
         / "projecao_populacao"
@@ -481,7 +481,7 @@ def build_all_projections(municipios):
     )
     if not rs_path.exists():
         alt_path = Path(
-            "C:/Users/rnbirck/PROJETOS/SENAI/DB/data/projecao_populacao/projecao_pop.xlsx"
+            "C:/Users/rnbirck/PROJETOS/SESI/DB/data/projecao_populacao/projecao_pop.xlsx"
         )
         if alt_path.exists():
             rs_path = alt_path

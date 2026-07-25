@@ -9,7 +9,7 @@ python -m pip install -r data_pipeline\requirements.txt
 Copy-Item data_pipeline\.env.example data_pipeline\.env
 ```
 
-Preencha apenas `data_pipeline/.env`, ignorado pelo Git. O acesso PostgreSQL/Supabase fica em `data_pipeline/src/data/repository.py`. Caminhos externos compartilhados, inclusive `SENAI_DB_DIR`, ficam centralizados em `data_pipeline/src/config.py`.
+Preencha apenas `data_pipeline/.env`, ignorado pelo Git. O acesso PostgreSQL/Supabase fica em `data_pipeline/src/data/repository.py`. Caminhos externos compartilhados, inclusive `SESI_DB_DIR`, ficam centralizados em `data_pipeline/src/config.py`.
 
 ## Atualização principal
 
