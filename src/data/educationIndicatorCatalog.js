@@ -1,44 +1,68 @@
+import {
+  SCHOOL_INFRASTRUCTURE_PUBLIC_COPY,
+  SCHOOL_INFRASTRUCTURE_SOURCE,
+} from './schoolInfrastructureContract.js'
+
 const MISSING_POLICY = 'null-is-missing-zero-is-value'
+
+export const SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER = Object.freeze([
+  'agua_potavel',
+  'energia_eletrica',
+  'biblioteca_sala_leitura',
+  'quadra_esportes',
+  'esgoto_rede_publica',
+])
 
 export const EDUCATION_SECTION_KEYS = Object.freeze({
   overview: 'visao-geral',
+  panorama: 'panorama',
   attendance: 'atendimento',
   trajectory: 'trajetoria',
   professionals: 'profissionais',
   infrastructure: 'infraestrutura',
   modalities: 'modalidades',
+  higherEducation: 'educacao-superior',
   demand: 'demanda',
   methodology: 'metodologia',
+  technicalReport: 'relatorio-tecnico-municipal',
 })
 
 export const EDUCATION_SECTION_LABELS = Object.freeze({
   [EDUCATION_SECTION_KEYS.overview]: 'Visão geral',
+  [EDUCATION_SECTION_KEYS.panorama]: 'Panorama educacional',
   [EDUCATION_SECTION_KEYS.attendance]: 'Atendimento e oferta',
   [EDUCATION_SECTION_KEYS.trajectory]: 'Trajetória escolar e aprendizagem',
   [EDUCATION_SECTION_KEYS.professionals]: 'Profissionais da educação',
   [EDUCATION_SECTION_KEYS.infrastructure]: 'Infraestrutura e condições de oferta',
   [EDUCATION_SECTION_KEYS.modalities]: 'Modalidades, inclusão e territórios',
+  [EDUCATION_SECTION_KEYS.higherEducation]: 'Educação Superior',
   [EDUCATION_SECTION_KEYS.demand]: 'Cenários de atendimento escolar',
   [EDUCATION_SECTION_KEYS.methodology]: 'Metodologia e fontes',
+  [EDUCATION_SECTION_KEYS.technicalReport]: 'Relatório Técnico Municipal',
 })
 
 const EDUCATION_SECTION_DESCRIPTIONS = Object.freeze({
   [EDUCATION_SECTION_KEYS.overview]: 'Síntese dos principais dados disponíveis para o município.',
+  [EDUCATION_SECTION_KEYS.panorama]: 'Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município.',
   [EDUCATION_SECTION_KEYS.attendance]: 'Matrículas, escolas e atendimento por etapa e rede.',
   [EDUCATION_SECTION_KEYS.trajectory]: 'Fluxo escolar, aprendizagem e contexto educacional.',
   [EDUCATION_SECTION_KEYS.professionals]: 'Docentes vinculados às diferentes etapas e modalidades.',
   [EDUCATION_SECTION_KEYS.infrastructure]: 'Condições físicas, conectividade e recursos de oferta.',
   [EDUCATION_SECTION_KEYS.modalities]: 'EJA, educação profissional, inclusão e recortes territoriais.',
+  [EDUCATION_SECTION_KEYS.higherEducation]: 'Matrículas, instituições, polos, acesso, fluxo e docentes da Educação Superior.',
   [EDUCATION_SECTION_KEYS.demand]: 'Evolução observada e trajetórias futuras calculadas para indicadores de cobertura e tempo integral.',
   [EDUCATION_SECTION_KEYS.methodology]: 'Fontes, períodos, recortes e limitações dos indicadores.',
+  [EDUCATION_SECTION_KEYS.technicalReport]: 'Documento municipal organizado para apoiar a elaboração ou revisão do Plano Municipal de Educação.',
 })
 
 const overview = EDUCATION_SECTION_KEYS.overview
+const panorama = EDUCATION_SECTION_KEYS.panorama
 const attendance = EDUCATION_SECTION_KEYS.attendance
 const trajectory = EDUCATION_SECTION_KEYS.trajectory
 const professionals = EDUCATION_SECTION_KEYS.professionals
 const infrastructure = EDUCATION_SECTION_KEYS.infrastructure
 const modalities = EDUCATION_SECTION_KEYS.modalities
+const higherEducation = EDUCATION_SECTION_KEYS.higherEducation
 
 const EDUCATION_DEMAND_INDICATOR_CATALOG = Object.freeze([
   {
@@ -103,14 +127,24 @@ const SECTION_GROUP_DEFINITIONS = Object.freeze({
     { key: 'organizacao-turmas', label: 'Organização das turmas', description: 'Média de alunos por turma e série.' },
   ],
   [infrastructure]: [
-    { key: 'rede-escolar', label: 'Rede escolar', description: 'Condições gerais das escolas e da oferta.' },
-    { key: 'infraestrutura-fisica', label: 'Infraestrutura física', description: 'Ambiente físico e condições estruturais das escolas.' },
+    {
+      key: 'infraestrutura-basica',
+      label: 'Infraestrutura básica e espaços escolares',
+      description: 'Serviços básicos e espaços disponíveis nas escolas.',
+      indicatorKeys: Object.freeze(['infraestrutura-basica']),
+      indicatorCountKeys: SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER,
+    },
     { key: 'conectividade', label: 'Conectividade', description: 'Internet, redes locais e acesso para aprendizagem.' },
     { key: 'equipamentos-recursos', label: 'Equipamentos e recursos pedagógicos', description: 'Dispositivos e recursos disponíveis para os alunos.' },
   ],
   [modalities]: [
     { key: 'eja', label: 'Educação de Jovens e Adultos', description: 'Matrículas e escolas da EJA e sua integração profissional.' },
     { key: 'profissional-tecnologica', label: 'Educação profissional e tecnológica', description: 'Oferta técnica, profissional e suas matrículas.' },
+    {
+      key: 'educacao-indigena',
+      label: 'Educação indígena',
+      description: 'Cobertura estimada para 4 a 17 anos e síntese municipal das matrículas, estabelecimentos, docentes e turmas da Educação Escolar Indígena.',
+    },
     { key: 'inclusao', label: 'Inclusão', description: 'Atendimento educacional especializado e salas de recursos.' },
     { key: 'territorios', label: 'Territórios', description: 'Recortes territoriais disponíveis nos dados educacionais.' },
     { key: 'sistema-s', label: 'Sistema S', description: 'Oferta do Sistema S quando houver dados disponíveis.', special: 'sistemaS' },
@@ -155,9 +189,23 @@ const INDICATOR_GROUP_KEYS = Object.freeze({
   'apr-alfabetizacao': 'aprendizagem',
   'apr-inse': 'contexto-educacional',
   'oferta-total': 'profissional-tecnologica',
+  'indigena-matriculas': 'educacao-indigena',
+  'indigena-cobertura-estimada-4-17': 'educacao-indigena',
+  'indigena-estabelecimentos': 'educacao-indigena',
+  'indigena-docentes': 'educacao-indigena',
+  'indigena-turmas': 'educacao-indigena',
+  'educacao-especial-matriculas': 'inclusao',
+  'educacao-especial-inclusao-classes-comuns': 'inclusao',
   aee: 'inclusao',
+  'educacao-bilingue-surdos': 'inclusao',
   eja_integrada_educacao_profissional: 'eja',
+  'infraestrutura-basica': 'infraestrutura-basica',
+  agua_potavel: 'infraestrutura-basica',
+  energia_eletrica: 'infraestrutura-basica',
   internet: 'conectividade',
+  biblioteca_sala_leitura: 'infraestrutura-basica',
+  quadra_esportes: 'infraestrutura-basica',
+  esgoto_rede_publica: 'infraestrutura-basica',
   internet_alunos: 'conectividade',
   internet_aprendizagem: 'conectividade',
   internet_comunidade: 'conectividade',
@@ -377,6 +425,7 @@ const BASE_INDICATORS = [
     label: 'Infraestrutura',
     description: 'Acesso à internet e banda larga nas escolas.',
     section: infrastructure,
+    sections: [],
     themeKey: 'rede',
     dataBlock: 'rede_escolar',
     seriesPath: 'series.internet[].perc_internet',
@@ -631,12 +680,99 @@ const BASE_INDICATORS = [
     source: 'INEP Sinopse Estatística do Censo Escolar',
     comparisonGroup: 'educacao-profissional',
   },
+  {
+    key: 'indigena-cobertura-estimada-4-17',
+    label: 'Cobertura estimada da educação escolar indígena — 4 a 17 anos',
+    description: 'Relação entre as matrículas oficiais de pré-escola, ensino fundamental e ensino médio e a população indígena de 4 a 17 anos recenseada em 2022.',
+    section: modalities,
+    themeKey: 'educacao_indigena',
+    dataBlock: 'educacao_indigena',
+    seriesPath: 'coberturaEstimada.series',
+    unit: '%',
+    formatType: 'percent',
+    source: 'IBGE — Censo Demográfico 2022; INEP — Sinopse Estatística do Censo Escolar',
+  },
+  {
+    key: 'indigena-matriculas',
+    label: 'Matrículas na educação escolar indígena',
+    description: 'Total municipal oficial de matrículas registrado nas tabelas específicas de Educação Indígena.',
+    section: modalities,
+    themeKey: 'educacao_indigena',
+    dataBlock: 'educacao_indigena',
+    seriesPath: 'series_totais.matriculas',
+    unit: 'matrículas',
+    formatType: 'number',
+    source: 'INEP Sinopse Estatística do Censo Escolar',
+  },
+  {
+    key: 'indigena-estabelecimentos',
+    label: 'Estabelecimentos com oferta de educação escolar indígena',
+    description: 'Total municipal oficial de estabelecimentos com oferta registrado nas tabelas específicas de Educação Indígena.',
+    section: modalities,
+    themeKey: 'educacao_indigena',
+    dataBlock: 'educacao_indigena',
+    seriesPath: 'series_totais.estabelecimentos',
+    unit: 'estabelecimentos',
+    formatType: 'number',
+    source: 'INEP Sinopse Estatística do Censo Escolar',
+  },
+  {
+    key: 'indigena-docentes',
+    label: 'Docentes da educação escolar indígena',
+    description: 'Total municipal oficial de docentes registrado nas tabelas específicas de Educação Indígena.',
+    section: modalities,
+    themeKey: 'educacao_indigena',
+    dataBlock: 'educacao_indigena',
+    seriesPath: 'series_totais.docentes',
+    unit: 'docentes',
+    formatType: 'number',
+    source: 'INEP Sinopse Estatística do Censo Escolar',
+  },
+  {
+    key: 'indigena-turmas',
+    label: 'Turmas da educação escolar indígena',
+    description: 'Total municipal oficial de turmas registrado nas tabelas específicas de Educação Indígena.',
+    section: modalities,
+    themeKey: 'educacao_indigena',
+    dataBlock: 'educacao_indigena',
+    seriesPath: 'series_totais.turmas',
+    unit: 'turmas',
+    formatType: 'number',
+    source: 'INEP Sinopse Estatística do Censo Escolar',
+  },
 ]
 
+const SCHOOL_INFRASTRUCTURE_COMPOSITE_INDICATOR = {
+  key: 'infraestrutura-basica',
+  label: 'Infraestrutura básica e espaços escolares',
+  description: 'Disponibilidade de serviços básicos e espaços escolares em 2025.',
+  type: 'complementary',
+  section: infrastructure,
+  groupKey: 'infraestrutura-basica',
+  sections: [infrastructure],
+  themeKey: 'pne_complementares',
+  dataBlock: 'rede_escolar.infraestrutura',
+  unit: 'percentual',
+  formatType: 'percent',
+  source: SCHOOL_INFRASTRUCTURE_SOURCE,
+  renderer: 'EducationIndicatorDetail',
+  missingPolicy: MISSING_POLICY,
+}
+
 const COMPLEMENTARY_INDICATORS = [
-  ['aee', 'Oferta de AEE e salas de recursos na educação especial', 'Participação das turmas ou salas de AEE em relação ao total da educação especial no município.', modalities, 'percent'],
+  SCHOOL_INFRASTRUCTURE_COMPOSITE_INDICATOR,
+  ...[
+  ['educacao-especial-matriculas', 'Matrículas da Educação Especial', 'Matrículas da Educação Especial em classes comuns e classes exclusivas.', modalities, 'number'],
+  ['educacao-especial-inclusao-classes-comuns', 'Inclusão em classes comuns', 'Percentual das matrículas da Educação Especial em classes comuns.', modalities, 'percent'],
+  ['aee', 'Escolas que oferecem AEE', 'Número de escolas que oferecem Atendimento Educacional Especializado.', modalities, 'number'],
+  ['educacao-bilingue-surdos', 'Educação Bilíngue de Surdos', 'Matrículas da educação básica bilíngue de surdos registradas no município.', modalities, 'number'],
   ['eja_integrada_educacao_profissional', 'Matrículas do EJA integradas à educação profissional', 'Número de matrículas do EJA na forma integrada à educação profissional no município.', modalities, 'number'],
-  ['internet', 'Escolas da educação básica com acesso à internet', 'Percentual de escolas da educação básica com acesso à internet.', infrastructure, 'percent'],
+  ['agua_potavel', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.agua_potavel.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.agua_potavel.description, infrastructure, 'percent'],
+  ['energia_eletrica', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.energia_eletrica.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.energia_eletrica.description, infrastructure, 'percent'],
+  ['internet', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.internet.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.internet.description, infrastructure, 'percent'],
+  ['biblioteca_sala_leitura', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.biblioteca_sala_leitura.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.biblioteca_sala_leitura.description, infrastructure, 'percent'],
+  ['quadra_esportes', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.quadra_esportes.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.quadra_esportes.description, infrastructure, 'percent'],
+  ['esgoto_rede_publica', SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.esgoto_rede_publica.label, SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.esgoto_rede_publica.description, infrastructure, 'percent'],
   ['internet_alunos', 'Escolas com internet disponível para os alunos', 'Percentual de escolas com internet disponível para uso dos alunos.', infrastructure, 'percent'],
   ['internet_aprendizagem', 'Escolas com internet usada na aprendizagem', 'Percentual de escolas com internet aplicada aos processos de ensino e aprendizagem.', infrastructure, 'percent'],
   ['internet_comunidade', 'Escolas com internet aberta à comunidade', 'Percentual de escolas com internet aberta ao uso da comunidade.', infrastructure, 'percent'],
@@ -649,23 +785,31 @@ const COMPLEMENTARY_INDICATORS = [
   ['desktop_aluno', 'Escolas com computadores de mesa para alunos', 'Percentual de escolas com computadores de mesa disponíveis para os alunos.', infrastructure, 'percent'],
   ['comp_portatil_aluno', 'Escolas com computadores portáteis para alunos', 'Percentual de escolas com computadores portáteis disponíveis para os alunos.', infrastructure, 'percent'],
   ['tablet_aluno', 'Escolas com tablets para alunos', 'Percentual de escolas com tablets disponíveis para os alunos.', infrastructure, 'percent'],
-].map(([key, label, description, section, formatType]) => ({
+].map(([key, label, description, section, formatType]) => {
+  const isLegacyBasicInfrastructureDimension = SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.includes(key)
+  return {
   key,
   label,
   description,
   type: 'complementary',
   section,
-  groupKey: INDICATOR_GROUP_KEYS[key] ?? null,
-  sections: [section],
+  groupKey: isLegacyBasicInfrastructureDimension ? null : INDICATOR_GROUP_KEYS[key] ?? null,
+  sections: isLegacyBasicInfrastructureDimension ? [] : [section],
   themeKey: 'pne_complementares',
-  dataBlock: 'pne_2026_2036.indicadores',
+  dataBlock: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[key] ? 'rede_escolar.infraestrutura' : 'pne_2026_2036.indicadores',
   seriesPath: `indicadores.${key}.series`,
   unit: formatType === 'percent' ? 'percentual' : 'alunos',
   formatType,
-  source: 'INEP Censo Escolar · contexto complementar do PNE',
+  source: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[key]
+    ? SCHOOL_INFRASTRUCTURE_SOURCE
+    : 'INEP Censo Escolar · contexto complementar do PNE',
+  schoolInfrastructureKey: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[key] ? key : null,
   renderer: 'EducationIndicatorDetail',
   missingPolicy: MISSING_POLICY,
-}))
+  legacyCompositeKey: isLegacyBasicInfrastructureDimension ? 'infraestrutura-basica' : null,
+  }
+  }),
+]
 
 const withDefaults = (indicator) => ({
   type: 'base',
@@ -739,15 +883,32 @@ export const EDUCATION_SECTION_GROUPS = Object.freeze(
   Object.fromEntries(
     Object.entries(SECTION_GROUP_DEFINITIONS).map(([sectionKey, groups]) => [
       sectionKey,
-      groups.map((group) => ({
-        ...group,
-        indicatorKeys: group.indicatorKeys ?? EDUCATION_INDICATOR_CATALOG
+      groups.map((group) => {
+        const indicatorKeys = group.indicatorKeys ?? EDUCATION_INDICATOR_CATALOG
           .filter((indicator) => indicator.section === sectionKey && indicator.groupKey === group.key)
-          .map((indicator) => indicator.key),
-      })),
+          .map((indicator) => indicator.key)
+        return {
+          ...group,
+          indicatorKeys,
+          indicatorCount: (group.indicatorCountKeys ?? indicatorKeys).length,
+        }
+      }),
     ]),
   ),
 )
+
+function withEducationSectionCounts(section) {
+  const navigableContentCount = section.indicatorKeys.length
+  const indicatorCount = section.groups?.length
+    ? section.groups.reduce((total, group) => total + group.indicatorCount, 0)
+    : navigableContentCount
+
+  return {
+    ...section,
+    indicatorCount,
+    navigableContentCount,
+  }
+}
 
 export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
@@ -757,6 +918,13 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
     indicatorKeys: EDUCATION_INDICATOR_CATALOG.filter((item) => item.sections.includes(overview)).map((item) => item.key),
     status: 'curated-from-existing-summary',
   },
+  {
+    key: panorama,
+    label: EDUCATION_SECTION_LABELS[panorama],
+    description: EDUCATION_SECTION_DESCRIPTIONS[panorama],
+    indicatorKeys: EDUCATION_INDICATOR_CATALOG.filter((item) => item.sections.includes(overview)).map((item) => item.key),
+    status: 'municipal-overview',
+  },
   ...[attendance, trajectory, professionals, infrastructure, modalities].map((key) => ({
     key,
     label: EDUCATION_SECTION_LABELS[key],
@@ -765,6 +933,14 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
     groups: EDUCATION_SECTION_GROUPS[key],
     status: 'available-in-existing-data',
   })),
+  {
+    key: higherEducation,
+    label: EDUCATION_SECTION_LABELS[higherEducation],
+    description: EDUCATION_SECTION_DESCRIPTIONS[higherEducation],
+    indicatorKeys: [],
+    groups: [],
+    status: 'higher-education-municipal-contract',
+  },
   {
     key: EDUCATION_SECTION_KEYS.demand,
     label: EDUCATION_SECTION_LABELS[EDUCATION_SECTION_KEYS.demand],
@@ -781,23 +957,36 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
     groups: [],
     status: 'metadata-and-sources-only',
   },
-])
+  {
+    key: EDUCATION_SECTION_KEYS.technicalReport,
+    label: EDUCATION_SECTION_LABELS[EDUCATION_SECTION_KEYS.technicalReport],
+    description: EDUCATION_SECTION_DESCRIPTIONS[EDUCATION_SECTION_KEYS.technicalReport],
+    indicatorKeys: [],
+    groups: [],
+    status: 'consolidated-municipal-report',
+  },
+].map(withEducationSectionCounts))
 
 const EDUCATION_SECTION_THEME_KEYS = Object.freeze({
   [overview]: 'matriculas',
+  [panorama]: 'matriculas',
   [attendance]: 'matriculas',
   [trajectory]: 'fluxo',
   [professionals]: 'docentes',
   [infrastructure]: 'rede',
   [modalities]: 'oferta',
+  [higherEducation]: 'oferta',
   [EDUCATION_SECTION_KEYS.demand]: 'matriculas',
   [EDUCATION_SECTION_KEYS.methodology]: 'matriculas',
+  [EDUCATION_SECTION_KEYS.technicalReport]: 'matriculas',
 })
 
 const SECTION_ALIASES = new Map([
   ['visaogeral', overview],
-  ['panorama', overview],
-  ['panoramaeducacional', overview],
+  ['visaogeralmunicipal', panorama],
+  ['visaogeralmunicipaldaeducacao', panorama],
+  ['panorama', panorama],
+  ['panoramaeducacional', panorama],
   ['atendimento', attendance],
   ['ofertaeducacional', attendance],
   ['trajetoria', trajectory],
@@ -810,10 +999,15 @@ const SECTION_ALIASES = new Map([
   ['modalidades', modalities],
   ['equidade', modalities],
   ['territorios', modalities],
+  ['superior', higherEducation],
+  ['educacaosuperior', higherEducation],
+  ['ensinosuperior', higherEducation],
   ['demanda', EDUCATION_SECTION_KEYS.demand],
   ['projecoes', EDUCATION_SECTION_KEYS.demand],
   ['metodologia', EDUCATION_SECTION_KEYS.methodology],
   ['fontes', EDUCATION_SECTION_KEYS.methodology],
+  ['relatoriotecnico', EDUCATION_SECTION_KEYS.technicalReport],
+  ['relatoriotecnicomunicipal', EDUCATION_SECTION_KEYS.technicalReport],
 ])
 
 const THEME_SECTION_ALIASES = new Map([
@@ -868,6 +1062,15 @@ export function resolveEducationNavigation({ route, hashParams, searchParams } =
   const search = new URLSearchParams(searchParams ?? '')
   const getParameter = (key) => hash.get(key) ?? search.get(key)
 
+  if (normalizedRoute === 'relatoriotecnicomunicipal') {
+    return {
+      detailKey: '',
+      hasSystemTheme: false,
+      requestedSection: EDUCATION_SECTION_KEYS.technicalReport,
+      requestedTheme: null,
+      section: EDUCATION_SECTION_KEYS.technicalReport,
+    }
+  }
   if (!['educacao', 'sistemas', 'escolassistemas'].includes(normalizedRoute)) return null
   if (normalizedRoute === 'sistemas' || normalizedRoute === 'escolassistemas') {
     return {
@@ -879,7 +1082,11 @@ export function resolveEducationNavigation({ route, hashParams, searchParams } =
     }
   }
 
-  const detailKey = getParameter('detalhe') ?? ''
+  const requestedDetailKey = getParameter('detalhe') ?? ''
+  const legacyInfrastructureDimension = SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.includes(requestedDetailKey)
+    ? requestedDetailKey
+    : null
+  const detailKey = legacyInfrastructureDimension ? 'infraestrutura-basica' : requestedDetailKey
   const requestedSection = getParameter('secao')
   const requestedTheme = getParameter('tema') ?? getParameter('theme')
 

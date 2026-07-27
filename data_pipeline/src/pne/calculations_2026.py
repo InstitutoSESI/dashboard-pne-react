@@ -4,13 +4,16 @@ import math
 
 import time
 
-from functools import lru_cache
-
 import pandas as pd
 
 from src.pne2026_public_diagnostic_v2 import apply_pne2026_diagnostic_presentation
 
 from src.data_loader import get_data_cache_ttl_seconds, load_adequacao_docente_data, load_atendimento_educacional_especializado_data, load_basico_15_17_data, load_basico_6_17_data, load_basico_integral_data, load_censo_populacao_alfabetizacao_data, load_censo_populacao_ensino_fundamental_concluido_15_29_data, load_censo_populacao_ensino_fundamental_concluido_18_mais_data, load_censo_populacao_ensino_medio_concluido_18_29_data, load_censo_populacao_ensino_medio_concluido_18_mais_data, load_docentes_pos_graduacao_data, load_docentes_temporarios_data, load_eja_integrada_educacao_profissional_data, load_escolas_integral_data, load_ept_nivel_medio_data, load_infraestrutura_escolar_data, load_medio_tecnico_articulado_data, load_pne_data, load_pne_2026_2036_metricas_data, load_pre_escola_data, load_rendimento_professores_data, load_saeb_proficiencia_data, load_taxa_alfabetizacao_data, load_distorcao_idade_serie_data
+from src.data_loader import load_school_infrastructure_contract
+from src.school_infrastructure_materialization import (
+    REFERENCE_YEAR as SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
+    adapt_pne_internet_yearly,
+)
 
 from src.pne_trend import attach_trend
 
@@ -668,8 +671,13 @@ def _calculate_infra_results(municipio):
         yearly_slice = yearly[yearly["ano"] >= int(item["start_year"])][
             ["ano", count_column, denominator_column]
         ].copy()
+        is_canonical_internet = item["key"] == "internet"
+        if is_canonical_internet:
+            yearly_slice = yearly_slice[
+                yearly_slice["ano"].ne(SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR)
+            ].copy()
         if yearly_slice.empty:
-            continue
+            yearly_slice = pd.DataFrame(columns=["ano", count_column, denominator_column])
 
         denominator = yearly_slice[denominator_column].where(
             yearly_slice[denominator_column] != 0,
@@ -677,6 +685,12 @@ def _calculate_infra_results(municipio):
         )
         yearly_slice["valor"] = yearly_slice[count_column].div(denominator).mul(100)
         yearly_slice = yearly_slice.dropna(subset=["valor"])
+        if is_canonical_internet:
+            contract = _safe_load(
+                lambda: load_school_infrastructure_contract(municipio)
+            )
+            if isinstance(contract, dict):
+                yearly_slice = adapt_pne_internet_yearly(yearly_slice, contract)
         if yearly_slice.empty:
             continue
 
@@ -1287,21 +1301,29 @@ def _calc_infra_totalizado(municipio, item_cfg):
     dff[count_column] = pd.to_numeric(dff[count_column], errors="coerce")
     dff[denominator_column] = pd.to_numeric(dff[denominator_column], errors="coerce")
     dff = dff.dropna(subset=[count_column, denominator_column]).copy()
+    is_canonical_internet = item_cfg["key"] == "internet"
+    if is_canonical_internet:
+        dff = dff[dff["ano"].ne(SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR)].copy()
     if dff.empty:
-        return result
+        grouped = pd.DataFrame(columns=["ano", "valor"])
+    else:
+        grouped = dff.groupby("ano", as_index=False).agg(
+            {count_column: "sum", denominator_column: "sum"}
+        )
+        grouped["valor"] = grouped.apply(
+            lambda row: (
+                100.0 * row[count_column] / row[denominator_column]
+                if row[denominator_column]
+                else None
+            ),
+            axis=1,
+        )
+        grouped = grouped.dropna(subset=["valor"]).copy()
 
-    grouped = dff.groupby("ano", as_index=False).agg(
-        {count_column: "sum", denominator_column: "sum"}
-    )
-    grouped["valor"] = grouped.apply(
-        lambda row: (
-            100.0 * row[count_column] / row[denominator_column]
-            if row[denominator_column]
-            else None
-        ),
-        axis=1,
-    )
-    grouped = grouped.dropna(subset=["valor"]).copy()
+    if is_canonical_internet:
+        contract = _safe_load(lambda: load_school_infrastructure_contract(municipio))
+        if isinstance(contract, dict):
+            grouped = adapt_pne_internet_yearly(grouped, contract)
     if grouped.empty:
         return result
 

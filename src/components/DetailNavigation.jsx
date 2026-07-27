@@ -14,6 +14,7 @@ export function DetailNavigation({
   onPrevious,
   previousItem,
   showBack = true,
+  showSequence = true,
   statusLabel = '',
   statusTone = '',
   total,
@@ -40,7 +41,7 @@ export function DetailNavigation({
           tone={statusTone}
         />
       ) : null}
-      <div
+      {showSequence ? <div
         className="cycle-detail-nav__sequence platform-detail-navigation__sequence"
         aria-label={`Navegar entre ${itemPlural} filtrados`}
       >
@@ -65,7 +66,7 @@ export function DetailNavigation({
           {nextLabel ?? `Próximo ${itemLabel.toLocaleLowerCase('pt-BR')}`}
           <span aria-hidden="true">&rsaquo;</span>
         </button>
-      </div>
+      </div> : null}
     </div>
   )
 }

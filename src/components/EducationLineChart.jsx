@@ -12,6 +12,8 @@ export function EducationLineChart({
   title,
   color = '#16713a',
   formatLabel = (v) => String(v),
+  hideTitle = false,
+  integerTicks = false,
   scaleType = 'count',
   showPointLabels = false,
 }) {
@@ -19,8 +21,8 @@ export function EducationLineChart({
   const { containerRef, width: chartWidth } = useChartViewport(FALLBACK_CHART_WIDTH)
   const chartHeight = chartWidth < 420 ? 280 : 300
   const chart = useMemo(
-    () => buildChart(series, scaleType, chartWidth, chartHeight),
-    [chartHeight, chartWidth, scaleType, series],
+    () => buildChart(series, scaleType, chartWidth, chartHeight, integerTicks),
+    [chartHeight, chartWidth, integerTicks, scaleType, series],
   )
   const resolvedColor = resolveChartColor(color)
 
@@ -32,7 +34,7 @@ export function EducationLineChart({
 
   return (
     <div className="education-chart">
-      {title && <h4 className="education-chart__title">{title}</h4>}
+      {title && !hideTitle ? <h4 className="education-chart__title">{title}</h4> : null}
       <div className="education-chart__canvas" ref={containerRef}>
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -111,7 +113,7 @@ export function EducationLineChart({
   )
 }
 
-function buildChart(series, scaleType, chartWidth, chartHeight) {
+function buildChart(series, scaleType, chartWidth, chartHeight, integerTicks = false) {
   if (!Array.isArray(series) || series.length < 2) return null
   const padding = chartWidth < 420
     ? { top: 30, right: 34, bottom: 40, left: 64 }
@@ -127,7 +129,9 @@ function buildChart(series, scaleType, chartWidth, chartHeight) {
   const points = rawPoints.filter((point) => point.valid)
   if (points.length < 2) return null
   const values = points.map((p) => p.value)
-  const domain = getYAxisDomain(values, scaleType)
+  const domain = integerTicks && Math.max(...values) <= 20
+    ? getSmallIntegerDomain(values)
+    : getYAxisDomain(values, scaleType)
   const range = domain.max - domain.min || 1
   const years = rawPoints.map((p) => p.year)
   const minYear = Math.min(...years); const maxYear = Math.max(...years)
@@ -154,10 +158,26 @@ function buildChart(series, scaleType, chartWidth, chartHeight) {
   const areaPaths = segments.flatMap((segment, index) => segment.length > 1
     ? [`${linePaths[index]} L${segment[segment.length - 1].x.toFixed(1)} ${baselineY.toFixed(1)} L${segment[0].x.toFixed(1)} ${baselineY.toFixed(1)} Z`]
     : [])
-  const yTicksRaw = [domain.min, domain.min + range * 0.25, domain.min + range * 0.5, domain.min + range * 0.75, domain.max]
+  const yTicksRaw = integerTicks && domain.max <= 20
+    ? buildIntegerTicks(domain)
+    : [domain.min, domain.min + range * 0.25, domain.min + range * 0.5, domain.min + range * 0.75, domain.max]
   const yTicks = yTicksRaw.map((val) => ({ label: formatAxisTick(val, scaleType), y: yScale(val) }))
   const xTickLimit = chartWidth < 420 ? 3 : chartWidth < 620 ? 5 : 7
   return { areaPaths, linePaths, padding, points: scaled, xTicks: selectPneYearTicks(scaledRaw, xTickLimit), yTicks }
+}
+
+function getSmallIntegerDomain(values) {
+  const max = Math.max(...values, 1)
+  const step = Math.max(1, Math.ceil(max / 4))
+  return { min: 0, max: Math.ceil(max / step) * step }
+}
+
+function buildIntegerTicks(domain) {
+  const step = Math.max(1, Math.ceil((domain.max - domain.min) / 4))
+  const ticks = []
+  for (let value = domain.min; value <= domain.max; value += step) ticks.push(value)
+  if (ticks[ticks.length - 1] !== domain.max) ticks.push(domain.max)
+  return ticks
 }
 
 function normalizeChartYearSeries(series) {

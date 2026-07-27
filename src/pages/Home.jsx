@@ -3,22 +3,32 @@ import { StatCard } from '../components/StatCard'
 
 const ENTRY_CARDS = [
   {
+    action: 'Abrir PNE',
     detail: 'Acompanhe as metas legais, os resultados do ciclo 2014–2024 e o ciclo 2026–2036.',
     icon: TargetIcon,
     key: 'pne2026',
     title: 'Plano Nacional de Educação',
   },
   {
+    action: 'Abrir indicadores',
     detail: 'Explore atendimento, trajetória, aprendizagem, profissionais, infraestrutura, modalidades, territórios e projeções.',
     icon: EducationIcon,
     key: 'educacao',
     title: 'Indicadores educacionais',
   },
   {
+    action: 'Abrir financiamento',
     detail: 'Analise SIOPE, FUNDEB, VAAR, PNATE, execução e aplicação dos recursos.',
     icon: FinanceIcon,
     key: 'financeiros',
     title: 'Financiamento da educação',
+  },
+  {
+    action: 'Abrir relatório',
+    detail: 'Reúne, em um único documento, as principais evidências educacionais e financeiras do município para leitura, impressão e planejamento.',
+    icon: ReportIcon,
+    key: 'relatorio-tecnico-municipal',
+    title: 'Relatório Técnico Municipal',
   },
 ]
 
@@ -29,12 +39,12 @@ const NAVIGATION_STEPS = [
     title: 'Selecione o município',
   },
   {
-    detail: 'Acesse o PNE, os indicadores educacionais ou o financiamento da educação.',
+    detail: 'Acesse o PNE, os indicadores educacionais, o financiamento ou o Relatório Técnico Municipal.',
     number: '02',
     title: 'Escolha uma frente de análise',
   },
   {
-    detail: 'Use filtros, históricos, comparações e painéis de detalhamento para aprofundar a leitura.',
+    detail: 'Utilize filtros, históricos, comparações, capítulos e painéis de detalhamento para aprofundar a leitura.',
     number: '03',
     title: 'Explore os detalhes',
   },
@@ -59,7 +69,7 @@ const HOME_GUIDANCE_STEPS = [
     title: 'Selecione o município',
   },
   {
-    detail: 'Acesse o PNE, a educação ou o financiamento.',
+    detail: 'Acesse o PNE, os indicadores, o financiamento ou o Relatório Técnico Municipal.',
     number: '02',
     title: 'Escolha uma frente de análise',
   },
@@ -100,8 +110,8 @@ export function Home({ onNavigate, selectedMunicipio }) {
           <p className="home-hero__identity">Painel SESI-RS de Inteligência Analítica Municipal</p>
           <h1>Informação para compreender, acompanhar e planejar a educação municipal</h1>
           <p className="home-hero__description">
-            Uma leitura municipal integrada de metas do PNE, indicadores educacionais, projeções,
-            infraestrutura, profissionais e financiamento, organizada a partir de fontes oficiais.
+            Uma leitura municipal integrada de metas do PNE, indicadores educacionais, financiamento
+            e relatório técnico, organizada a partir de fontes oficiais.
           </p>
         </div>
 
@@ -143,7 +153,8 @@ export function Home({ onNavigate, selectedMunicipio }) {
             return (
               <NavigationEntryCard
                 aria-label={`Abrir ${card.title}`}
-                footerText={card.detail}
+                bodyText={card.detail}
+                footerText={card.action}
                 icon={Icon}
                 key={card.key}
                 onClick={() => onNavigate?.(card.key)}
@@ -232,6 +243,15 @@ function FinanceIcon() {
       <path d="M3 19.5h18" />
       <path d="m4 15 5-5 4 3 7-8" />
       <path d="M16.5 5H20v3.5" />
+    </svg>
+  )
+}
+
+function ReportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3.5h8l4 4V20.5H6z" />
+      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" />
     </svg>
   )
 }

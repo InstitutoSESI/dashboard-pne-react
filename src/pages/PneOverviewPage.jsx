@@ -42,6 +42,7 @@ export function PneOverviewPage({ onNavigate }) {
         description={hero.description}
         eyebrow={hero.eyebrow}
         title={hero.title}
+        variant="editorial"
       />
 
       <section className="page-card pne-overview-intro">

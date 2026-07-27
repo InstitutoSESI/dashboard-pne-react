@@ -181,6 +181,7 @@ export function PneLegalGoalsPage({
         description="Consulte as metas legais do ciclo vigente e veja como elas se conectam aos indicadores municipais disponíveis no painel."
         eyebrow="PLANO NACIONAL DE EDUCAÇÃO · CICLO VIGENTE"
         title="Metas legais do PNE 2026–2036"
+        variant="listing"
       />
 
       <section className="legal-goals-summary-grid" aria-label="Resumo da cobertura da matriz">

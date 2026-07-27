@@ -97,6 +97,7 @@ const ROUTE_CASES = [
   ['#pne2026', 'pne2026'],
   ['#diagnostico', 'diagnostico'],
   ['#educacao', 'educacao'],
+  ['#relatorio-tecnico-municipal', 'relatorio-tecnico-municipal'],
   ['#financeiros', FINANCIAL_PAGE_KEYS.overview],
   ['#financeiros-panorama', FINANCIAL_PAGE_KEYS.panorama],
   ['#panorama-financeiro', FINANCIAL_PAGE_KEYS.panorama],
@@ -205,6 +206,52 @@ test('resolve Educação sem acesso a window', () => {
   assert.equal(systems.section, 'modalidades')
   assert.equal(systems.hasSystemTheme, true)
   assert.equal(resolveEducationNavigation({ route: 'pne2014' }), null)
+})
+
+test('resolve visão geral, panorama, aliases históricos e relatório técnico', () => {
+  const resolveSection = (secao) => resolveEducationNavigation({
+    route: 'educacao',
+    hashParams: new URLSearchParams(`secao=${secao}`),
+  }).section
+
+  assert.equal(resolveSection('visao-geral'), 'visao-geral')
+  assert.equal(resolveSection('panorama'), 'panorama')
+  assert.equal(resolveSection('panorama-educacional'), 'panorama')
+  assert.equal(resolveSection('visao-geral-municipal'), 'panorama')
+  assert.equal(resolveSection('educacao-superior'), 'educacao-superior')
+  assert.equal(resolveSection('superior'), 'educacao-superior')
+  assert.equal(resolveSection('ensino-superior'), 'educacao-superior')
+  assert.equal(resolveSection('relatorio-tecnico-municipal'), 'relatorio-tecnico-municipal')
+
+  const technicalReport = resolveEducationNavigation({
+    route: 'relatorio-tecnico-municipal',
+    hashParams: new URLSearchParams('municipio=porto-alegre'),
+  })
+  assert.equal(technicalReport.section, 'relatorio-tecnico-municipal')
+
+  const higherEducationDetail = resolveEducationNavigation({
+    route: 'educacao',
+    hashParams: new URLSearchParams('secao=educacao-superior&detalhe=esup-docentes&municipio=porto-alegre'),
+  })
+  assert.equal(higherEducationDetail.section, 'educacao-superior')
+  assert.equal(higherEducationDetail.detailKey, 'esup-docentes')
+
+  const aeeDetail = resolveEducationNavigation({
+    route: 'educacao',
+    hashParams: new URLSearchParams('detalhe=aee&municipio=alegrete'),
+  })
+  assert.equal(aeeDetail.section, 'modalidades')
+  assert.equal(aeeDetail.detailKey, 'aee')
+
+  for (const alias of ['quadra_esportes', 'esgoto_rede_publica']) {
+    const legacyInfrastructure = resolveEducationNavigation({
+      route: 'educacao',
+      hashParams: new URLSearchParams(`secao=infraestrutura&detalhe=${alias}&dimensao=${alias}`),
+    })
+    assert.equal(legacyInfrastructure.section, 'infraestrutura')
+    assert.equal(legacyInfrastructure.detailKey, 'infraestrutura-basica')
+    assert.equal('dimensionKey' in legacyInfrastructure, false)
+  }
 })
 
 test('adapta location e mantém o fallback da página inicial', () => {

@@ -6,11 +6,15 @@ export function PnePageHeader({
   description,
   eyebrow,
   title,
+  variant = '',
 }) {
   const hasAside = asideContent || actions
+  const variantClassName = variant
+    ? ` platform-page-header platform-page-header--${variant}`
+    : ''
 
   return (
-    <header className="pne-page-header">
+    <header className={`pne-page-header${variantClassName}`}>
       <div className="pne-page-header__main">
         <p className="pne-page-header__eyebrow">{eyebrow}</p>
         <h1>{title}</h1>

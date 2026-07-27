@@ -15,3 +15,15 @@ EDUCATION_DATA_DIR = PUBLIC_DATA_DIR / "educacao"
 SESI_DB_DIR = Path(
     os.environ.get("SESI_DB_DIR", REPO_ROOT.parent / "SESI" / "DB")
 ).resolve()
+HIGHER_EDUCATION_SOURCE_DIR = Path(
+    os.environ.get(
+        "HIGHER_EDUCATION_SOURCE_DIR",
+        SESI_DB_DIR / "data" / "sinopse_educacao_superior",
+    )
+).resolve()
+CENSO_ESCOLAR_SOURCE_DIR = Path(
+    os.environ.get(
+        "CENSO_ESCOLAR_SOURCE_DIR",
+        SESI_DB_DIR / "data" / "censo_escolar",
+    )
+).resolve()

@@ -1,7 +1,7 @@
 import { isMissing } from '../utils/educationFormatters'
 import { ContentState } from './ContentState'
 
-export function EducationTable({ columns, rows, emptyMessage = 'Sem dados disponíveis.', caption = 'Dados educacionais' }) {
+export function EducationTable({ columns, rows, emptyMessage = 'Sem dados disponíveis.', caption = 'Dados educacionais', className = '' }) {
   if (!rows || rows.length === 0) {
     return (
       <ContentState as="p" kind="empty" className="education-table-empty platform-data-state">
@@ -11,7 +11,7 @@ export function EducationTable({ columns, rows, emptyMessage = 'Sem dados dispon
   }
 
   return (
-    <div className="education-table-wrap platform-data-table-region" role="region" aria-label={`${caption}. Role horizontalmente para consultar todas as colunas quando necessário.`} tabIndex={0}>
+    <div className={`education-table-wrap platform-data-table-region${className ? ` ${className}` : ''}`} role="region" aria-label={`${caption}. Role horizontalmente para consultar todas as colunas quando necessário.`} tabIndex={0}>
       <table className="education-table platform-data-table">
         <caption className="u-sr-only">{caption}</caption>
         <thead>
@@ -38,7 +38,9 @@ export function EducationTable({ columns, rows, emptyMessage = 'Sem dados dispon
                 const display = missing
                   ? <span className="platform-data-missing" aria-label="Dado não disponível" title="Dado não disponível">—</span>
                   : col.format ? col.format(raw) : String(raw)
-                return <td key={col.key} className={className}>{display}</td>
+                return col.rowHeader
+                  ? <th key={col.key} scope="row" className={className}>{display}</th>
+                  : <td key={col.key} className={className}>{display}</td>
               })}
             </tr>
           ))}

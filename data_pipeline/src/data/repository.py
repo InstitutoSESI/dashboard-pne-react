@@ -238,6 +238,16 @@ DATASET_SPECS: dict[str, DatasetSpec] = {
         base_table="infraestrutura_escolar",
         local_query_file="infraestrutura_escolar.sql",
     ),
+    "school_infrastructure_source_data": DatasetSpec(
+        name="school_infrastructure_source_data",
+        base_table="vw_educacao_infraestrutura_escolar_ativa",
+        local_query_file="school_infrastructure_source.sql",
+    ),
+    "special_education_school_source_data": DatasetSpec(
+        name="special_education_school_source_data",
+        base_table="censo_educacao_especial_escolas",
+        local_query_file="special_education_school_source.sql",
+    ),
     "escolas_integral_referencia_data": DatasetSpec(
         name="escolas_integral_referencia_data",
         base_table="censo_escolas",
@@ -312,6 +322,8 @@ LOCAL_QUERY_FILES_BY_TABLE: dict[str, str] = {
     "rendimento_professores_razao_percentual": "rendimento_professores.sql",
     "atendimento_educacional_especializado": "atendimento_educacional_especializado.sql",
     "infraestrutura_escolar": "infraestrutura_escolar.sql",
+    "vw_educacao_infraestrutura_escolar_ativa": "school_infrastructure_source.sql",
+    "censo_educacao_especial_escolas": "special_education_school_source.sql",
     "censo_escolas": "infraestrutura_escolar_referencia.sql",
     "pne_infraestrutura_escolar_por_dependencia": "infraestrutura_escolar_por_dependencia.sql",
     "pne_2014_2024_metricas": "pne_2014_2024_metricas.sql",

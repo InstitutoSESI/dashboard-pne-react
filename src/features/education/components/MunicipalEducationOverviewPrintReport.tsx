@@ -49,8 +49,8 @@ export function MunicipalEducationOverviewPrintReport({
     <article className="municipal-education-print-report">
       <header className="municipal-education-print-report__header">
         <p className="municipal-education-print-report__institution">Painel SESI-RS de Inteligência Municipal</p>
-        <h1>Visão geral municipal da educação</h1>
-        <p className="municipal-education-print-report__subtitle">Retrato das matrículas e da oferta educacional no município</p>
+        <h1>Panorama educacional</h1>
+        <p className="municipal-education-print-report__subtitle">Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município</p>
         <dl className="municipal-education-print-report__identity">
           <div><dt>Município</dt><dd>{data.municipality.name}</dd></div>
           <div><dt>Código IBGE</dt><dd>{data.municipality.idMunicipality}</dd></div>

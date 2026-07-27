@@ -1,4 +1,8 @@
 import { ExplorableIndicatorCardFrame } from './ExplorableIndicatorCardFrame'
+import {
+  formatSchoolInfrastructurePercentage,
+  formatSchoolInfrastructureQuantity,
+} from '../data/schoolInfrastructureContract'
 
 const EM = '\u2014'
 const EDUCATION_CARD_CLASS_CONTRACT = Object.freeze({
@@ -22,50 +26,99 @@ const EDUCATION_CARD_CLASS_CONTRACT = Object.freeze({
   action: 'education-indicator-card__action',
 })
 
-export function EducationIndicatorCard({ buttonRef, indicator, isSelected = false, onSelect }) {
+const PEDAGOGICAL_RESOURCE_CARD_COPY = Object.freeze({
+  proposta_pedagogica: {
+    title: 'Escolas públicas com projeto político-pedagógico',
+    description: 'Escolas públicas com projeto político-pedagógico ou proposta pedagógica.',
+  },
+  desktop_aluno: {
+    title: 'Escolas com computadores de mesa para alunos',
+    description: 'Escolas com computadores de mesa disponíveis para os alunos.',
+  },
+  comp_portatil_aluno: {
+    title: 'Escolas com computadores portáteis para alunos',
+    description: 'Escolas com computadores portáteis disponíveis para os alunos.',
+  },
+  tablet_aluno: {
+    title: 'Escolas com tablets para alunos',
+    description: 'Escolas com tablets disponíveis para os alunos.',
+  },
+})
+
+export function EducationIndicatorCard({
+  buttonRef,
+  indicator,
+  isDisabled = false,
+  isSelected = false,
+  onSelect,
+}) {
+  if (indicator.cardVariant === 'school-infrastructure-composite') {
+    return (
+      <SchoolInfrastructureCompositeCard
+        buttonRef={buttonRef}
+        indicator={indicator}
+        isDisabled={isDisabled}
+        onSelect={onSelect}
+      />
+    )
+  }
+
   const isExploratory = indicator.cardVariant === 'exploratory'
+  const isPedagogicalResource = indicator.groupKey === 'equipamentos-recursos'
+  const pedagogicalCardCopy = isPedagogicalResource ? PEDAGOGICAL_RESOURCE_CARD_COPY[indicator.key] : null
   const exploratorySummary = indicator.exploratorySummary ?? {}
   const contextLabel = indicator.themeShortLabel ?? indicator.themeLabel ?? (isExploratory ? 'Escolas' : 'Indicador')
   const currentDisplay = indicator.currentDisplay ?? EM
   const currentYear = isExploratory ? exploratorySummary.latestYear : indicator.currentYear
   const hasCurrentValue = Number.isFinite(Number(indicator.currentValue)) && currentDisplay !== EM && currentDisplay !== ''
-  const comparison = !isExploratory && hasCurrentValue
+  const comparison = !isExploratory && !indicator.snapshotOnly && hasCurrentValue
     ? getPreviousComparablePoint(indicator, currentYear)
     : null
   const variationDisplay = comparison ? formatCardVariation(indicator, comparison.value) : null
   const seriesPeriod = isExploratory ? null : getCardSeriesPeriod(indicator.series, currentYear)
-  const hasSeries = Boolean(seriesPeriod)
+  const hasSeries = !indicator.snapshotOnly && Boolean(seriesPeriod)
   const direction = getCardDirection({
     comparison,
     hasCurrentValue,
     isExploratory,
   })
-  const reading = getCardReading({
+  const reading = indicator.cardReading ?? getCardReading({
     comparison,
+    currentValue: indicator.currentValue,
     direction,
     hasCurrentValue,
     initialYear: seriesPeriod?.initialYear,
     isExploratory,
+    neutralTrend: indicator.neutralTrend,
+    zeroMessage: indicator.zeroMessage,
   })
-  const statusLabel = comparison ? getDirectionLabel(direction) : null
-  const statusTone = getDirectionTone(direction)
+  const statusLabel = indicator.statusLabel ?? (comparison ? getDirectionLabel(direction, indicator.neutralTrend) : null)
+  const statusTone = indicator.statusTone ?? (indicator.neutralTrend ? 'muted' : getDirectionTone(direction))
   const unitLabel = getCardUnitLabel(indicator)
   const footerLabel = isExploratory
     ? 'Abrir panorama'
     : hasSeries
       ? 'Ver série histórica'
       : 'Abrir detalhes'
-  const footerContext = indicator.stageLabel
+  const footerContext = isPedagogicalResource
+    ? 'Recursos pedagógicos'
+    : indicator.stageLabel
     ?? indicator.mainCutLabel
     ?? indicator.recortePrincipal
     ?? indicator.categoryLabel
     ?? contextLabel
-  const title = isExploratory ? indicator.cardTitle : indicator.label
-  const description = String(indicator.description ?? '').trim()
+  const title = isExploratory
+    ? indicator.cardTitle
+    : pedagogicalCardCopy?.title ?? indicator.label
+  const description = String(
+    isExploratory
+      ? 'Condições básicas, espaços escolares, conectividade e equipamentos disponíveis nas escolas.'
+      : pedagogicalCardCopy?.description ?? indicator.description ?? '',
+  ).trim()
   const value = isExploratory
     ? {
         display: exploratorySummary.count ?? EM,
-        metaLabel: exploratorySummary.label ?? 'dimensões',
+        metaLabel: 'indicadores',
       }
     : {
         display: currentDisplay,
@@ -74,11 +127,11 @@ export function EducationIndicatorCard({ buttonRef, indicator, isSelected = fals
   const ariaLabel = isExploratory
     ? [
         `Abrir panorama da infraestrutura escolar. ${title}.`,
-        `${exploratorySummary.count ?? EM} ${exploratorySummary.label ?? 'dimensões'}, ano ${exploratorySummary.latestYear ?? 'indisponível'}.`,
+        `${exploratorySummary.count ?? EM} indicadores, ano ${exploratorySummary.latestYear ?? 'indisponível'}.`,
         description ? `Descrição: ${description}.` : '',
       ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
     : [
-        `Abrir detalhe do indicador ${indicator.label}.`,
+        `Abrir detalhe do indicador ${title}.`,
         `Valor ${currentDisplay},`,
         currentYear ? `ano ${currentYear}.` : 'ano indisponível.',
         statusLabel ? `${statusLabel}.` : '',
@@ -90,23 +143,39 @@ export function EducationIndicatorCard({ buttonRef, indicator, isSelected = fals
     anatomy: 'education',
     ariaLabel,
     contextLabel,
-    description: indicator.description,
+    description,
     footer: {
       icon: null,
       primary: isExploratory ? footerLabel : footerContext,
       actionLabel: footerLabel,
     },
-    hideStatus: !comparison,
+    featureMeta: isExploratory
+      ? [
+          {
+            label: 'indicadores',
+            value: exploratorySummary.count ?? EM,
+            valueFirst: true,
+          },
+          {
+            label: 'Referência',
+            value: exploratorySummary.latestYear ?? 'Indisponível',
+          },
+        ]
+      : null,
+    hideStatus: !comparison && !indicator.snapshotOnly,
+    hideContext: isExploratory || isPedagogicalResource,
     insight: {
       context: null,
       direction,
       emphasis: reading,
+      label: indicator.snapshotOnly && currentYear ? `Situação em ${currentYear}` : 'Leitura',
       marker: null,
       reading,
       period: null,
     },
     metadata: {
       year: currentYear ?? 'Indisponível',
+      yearLabel: isExploratory ? 'Referência' : 'Ano',
       variation: comparison
         ? {
             label: `Var. desde ${comparison.year}`,
@@ -122,6 +191,11 @@ export function EducationIndicatorCard({ buttonRef, indicator, isSelected = fals
     },
     title,
     value,
+    modifier: isExploratory
+      ? ['panorama-entry', 'panorama-feature']
+      : isPedagogicalResource
+        ? 'compact-copy'
+        : null,
     variant: indicator.cardVariant,
   }
 
@@ -129,10 +203,63 @@ export function EducationIndicatorCard({ buttonRef, indicator, isSelected = fals
     <ExplorableIndicatorCardFrame
       buttonRef={buttonRef}
       classContract={EDUCATION_CARD_CLASS_CONTRACT}
+      disabled={isDisabled}
       isSelected={isSelected}
       onSelect={onSelect}
       viewModel={viewModel}
     />
+  )
+}
+
+function SchoolInfrastructureCompositeCard({
+  buttonRef,
+  indicator,
+  isDisabled,
+  onSelect,
+}) {
+  const dimensions = indicator.schoolInfrastructureDimensions ?? []
+  const ariaLabel = [
+    `Abrir panorama de ${indicator.label}.`,
+    ...dimensions.map(({ label, result }) =>
+      `${label}: ${formatSchoolInfrastructurePercentage(result)}, ${formatSchoolInfrastructureQuantity(result)} escolas.`),
+  ].join(' ')
+
+  return (
+    <button
+      aria-label={ariaLabel}
+      className="school-infrastructure-composite-card"
+      disabled={isDisabled}
+      onClick={onSelect}
+      ref={buttonRef}
+      type="button"
+    >
+      <span className="school-infrastructure-composite-card__heading">
+        <span className="school-infrastructure-composite-card__copy">
+          <strong>{indicator.label}</strong>
+          <span>{indicator.description}</span>
+        </span>
+        <span className="school-infrastructure-composite-card__action">
+          Abrir panorama <span aria-hidden="true">›</span>
+        </span>
+      </span>
+      <span className="school-infrastructure-composite-card__metrics">
+        {dimensions.map(({ key, label, result }) => {
+          const quantity = formatSchoolInfrastructureQuantity(result)
+          return (
+            <span
+              className="school-infrastructure-composite-card__metric"
+              key={key}
+            >
+              <span className="school-infrastructure-composite-card__label">{label}</span>
+              <strong className="school-infrastructure-composite-card__value">
+                {formatSchoolInfrastructurePercentage(result)}
+              </strong>
+              <small>{quantity === 'Não se aplica' || quantity === 'Não disponível' ? quantity : `${quantity} escolas`}</small>
+            </span>
+          )
+        })}
+      </span>
+    </button>
   )
 }
 
@@ -144,10 +271,10 @@ function getCardDirection({ comparison, hasCurrentValue, isExploratory }) {
   return 'stable'
 }
 
-function getDirectionLabel(direction) {
-  if (direction === 'up') return 'Alta'
-  if (direction === 'down') return 'Queda'
-  if (direction === 'stable') return 'Estável'
+function getDirectionLabel(direction, neutralTrend = false) {
+  if (direction === 'up') return neutralTrend ? 'Aumento' : 'Alta'
+  if (direction === 'down') return neutralTrend ? 'Redução' : 'Queda'
+  if (direction === 'stable') return neutralTrend ? 'Estabilidade' : 'Estável'
   return null
 }
 
@@ -165,11 +292,12 @@ function getDirectionMarker(direction) {
   return ''
 }
 
-function getCardReading({ comparison, direction, hasCurrentValue, initialYear, isExploratory }) {
+function getCardReading({ comparison, currentValue, direction, hasCurrentValue, initialYear, isExploratory, neutralTrend, zeroMessage }) {
   if (isExploratory) return 'Panorama disponível por dimensão'
   if (!hasCurrentValue) return 'Leitura recente indisponível'
+  if (Number(currentValue) === 0 && zeroMessage) return zeroMessage
   if (!comparison) return initialYear ? `Série disponível a partir de ${initialYear}` : 'Sem ano anterior comparável'
-  if (direction === 'up') return 'Crescimento recente'
+  if (direction === 'up') return neutralTrend ? 'Aumento recente' : 'Crescimento recente'
   if (direction === 'down') return 'Redução recente'
   return 'Estabilidade recente'
 }
@@ -185,6 +313,7 @@ function getPreviousComparablePoint(indicator, currentYear) {
   if (!Number.isFinite(currentValue)) return null
 
   const points = (Array.isArray(indicator.series) ? indicator.series : [])
+    .filter((point) => point?.valor !== null && point?.valor !== undefined)
     .map((point) => ({ year: Number(point?.ano), value: Number(point?.valor) }))
     .filter((point) => Number.isFinite(point.year) && Number.isFinite(point.value))
     .sort((a, b) => a.year - b.year)

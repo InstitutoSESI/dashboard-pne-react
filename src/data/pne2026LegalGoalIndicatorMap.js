@@ -221,14 +221,7 @@ const LEGAL_GOAL_RELATIONS = {
     ],
   },
   '10.b': {
-    relatedIndicators: [
-      indicator(
-        'aee',
-        'aproximada',
-        'Indicador de contexto/proxy; a fonte aberta atual não oferece denominador municipal seguro para medir diretamente todo o público do AEE.',
-        { hasDistance: false },
-      ),
-    ],
+    relatedIndicators: [],
   },
   '11.a': {
     relatedIndicators: [

@@ -1,6 +1,7 @@
 import type { IndicadoresPayload, MunicipioData, MunicipioName } from '../../types/data'
 import type { ParsedAppLocation } from '../../types/navigation'
 import type { EducationAttendancePayload } from './educationAttendanceTypes'
+import type { SchoolInfrastructureContract } from '../../data/schoolInfrastructureContract'
 
 export type EducationSectionKey = string
 export type EducationIndicatorKey = string
@@ -30,6 +31,8 @@ export interface EducationSection {
   label?: string
   description?: string
   indicatorKeys?: EducationIndicatorKey[]
+  indicatorCount?: number
+  navigableContentCount?: number
 }
 
 export interface EducationSectionGroup {
@@ -37,6 +40,7 @@ export interface EducationSectionGroup {
   label?: string
   description?: string
   indicatorKeys: EducationIndicatorKey[]
+  indicatorCount?: number
   [property: string]: unknown
 }
 
@@ -48,11 +52,19 @@ export interface EducationNavigationState {
 }
 
 export interface EducationPneContext {
+  cenarios_planejamento?: Record<string, unknown>
   indicadores?: Record<string, unknown>
   projecoes?: Record<string, unknown>
 }
 
 export interface EducationMunicipioData extends MunicipioData {
+  blocos?: {
+    rede_escolar?: {
+      infraestrutura?: SchoolInfrastructureContract & Record<string, unknown>
+      [property: string]: unknown
+    }
+    [property: string]: unknown
+  }
   educacao?: {
     atendimento_cenarios?: EducationAttendancePayload
   }

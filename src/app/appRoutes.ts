@@ -13,6 +13,7 @@ const HASH_PAGE_MAP: Readonly<Record<string, AppPageKey>> = Object.freeze({
   pne2026: 'pne2026',
   diagnostico: 'diagnostico',
   educacao: 'educacao',
+  relatoriotecnicomunicipal: 'relatorio-tecnico-municipal',
   financeiros: 'financeiros',
   financeirospanorama: FINANCIAL_PAGE_KEYS.panorama,
   panoramafinanceiro: FINANCIAL_PAGE_KEYS.panorama,

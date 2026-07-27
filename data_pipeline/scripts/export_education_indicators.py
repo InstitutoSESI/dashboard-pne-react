@@ -27,6 +27,11 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SESI_DB_DIR  # noqa: E402
+from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
+from src.school_infrastructure_materialization import (  # noqa: E402
+    adapt_legacy_document,
+    build_contracts,
+)
 
 # ── Logging ────────────────────────────────────────────────────────────────
 
@@ -585,7 +590,12 @@ FONTES = [
     {"nome": "INEP - Media de Alunos por Turma (ATU)", "tabelas": ["alunos_turma"]},
     {"nome": "INEP - Sinopse Estatistica do Censo Escolar", "tabelas": [
         "matriculas_faixa_etaria", "docentes_pos_graduacao",
-        "ept_nivel_medio", "eja_integrada_educacao_profissional"
+        "ept_nivel_medio", "eja_integrada_educacao_profissional",
+        "educacao_indigena_municipal",
+    ]},
+    {"nome": "IBGE - Censo Demografico 2022", "tabelas": [
+        "populacao_indigena_idade_municipal",
+        "populacao_indigena_faixa_municipal",
     ]},
     {"nome": "INEP - Taxas de Rendimento Escolar", "tabelas": ["rendimento_escolar"]},
     {"nome": "INEP - Distorcao Idade-Serie", "tabelas": ["distorcao_idade_serie"]},
@@ -626,6 +636,17 @@ AVISOS_APRENDIZAGEM = [
 
 AVISOS_OFERTA = [
     "perc_modalidade tem alta taxa de null (municipios sem oferta em determinada modalidade).",
+]
+
+AVISOS_EDUCACAO_INDIGENA = [
+    "A série municipal está disponível de 2023 a 2025 nas tabelas específicas "
+    "de Educação Indígena da Sinopse Estatística do Censo Escolar.",
+    "Os totais e os recortes por etapa são valores oficiais publicados pelo Inep; "
+    "não são recalculados pela soma dos componentes.",
+    "Ensino Médio, Educação Profissional e Educação Especial têm quebra conceitual "
+    "entre os leiautes de 2024 e 2025 e não recebem variação automática.",
+    "O retrato não informa rede administrativa, localização, zona, território, "
+    "terra indígena, povo, língua ou categoria diferenciada.",
 ]
 
 
@@ -2019,6 +2040,163 @@ def _resumo_oferta(total, ano):
 # ── Bloco: Sistema S ──────────────────────────────────────────────────────
 
 
+EDUCACAO_INDIGENA_UNIDADES = {
+    "matriculas": "Matrículas",
+    "estabelecimentos": "Estabelecimentos",
+    "docentes": "Docentes",
+    "turmas": "Turmas",
+}
+
+EDUCACAO_INDIGENA_RECORTES = {
+    "total": "Total",
+    "educacao_infantil": "Educação Infantil",
+    "creche": "Creche",
+    "pre_escola": "Pré-Escola",
+    "ensino_fundamental": "Ensino Fundamental",
+    "anos_iniciais": "Anos Iniciais",
+    "anos_finais": "Anos Finais",
+    "ensino_medio": "Ensino Médio",
+    "educacao_profissional": "Educação Profissional",
+    "eja": "Educação de Jovens e Adultos",
+    "eja_ensino_fundamental": "EJA - Ensino Fundamental",
+    "eja_ensino_medio": "EJA - Ensino Médio",
+    "educacao_especial": "Educação Especial",
+    "classes_comuns": "Classes Comuns",
+    "classes_exclusivas": "Classes Exclusivas",
+}
+
+
+def montar_bloco_educacao_indigena(
+    df,
+    id_mun,
+    df_populacao_faixas=None,
+    df_populacao_idades=None,
+):
+    """Constroi o retrato municipal oficial da Educacao Escolar Indigena."""
+    d = df[df["id_municipio"] == id_mun].copy()
+    population_groups = (
+        df_populacao_faixas.to_dict("records")
+        if df_populacao_faixas is not None and not df_populacao_faixas.empty
+        else []
+    )
+    population_source_rows = (
+        df_populacao_idades.to_dict("records")
+        if df_populacao_idades is not None and not df_populacao_idades.empty
+        else []
+    )
+    coverage = build_coverage_contract(
+        population_groups + population_source_rows[:1],
+        d.to_dict("records") if not d.empty else [],
+    )
+    if d.empty:
+        block = _bloco_vazio_educacao_indigena()
+        block["coberturaEstimada"] = coverage
+        return block
+
+    d["ano"] = pd.to_numeric(d["ano"], errors="coerce")
+    d = d[d["ano"].notna()].copy()
+    d["ano"] = d["ano"].astype(int)
+    anos = sorted(d["ano"].unique().tolist())
+    ultimo_ano = anos[-1] if anos else None
+
+    dados = []
+    for _, row in d.sort_values(["ano", "unidade", "recorte"]).iterrows():
+        dados.append({
+            "ano": int(row["ano"]),
+            "unidade": str(row["unidade"]),
+            "recorte": str(row["recorte"]),
+            "valor": ri(row.get("valor")),
+            "tabela_fonte": str(row.get("tabela_fonte") or ""),
+            "grupo_comparabilidade": str(row.get("grupo_comparabilidade") or ""),
+        })
+
+    series_totais = {}
+    resumo = {}
+    for unidade in EDUCACAO_INDIGENA_UNIDADES:
+        total = d[(d["unidade"] == unidade) & (d["recorte"] == "total")]
+        series_totais[unidade] = [
+            {
+                "ano": int(row["ano"]),
+                "valor": ri(row.get("valor")),
+                "grupo_comparabilidade": str(row.get("grupo_comparabilidade") or ""),
+            }
+            for _, row in total.sort_values("ano").iterrows()
+        ]
+        latest = total[total["ano"] == ultimo_ano] if ultimo_ano is not None else total.iloc[0:0]
+        resumo[unidade] = ri(latest.iloc[0]["valor"]) if not latest.empty else None
+
+    fontes = [
+        {"ano": ano, "tabela": tabela}
+        for ano, tabela in sorted({
+            (int(row["ano"]), str(row["tabela_fonte"]))
+            for _, row in d.iterrows()
+        })
+    ]
+
+    return {
+        "schema_version": 1,
+        "anos_disponiveis": anos,
+        "ultimo_ano": ultimo_ano,
+        "resumo_ultimo_ano": resumo,
+        "series_totais": series_totais,
+        "dados": dados,
+        "unidades": EDUCACAO_INDIGENA_UNIDADES,
+        "recortes": EDUCACAO_INDIGENA_RECORTES,
+        "dimensoes_disponiveis": ["ano", "unidade", "recorte"],
+        "campos_indisponiveis": [
+            "rede_administrativa",
+            "localizacao",
+            "zona",
+            "territorio",
+            "terra_indigena",
+            "povo",
+            "lingua",
+            "categoria_diferenciada",
+        ],
+        "comparabilidade": {
+            "variacao_automatica_permitida": [
+                "total",
+                "educacao_infantil",
+                "ensino_fundamental",
+                "eja",
+            ],
+            "quebra_conceitual_2025": [
+                "ensino_medio",
+                "educacao_profissional",
+                "educacao_especial",
+            ],
+        },
+        "coberturaEstimada": coverage,
+        "fontes": fontes,
+        "avisos": AVISOS_EDUCACAO_INDIGENA,
+    }
+
+
+def _bloco_vazio_educacao_indigena():
+    return {
+        "schema_version": 1,
+        "anos_disponiveis": [],
+        "ultimo_ano": None,
+        "resumo_ultimo_ano": {
+            unidade: None for unidade in EDUCACAO_INDIGENA_UNIDADES
+        },
+        "series_totais": {
+            unidade: [] for unidade in EDUCACAO_INDIGENA_UNIDADES
+        },
+        "dados": [],
+        "unidades": EDUCACAO_INDIGENA_UNIDADES,
+        "recortes": EDUCACAO_INDIGENA_RECORTES,
+        "dimensoes_disponiveis": ["ano", "unidade", "recorte"],
+        "campos_indisponiveis": ["sem_dados"],
+        "comparabilidade": {
+            "variacao_automatica_permitida": [],
+            "quebra_conceitual_2025": [],
+        },
+        "fontes": [],
+        "avisos": AVISOS_EDUCACAO_INDIGENA,
+    }
+
+
 def montar_bloco_sistema_s(df, id_mun, df_escolas=None):
     """Constroi o bloco de escolas do Sistema S para um municipio."""
     d = df[df["id_municipio"] == id_mun].copy()
@@ -2174,6 +2352,11 @@ def exportar_municipios(
             return pd.DataFrame()
         return dfs_por_municipio.get(nome, {}).get(str(id_mun), df.iloc[0:0].copy())
 
+    infrastructure_contracts = build_contracts(
+        dfs_views["school_infrastructure"],
+        mun_rs["id_municipio"].astype(str).tolist(),
+    )
+
     for idx, (_, mun) in enumerate(mun_rs.iterrows(), 1):
         id_mun = mun["id_municipio"]
         nome = mun["municipio"]
@@ -2199,6 +2382,12 @@ def exportar_municipios(
                     id_mun,
                     view_df("matriculas_faixa_etaria", id_mun),
                 ),
+                "educacao_indigena": montar_bloco_educacao_indigena(
+                    view_df("educacao_indigena", id_mun),
+                    id_mun,
+                    view_df("populacao_indigena_faixas", id_mun),
+                    view_df("populacao_indigena_idades", id_mun),
+                ),
                 "sistema_s": montar_bloco_sistema_s(
                     view_df("sistema_s", id_mun),
                     id_mun,
@@ -2218,6 +2407,9 @@ def exportar_municipios(
                 "avisos": AVISOS_GLOBAIS,
                 "blocos": blocos,
             }
+            dados = adapt_legacy_document(
+                dados, infrastructure_contracts[str(id_mun)]
+            )
 
             path = SAIDA_MUN / f"{id_mun}.json"
             safe_json_dump(dados, path)
@@ -2481,7 +2673,7 @@ def gerar_index(mun_rs, anos_por_bloco, gerados_mun):
         "blocos_disponiveis": [
             "matriculas", "rede_escolar", "alunos_turma", "turmas_docentes",
             "fluxo", "aprendizagem", "oferta_tecnica",
-            "sistema_s", "vaar",
+            "educacao_indigena", "sistema_s", "vaar",
         ],
         "campos_indisponiveis": [],
         "caminhos": {
@@ -2570,7 +2762,11 @@ def validar_jsons(gerados_mun):
             dados = json.load(fh)
         cobertura = {}
         for bloco, conteudo in dados.get("blocos", {}).items():
-            tem_dados = bool(conteudo.get("series"))
+            tem_dados = bool(
+                conteudo.get("series")
+                or conteudo.get("series_totais")
+                or conteudo.get("dados")
+            )
             indisponiveis = conteudo.get("campos_indisponiveis", [])
             cobertura[bloco] = "OK" if tem_dados and "sem_dados" not in indisponiveis else "SEM_DADOS"
         print(f"  {f.stem}: {cobertura}")
@@ -2704,12 +2900,19 @@ def main():
         ("vw_educacao_matriculas_faixa_etaria", "matriculas_faixa_etaria"),
         ("vw_educacao_matriculas_cor_raca", "matriculas_cor_raca"),
         ("vw_educacao_rede_escolar", "rede_escolar"),
+        (
+            "vw_educacao_infraestrutura_escolar_ativa",
+            "school_infrastructure",
+        ),
         ("vw_educacao_rede_escolar_etapa", "rede_escolar_etapa"),
         ("vw_educacao_turmas_docentes", "turmas"),
         ("vw_educacao_alunos_turma", "alunos_turma"),
         ("vw_educacao_fluxo", "fluxo"),
         ("vw_educacao_aprendizagem", "aprendizagem"),
         ("vw_educacao_oferta_tecnica", "oferta"),
+        ("educacao_indigena_municipal", "educacao_indigena"),
+        ("populacao_indigena_faixa_municipal", "populacao_indigena_faixas"),
+        ("populacao_indigena_idade_municipal", "populacao_indigena_idades"),
         ("vw_educacao_sistema_s", "sistema_s"),
         ("vw_educacao_sistema_s_escolas", "sistema_s_escolas"),
         ("vw_vaar_municipio_dashboard", "vaar"),

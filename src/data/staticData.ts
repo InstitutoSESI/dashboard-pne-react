@@ -11,7 +11,7 @@ type JsonObject = Record<string, unknown>
 const dataCache = new Map<string, unknown>()
 const pendingCache = new Map<string, Promise<unknown>>()
 
-export function loadJson<T>(path: string): Promise<T> {
+export function loadJson<T>(path: string, validate?: (data: T) => unknown): Promise<T> {
   if (dataCache.has(path)) {
     // The cache is keyed by the complete path, so this is the single typed boundary for cached JSON.
     return Promise.resolve(dataCache.get(path) as T)
@@ -29,6 +29,7 @@ export function loadJson<T>(path: string): Promise<T> {
       }
       // JSON is untrusted at this boundary; detailed runtime validation is intentionally deferred.
       const data = await response.json() as T
+      validate?.(data)
       dataCache.set(path, data)
       return data
     })

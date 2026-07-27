@@ -10,4 +10,5 @@ export type AppPageKey =
   | 'pne2026'
   | 'diagnostico'
   | 'educacao'
+  | 'relatorio-tecnico-municipal'
   | FinancialPageKey

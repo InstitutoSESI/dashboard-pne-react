@@ -3,6 +3,7 @@ import { LoadingState } from '../components/LoadingState'
 import { lazy, Suspense, useEffect, useMemo, useRef, type ComponentType, type ReactNode } from 'react'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { FINANCIAL_PAGE_KEYS } from '../data/financialPageKeys'
+import { EDUCATION_SECTION_KEYS, resolveEducationSection } from '../data/educationIndicatorCatalog'
 import { useMunicipioData } from '../hooks/useMunicipioData'
 import { Home } from '../pages/Home'
 import type { AppPageKey } from '../types/app'
@@ -68,8 +69,12 @@ export function AppPageRouter({
   const selectedMunicipalityEntry = useMemo(() => (
     municipiosIndex.find((item) => item.nome === selectedMunicipio) ?? null
   ), [municipiosIndex, selectedMunicipio])
-  const isEducationPage = activePage === 'educacao'
-  const requestedMunicipalityValue = activePage === FINANCIAL_PAGE_KEYS.panorama || isEducationPage
+  const isEducationDataPage = activePage === 'educacao' || activePage === 'relatorio-tecnico-municipal'
+  const isLegacyTechnicalReportRoute = activePage === 'educacao'
+    && resolveEducationSection({
+      requestedSection: navigationContext.params.get('secao'),
+    }) === EDUCATION_SECTION_KEYS.technicalReport
+  const requestedMunicipalityValue = activePage === FINANCIAL_PAGE_KEYS.panorama || isEducationDataPage
     ? navigationContext.params.get('municipio')?.trim() ?? ''
     : ''
   const requestedMunicipalityEntry = useMemo(() => {
@@ -87,6 +92,16 @@ export function AppPageRouter({
   const educationUrlSyncRef = useRef<{ pending: boolean; slug: string } | null>(null)
 
   useEffect(() => {
+    if (!isLegacyTechnicalReportRoute) return
+    replaceHashContext('relatorio-tecnico-municipal', {
+      detalhe: null,
+      secao: null,
+      tema: null,
+      theme: null,
+    })
+  }, [isLegacyTechnicalReportRoute])
+
+  useEffect(() => {
     if (
       activePage === FINANCIAL_PAGE_KEYS.panorama
       && requestedMunicipalityEntry
@@ -97,7 +112,7 @@ export function AppPageRouter({
   }, [activePage, requestedMunicipalityEntry, selectedMunicipio, setSelectedMunicipio])
 
   useEffect(() => {
-    if (!isEducationPage || !requestedMunicipalityEntry) return
+    if (!isEducationDataPage || !requestedMunicipalityEntry) return
 
     const currentSync = educationUrlSyncRef.current
     if (currentSync?.slug === requestedMunicipalityEntry.slug) {
@@ -114,12 +129,13 @@ export function AppPageRouter({
     if (requestedMunicipalityEntry.nome !== selectedMunicipio) {
       setSelectedMunicipio(requestedMunicipalityEntry.nome)
     }
-  }, [isEducationPage, requestedMunicipalityEntry, selectedMunicipio, setSelectedMunicipio])
+  }, [isEducationDataPage, requestedMunicipalityEntry, selectedMunicipio, setSelectedMunicipio])
 
   useEffect(() => {
-    if (!isEducationPage) return
+    if (!isEducationDataPage || isLegacyTechnicalReportRoute) return
 
-    const route = navigationContext.rawRoute || 'educacao'
+    const route = navigationContext.rawRoute
+      || (activePage === 'relatorio-tecnico-municipal' ? 'relatorio-tecnico-municipal' : 'educacao')
     if (requestedMunicipalityEntry) {
       const currentSync = educationUrlSyncRef.current
       if (
@@ -141,7 +157,9 @@ export function AppPageRouter({
     educationUrlSyncRef.current = null
     replaceHashContext(route, { municipio: selectedMunicipalityEntry?.slug ?? null })
   }, [
-    isEducationPage,
+    activePage,
+    isEducationDataPage,
+    isLegacyTechnicalReportRoute,
     navigationContext.rawRoute,
     requestedMunicipalityEntry,
     requestedMunicipalityValue,
@@ -201,7 +219,7 @@ export function AppPageRouter({
   }
 
   if (
-    isEducationPage
+    isEducationDataPage
     && requestedMunicipalityEntry
     && requestedMunicipalityEntry.nome !== selectedMunicipio
   ) {
@@ -285,7 +303,7 @@ export function AppPageRouter({
     )
   }
 
-  if (activePage === 'educacao') {
+  if (isEducationDataPage) {
     return (
       <LazyPageBoundary page={activePage}>
         <LazyEducationPage

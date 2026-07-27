@@ -4,11 +4,13 @@ import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModul
 import { SidebarAccordionGroup } from './SidebarAccordionGroup'
 import { SidebarInstitutionalSignature } from './SidebarInstitutionalSignature'
 
-const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG.map((section) => ({
-  key: section.key,
-  label: section.label,
-  target: `educacao?secao=${section.key}`,
-}))
+const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG
+  .filter((section) => section.key !== 'relatorio-tecnico-municipal')
+  .map((section) => ({
+    key: section.key,
+    label: section.label,
+    target: `educacao?secao=${section.key}`,
+  }))
 
 const NAV_BLOCKS = [
   {
@@ -186,6 +188,19 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
               onToggle={(groupId) => setOpenGroup((current) => current === groupId ? null : groupId)}
             />
           ))}
+
+          <a
+            aria-current={activePage === 'relatorio-tecnico-municipal' ? 'page' : undefined}
+            className={activePage === 'relatorio-tecnico-municipal' ? 'nav-item is-active' : 'nav-item'}
+            href="#relatorio-tecnico-municipal"
+            onClick={(event) => {
+              event.preventDefault()
+              navigate('relatorio-tecnico-municipal')
+            }}
+          >
+            <span className="nav-item__icon" aria-hidden="true"><ReportIcon /></span>
+            <span className="nav-item__label">Relatório Técnico Municipal</span>
+          </a>
         </nav>
 
         <SidebarInstitutionalSignature compact />
@@ -268,6 +283,15 @@ function FinanceIcon() {
       <path d="M4 18h16" />
       <path d="M7 18V9h3v9M12 18V5h3v13M17 18v-6h3v6" />
       <path d="M4 6h3" />
+    </svg>
+  )
+}
+
+function ReportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3.5h8l4 4V20.5H6z" />
+      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" />
     </svg>
   )
 }

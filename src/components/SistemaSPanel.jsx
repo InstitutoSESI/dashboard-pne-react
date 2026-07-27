@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { EducationLineChart } from './EducationLineChart'
 import { ChartEmptyState } from './ChartPrimitives'
 import { DataSourceNote } from './DataSourceNote'
+import { DetailNavigation } from './DetailNavigation'
+import { EducationQuickReading } from './EducationQuickReading'
 import { MetricCard } from './MetricCard'
-import { EducationSummaryCard } from './EducationSummaryCard'
 import { formatNumber, isMissing } from '../utils/educationFormatters'
 
 const EM = '\u2014'
@@ -95,7 +96,7 @@ function temEadOuRegional(escolas) {
 
 const ETAPA_PALETTE = ['#16713a', '#2d7d4a', '#5a9a6f', '#88b79a', '#b5d4c2']
 
-export function SistemaSPanel({ blocos }) {
+export function SistemaSPanel({ blocos, initialIndicatorKey = 'total_escolas', mode = 'detail', onOpenDetails }) {
   const data = blocos?.sistema_s ?? {}
   const series = data.series ?? {}
   const resumo = data.resumo_ultimo_ano ?? {}
@@ -104,7 +105,7 @@ export function SistemaSPanel({ blocos }) {
   const escolas = data.escolas ?? []
   const avisos = data.avisos ?? []
   const hasData = series.total_escolas?.length > 0
-  const [activeKey, setActiveKey] = useState('total_escolas')
+  const [activeKey, setActiveKey] = useState(initialIndicatorKey)
 
   if (!hasData) return null
 
@@ -145,95 +146,134 @@ export function SistemaSPanel({ blocos }) {
 
   const anoResumo = ultimo_ano ?? 2025
 
+  if (mode === 'summary') {
+    return (
+      <div className="sistema-s-panel sistema-s-panel--summary">
+        <p className="education-indicator-group__description sistema-s-group-description">
+          Oferta educacional mantida pelo Sistema S no município, com histórico dos indicadores, distribuição por etapa e relação de escolas.
+        </p>
+        <div className="sistema-s-shortcuts" aria-label="Indicadores do Sistema S">
+          {INDICATOR_CONFIG.map((indicator) => {
+            const value = sidebarValues[indicator.key]
+            return (
+              <button
+                className="sistema-s-shortcut"
+                key={indicator.key}
+                onClick={() => onOpenDetails?.(indicator.key)}
+                type="button"
+              >
+                <span className="sistema-s-shortcut__label">{indicator.shortLabel}</span>
+                <strong>{!isMissing(value) ? formatNumber(value) : EM}</strong>
+                <small>Ano {anoResumo}</small>
+                <span className="sistema-s-shortcut__action">Ver indicador <span aria-hidden="true">→</span></span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="sistema-s-summary-footer">
+          <DataSourceNote context={SISTEMA_S_SOURCE_CONTEXT} />
+          <button className="platform-navigation-button sistema-s-open-detail" onClick={() => onOpenDetails?.('total_escolas')} type="button">
+            Abrir detalhamento
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const activeIndex = INDICATOR_CONFIG.findIndex((indicator) => indicator.key === activeKey)
+  const previousIndicator = activeIndex > 0 ? INDICATOR_CONFIG[activeIndex - 1] : null
+  const nextIndicator = activeIndex < INDICATOR_CONFIG.length - 1 ? INDICATOR_CONFIG[activeIndex + 1] : null
+
   return (
-    <div className="sistema-s-panel">
-      <section className="page-card education-summary-section sistema-s-summary">
-        <div className="education-summary-header">
-          <h2 className="education-summary-title">Visão geral</h2>
-          <p className="education-summary-note">Dados das escolas do Sistema S no ano de referência.</p>
-        </div>
-        <div className="education-summary-grid sistema-s-summary-grid">
-          <EducationSummaryCard label="Escolas" value={!isMissing(resumo.total_escolas) ? formatNumber(resumo.total_escolas) : EM} year={anoResumo} />
-          <EducationSummaryCard label="Matrículas" value={!isMissing(resumo.total_matriculas) ? formatNumber(resumo.total_matriculas) : EM} year={anoResumo} />
-          <EducationSummaryCard label="Turmas" value={!isMissing(resumo.total_turmas) ? formatNumber(resumo.total_turmas) : EM} year={anoResumo} />
-          <EducationSummaryCard label="Docentes" value={!isMissing(resumo.total_docentes) ? formatNumber(resumo.total_docentes) : EM} year={anoResumo} />
-        </div>
-        <DataSourceNote context={SISTEMA_S_SOURCE_CONTEXT} />
-      </section>
+    <div className="sistema-s-panel sistema-s-panel--detail">
+      <DetailNavigation
+        activeIndex={activeIndex}
+        itemLabel="Indicador"
+        nextItem={nextIndicator}
+        onNext={setActiveKey}
+        onPrevious={setActiveKey}
+        previousItem={previousIndicator}
+        showBack={false}
+        total={INDICATOR_CONFIG.length}
+      />
 
-      <div className="cycle-layout educacao-analysis-layout">
-        <aside className="indicator-sidebar">
-          <div className="indicator-sidebar__heading">
-            <h3>Indicadores</h3>
-            <span>{INDICATOR_CONFIG.length}</span>
-          </div>
-          <div className="indicator-list">
-            {INDICATOR_CONFIG.map((ind) => {
-              const sv = sidebarValues[ind.key]
-              const svDisplay = !isMissing(sv) ? formatNumber(sv) : EM
-              return (
-                <button
-                  key={ind.key}
-                  type="button"
-                  className={'indicator-row' + (activeKey === ind.key ? ' is-active' : '')}
-                  onClick={() => setActiveKey(ind.key)}
-                >
-                  <span className="indicator-row__label">{ind.shortLabel}</span>
-                  <span className="indicator-row__badges">
-                    <span className="indicator-stage-badge">{svDisplay}</span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </aside>
-
-        <section className="detail-panel educacao-detail-panel">
-          <div className="detail-heading">
+      <section className="detail-panel educacao-detail-panel educacao-detail-panel--organized">
+          <div className="detail-heading educacao-detail-heading">
             <div className="detail-heading__copy">
-              <span className="eyebrow">Indicador selecionado</span>
+              <span className="eyebrow">Sistema S · Indicador selecionado</span>
               <h3>{activeConfig.label}</h3>
               <p>{activeConfig.description}</p>
             </div>
-          </div>
-
-          <div className="metric-grid metric-grid--three">
-            <MetricCard label="Valor inicial" value={!isMissing(initialValue) ? formatNumber(initialValue) : EM} detail={initialYear ? `Ano ${initialYear}` : null} />
-            <MetricCard label="Valor atual" value={currentDisplay} detail={currentYear ? `Ano ${currentYear}` : null} size="large" />
-            <MetricCard label="Diferença" value={diferenca.display} detail={detalheDiferenca} tone={diferenca.tone} />
-          </div>
-
-          {reading && (
-            <div className="interpretation-box">
-              <span>Leitura rápida</span>
-              <p>{reading}</p>
+            <div className="educacao-detail-heading__badges">
+              <span className="indicator-stage-badge">Municipal</span>
+              <span className="indicator-stage-badge">{currentYear ?? anoResumo}</span>
             </div>
-          )}
+          </div>
 
-          <div className="indicator-chart-card sistema-s-chart">
-            <div className="education-chart-heading">
-              <div>
-                <span>Histórico do indicador</span>
-                <p>{activeConfig.label}</p>
+          <div className="sistema-s-indicator-tabs" role="tablist" aria-label="Indicadores do Sistema S">
+            {INDICATOR_CONFIG.map((indicator) => (
+              <button
+                aria-selected={activeKey === indicator.key}
+                className={`infra-dep-pill${activeKey === indicator.key ? ' is-active' : ''}`}
+                key={indicator.key}
+                onClick={() => setActiveKey(indicator.key)}
+                role="tab"
+                type="button"
+              >
+                {indicator.shortLabel}
+              </button>
+            ))}
+          </div>
+
+          <div className="metric-grid metric-grid--three education-metric-summary">
+            <MetricCard icon="start" label="Valor inicial" value={!isMissing(initialValue) ? formatNumber(initialValue) : EM} detail={initialYear ? `Ano ${initialYear}` : null} />
+            <MetricCard icon="current" label="Valor atual" value={currentDisplay} detail={currentYear ? `Ano ${currentYear}` : null} size="large" />
+            <MetricCard icon={Number(currentValue) < Number(initialValue) ? 'variationDown' : 'variation'} label="Diferença" value={diferenca.display} detail={detalheDiferenca} tone={diferenca.tone} />
+          </div>
+
+          <div className="education-primary-analysis sistema-s-primary-analysis">
+            <div className="indicator-chart-card educacao-main-chart-card sistema-s-chart">
+              <div className="education-chart-heading">
+                <div>
+                  <span>Evolução do indicador</span>
+                  <p>{activeConfig.label}</p>
+                </div>
               </div>
+              {hasSeries ? (
+                <EducationLineChart
+                  color={activeConfig.color}
+                  formatLabel={formatNumber}
+                  scaleType="count"
+                  series={activeSeries}
+                  showPointLabels
+                  title={null}
+                />
+              ) : (
+                <ChartEmptyState message="Histórico não disponível." />
+              )}
             </div>
-            {hasSeries ? (
-              <EducationLineChart
-                color={activeConfig.color}
-                formatLabel={formatNumber}
-                scaleType="count"
-                series={activeSeries}
-                showPointLabels
-                title={null}
-              />
-            ) : (
-              <ChartEmptyState message="Histórico não disponível." />
-            )}
+
+            <EducationQuickReading
+              items={[
+                { key: 'trend', icon: 'trend', label: 'Evolução observada', text: reading },
+                { key: 'measure', icon: 'measure', label: 'O que o indicador mede', text: activeConfig.description },
+                { key: 'period', icon: 'period', label: 'Período exibido', text: initialYear && currentYear ? `${initialYear} a ${currentYear}` : null },
+              ]}
+            />
           </div>
 
-          <div className="sistema-s-detail-stack">
+          <section className="educacao-explore education-support-data education-support-data--organized sistema-s-support-data" aria-labelledby="sistema-s-support-title">
+            <header className="education-support-data__header">
+              <div className="education-support-data__summary">
+                <span className="educacao-explore__eyebrow">Aprofundamento</span>
+                <h3 id="sistema-s-support-title">Dados de apoio do indicador</h3>
+                <p>Distribuição das matrículas por etapa e estabelecimentos vinculados ao Sistema S.</p>
+              </div>
+            </header>
+            <div className="sistema-s-detail-stack">
             {sortedDist.length > 0 && (
-              <div className="educacao-explore sistema-s-detail-card sistema-s-detail-card--etapas">
+              <div className="education-support-data__item sistema-s-detail-card sistema-s-detail-card--etapas">
                 <div className="educacao-explore__heading">
                   <span className="sistema-s-detail-title">Distribuição por etapa</span>
                   <p>Matrículas do Sistema S por etapa de ensino no último ano disponível.</p>
@@ -257,7 +297,7 @@ export function SistemaSPanel({ blocos }) {
             )}
 
             {escolas.length > 0 && (
-              <div className="educacao-explore sistema-s-detail-card sistema-s-detail-card--escolas">
+              <div className="education-support-data__item sistema-s-detail-card sistema-s-detail-card--escolas">
                 <div className="educacao-explore__heading">
                   <span className="sistema-s-detail-title">Escolas do Sistema S</span>
                   <p>Lista de escolas do Sistema S no último ano disponível.</p>
@@ -300,7 +340,11 @@ export function SistemaSPanel({ blocos }) {
                 )}
               </div>
             )}
-          </div>
+            </div>
+            <footer className="education-support-data__footer">
+              <DataSourceNote context={SISTEMA_S_SOURCE_CONTEXT} />
+            </footer>
+          </section>
 
           {avisos.length > 0 && (
             <div className="educacao-explore">
@@ -309,8 +353,19 @@ export function SistemaSPanel({ blocos }) {
               ))}
             </div>
           )}
-        </section>
-      </div>
+      </section>
+
+      <DetailNavigation
+        activeIndex={activeIndex}
+        isBottom
+        itemLabel="Indicador"
+        nextItem={nextIndicator}
+        onNext={setActiveKey}
+        onPrevious={setActiveKey}
+        previousItem={previousIndicator}
+        showBack={false}
+        total={INDICATOR_CONFIG.length}
+      />
     </div>
   )
 }

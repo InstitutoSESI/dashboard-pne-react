@@ -1,3 +1,6 @@
+import time
+from functools import lru_cache
+
 from src.data.repository import (
     clear_data_cache,
     fetch_raw_table,
@@ -8,6 +11,7 @@ from src.data.repository import (
     load_dataset,
     load_municipios,
 )
+from src.school_infrastructure_materialization import build_contracts
 
 
 def fetch_supabase_table(_client, table_name: str):
@@ -178,6 +182,46 @@ def load_infraestrutura_escolar_data():
     return load_dataset("infraestrutura_escolar_data")
 
 
+def load_school_infrastructure_source_data():
+    return load_dataset("school_infrastructure_source_data")
+
+
+def load_special_education_school_source_data():
+    return load_dataset("special_education_school_source_data")
+
+
+@lru_cache(maxsize=4)
+def _load_school_infrastructure_contracts_cached(cache_bucket: int):
+    source = load_school_infrastructure_source_data()
+    if source.empty:
+        return {}, {}
+    if "municipio" not in source.columns:
+        municipalities = load_infraestrutura_escolar_data()[
+            ["id_municipio", "municipio"]
+        ].drop_duplicates()
+        source = source.copy()
+        source["id_municipio"] = source["id_municipio"].astype(str)
+        municipalities["id_municipio"] = municipalities["id_municipio"].astype(str)
+        source = source.merge(municipalities, on="id_municipio", how="left")
+    codes = sorted(source["id_municipio"].astype(str).unique())
+    contracts = build_contracts(source, codes)
+    names = (
+        source[["id_municipio", "municipio"]]
+        .drop_duplicates()
+        .assign(id_municipio=lambda frame: frame["id_municipio"].astype(str))
+    )
+    code_by_name = dict(zip(names["municipio"], names["id_municipio"]))
+    return contracts, code_by_name
+
+
+def load_school_infrastructure_contract(municipio):
+    ttl = get_data_cache_ttl_seconds()
+    bucket = time.time_ns() if ttl <= 0 else int(time.time() // ttl)
+    contracts, code_by_name = _load_school_infrastructure_contracts_cached(bucket)
+    code = code_by_name.get(municipio, str(municipio))
+    return contracts.get(code)
+
+
 def load_infraestrutura_escolar_por_dependencia_data():
     return load_dataset("infraestrutura_escolar_por_dependencia_data")
 
@@ -252,6 +296,9 @@ __all__ = [
     "load_rendimento_professores_data",
     "load_atendimento_educacional_especializado_data",
     "load_infraestrutura_escolar_data",
+    "load_school_infrastructure_source_data",
+    "load_school_infrastructure_contract",
+    "load_special_education_school_source_data",
     "load_infraestrutura_escolar_por_dependencia_data",
     "load_distorcao_idade_serie_data",
     "load_saeb_ideb_data",

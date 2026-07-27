@@ -74,9 +74,18 @@ async function verifyViewport(browser, viewport) {
     }
 
     await page.goto(`${BASE_URL}/#educacao?secao=visao-geral`, { waitUntil: 'domcontentloaded' })
-    await page.getByRole('heading', { level: 1, name: 'Visão geral municipal da educação' }).first().waitFor({ state: 'visible' })
+    await page.getByRole('heading', { level: 1, name: 'Conheça a educação do município' }).first().waitFor({ state: 'visible' })
+    await assertNoHorizontalOverflow(page, `Visão geral de Educação ${label}`)
+
+    await page.goto(`${BASE_URL}/#educacao?municipio=${MUNICIPALITY_SLUG}&secao=panorama`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('heading', { level: 1, name: 'Panorama educacional' }).first().waitFor({ state: 'visible' })
     await page.getByText(MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
-    await assertNoHorizontalOverflow(page, `Educação ${label}`)
+    await assertNoHorizontalOverflow(page, `Panorama educacional ${label}`)
+
+    await page.goto(`${BASE_URL}/#educacao?municipio=${MUNICIPALITY_SLUG}&secao=relatorio-tecnico-municipal`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('heading', { level: 1, name: 'Relatório Técnico Municipal' }).waitFor({ state: 'visible' })
+    assert.equal(await page.locator('.municipal-technical-report__section').count(), 19)
+    await assertNoHorizontalOverflow(page, `Relatório Técnico Municipal ${label}`)
 
     await page.goto(`${BASE_URL}/#diagnostico?municipio=${MUNICIPALITY_SLUG}`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', {

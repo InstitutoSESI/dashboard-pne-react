@@ -5,6 +5,7 @@ import { StatusBadge } from './StatusBadge'
 export function ExplorableIndicatorCardFrame({
   buttonRef,
   classContract,
+  disabled = false,
   isSelected = false,
   onSelect,
   viewModel,
@@ -14,12 +15,17 @@ export function ExplorableIndicatorCardFrame({
     ariaLabel,
     contextLabel,
     description,
+    featureMeta,
     footer,
+    hideContext = false,
     hideSparkline = false,
     hideStatus = false,
     hideSupport = false,
     insight,
+    leadingIcon,
     metadata,
+    modifier,
+    modifierExtras,
     sparklineSeries,
     status,
     support,
@@ -40,10 +46,15 @@ export function ExplorableIndicatorCardFrame({
         : ''
     : ''
   const variantClass = variant ? ` ${classContract.root}--${variant}` : ''
+  const modifiers = [
+    ...(Array.isArray(modifier) ? modifier : modifier ? [modifier] : []),
+    ...(Array.isArray(modifierExtras) ? modifierExtras : modifierExtras ? [modifierExtras] : []),
+  ]
+  const modifierClass = modifiers.map((name) => ` ${classContract.root}--${name}`).join('')
   const anatomyClass = anatomy ? ` indicator-card-shell--${anatomy}` : ''
   const referenceClass = usesEducationReference ? ' indicator-card-shell--education-reference' : ''
   const directionClass = isEditorialCard && status?.direction ? ` indicator-card-shell--direction-${status.direction}` : ''
-  const className = `${classContract.root} indicator-card-shell${anatomyClass}${referenceClass} indicator-card-shell--${statusTone}${directionClass} interaction-card--explorable ${classContract.statusModifier(statusTone)}${variantClass}${isSelected ? ' is-selected' : ''}`
+  const className = `${classContract.root} indicator-card-shell${anatomyClass}${referenceClass} indicator-card-shell--${statusTone}${directionClass} interaction-card--explorable ${classContract.statusModifier(statusTone)}${variantClass}${modifierClass}${isSelected ? ' is-selected' : ''}`
 
   return (
     <button
@@ -53,10 +64,17 @@ export function ExplorableIndicatorCardFrame({
       onClick={onSelect}
       aria-label={ariaLabel}
       aria-pressed={isSelected}
+      disabled={disabled}
       title={title}
     >
+      {leadingIcon ? (
+        <span className="indicator-card-shell__leading-icon" aria-hidden="true">
+          {leadingIcon}
+        </span>
+      ) : null}
+
       <span className={`${classContract.topline} indicator-card-shell__topline`}>
-        <span className={`${classContract.context} indicator-card-shell__context`}>{contextLabel}</span>
+        {!hideContext ? <span className={`${classContract.context} indicator-card-shell__context`}>{contextLabel}</span> : null}
         {!hideStatus && status?.label ? (
           <StatusBadge
             marker={isEditorialCard ? status.marker : undefined}
@@ -78,7 +96,7 @@ export function ExplorableIndicatorCardFrame({
 
           <span className={`${classContract.metadata} indicator-card-shell__metadata`}>
             <span className={`${classContract.metadataItem} indicator-card-shell__metadata-item`}>
-              <span className={`${classContract.metadataLabel} indicator-card-shell__metadata-label`}>Ano</span>
+              <span className={`${classContract.metadataLabel} indicator-card-shell__metadata-label`}>{metadata.yearLabel ?? 'Ano'}</span>
               <strong className={`${classContract.metadataValue} indicator-card-shell__metadata-value`}>{metadata.year}</strong>
             </span>
             {metadata.variation ? (
@@ -88,6 +106,26 @@ export function ExplorableIndicatorCardFrame({
               </span>
             ) : null}
           </span>
+
+          {featureMeta ? (
+            <span className="indicator-card-shell__feature-meta">
+              {featureMeta.map((item) => (
+                <span className="indicator-card-shell__feature-meta-item" key={`${item.label}-${item.value}`}>
+                  {item.valueFirst ? (
+                    <>
+                      <strong>{item.value}</strong>
+                      {item.label ? <span>{item.label}</span> : null}
+                    </>
+                  ) : (
+                    <>
+                      {item.label ? <span>{item.label}</span> : null}
+                      <strong>{item.value}</strong>
+                    </>
+                  )}
+                </span>
+              ))}
+            </span>
+          ) : null}
 
           <span className={`${classContract.divider} indicator-card-shell__divider`} aria-hidden="true" />
 
@@ -114,7 +152,7 @@ export function ExplorableIndicatorCardFrame({
                   ) : null}
                   <span className="indicator-card-shell__insight-copy">
                     {isEditorialCard ? (
-                      <span className={`${classContract.insightLabel} indicator-card-shell__insight-label`}>Leitura</span>
+                      <span className={`${classContract.insightLabel} indicator-card-shell__insight-label`}>{insight.label ?? 'Leitura'}</span>
                     ) : null}
                     <strong className={`${classContract.insightValue} indicator-card-shell__insight-value`}>{insight.emphasis ?? insight.reading}</strong>
                     {insight.context ? <span>{insight.context}</span> : null}

@@ -28,9 +28,13 @@ O comando bloqueia atualização com alterações fora de `public/data`. Use `--
 ## Fluxos especializados
 
 - `npm run update:education-data`: chama o orquestrador com `--education-only`.
+- `npm run update:indigenous-coverage`: valida os metadados oficiais do SIDRA 9970, baixa e armazena a resposta bruta do Censo Demográfico 2022, materializa as idades simples e faixas populacionais no banco e regenera os contratos municipais de Educação. É uma atualização explícita; o build não consulta o IBGE.
 - `generate_municipal_finance.py`: atualiza os contratos financeiros canônicos por código IBGE.
 - `generate_qse_annual.py`: atualiza as séries anuais da QSE.
 - `materialize_municipal_education_overview.py`: materializa a visão geral educacional por código IBGE.
+- `sync_censo_escolar_microdata.py`: audita os microdados completos já disponíveis ou, com `--download`, adquire e promove fontes oficiais do Censo Escolar com staging e SHA-256.
+- `materialize_special_education.py`: gera deterministicamente e promove de forma atômica o contrato isolado `special-education-v1`.
+- `validate_special_education.py`: valida fonte, 497 contratos, recortes, estados, ausência de extremos e reconciliação da Educação Especial de 2025.
 - `materialize_pne2026_public_diagnostic_v2.py`: materializa o diagnóstico público.
 - `refresh_municipal_decision_summary.py`: atualiza a síntese decisória.
 - `sync_eja_integrada_from_sinopse.py` e `sync_ept_nivel_medio_from_sinopse.py`: importam edições oficiais da Sinopse.

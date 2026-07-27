@@ -63,7 +63,7 @@ const CENSO_ESCOLAR_KEYS = new Set([
 ])
 
 const METHODOLOGY_NOTES_BY_KEY = {
-  aee: 'Indicador de contexto/proxy; a base aberta atual não oferece denominador municipal seguro para medir diretamente o público-alvo do AEE.',
+  aee: 'Contagem municipal de escolas que oferecem Atendimento Educacional Especializado, conforme o Censo Escolar.',
   eja_integrada_educacao_profissional: 'Indicador de contexto; mostra volume absoluto e não calcula a proporção legal da meta.',
   eja_integrada_educacao_profissional_percentual: 'indicador calculado a partir das matrículas da EJA articuladas à educação profissional, considerando curso técnico integrado à EJA, FIC integrado à EJA de nível fundamental, FIC integrado à EJA de nível médio e o total de matrículas da EJA.',
   medio_tecnico_articulado_percentual: 'Indicador calculado pela relação entre as matrículas em cursos técnicos integrados ao ensino médio e o total de matrículas do ensino médio. As matrículas concomitantes permanecem apresentadas no aprofundamento como informação complementar.',

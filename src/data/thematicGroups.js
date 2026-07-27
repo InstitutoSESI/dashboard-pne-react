@@ -88,7 +88,7 @@ const THEMATIC_GROUPS = [
     shortLabel: 'Educação Especial',
     icon: 'EE',
     accent: '#db2777',
-    indicatorKeys: ['aee', 'salas_acessiveis'],
+    indicatorKeys: ['salas_acessiveis'],
   },
   {
     key: 'ideb_saeb_fluxo',

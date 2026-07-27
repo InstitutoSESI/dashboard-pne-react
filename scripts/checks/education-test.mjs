@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -24,12 +24,572 @@ const attendancePresentation = await import(moduleUrl('src/features/education/ed
 const attendanceFilters = await import(moduleUrl('src/features/education/educationAttendanceFilters.js'))
 const overviewPresentation = await import(moduleUrl('src/features/education/municipalEducationOverviewPresentation.js'))
 const overviewLoader = await import(moduleUrl('src/data/municipalEducationOverview.js'))
+const pmeReferenceTable = await import(moduleUrl('src/features/education/pmeReferenceTableViewModel.js'))
+const higherEducationValidation = await import(moduleUrl('src/data/higherEducationValidation.js'))
+const higherEducationData = await import(moduleUrl('src/data/higherEducationData.js'))
+const higherEducationViewModel = await import(moduleUrl('src/features/education/higherEducationViewModel.js'))
+const higherEducationCatalog = await import(moduleUrl('src/features/education/higherEducationCatalog.js'))
+const higherEducationPresentation = await import(moduleUrl('src/features/education/higherEducationPresentation.js'))
+const specialEducationData = await import(moduleUrl('src/data/specialEducation.js'))
+const specialEducationTypes = await import(moduleUrl('src/features/education/specialEducationTypes.js'))
+const specialEducationViewModel = await import(moduleUrl('src/features/education/specialEducationViewModel.js'))
+const schoolInfrastructure = await import(moduleUrl('src/data/schoolInfrastructureContract.js'))
+const educationData = await import(moduleUrl('src/data/educationData.js'))
+const educationCatalog = await import(moduleUrl('src/data/educationIndicatorCatalog.js'))
 const projectionEndLabels = await import(pathToFileURL(path.resolve('src/utils/projectionEndLabels.js')).href)
+const pneChartSystem = await import(pathToFileURL(path.resolve('src/utils/pneChartSystem.js')).href)
+
+const specialEducationDataDirectory = path.resolve('public/data/educacao/educacao-especial')
+
+const schoolInfrastructureDocumentsDirectory = path.resolve('public/data/educacao/municipios')
+const schoolInfrastructureDocumentFiles = readdirSync(schoolInfrastructureDocumentsDirectory)
+  .filter((fileName) => fileName.endsWith('.json'))
+
+function readEducationDocument(fileName = schoolInfrastructureDocumentFiles[0]) {
+  return JSON.parse(readFileSync(path.join(schoolInfrastructureDocumentsDirectory, fileName), 'utf8'))
+}
 
 const indicators = [
   { key: 'b', label: 'Zeta', description: 'Atendimento escolar', themeLabel: 'Matrículas' },
   { key: 'a', label: 'Álfa', description: 'Trajetória', categoryLabel: 'Fluxo' },
 ]
+
+test('runner materializa os tipos compartilhados de Educação Especial', () => {
+  assert.equal(specialEducationTypes.SPECIAL_EDUCATION_SCHEMA_VERSION, 'special-education-v1')
+  assert.equal(specialEducationTypes.isSpecialEducationIndicatorId('aee'), true)
+})
+
+function higherEducationFixture(availability = 'current') {
+  const years = [2023, 2024]
+  const sources = Object.fromEntries(years.map((year) => [`source-${year}`, {
+    year,
+    table: '7.1',
+    fileName: `source-${year}.xlsx`,
+    sha256: 'a'.repeat(64),
+    universe: 'graduation',
+    territorialReference: 'course_offer_location',
+  }]))
+  const manifestIndicators = higherEducationCatalog.HIGHER_EDUCATION_INDICATOR_CATALOG.map((item) => ({
+    id: item.id,
+    universe: item.universe,
+    territorialReference: item.territorialReference,
+    sourceTable: '7.1',
+    coverageByYear: { 2023: 1, 2024: availability === 'current' ? 1 : 0 },
+  }))
+  const categoryDefinitions = {
+    enrollment_dependency: [{ id: 'publica', label: 'Pública' }, { id: 'privada', label: 'Privada' }],
+    enrollment_organization: [{ id: 'universidade', label: 'Universidade' }],
+    ies_dependency: [{ id: 'publica', label: 'Pública' }],
+    ies_organization: [{ id: 'faculdade', label: 'Faculdade' }],
+    faculty_education: [{ id: 'Mestrado', label: 'Mestrado' }],
+  }
+  const manifestBreakdowns = higherEducationCatalog.HIGHER_EDUCATION_BREAKDOWN_CATALOG.map((item) => ({
+    id: item.id,
+    universe: item.id.startsWith('ies_') ? 'institutions_offering_graduation_or_sequential' : item.id === 'faculty_education' ? 'faculty_in_graduation_or_sequential' : 'graduation',
+    territorialReference: item.id.startsWith('ies_') ? 'ies_administrative_headquarters' : item.id === 'faculty_education' ? 'faculty_institution_headquarters' : 'course_offer_location',
+    sourceTable: '7.1',
+    categories: categoryDefinitions[item.id],
+    coverageByYear: { 2023: 1, 2024: availability === 'current' ? 1 : 0 },
+  }))
+  const manifest = {
+    schemaVersion: 1,
+    dataVersion: 'fixture-v1',
+    firstYear: 2023,
+    latestYear: 2024,
+    availableYears: years,
+    municipalityCount: 1,
+    indicators: manifestIndicators,
+    breakdowns: manifestBreakdowns,
+    sources,
+  }
+  const unavailable = (year) => ({ year, value: null, status: 'unavailable', sourceId: null })
+  const document = {
+    schemaVersion: 1,
+    municipality: { id: '4300000', name: 'Município teste' },
+    availability,
+    indicators: Object.fromEntries(manifestIndicators.map((definition, indicatorIndex) => [
+      definition.id,
+      {
+        id: definition.id,
+        universe: definition.universe,
+        territorialReference: definition.territorialReference,
+        series: years.map((year, yearIndex) => availability === 'unavailable' || (availability === 'historical_only' && year === 2024)
+          ? unavailable(year)
+          : { year, value: indicatorIndex === 1 && yearIndex === 0 ? 0 : (indicatorIndex + 1) * 10 + yearIndex, status: indicatorIndex === 1 && yearIndex === 0 ? 'derived_zero' : 'observed', sourceId: `source-${year}` }),
+      },
+    ])),
+    breakdowns: manifestBreakdowns.flatMap((definition) => years.map((year) => {
+      const usable = availability !== 'unavailable' && !(availability === 'historical_only' && year === 2024)
+      return {
+        id: definition.id,
+        year,
+        universe: definition.universe,
+        territorialReference: definition.territorialReference,
+        exhaustive: true,
+        status: usable ? 'observed' : 'unavailable',
+        sourceId: usable ? `source-${year}` : null,
+        categories: definition.categories.map((category, index) => ({
+          ...category,
+          value: usable ? index + 1 : null,
+          status: usable ? 'observed' : 'unavailable',
+        })),
+      }
+    })),
+  }
+  return { document, manifest }
+}
+
+test('contrato de Educação Superior preserva zero e rejeita ausência numérica', () => {
+  const { document, manifest } = higherEducationFixture()
+  const validatedManifest = higherEducationValidation.validateHigherEducationManifest(manifest)
+  assert.equal(higherEducationValidation.validateHigherEducationMunicipalDocument(document, '4300000', validatedManifest).indicators['esup-matriculas-presenciais'].series[0].value, 0)
+  const invalid = structuredClone(document)
+  invalid.indicators['esup-matriculas-total'].series[0] = { year: 2023, value: 0, status: 'unavailable', sourceId: null }
+  assert.throws(() => higherEducationValidation.validateHigherEducationMunicipalDocument(invalid, '4300000', validatedManifest), /não pode ter valor numérico/)
+  assert.throws(() => higherEducationValidation.validateHigherEducationMunicipalDocument(document, '9999999', validatedManifest), /não corresponde/)
+})
+
+test('validador de Educação Superior rejeita série incompleta, indicador e fonte desconhecidos', () => {
+  const { document, manifest } = higherEducationFixture()
+  const validatedManifest = higherEducationValidation.validateHigherEducationManifest(manifest)
+  const incomplete = structuredClone(document)
+  incomplete.indicators['esup-matriculas-total'].series.pop()
+  assert.throws(() => higherEducationValidation.validateHigherEducationMunicipalDocument(incomplete, '4300000', validatedManifest), /não possui os 2 anos/)
+  const unknownIndicator = structuredClone(document)
+  unknownIndicator.indicators.desconhecido = unknownIndicator.indicators['esup-matriculas-total']
+  assert.throws(() => higherEducationValidation.validateHigherEducationMunicipalDocument(unknownIndicator, '4300000', validatedManifest), /indicador desconhecido/)
+  const unknownSource = structuredClone(document)
+  unknownSource.indicators['esup-matriculas-total'].series[0].sourceId = 'fonte-inexistente'
+  assert.throws(() => higherEducationValidation.validateHigherEducationMunicipalDocument(unknownSource, '4300000', validatedManifest), /fonte desconhecida/)
+})
+
+test('view model de Educação Superior usa anos próprios, variação e composição compatível', () => {
+  const { document, manifest } = higherEducationFixture('historical_only')
+  const viewModel = higherEducationViewModel.buildHigherEducationViewModel(manifest, document)
+  assert.equal(viewModel.availability, 'historical_only')
+  assert.equal(viewModel.latestMunicipalUsableYear, 2023)
+  assert.equal(viewModel.indicators[0].currentYear, 2023)
+  assert.equal(viewModel.indicators[1].firstPoint.value, 0)
+  assert.equal(viewModel.indicators[1].percentVariation, null)
+  assert.ok(viewModel.effectiveSources.length === 1)
+  assert.ok(viewModel.breakdowns.every((item) => item.categories.every((category) => category.share != null)))
+})
+
+test('apresentação de Educação Superior preserva os nove indicadores, grupos e estados especiais', () => {
+  const currentFixture = higherEducationFixture('current')
+  const current = higherEducationViewModel.buildHigherEducationViewModel(
+    currentFixture.manifest,
+    currentFixture.document,
+  )
+  assert.equal(current.indicators.length, 9)
+  assert.deepEqual(
+    current.groups.slice(0, 4).map((group) => group.id),
+    ['enrollments', 'institutions', 'access-flow', 'faculty'],
+  )
+  assert.equal(current.indicators.filter((indicator) => indicator.latestPoint).length, 9)
+  assert.equal(current.indicators[1].firstPoint.status, 'derived_zero')
+  assert.equal(current.indicators[1].firstPoint.value, 0)
+
+  const unavailableFixture = higherEducationFixture('unavailable')
+  const unavailable = higherEducationViewModel.buildHigherEducationViewModel(
+    unavailableFixture.manifest,
+    unavailableFixture.document,
+  )
+  assert.equal(unavailable.availability, 'unavailable')
+  assert.equal(unavailable.indicators.filter((indicator) => indicator.latestPoint).length, 0)
+  assert.equal(unavailable.quickReads.length, 0)
+  assert.equal(unavailable.effectiveSources.length, 0)
+})
+
+test('apresentação de série distingue zero constante, ponto único e igualdade sem perder derived_zero', () => {
+  const zeroSeries = {
+    unit: 'matrículas',
+    series: [2018, 2019, 2024].map((year) => ({ year, value: 0, status: 'derived_zero' })),
+  }
+  const zeroPresentation = higherEducationPresentation.analyzeHigherEducationSeries(zeroSeries)
+  assert.equal(zeroPresentation.kind, 'constant_zero')
+  assert.equal(zeroPresentation.trendLabel, 'Estável')
+  assert.equal(zeroPresentation.reading, 'Estabilidade no período')
+  assert.equal(zeroPresentation.latestPoint.value, 0)
+
+  const singlePoint = higherEducationPresentation.analyzeHigherEducationSeries({
+    unit: 'polos',
+    series: [
+      { year: 2023, value: null, status: 'unavailable' },
+      { year: 2024, value: 1, status: 'observed' },
+    ],
+  })
+  assert.equal(singlePoint.kind, 'single_point')
+  assert.equal(singlePoint.reading, 'Série insuficiente para evolução')
+
+  assert.equal(higherEducationPresentation.areHigherEducationSeriesEqual(zeroSeries, structuredClone(zeroSeries)), true)
+  assert.equal(higherEducationPresentation.areHigherEducationSeriesEqual(zeroSeries, {
+    ...zeroSeries,
+    series: zeroSeries.series.map((point, index) => ({ ...point, value: index === 2 ? 1 : 0 })),
+  }), false)
+})
+
+test('apresentação categórica omite zeros apenas do gráfico e preserva tabelas e não exaustividade', () => {
+  const categories = [
+    { id: 'federal', label: 'Federal', value: 0, status: 'observed', share: 0 },
+    { id: 'private', label: 'Privada', value: 811, status: 'observed', share: 100 },
+  ]
+  const single = higherEducationPresentation.analyzeHigherEducationBreakdown({ categories, exhaustive: true })
+  assert.equal(single.kind, 'single_category')
+  assert.equal(single.singleCategory.label, 'Privada')
+  assert.equal(single.tableCategories.length, 2)
+  assert.equal(single.tableCategories[0].value, 0)
+
+  const nonExhaustive = higherEducationPresentation.analyzeHigherEducationBreakdown({
+    categories: categories.map((category) => ({ ...category, share: null })),
+    exhaustive: false,
+  })
+  assert.equal(nonExhaustive.kind, 'bars')
+  assert.deepEqual(nonExhaustive.chartRows, [{ label: 'Privada', value: 811 }])
+  assert.ok(nonExhaustive.tableCategories.every((category) => category.share == null))
+})
+
+test('apoio da Educação Superior exige conteúdo substantivo e não considera nota isolada', () => {
+  assert.equal(higherEducationPresentation.hasSubstantiveSupportContent({}), false)
+  assert.equal(higherEducationPresentation.hasSubstantiveSupportContent({ breakdownCount: 1 }), true)
+  assert.equal(higherEducationPresentation.hasSubstantiveSupportContent({ hasComposition: true }), true)
+  assert.equal(higherEducationPresentation.hasSubstantiveSupportContent({ hasUsefulReferenceSeries: true }), true)
+})
+
+test('interface pública consolida a fonte e mantém disclosure e impressão da série', () => {
+  const componentSource = readFileSync(path.resolve('src/features/education/components/HigherEducationSection.tsx'), 'utf8')
+  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  assert.match(componentSource, /Censo da Educação Superior — INEP/)
+  assert.doesNotMatch(componentSource, /Tabela 7\.1|Tabela 7\.3|Tabela 5\.1|sourceId/)
+  assert.match(componentSource, /Ver valores da série/)
+  assert.match(cssSource, /higher-education-page \.platform-support-disclosure__body[\s\S]*display: block !important/)
+  assert.match(cssSource, /higher-education-simple-table\.education-table-wrap[\s\S]*overflow: visible/)
+})
+
+test('detalhes de Educação Superior omitem apoio vazio e não duplicam notas específicas', () => {
+  const componentSource = readFileSync(path.resolve('src/features/education/components/HigherEducationSection.tsx'), 'utf8')
+  assert.match(componentSource, /hasSubstantiveSupportContent/)
+  assert.match(componentSource, /\['esup-matriculas-total', 'esup-matriculas-presenciais', 'esup-matriculas-ead'\]/)
+  assert.doesNotMatch(componentSource, /if \(indicator\.id === 'esup-matriculas-presenciais'\)[\s\S]{0,200}related\.push\(total\)/)
+  assert.match(componentSource, /Como interpretar este indicador/)
+  assert.doesNotMatch(componentSource, /Notas do indicador/)
+  assert.match(componentSource, /Polo EaD é local de oferta e não equivale a uma Instituição/)
+  assert.match(componentSource, /Não é calculada taxa a partir de vagas ou matrículas/)
+  assert.match(componentSource, /Não é calculada taxa de conclusão ou relação automática/)
+  assert.equal((componentSource.match(/Fonte: Censo da Educação Superior — INEP/g) ?? []).length, 1)
+})
+
+test('apresentação refinada preserva métricas compartilhadas, composição e responsividade', () => {
+  const componentSource = readFileSync(path.resolve('src/features/education/components/HigherEducationSection.tsx'), 'utf8')
+  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  assert.equal((componentSource.match(/<MetricCard /g) ?? []).length, 4)
+  assert.match(componentSource, /educacao-detail-panel--organized/)
+  assert.match(componentSource, /hideTitle/)
+  assert.match(componentSource, /Participação no total de matrículas/)
+  assert.match(componentSource, /higher-education-composition-legend/)
+  assert.match(componentSource, /Sem informação municipal/)
+  assert.match(cssSource, /@media \(max-width: 1080px\)[\s\S]*higher-education-support-grid/)
+  assert.match(cssSource, /higher-education-simple-table \.education-table[\s\S]*table-layout: fixed/)
+  assert.match(cssSource, /higher-education-page \.higher-education-unavailable-strip[\s\S]*display: flex !important/)
+})
+
+test('relatório técnico omite colunas de situação e fonte detalhada da Educação Superior', () => {
+  const reportSource = readFileSync(path.resolve('src/features/education/components/MunicipalTechnicalReport.tsx'), 'utf8')
+  const layoutSource = readFileSync(path.resolve('src/features/education/components/MunicipalTechnicalReportLayout.tsx'), 'utf8')
+  const pmeSource = readFileSync(path.resolve('src/features/education/components/PmeReferenceIndicatorsTable.tsx'), 'utf8')
+  const catalogSource = readFileSync(path.resolve('src/features/education/municipalTechnicalReportCatalog.ts'), 'utf8')
+  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  assert.doesNotMatch(reportSource, /<th[^>]*>\s*Situação\s*<\/th>/)
+  assert.doesNotMatch(reportSource, /municipal-technical-report__table-col-status/)
+  assert.doesNotMatch(reportSource, /INEP · Sinopse Estatística · tabela/)
+  assert.doesNotMatch(cssSource, /municipal-technical-report__pme-table-scroll\s*\{\s*max-height:\s*min\(/)
+  assert.match(cssSource, /municipal-technical-report__pme-table-scroll\s*\{[\s\S]*?max-height:\s*none;[\s\S]*?overflow-x:\s*auto;/)
+  assert.doesNotMatch(reportSource, /item\.label \?\? item\.key/)
+  assert.doesNotMatch(reportSource, /Dados integrados|Dados não integrados|Situação da base/)
+  assert.doesNotMatch(`${reportSource}${layoutSource}${pmeSource}`, /Não calculável com os dados atualmente disponíveis|Meta já alcançada|Meta atingida|Meta cumprida|Meta não atingida/)
+  assert.match(layoutSource, /Evidências públicas disponíveis/)
+  assert.match(pmeSource, /Situação atual em relação à referência/)
+  assert.equal((catalogSource.match(/officialTitle:/g) ?? []).length, 19)
+  assert.equal((catalogSource.match(/id: 'capitulo-/g) ?? []).length, 6)
+  assert.match(catalogSource, /Expansão das matrículas em cursos técnicos subsequentes/)
+  assert.match(cssSource, /--technical-report-canvas-max:\s*1120px/)
+})
+
+test('loader de Educação Superior deduplica requisições simultâneas e limpa cache', async () => {
+  const { document, manifest } = higherEducationFixture()
+  const originalFetch = globalThis.fetch
+  const requests = []
+  globalThis.fetch = async (url) => {
+    requests.push(String(url))
+    return new Response(JSON.stringify(String(url).endsWith('index.json') ? manifest : document), { status: 200 })
+  }
+  try {
+    higherEducationData.clearHigherEducationDataCache()
+    const [first, second] = await Promise.all([
+      higherEducationData.loadHigherEducationMunicipality('4300000'),
+      higherEducationData.loadHigherEducationMunicipality('4300000'),
+    ])
+    assert.equal(first, second)
+    assert.equal(requests.filter((url) => url.endsWith('index.json')).length, 1)
+    assert.equal(requests.filter((url) => url.endsWith('4300000.json')).length, 1)
+  } finally {
+    higherEducationData.clearHigherEducationDataCache()
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('contrato de Educação Especial valida casos positivo, zero e parcial', () => {
+  const manifest = specialEducationData.validateSpecialEducationManifest(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'index.json'), 'utf8')),
+  )
+  const documents = ['4300406', '4300034', '4314407'].map((municipalityId) =>
+    specialEducationData.validateSpecialEducationMunicipalDocument(
+      JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'municipios', `${municipalityId}.json`), 'utf8')),
+      municipalityId,
+      manifest,
+    ))
+  const positiveLatest = documents[0].years[documents[0].years.length - 1].cuts.total
+  assert.equal(positiveLatest.specialEducation.enrollments.value, 1056)
+  assert.equal(positiveLatest.aee.schoolsOfferingAee.value, 17)
+  assert.equal(documents[1].years.at(-1).cuts.total.bilingualDeafEducation.enrollments.value, 0)
+  const partialInterpreter = documents[2].years.at(-1).cuts.total.bilingualDeafEducation.interpreterAssignments
+  assert.equal(partialInterpreter.state, 'partial')
+  assert.equal(partialInterpreter.value, 10)
+})
+
+test('loader de Educação Especial usa manifesto uma vez e deduplica município por hash', async () => {
+  const manifest = JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'index.json'), 'utf8'))
+  const document = JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'municipios', '4300406.json'), 'utf8'))
+  const originalFetch = globalThis.fetch
+  const requests = []
+  globalThis.fetch = async (url) => {
+    requests.push(String(url))
+    return new Response(JSON.stringify(String(url).endsWith('index.json') ? manifest : document), { status: 200 })
+  }
+  try {
+    specialEducationData.clearSpecialEducationDataCache()
+    const [first, second] = await Promise.all([
+      specialEducationData.loadSpecialEducationMunicipality('4300406'),
+      specialEducationData.loadSpecialEducationMunicipality('4300406'),
+    ])
+    assert.equal(first, second)
+    assert.equal(requests.filter((url) => url.endsWith('index.json')).length, 1)
+    assert.equal(requests.filter((url) => url.endsWith('4300406.json')).length, 1)
+  } finally {
+    specialEducationData.clearSpecialEducationDataCache()
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('view model preserva oito recortes, lacunas e retrato bilíngue somente em 2025', () => {
+  const manifest = specialEducationData.validateSpecialEducationManifest(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'index.json'), 'utf8')),
+  )
+  const document = specialEducationData.validateSpecialEducationMunicipalDocument(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'municipios', '4300406.json'), 'utf8')),
+    '4300406',
+    manifest,
+  )
+  assert.deepEqual(
+    specialEducationViewModel.SPECIAL_EDUCATION_CUT_OPTIONS.map((item) => item.key),
+    ['total', 'publica', 'municipal', 'estadual', 'federal', 'privada', 'urbana', 'rural'],
+  )
+  const bilingual = specialEducationViewModel.buildIndicatorSeries(document, 'educacao-bilingue-surdos', 'total')
+  assert.deepEqual(bilingual.filter((point) => point.valor != null).map((point) => point.ano), [2025])
+  assert.equal(bilingual.find((point) => point.ano === 2024).valor, null)
+  const viewModel = specialEducationViewModel.buildSpecialEducationViewModel(document)
+  const items = viewModel.items
+  assert.deepEqual(items.map((item) => item.key), [
+    'educacao-especial-matriculas',
+    'educacao-especial-inclusao-classes-comuns',
+    'aee',
+    'educacao-bilingue-surdos',
+  ])
+  assert.equal(items.find((item) => item.key === 'aee').unit, 'escolas')
+  assert.match(items.find((item) => item.key === 'educacao-especial-matriculas').statusLabel, /Alta|Queda|Estável/)
+  assert.equal(items.find((item) => item.key === 'educacao-bilingue-surdos').statusLabel, 'Retrato 2025')
+  assert.equal(items.find((item) => item.key === 'educacao-bilingue-surdos').cardReading, 'Retrato disponível em 2025')
+  const enrollments = items.find((item) => item.key === 'educacao-especial-matriculas')
+  assert.equal(enrollments.series.length, 12)
+  assert.deepEqual(enrollments.series.map((point) => point.ano), [
+    2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025,
+  ])
+  assert.deepEqual(
+    enrollments.series.filter((point) => point.ano >= 2022).map((point) => point.valor),
+    [736, 931, 1015, 1056],
+  )
+  assert.equal(enrollments.currentYear, 2025)
+  assert.equal(enrollments.currentValue, 1056)
+  assert.equal(viewModel.latestYear, 2025)
+  assert.equal(viewModel.allItems.length, 4)
+})
+
+test('ticks responsivos reduzem rótulos sem remover os doze dados anuais', () => {
+  const points = Array.from({ length: 12 }, (_, index) => ({
+    ano: 2014 + index,
+    year: 2014 + index,
+    valor: index,
+  }))
+  const ticks = pneChartSystem.selectPneYearTicks(points, 7)
+  assert.equal(points.length, 12)
+  assert.ok(ticks.length <= 7)
+  assert.equal(ticks[0].year, 2014)
+  assert.equal(ticks.at(-1).year, 2025)
+})
+
+test('publicação especial exige o total de 2025 e preserva zero observado', () => {
+  const manifest = specialEducationData.validateSpecialEducationManifest(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'index.json'), 'utf8')),
+  )
+  const readDocument = (municipalityId) => specialEducationData.validateSpecialEducationMunicipalDocument(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'municipios', `${municipalityId}.json`), 'utf8')),
+    municipalityId,
+    manifest,
+  )
+  const zeroModel = specialEducationViewModel.buildSpecialEducationViewModel(readDocument('4300034'))
+  const bilingualZero = zeroModel.items.find((item) => item.key === 'educacao-bilingue-surdos')
+  assert.equal(bilingualZero.currentValue, 0)
+  assert.equal(bilingualZero.currentDisplay, '0')
+  assert.equal(bilingualZero.snapshotOnly, true)
+  assert.equal(bilingualZero.variationRaw, null)
+  assert.equal(bilingualZero.series.filter((point) => point.valor != null).length, 1)
+
+  const saoLeopoldoModel = specialEducationViewModel.buildSpecialEducationViewModel(readDocument('4318705'))
+  assert.deepEqual(
+    saoLeopoldoModel.items.map((item) => item.key),
+    ['educacao-especial-matriculas', 'educacao-especial-inclusao-classes-comuns', 'aee', 'educacao-bilingue-surdos'],
+  )
+  const observedEnrollment = saoLeopoldoModel.allItems.find((item) => item.key === 'educacao-especial-matriculas')
+  assert.equal(observedEnrollment.availableInReferenceYear, true)
+  assert.equal(observedEnrollment.currentYear, 2025)
+  assert.equal(observedEnrollment.currentValue, 2692)
+  assert.equal(observedEnrollment.currentDisplay, '2.692')
+  assert.equal(observedEnrollment.series.find((point) => point.ano === 2025).valor, 2692)
+  assert.equal(observedEnrollment.series.find((point) => point.ano === 2021).valor, 1468)
+
+  const partialDocument = structuredClone(readDocument('4300034'))
+  partialDocument.years.at(-1).cuts.total.specialEducation.enrollments = {
+    missingSchools: 1,
+    observedSchools: 4,
+    reason: 'test-partial',
+    sourceId: 'test-partial',
+    state: 'partial',
+    value: 12,
+  }
+  const partialModel = specialEducationViewModel.buildSpecialEducationViewModel(partialDocument)
+  const partialEnrollment = partialModel.items.find((item) => item.key === 'educacao-especial-matriculas')
+  assert.equal(partialEnrollment.currentValue, 12)
+  assert.equal(partialEnrollment.currentDisplay, '12')
+  assert.equal(partialEnrollment.referencePointState, 'partial')
+
+  const derivedZeroDocument = structuredClone(readDocument('4300034'))
+  derivedZeroDocument.years.at(-1).cuts.total.aee.schoolsOfferingAee = {
+    sourceId: 'test-derived-zero',
+    state: 'derived_zero',
+    value: 0,
+  }
+  const derivedZeroModel = specialEducationViewModel.buildSpecialEducationViewModel(derivedZeroDocument)
+  assert.equal(derivedZeroModel.items.find((item) => item.key === 'aee').currentValue, 0)
+
+  const notApplicableDocument = structuredClone(readDocument('4300034'))
+  notApplicableDocument.years.at(-1).cuts.total.aee.schoolsOfferingAee = {
+    reason: 'test-not-applicable',
+    sourceId: 'test-not-applicable',
+    state: 'not_applicable',
+    value: null,
+  }
+  const notApplicableModel = specialEducationViewModel.buildSpecialEducationViewModel(notApplicableDocument)
+  assert.equal(notApplicableModel.items.some((item) => item.key === 'aee'), false)
+  assert.equal(notApplicableModel.allItems.find((item) => item.key === 'aee').currentValue, null)
+})
+
+test('os oito recortes mantêm 2025 como referência sem converter indisponibilidade em zero', () => {
+  const manifest = specialEducationData.validateSpecialEducationManifest(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'index.json'), 'utf8')),
+  )
+  const document = specialEducationData.validateSpecialEducationMunicipalDocument(
+    JSON.parse(readFileSync(path.join(specialEducationDataDirectory, 'municipios', '4318705.json'), 'utf8')),
+    '4318705',
+    manifest,
+  )
+  specialEducationViewModel.SPECIAL_EDUCATION_CUT_OPTIONS.forEach(({ key }) => {
+    const series = specialEducationViewModel.buildIndicatorSeries(
+      document,
+      'educacao-especial-inclusao-classes-comuns',
+      key,
+    )
+    assert.equal(series.length, 12)
+    assert.equal(series.at(-1).ano, 2025)
+    if (series.at(-1).state === 'partial' || series.at(-1).state === 'unavailable') {
+      assert.equal(series.at(-1).valor, null)
+    }
+  })
+})
+
+test('interface especial reutiliza o shell educacional, integra o recorte ao cabeçalho e preserva fonte e impressão', () => {
+  const detailSource = readFileSync('src/features/education/components/SpecialEducationDetailView.tsx', 'utf8')
+  const headerSource = readFileSync('src/features/education/components/EducationCompactHeader.tsx', 'utf8')
+  const shellSource = readFileSync('src/features/education/components/EducationIndicatorDetailShell.tsx', 'utf8')
+  const loaderSource = readFileSync('src/data/specialEducation.ts', 'utf8')
+  const styles = readFileSync('src/styles/education-pages.css', 'utf8')
+  assert.match(detailSource, /EducationIndicatorDetailShell/)
+  assert.match(detailSource, /EducationMetricSummary/)
+  assert.match(detailSource, /EducationSupportDataSection/)
+  assert.match(shellSource, /education-primary-analysis/)
+  assert.doesNotMatch(detailSource, /SegmentedControl|special-education-cut-selector/)
+  assert.match(detailSource, /resolvedPoints\.length >= 2/)
+  assert.match(detailSource, /Situação do indicador em/)
+  assert.match(detailSource, /Este indicador não possui valor disponível para 2025 neste município\./)
+  assert.match(detailSource, /special-education-reference-state/)
+  assert.match(detailSource, /Variação de 2014 a 2025/)
+  assert.match(detailSource, /currentYear=\{SPECIAL_EDUCATION_REFERENCE_YEAR\}/)
+  assert.match(detailSource, /earlyChildhood:\s*'Educação Infantil'/)
+  assert.match(detailSource, /elementary:\s*'Ensino Fundamental'/)
+  assert.match(detailSource, /finalYears:\s*'Anos Finais'/)
+  assert.match(detailSource, /highSchool:\s*'Ensino Médio'/)
+  assert.match(detailSource, /initialYears:\s*'Anos Iniciais'/)
+  assert.match(detailSource, /preSchool:\s*'Pré-escola'/)
+  assert.match(detailSource, /professional:\s*'Educação Profissional'/)
+  assert.match(detailSource, /youthAndAdult:\s*'Educação de Jovens e Adultos'/)
+  assert.doesNotMatch(detailSource, /latestResolved/)
+  assert.doesNotMatch(detailSource, /source_column_absent|zero_denominator|sourceVariable|normalizedTable/)
+  assert.match(detailSource, /Censo Escolar da Educação Básica — INEP/)
+  assert.match(headerSource, /aria-haspopup="menu"/)
+  assert.match(headerSource, /event\.key !== 'Escape'/)
+  assert.match(loaderSource, /contentHash.*normalizedId/)
+  assert.match(styles, /education-context-chip__menu-trigger:focus-visible/)
+  assert.match(styles, /@media print[\s\S]*education-context-chip__menu[\s\S]*display:\s*none/)
+  assert.match(styles, /@media print[\s\S]*education-support-data__item[\s\S]*break-inside:\s*avoid/)
+  assert.doesNotMatch(styles, /special-education-cut-control|special-education-cut-selector/)
+})
+
+test('loader distingue documento inexistente de conteúdo inválido', async () => {
+  const originalFetch = globalThis.fetch
+  try {
+    higherEducationData.clearHigherEducationDataCache()
+    globalThis.fetch = async () => new Response('', { status: 404 })
+    await assert.rejects(higherEducationData.loadHigherEducationManifest(), (error) => error instanceof higherEducationData.HigherEducationDataNotFoundError)
+    higherEducationData.clearHigherEducationDataCache()
+    globalThis.fetch = async () => new Response('{}', { status: 200 })
+    await assert.rejects(higherEducationData.loadHigherEducationManifest(), (error) => error instanceof higherEducationData.HigherEducationInvalidDataError)
+  } finally {
+    higherEducationData.clearHigherEducationDataCache()
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('contratos reais selecionados de Educação Superior passam na validação frontend', () => {
+  const manifest = higherEducationValidation.validateHigherEducationManifest(
+    JSON.parse(readFileSync('public/data/educacao/superior/index.json', 'utf8')),
+  )
+  for (const municipalityId of ['4300604', '4300109', '4300034', '4300059']) {
+    const document = JSON.parse(readFileSync(`public/data/educacao/superior/municipios/${municipalityId}.json`, 'utf8'))
+    assert.equal(
+      higherEducationValidation.validateHigherEducationMunicipalDocument(document, municipalityId, manifest).municipality.id,
+      municipalityId,
+    )
+  }
+})
 
 test('visão geral municipal preserva zero, ausência e contrato ampliado', () => {
   const base = { year: 2025, sourceId: 'inep', sourceField: 'campo' }
@@ -76,13 +636,50 @@ test('indisponibilidade, zero e seleção de detalhe são distintos', () => {
 test('view model resolve seção e resumo sem alterar dados', () => {
   const sections = { overview: 'overview', demand: 'demand', methodology: 'methodology' }
   assert.deepEqual(
-    viewModels.buildEducationPageViewModel({ sectionItemCount: 0, selectedSectionKey: 'demand', sectionKeys: sections }),
+    viewModels.buildEducationPageViewModel({ indicatorCount: 0, selectedSectionKey: 'demand', sectionKeys: sections }),
     { contextScope: 'Cenários de atendimento escolar', isDemandSection: true, isMethodologySection: false, isOverviewSection: false },
   )
   assert.equal(
-    viewModels.buildEducationPageViewModel({ sectionItemCount: 1, selectedSectionKey: 'overview', sectionKeys: sections }).contextScope,
+    viewModels.buildEducationPageViewModel({ indicatorCount: 1, selectedSectionKey: 'overview', sectionKeys: sections }).contextScope,
     '1 indicador',
   )
+})
+
+test('retrato indígena preserva cobertura e os quatro totais oficiais, inclusive zero', () => {
+  const items = viewModels.buildIndigenousEducationIndicators({
+    ultimo_ano: 2025,
+    resumo_ultimo_ano: {
+      matriculas: 0,
+      estabelecimentos: 0,
+      docentes: 0,
+      turmas: 0,
+    },
+    series_totais: {
+      matriculas: [{ ano: 2023, valor: 6 }, { ano: 2024, valor: 0 }, { ano: 2025, valor: 0 }],
+      estabelecimentos: [{ ano: 2023, valor: 1 }, { ano: 2024, valor: 0 }, { ano: 2025, valor: 0 }],
+      docentes: [{ ano: 2023, valor: 1 }, { ano: 2024, valor: 0 }, { ano: 2025, valor: 0 }],
+      turmas: [{ ano: 2023, valor: 3 }, { ano: 2024, valor: 0 }, { ano: 2025, valor: 0 }],
+    },
+    coberturaEstimada: {
+      series: {
+        2023: { percentage: 12.5, status: 'available' },
+        2024: { percentage: 0, status: 'available' },
+        2025: { percentage: 0, status: 'available' },
+      },
+    },
+  })
+
+  assert.deepEqual(items.map((item) => item.label), [
+    'Cobertura estimada da educação escolar indígena — 4 a 17 anos',
+    'Matrículas na educação escolar indígena',
+    'Estabelecimentos com oferta de educação escolar indígena',
+    'Docentes da educação escolar indígena',
+    'Turmas da educação escolar indígena',
+  ])
+  assert.deepEqual(items.map((item) => item.currentValue), [0, 0, 0, 0, 0])
+  assert.equal(items[0].currentDisplay, '0,0%')
+  assert.ok(items.slice(1).every((item) => item.currentDisplay === '0'))
+  assert.ok(items.every((item) => item.neutralTrend === true))
 })
 
 test('indicadores de infraestrutura expõem recortes por rede e localização', () => {
@@ -129,6 +726,335 @@ test('indicadores de infraestrutura expõem recortes por rede e localização', 
   ])
 })
 
+test('contrato canônico de infraestrutura valida os 497 documentos promovidos', () => {
+  assert.equal(schoolInfrastructureDocumentFiles.length, 497)
+  for (const fileName of schoolInfrastructureDocumentFiles) {
+    const document = readEducationDocument(fileName)
+    const contract = schoolInfrastructure.getSchoolInfrastructureContractFromDocument(document)
+    assert.ok(contract, `${fileName} deve conter o contrato canônico`)
+    assert.equal(contract.referenceYear, 2025)
+  }
+})
+
+test('loader rejeita contrato inválido, remove a falha do cache e aceita nova resposta válida', async () => {
+  const validDocument = readEducationDocument()
+  const invalidDocument = structuredClone(validDocument)
+  invalidDocument.blocos.rede_escolar.infraestrutura.years[0].cuts.total.indicators.internet.denominator = -1
+  const originalFetch = globalThis.fetch
+  let attempts = 0
+  globalThis.fetch = async () => {
+    attempts += 1
+    return new Response(JSON.stringify(attempts === 1 ? invalidDocument : validDocument), { status: 200 })
+  }
+  try {
+    await assert.rejects(
+      educationData.loadEducationMunicipio('fixture-invalid-then-valid'),
+      /school-infrastructure-v2 inválido/,
+    )
+    const loaded = await educationData.loadEducationMunicipio('fixture-invalid-then-valid')
+    assert.equal(
+      loaded.blocos.rede_escolar.infraestrutura.contractVersion,
+      schoolInfrastructure.SCHOOL_INFRASTRUCTURE_CONTRACT_VERSION,
+    )
+    assert.equal(attempts, 2)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('catálogo de infraestrutura separa 18 indicadores de 14 conteúdos navegáveis', () => {
+  const groups = educationCatalog.EDUCATION_SECTION_GROUPS[
+    educationCatalog.EDUCATION_SECTION_KEYS.infrastructure
+  ]
+  const section = educationCatalog.EDUCATION_SECTION_CATALOG.find(
+    ({ key }) => key === educationCatalog.EDUCATION_SECTION_KEYS.infrastructure,
+  )
+  assert.deepEqual(groups.map((group) => group.indicatorKeys.length), [1, 9, 4])
+  assert.deepEqual(groups.map((group) => group.indicatorCount), [5, 9, 4])
+  assert.equal(groups.flatMap((group) => group.indicatorKeys).length, 14)
+  assert.equal(section.indicatorCount, 18)
+  assert.equal(section.navigableContentCount, 14)
+  assert.deepEqual(groups[0].indicatorKeys, ['infraestrutura-basica'])
+  assert.equal(
+    groups.flatMap((group) => group.indicatorKeys)
+      .some((key) => educationCatalog.SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.includes(key)),
+    false,
+  )
+  assert.equal(
+    groups.flatMap((group) => group.indicatorKeys).filter((key) => key === 'internet').length,
+    1,
+  )
+
+  const sequence = groups.flatMap((group) => group.indicatorKeys)
+  assert.equal(new Set(sequence).size, 14)
+  assert.deepEqual(sequence, [
+    'infraestrutura-basica',
+    'internet',
+    'internet_alunos',
+    'internet_aprendizagem',
+    'internet_comunidade',
+    'acesso_internet_computador',
+    'acesso_internet_disp_pessoais',
+    'rede_local',
+    'rede_wireless',
+    'banda_larga',
+    'proposta_pedagogica',
+    'desktop_aluno',
+    'comp_portatil_aluno',
+    'tablet_aluno',
+  ])
+  assert.equal(sequence.includes('rede-infraestrutura'), false)
+  assert.deepEqual(
+    educationCatalog.EDUCATION_INDICATOR_CATALOG
+      .find(({ key }) => key === 'rede-infraestrutura')
+      .sections,
+    [],
+  )
+  assert.equal(
+    educationCatalog.resolveEducationNavigation({
+      route: 'educacao',
+      hashParams: 'secao=infraestrutura&detalhe=rede-infraestrutura',
+    }).detailKey,
+    'rede-infraestrutura',
+  )
+  assert.equal(
+    sequence.some((key) => educationCatalog.SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.includes(key)),
+    false,
+  )
+
+  const contents = sequence.map((key) => ({ key, label: key }))
+  sequence.forEach((key, index) => {
+    const forward = selectors.selectEducationDetailSequence(contents, key)
+    assert.equal(forward.activeIndex, index)
+    assert.equal(forward.previousItem?.key ?? null, sequence[index - 1] ?? null)
+    assert.equal(forward.nextItem?.key ?? null, sequence[index + 1] ?? null)
+  })
+  ;[...sequence].reverse().forEach((key, reverseIndex) => {
+    const backward = selectors.selectEducationDetailSequence(contents, key)
+    assert.equal(backward.activeIndex, sequence.length - reverseIndex - 1)
+  })
+})
+
+test('view model canônico cria o conteúdo composto e preserva Internet histórica', () => {
+  const document = readEducationDocument()
+  const contract = schoolInfrastructure.getSchoolInfrastructureContractFromDocument(document)
+  const theme = viewModels.buildPneComplementaryTheme({
+    indicadores: null,
+    rede: document.blocos.rede_escolar,
+    results: {
+      internet: {
+        end_value: 10,
+        end_year: 2025,
+        series: [
+          { ano: 2014, valor: 20 },
+          { ano: 2024, valor: 30 },
+          { ano: 2025, valor: 10 },
+        ],
+        value_mode: 'percent',
+      },
+    },
+  })
+  const canonicalItems = theme.items.filter((item) => item.schoolInfrastructureKey)
+  const composite = theme.items.find((item) => item.key === 'infraestrutura-basica')
+  const internet = canonicalItems.find((item) => item.key === 'internet')
+  const snapshots = canonicalItems.filter((item) => item.key !== 'internet')
+  const canonicalInternet = schoolInfrastructure.selectSchoolInfrastructureResult(contract, 'internet')
+
+  assert.equal(canonicalItems.length, 6)
+  assert.equal(snapshots.length, 5)
+  assert.equal(composite.cardVariant, 'school-infrastructure-composite')
+  assert.equal(composite.schoolInfrastructureDimensions.length, 5)
+  assert.deepEqual(
+    composite.schoolInfrastructureDimensions.map(({ key }) => key),
+    educationCatalog.SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER,
+  )
+  assert.ok(snapshots.every((item) => item.snapshotOnly && item.series.length === 0))
+  assert.ok(snapshots.every((item) => item.statusLabel === 'Situação em 2025'))
+  assert.deepEqual(internet.series.map((point) => point.ano), [2014, 2024, 2025])
+  assert.equal(internet.series.at(-1).valor, canonicalInternet.percentage)
+  assert.equal(internet.currentValue, canonicalInternet.percentage)
+  assert.equal(canonicalItems.filter((item) => item.key === 'internet').length, 1)
+})
+
+test('seletores e formatação preservam recortes, zero real e estados sem denominador', () => {
+  const document = readEducationDocument()
+  const contract = schoolInfrastructure.getSchoolInfrastructureContractFromDocument(document)
+  for (const cut of schoolInfrastructure.SCHOOL_INFRASTRUCTURE_CUT_ORDER) {
+    assert.ok(schoolInfrastructure.selectSchoolInfrastructureResult(contract, 'internet', cut))
+  }
+
+  const zero = {
+    numerator: 0,
+    denominator: 2,
+    percentage: 0,
+    totalActiveSchools: 2,
+    observedSchools: 2,
+    missingSchools: 0,
+    status: 'published',
+  }
+  const notApplicable = {
+    numerator: 0,
+    denominator: 0,
+    percentage: null,
+    totalActiveSchools: 0,
+    observedSchools: 0,
+    missingSchools: 0,
+    status: 'unavailable',
+  }
+  const unavailable = {
+    ...notApplicable,
+    totalActiveSchools: 2,
+    missingSchools: 2,
+  }
+  assert.equal(schoolInfrastructure.formatSchoolInfrastructurePercentage(zero), '0,0%')
+  assert.equal(schoolInfrastructure.formatSchoolInfrastructureQuantity(zero), '0 de 2')
+  assert.equal(schoolInfrastructure.formatSchoolInfrastructureReportCell(zero), '0 de 2 · 0,0%')
+  assert.equal(schoolInfrastructure.formatSchoolInfrastructureReportCell(notApplicable), 'Não se aplica')
+  assert.equal(schoolInfrastructure.formatSchoolInfrastructureReportCell(unavailable), 'Não disponível')
+})
+
+test('interface de infraestrutura usa card composto, página conjunta e apoio responsivo', () => {
+  const detailSource = readFileSync(
+    path.resolve('src/features/education/components/EducationIndicatorDetailView.tsx'),
+    'utf8',
+  )
+  const cardSource = readFileSync(path.resolve('src/components/EducationIndicatorCard.jsx'), 'utf8')
+  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  const pageSource = readFileSync(path.resolve('src/features/education/EducationPage.tsx'), 'utf8')
+  const viewModelSource = readFileSync(path.resolve('src/features/education/educationViewModels.ts'), 'utf8')
+  const combinedDetailSource = detailSource.slice(
+    detailSource.indexOf('function SchoolInfrastructureCombinedDetail'),
+    detailSource.indexOf('function SchoolInfrastructureSupportChart'),
+  )
+
+  assert.doesNotMatch(detailSource, /SchoolInfrastructureSnapshotChart/)
+  assert.doesNotMatch(detailSource, /SchoolInfrastructureStandardSupportData/)
+  assert.doesNotMatch(detailSource, /Com água potável|Sem água potável/)
+  assert.match(detailSource, /SchoolInfrastructureCombinedDetail/)
+  assert.match(detailSource, /SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER\.map/)
+  assert.doesNotMatch(combinedDetailSource, /Dimensão selecionada/)
+  assert.doesNotMatch(combinedDetailSource, /aria-pressed|onSelectDimension|selectedDimension/)
+  assert.match(detailSource, /Panorama da infraestrutura básica — \$\{contract\.referenceYear\}/)
+  assert.match(detailSource, /As cinco dimensões apresentam o mesmo resultado no recorte selecionado\./)
+  assert.match(detailSource, /Por rede/)
+  assert.match(detailSource, /Por localização/)
+  assert.match(detailSource, /school-infrastructure-comparison-table/)
+  assert.match(detailSource, /school-infrastructure-comparison-cards/)
+  assert.match(detailSource, /Não se aplica/)
+  assert.match(detailSource, /Não disponível/)
+  assert.match(detailSource, /SchoolInfrastructureSupportData/)
+  assert.match(detailSource, /Resultado por rede — \$\{contract\.referenceYear\}/)
+  assert.match(detailSource, /Resultado por localização — \$\{contract\.referenceYear\}/)
+  assert.match(detailSource, /title="Evolução do indicador"/)
+  assert.match(detailSource, /SchoolInfrastructurePanoramaChart results=\{panoramaAvailableResults\}/)
+  assert.match(detailSource, /school-infrastructure-panorama-row__label/)
+  assert.match(detailSource, /formatSchoolInfrastructureQuantity\(result\)/)
+  assert.match(detailSource, /highest = availableResults\.filter/)
+  assert.match(detailSource, /lowest = availableResults\.filter/)
+  assert.match(detailSource, /value=\{panoramaCoveragePercentage == null \? EM : formatInfrastructureValue\(panoramaCoveragePercentage\)\}/)
+  assert.match(detailSource, /Histórico de conectividade e condições escolares/)
+  assert.match(cardSource, /SchoolInfrastructureCompositeCard/)
+  assert.match(cardSource, /school-infrastructure-composite-card__metrics/)
+  assert.match(cardSource, /Abrir panorama/)
+  assert.doesNotMatch(cardSource, /onDimensionSelect|aria-pressed/)
+  assert.match(cardSource, /indicator\.groupKey === 'equipamentos-recursos'/)
+  assert.match(cardSource, /hideContext: isExploratory \|\| isPedagogicalResource/)
+  assert.match(cardSource, /modifier: isExploratory[\s\S]*\['panorama-entry', 'panorama-feature'\][\s\S]*isPedagogicalResource[\s\S]*'compact-copy'/)
+  assert.equal(
+    cardSource.includes('Condições básicas, espaços escolares, conectividade e equipamentos disponíveis nas escolas.'),
+    true,
+  )
+  assert.equal(
+    cardSource.includes('Escolas públicas com projeto político-pedagógico'),
+    true,
+  )
+  assert.equal(
+    cardSource.includes('Escolas públicas com projeto político-pedagógico ou proposta pedagógica.'),
+    true,
+  )
+  assert.equal(cardSource.includes("'Recursos pedagógicos'"), true)
+  assert.match(cssSource, /education-indicator-group--infraestrutura-basica \.education-indicator-card-grid\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/)
+  assert.match(cssSource, /school-infrastructure-composite-card__metrics[\s\S]*repeat\(5/)
+  assert.match(cssSource, /school-infrastructure-composite-card__value[\s\S]*font-size: var\(--font-size-3xl\)[\s\S]*tabular-nums/)
+  assert.match(cssSource, /school-infrastructure-summary-card > strong[\s\S]*font-size: 30px/)
+  assert.match(cssSource, /school-infrastructure-comparison-table-wrap[\s\S]*width: 100%/)
+  assert.match(cssSource, /school-infrastructure-comparison-cards[\s\S]*display: none/)
+  assert.match(cssSource, /education-indicator-group--rede-escolar \.education-indicator-card-grid[\s\S]*minmax\(0, 1fr\)/)
+  assert.match(cssSource, /education-indicator-card--panorama-feature[\s\S]*min-height: 112px !important/)
+  assert.match(cssSource, /education-indicator-card--panorama-feature[\s\S]*grid-template-columns: repeat\(12/)
+  assert.match(cssSource, /education-indicator-group--equipamentos-recursos \.education-indicator-card-grid[\s\S]*repeat\(4/)
+  assert.match(cssSource, /@media \(max-width: 1440px\)[\s\S]*education-indicator-group--equipamentos-recursos[\s\S]*repeat\(3/)
+  assert.match(cssSource, /education-indicator-card--compact-copy[\s\S]*font-size: var\(--font-size-sm\)[\s\S]*-webkit-line-clamp: unset/)
+  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__description[\s\S]*line-height: 1\.4[\s\S]*-webkit-line-clamp: unset/)
+  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__value-row[\s\S]*align-items: flex-start !important[\s\S]*justify-content: flex-start !important/)
+  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__value-row strong[\s\S]*max-width: none !important[\s\S]*font-size: var\(--font-size-3xl\) !important[\s\S]*text-overflow: clip !important/)
+  assert.match(cssSource, /school-infrastructure-support \.education-support-data__grid[\s\S]*minmax\(0, 3fr\)[\s\S]*minmax\(280px, 2fr\)/)
+  assert.match(cssSource, /school-infrastructure-panorama__support \.infra-panorama-grid[\s\S]*repeat\(12/)
+  assert.match(cssSource, /infra-panel-group:nth-child\(1\)[\s\S]*span 3/)
+  assert.match(cssSource, /infra-panel-group:nth-child\(2\)[\s\S]*span 4/)
+  assert.match(cssSource, /infra-panel-group:nth-child\(3\)[\s\S]*span 5/)
+  assert.match(cssSource, /@media \(max-width: 1180px\)[\s\S]*school-infrastructure-composite-card__metrics[\s\S]*repeat\(3/)
+  assert.match(cssSource, /@media \(max-width: 1180px\)[\s\S]*education-indicator-group--equipamentos-recursos[\s\S]*repeat\(2/)
+  assert.match(cssSource, /@media \(max-width: 700px\)[\s\S]*education-indicator-group--infraestrutura-basica[\s\S]*minmax\(0, 1fr\)/)
+  assert.match(cssSource, /@media \(max-width: 700px\)[\s\S]*education-indicator-group--equipamentos-recursos[\s\S]*minmax\(0, 1fr\)/)
+  assert.match(cssSource, /@media \(max-width: 700px\)[\s\S]*school-infrastructure-comparison-table-wrap[\s\S]*display: none/)
+  assert.match(cssSource, /@media \(max-width: 700px\)[\s\S]*school-infrastructure-comparison-cards[\s\S]*display: grid/)
+  assert.match(viewModelSource, /key: 'rede-infraestrutura'[\s\S]*mainCutLabel: 'Total'/)
+  assert.doesNotMatch(viewModelSource, /key: 'rede-infraestrutura'[\s\S]{0,1400}mainCutLabel: 'Escolas com internet'/)
+  assert.match(pageSource, /activeIndicator\.cardVariant === 'exploratory'[\s\S]*activeIndicator\.cardTitle/)
+  assert.match(pageSource, /replaceHashContext[\s\S]*detalhe: isLegacyInfrastructureAlias \? 'infraestrutura-basica' : requestedDetailKey[\s\S]*dimensao: null/)
+  assert.doesNotMatch(pageSource, /selectedInfrastructureDimension|setSelectedInfrastructureDimension/)
+  assert.doesNotMatch(detailSource, /variationStatusLabel/)
+
+  const panoramaSource = detailSource.slice(
+    detailSource.indexOf('function InfraDetailPanel'),
+    detailSource.indexOf('function applyStageOption'),
+  )
+  assert.equal((panoramaSource.match(/education-support-data__footer/g) ?? []).length, 1)
+})
+
+test('panorama preserva a ordem e os seis rótulos canônicos de infraestrutura básica', () => {
+  assert.deepEqual(schoolInfrastructure.SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER, [
+    'agua_potavel',
+    'energia_eletrica',
+    'internet',
+    'biblioteca_sala_leitura',
+    'quadra_esportes',
+    'esgoto_rede_publica',
+  ])
+  assert.deepEqual(
+    schoolInfrastructure.SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER.map(
+      (key) => schoolInfrastructure.SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[key].shortLabel,
+    ),
+    [
+      'Água potável',
+      'Energia elétrica',
+      'Internet',
+      'Biblioteca ou sala de leitura',
+      'Quadra de esportes',
+      'Rede pública de esgoto',
+    ],
+  )
+})
+
+test('relatório usa o contrato canônico, seis linhas e os recortes total e municipal', () => {
+  const reportTableSource = readFileSync(
+    path.resolve('src/features/education/components/SchoolInfrastructureReportTable.tsx'),
+    'utf8',
+  )
+  const detailSource = readFileSync(
+    path.resolve('src/features/education/components/EducationIndicatorDetailView.tsx'),
+    'utf8',
+  )
+  assert.match(reportTableSource, /SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER\.map/)
+  assert.match(reportTableSource, /indicatorKey, 'total'/)
+  assert.match(reportTableSource, /indicatorKey, 'municipal'/)
+  assert.match(reportTableSource, /Bloco C — Infraestrutura/)
+  assert.doesNotMatch(`${reportTableSource}${detailSource}`, />\s*(sourceVariable|contractVersion|numerator|denominator)\s*</)
+  assert.doesNotMatch(detailSource, /SchoolInfrastructureSnapshotChart|SchoolInfrastructureStandardSupportData/)
+  assert.doesNotMatch(reportTableSource, /numerator|denominator/)
+})
+
 test('indicadores contextuais descrevem o movimento observado da série', () => {
   const theme = viewModels.buildPneComplementaryTheme({
     indicadores: null,
@@ -163,12 +1089,39 @@ test('navegação educacional resolve seção, detalhe e vizinhança compartilha
     },
   )
   assert.deepEqual(
+    selectors.getInitialEducationNavigation({
+      route: 'educacao',
+      hashParams: 'secao=modalidades&detalhe=educacao-indigena',
+      searchParams: '',
+    }),
+    {
+      panoramaTheme: 'oferta',
+      section: 'modalidades',
+      detailKey: 'educacao-indigena',
+      shouldApplyTheme: true,
+    },
+  )
+  assert.deepEqual(
     selectors.getInitialEducationNavigation({ route: 'outra-rota' }),
     {
       panoramaTheme: 'matriculas',
       section: 'visao-geral',
       detailKey: '',
       shouldApplyTheme: false,
+    },
+  )
+
+  assert.deepEqual(
+    selectors.getInitialEducationNavigation({
+      route: 'educacao',
+      hashParams: 'secao=infraestrutura&detalhe=agua_potavel',
+      searchParams: '',
+    }),
+    {
+      panoramaTheme: 'pne_complementares',
+      section: 'infraestrutura',
+      detailKey: 'infraestrutura-basica',
+      shouldApplyTheme: true,
     },
   )
 
@@ -492,4 +1445,216 @@ test('rótulos finais combinam somente pontos brutos coincidentes e afastam os d
   assert.equal(withoutTarget.combined, false)
   assert.equal(withoutTarget.meta, null)
   assert.ok(withoutTarget.projected.x <= base.chartWidth - base.padding.right)
+})
+
+test('comparação do PME exige valor, referência e direção válidos', () => {
+  const base = {
+    kind: 'percentage',
+    direction: 'at_least',
+    currentValue: 40,
+    targetValue: 60,
+    numerator: 40,
+    denominator: 100,
+    effortUnit: 'matrículas',
+  }
+
+  assert.equal(
+    pmeReferenceTable.calculatePmeEffort({ ...base, targetValue: null }).text,
+    pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
+  )
+  assert.equal(
+    pmeReferenceTable.calculatePmeEffort({ ...base, currentValue: null }).text,
+    pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
+  )
+  assert.equal(
+    pmeReferenceTable.calculatePmeEffort({ ...base, direction: null }).text,
+    pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
+  )
+})
+
+test('comparação percentual informa diferença em pontos percentuais', () => {
+  const effort = pmeReferenceTable.calculatePmeEffort({
+    kind: 'percentage',
+    direction: 'at_least',
+    currentValue: 0,
+    targetValue: 33.4,
+    numerator: 0,
+    denominator: 10,
+    effortUnit: 'matrículas',
+  })
+
+  assert.equal(effort.text, 'Abaixo da referência — 33,4 pontos percentuais abaixo do valor de referência.')
+  assert.equal(effort.quantitativeCalculable, true)
+})
+
+test('comparação com direção de redução nomeia o limite máximo', () => {
+  const effort = pmeReferenceTable.calculatePmeEffort({
+    kind: 'percentage',
+    direction: 'at_most',
+    currentValue: 40,
+    targetValue: 30,
+    numerator: 41,
+    denominator: 100,
+    effortUnit: 'docentes',
+  })
+
+  assert.equal(effort.text, 'Acima da referência — 10 pontos percentuais acima do limite de referência.')
+  assert.equal(effort.atOrBeyondReference, false)
+})
+
+test('valor igual é distinguido de comparação indisponível sem encerrar o ciclo', () => {
+  const effort = pmeReferenceTable.calculatePmeEffort({
+    kind: 'percentage',
+    direction: 'at_least',
+    currentValue: 60,
+    targetValue: 60,
+    numerator: null,
+    denominator: null,
+  })
+
+  assert.equal(effort.text, pmeReferenceTable.PME_REFERENCE_EQUAL)
+  assert.equal(effort.atOrBeyondReference, true)
+  assert.equal(effort.quantitativeCalculable, true)
+})
+
+test('indicadores qualitativos usam acompanhamento descritivo', () => {
+  assert.equal(
+    pmeReferenceTable.calculatePmeEffort({
+      kind: 'qualitative',
+      direction: null,
+      currentValue: null,
+      targetValue: null,
+      qualitativeAchieved: true,
+    }).text,
+    pmeReferenceTable.PME_DESCRIPTIVE_MONITORING,
+  )
+  assert.equal(
+    pmeReferenceTable.calculatePmeEffort({
+      kind: 'qualitative',
+      direction: null,
+      currentValue: null,
+      targetValue: null,
+      qualitativeAchieved: false,
+    }).text,
+    pmeReferenceTable.PME_DESCRIPTIVE_MONITORING,
+  )
+})
+
+function pmeResult({
+  goalId,
+  indicatorId,
+  order,
+  relationshipType = 'direct',
+  themeId,
+  currentValue = 0,
+}) {
+  return {
+    resultOrder: order,
+    goalId,
+    indicatorId,
+    themeId,
+    tier: 'essential',
+    priorityOrder: null,
+    publicName: `Descrição ${indicatorId}`,
+    publicDescription: `Descrição pública ${indicatorId}`,
+    relationshipType,
+    relationshipReading: '',
+    direction: 'at_least',
+    current: {
+      value: currentValue,
+      displayValue: currentValue,
+      displayText: `${currentValue.toLocaleString('pt-BR')}%`,
+      year: 2025,
+      unit: 'percent',
+    },
+    indicatorReference: {
+      value: 60,
+      year: 2036,
+      direction: 'at_least',
+    },
+    legalGoal: { deadline: 2036 },
+    classification: 'advance',
+    remainingGap: 60 - currentValue,
+    favorableDifference: currentValue - 60,
+    distance: 60 - currentValue,
+    sourceIds: ['inep_censo_escolar'],
+  }
+}
+
+test('tabela do PME agrupa na ordem oficial sem exibir identificadores internos', () => {
+  const diagnostic = {
+    sources: [{
+      id: 'inep_censo_escolar',
+      organization: 'Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira (INEP)',
+      publicTitle: 'Censo Escolar',
+      period: '2025',
+      officialUrl: 'https://example.test/inep',
+    }],
+    presentation: {
+      themes: [
+        { id: 'tema-b', order: 2, label: 'Tema B' },
+        { id: 'tema-a', order: 1, label: 'Tema A' },
+      ],
+      resultDefinitions: [],
+    },
+    goals: [
+      { goalId: '2.a', title: 'Meta 2', order: 2, results: [
+        pmeResult({ goalId: '2.a', indicatorId: 'segundo', order: 2, themeId: 'tema-b' }),
+      ] },
+      { goalId: '1.a', title: 'Meta 1', order: 1, results: [
+        pmeResult({
+          goalId: '1.a',
+          indicatorId: 'primeiro',
+          order: 1,
+          relationshipType: 'partial_component',
+          themeId: 'tema-a',
+          currentValue: 0,
+        }),
+      ] },
+    ],
+  }
+
+  const model = pmeReferenceTable.buildPmeReferenceTableModel(diagnostic, {
+    projections: {
+      primeiro: {
+        historical_years: [2025],
+        historical_numerator: [0],
+        historical_population: [10],
+      },
+    },
+  })
+
+  assert.deepEqual(model.groups.map((group) => group.label), ['Tema A', 'Tema B'])
+  assert.equal(model.groups[0].rows[0].goalLabel, 'Meta 1.a')
+  assert.equal(model.groups[0].rows[0].indicatorLabel, 'Descrição primeiro')
+  assert.equal(model.groups[0].rows[0].numerator, '0 matrículas')
+  assert.equal(model.groups[0].rows[0].relationshipLabel, 'Componente parcial da meta')
+})
+
+test('relações contextuais são sinalizadas sem renomear metas do PNE', () => {
+  const diagnostic = {
+    sources: [],
+    presentation: {
+      themes: [{ id: 'tema', order: 1, label: 'Tema' }],
+      resultDefinitions: [],
+    },
+    goals: [{
+      goalId: '4.a',
+      title: 'Meta 4',
+      order: 1,
+      results: [
+        pmeResult({
+          goalId: '4.a',
+          indicatorId: 'contexto',
+          order: 1,
+          relationshipType: 'contextual_proxy',
+          themeId: 'tema',
+        }),
+      ],
+    }],
+  }
+
+  const row = pmeReferenceTable.buildPmeReferenceTableModel(diagnostic).groups[0].rows[0]
+  assert.equal(row.relationshipLabel, 'Indicador contextual')
+  assert.equal(row.effort.text, pmeReferenceTable.PME_DESCRIPTIVE_MONITORING)
 })

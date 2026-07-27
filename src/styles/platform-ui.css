@@ -17,6 +17,11 @@
     font-family: var(--font-sans);
   }
 
+  .content-area,
+  .content-area .page-stack {
+    margin-inline: auto;
+  }
+
   .brand-title {
     display: block;
     color: var(--text-inverted);
@@ -37,7 +42,7 @@
     margin-block: 0;
     color: var(--text-strong);
     font-family: var(--font-serif);
-    font-size: var(--font-size-3xl);
+    font-size: var(--type-page-title);
     font-weight: var(--font-weight-semibold);
     letter-spacing: -0.02em;
     line-height: 1.15;
@@ -50,7 +55,7 @@
   .content-area .education-summary-title {
     color: var(--text-strong);
     font-family: var(--font-sans);
-    font-size: var(--font-size-2xl);
+    font-size: var(--type-section-title);
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.01em;
     line-height: var(--line-height-tight);
@@ -62,7 +67,7 @@
   .content-area .fundeb-detail-header h3 {
     color: var(--text-strong);
     font-family: var(--font-sans);
-    font-size: var(--font-size-xl);
+    font-size: var(--type-subsection-title);
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.01em;
     line-height: var(--line-height-snug);
@@ -72,7 +77,7 @@
   .content-area .cycle-page .detail-heading h2 {
     color: var(--text-strong);
     font-family: var(--font-sans);
-    font-size: var(--font-size-2xl);
+    font-size: var(--type-section-title);
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.01em;
     line-height: var(--line-height-tight);
@@ -91,7 +96,7 @@
   .content-area :where(.indicator-control-bar__label, .indicator-stage-segmented-label) {
     color: var(--green-deep);
     font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
+    font-size: var(--type-label);
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.02em;
     line-height: var(--line-height-snug);
@@ -108,7 +113,7 @@
   ) {
     color: var(--text-soft);
     font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
+    font-size: var(--type-label);
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.02em;
     line-height: var(--line-height-snug);
@@ -122,7 +127,7 @@
   .content-area .complementary-data__eyebrow {
     color: var(--green-deep);
     font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
+    font-size: var(--type-label);
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.02em;
     line-height: var(--line-height-snug);
@@ -132,13 +137,14 @@
   .content-area :where(.page-card, .detail-panel, .cycle-filter-panel, .legal-goals-filter-panel) {
     border-color: var(--border-card);
     border-radius: var(--radius-md);
-    background: var(--surface-card);
+    background: var(--surface-panel);
   }
 
   /* Search fields and selectors */
   .content-area :where(.platform-search-field, .indicator-search),
   .content-area :where(.filter-control, .educacao-age-detail__control) select,
   .content-area :where(.filter-control, .educacao-age-detail__control) input,
+  .content-area .financial-compact-module select,
   .platform-selector .municipio-selector__field {
     min-height: var(--control-height);
     border: var(--border-width) solid var(--control-border);
@@ -184,11 +190,12 @@
   .content-area :where(.platform-search-field, .indicator-search) input,
   .platform-selector .municipio-selector__input,
   .content-area :where(.filter-control, .educacao-age-detail__control) select,
-  .content-area :where(.filter-control, .educacao-age-detail__control) input {
+  .content-area :where(.filter-control, .educacao-age-detail__control) input,
+  .content-area .financial-compact-module select {
     min-height: calc(var(--control-height) - 2px);
     color: var(--control-text);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-regular);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-normal);
   }
 
@@ -250,7 +257,7 @@
   .content-area .platform-search-field:has(input:disabled),
   .content-area .platform-search-field.is-disabled {
     border-color: var(--border-faint);
-    background: var(--surface-soft);
+    background: var(--surface-subtle);
     color: var(--text-muted);
     cursor: not-allowed;
     opacity: 0.72;
@@ -272,10 +279,10 @@
 
   /* Filter panels and wrapping options */
   .content-area .platform-filter-panel {
-    padding: var(--space-6);
+    padding: var(--panel-inset);
     border: var(--border-default);
     border-radius: var(--radius-md);
-    background: var(--surface-card);
+    background: var(--surface-panel);
     box-shadow: none;
     display: grid;
     gap: var(--space-4);
@@ -296,7 +303,7 @@
     max-width: 100%;
     min-height: var(--control-height);
     min-width: 0;
-    padding: 9px var(--control-padding-inline);
+    padding: var(--control-padding-block) var(--control-padding-inline);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--control-radius);
     background: var(--control-surface-muted);
@@ -308,16 +315,13 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-snug);
     overflow-wrap: anywhere;
     text-align: left;
     transform: none;
-    transition:
-      border-color var(--duration-fast) var(--ease-out),
-      background-color var(--duration-fast) var(--ease-out),
-      color var(--duration-fast) var(--ease-out);
+    transition: var(--control-transition);
   }
 
   .content-area .platform-filter-option:hover {
@@ -352,7 +356,7 @@
 
   .content-area .platform-category-tabs .category-tab {
     min-height: var(--control-height);
-    padding: 9px var(--space-3);
+    padding: var(--control-padding-block) var(--space-3);
     border-radius: var(--control-radius);
     background: var(--control-surface-muted);
   }
@@ -418,8 +422,8 @@
     box-shadow: none;
     color: var(--text-body);
     cursor: pointer;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-snug);
     overflow-wrap: anywhere;
     text-align: center;
@@ -448,8 +452,8 @@
 
   .content-area .platform-segmented-control--scrollable {
     min-width: 0;
-    height: 46px;
-    min-height: 46px;
+    height: var(--control-height);
+    min-height: var(--control-height);
     align-items: center;
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -488,8 +492,8 @@
     box-shadow: none;
     color: var(--text-body);
     cursor: pointer;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-snug);
     overflow-wrap: anywhere;
     white-space: nowrap;
@@ -583,7 +587,7 @@
 
   .content-area .platform-navigation-button {
     min-height: var(--control-height);
-    padding: 9px var(--space-3);
+    padding: var(--control-padding-block) var(--space-3);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--control-radius);
     background: var(--control-surface);
@@ -593,8 +597,8 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-snug);
     text-decoration: none;
     transform: none;
@@ -661,10 +665,13 @@
     min-width: 0;
     padding-block: var(--space-2);
     border-bottom: var(--border-divider);
+    color: var(--text-soft);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-3);
+    font-size: var(--type-support);
+    line-height: var(--line-height-normal);
   }
 
   .content-area .platform-results-summary > * {
@@ -675,14 +682,14 @@
   /* Cards and common interactive states */
   .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card) {
     border-color: var(--border-card);
-    border-radius: var(--radius-md);
-    background: var(--surface-card);
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    box-shadow: var(--card-shadow);
   }
 
   .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card):hover {
     border-color: var(--border-strong);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--card-shadow-hover);
     transform: translateY(-1px);
   }
 
@@ -697,8 +704,8 @@
   .content-area :where(.meta-card__title, .education-indicator-card__title, .financial-indicator-card__title) {
     color: var(--text-strong);
     font-family: var(--font-sans);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
     line-height: var(--line-height-snug);
   }
 
@@ -714,7 +721,7 @@
   }
 
   .content-area .status-badge {
-    min-height: 24px;
+    min-height: var(--card-status-min-height);
     padding: 4px 9px;
     border-radius: var(--radius-pill);
     font-family: var(--font-sans);
@@ -731,21 +738,18 @@
     min-width: 0;
     min-height: 304px;
     width: 100%;
-    padding: var(--space-5);
-    border: var(--border-default);
-    border-radius: var(--radius-md);
-    background: var(--surface-card);
+    padding: var(--card-padding-roomy);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
     color: var(--text);
     cursor: pointer;
     display: grid;
     grid-template-rows: auto minmax(44px, auto) minmax(48px, auto) auto auto 52px auto;
-    gap: var(--space-3);
+    gap: var(--card-section-gap);
     text-align: left;
     box-shadow: none;
-    transition:
-      border-color var(--duration-fast) var(--ease-out),
-      background-color var(--duration-fast) var(--ease-out),
-      transform var(--duration-fast) var(--ease-out);
+    transition: var(--card-transition);
   }
 
   .content-area .indicator-card-shell--success {
@@ -764,8 +768,8 @@
 
   .content-area .indicator-card-shell:hover {
     border-color: var(--border-strong);
-    background: var(--surface-warm);
-    box-shadow: none;
+    background: var(--card-surface-hover);
+    box-shadow: var(--card-shadow-hover);
     transform: translateY(-1px);
   }
 
@@ -948,6 +952,7 @@
   }
 
   .content-area .indicator-card-shell__footer {
+    min-height: var(--card-footer-min-height);
     display: grid;
     grid-template-columns: minmax(0, max-content) minmax(0, max-content) 28px;
     align-items: center;
@@ -1313,12 +1318,12 @@
 
   /* Education and Finance mirror the reference card: header, value/year, change/period, action. */
   .content-area .indicator-card-shell.indicator-card-shell--education-reference {
-    min-height: calc(var(--space-16) * 4);
+    min-height: 0;
     height: auto;
-    aspect-ratio: 1.23 / 1;
-    padding: var(--space-4);
+    aspect-ratio: auto;
+    padding: var(--card-padding);
     grid-template-columns: minmax(0, 1.9fr) minmax(72px, 1fr);
-    grid-template-rows: auto auto minmax(64px, 1fr) 1px minmax(52px, auto) auto;
+    grid-template-rows: auto auto auto 1px minmax(52px, auto) auto;
     grid-template-areas:
       "topline topline"
       "title title"

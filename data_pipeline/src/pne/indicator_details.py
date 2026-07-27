@@ -25,6 +25,7 @@ from src.data_loader import load_escolas_integral_data
 from src.data_loader import load_escolas_integral_por_dependencia_data
 from src.data_loader import load_infraestrutura_escolar_data
 from src.data_loader import load_infraestrutura_escolar_por_dependencia_data
+from src.data_loader import load_school_infrastructure_contract
 from src.data_loader import load_medio_tecnico_articulado_data
 from src.data_loader import load_medio_tecnico_data
 from src.data_loader import load_matriculas_privadas_conveniadas
@@ -34,6 +35,10 @@ from src.data_loader import load_pre_escola_por_dependencia_data
 from src.medio_tecnico_articulado import (
     MedioTecnicoArticuladoValidationError,
     calculate_medio_tecnico_articulado_series,
+)
+from src.school_infrastructure_materialization import (
+    REFERENCE_YEAR as SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
+    adapt_pne_internet_details,
 )
 
 
@@ -1587,7 +1592,7 @@ def build_eja_integrada_educacao_profissional_percentual_details(municipio):
     }
 
 
-def _build_infra_details(municipio, *, count_column, denominator_column, numerator_label, denominator_label, title, unit, include_public_dependency=False):
+def _build_infra_details(municipio, *, count_column, denominator_column, numerator_label, denominator_label, title, unit, include_public_dependency=False, exclude_year=None):
     df = _safe_load(load_infraestrutura_escolar_data)
     required_columns = {"ano", "municipio", count_column, denominator_column}
     if df.empty or not required_columns.issubset(df.columns):
@@ -1605,6 +1610,8 @@ def _build_infra_details(municipio, *, count_column, denominator_column, numerat
         return None
 
     dff["ano"] = dff["ano"].astype(int)
+    if exclude_year is not None:
+        dff = dff[dff["ano"].ne(int(exclude_year))].copy()
     dff[count_column] = dff[count_column].clip(lower=0)
     dff[denominator_column] = dff[denominator_column].clip(lower=0)
 
@@ -1672,7 +1679,7 @@ def _build_infra_details(municipio, *, count_column, denominator_column, numerat
     return payload
 
 
-def _build_infra_dependency_series(df, municipio, count_column):
+def _build_infra_dependency_series(df, municipio, count_column, exclude_year=None):
     if df.empty or "ano" not in df.columns:
         return []
 
@@ -1693,6 +1700,8 @@ def _build_infra_dependency_series(df, municipio, count_column):
         return []
 
     dff["ano"] = dff["ano"].astype(int)
+    if exclude_year is not None:
+        dff = dff[dff["ano"].ne(int(exclude_year))].copy()
     dff[count_column] = dff[count_column].clip(lower=0)
 
     grouped = (
@@ -1725,17 +1734,24 @@ def build_internet_details(municipio):
         denominator_label="Total de escolas",
         title="Escolas da educação básica com acesso à internet",
         unit="escolas",
+        exclude_year=SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
     )
 
     if payload is not None:
         dep_df = _safe_load(load_infraestrutura_escolar_por_dependencia_data)
         if not dep_df.empty:
             series_dependencia = _build_infra_dependency_series(
-                dep_df, municipio, "escolas_com_internet"
+                dep_df,
+                municipio,
+                "escolas_com_internet",
+                exclude_year=SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
             )
             if series_dependencia:
                 payload["series_dependencia"] = series_dependencia
 
+    contract = _safe_load(lambda: load_school_infrastructure_contract(municipio))
+    if isinstance(contract, dict):
+        payload = adapt_pne_internet_details(payload, contract)
     return payload
 
 

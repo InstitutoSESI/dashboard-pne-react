@@ -40,7 +40,13 @@ export function getInitialEducationNavigation(navigationContext: unknown): Educa
   )
   if (!resolvedNavigation) return fallback
 
-  const { detailKey, hasSystemTheme, requestedSection, requestedTheme, section } = resolvedNavigation
+  const {
+    detailKey,
+    hasSystemTheme,
+    requestedSection,
+    requestedTheme,
+    section,
+  } = resolvedNavigation
   const themeValue = normalizeRouteValue(requestedTheme)
   const detailTheme = getEducationThemeForIndicator(detailKey)
   const legacyTheme = [...Object.values(PANORAMA_THEME_KEYS), ...LEGACY_EDUCATION_THEME_KEYS]

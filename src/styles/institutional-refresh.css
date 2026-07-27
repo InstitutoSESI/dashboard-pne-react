@@ -286,7 +286,7 @@
 
   .dashboard-shell .content-area .platform-filter-option {
     border-color: var(--border-card);
-    border-radius: 6px;
+    border-radius: var(--control-radius);
     background: var(--surface-muted);
   }
 
@@ -309,7 +309,7 @@
   }
 
   .dashboard-shell .content-area .platform-segmented-option {
-    border-radius: 5px;
+    border-radius: calc(var(--control-radius) - 2px);
   }
 
   .dashboard-shell .content-area .platform-segmented-option.is-active,
@@ -2667,13 +2667,13 @@
 /* Education indicator card: compact scale of the approved portrait reference. */
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference {
   --education-card-inline-inset: var(--space-4);
-  min-height: calc(var(--space-16) * 5 + var(--space-12));
+  min-height: 0;
   height: auto;
   aspect-ratio: auto;
   padding: var(--education-card-inline-inset);
-  border-radius: var(--radius-lg);
+  border-radius: var(--card-radius);
   grid-template-columns: minmax(0, 1.75fr) minmax(96px, 1fr);
-  grid-template-rows: 32px auto auto minmax(144px, auto) 60px 36px;
+  grid-template-rows: auto auto auto auto minmax(52px, auto) minmax(var(--card-footer-min-height), auto);
   grid-template-areas:
     "topline topline"
     "title title"
@@ -2687,7 +2687,7 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__topline {
-  min-height: 32px;
+  min-height: var(--card-status-min-height);
   align-items: flex-start;
 }
 
@@ -2698,10 +2698,10 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .status-badge {
-  min-height: 32px;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
+  min-height: var(--card-status-min-height);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--type-label);
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .status-badge__marker {
@@ -2740,24 +2740,30 @@
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row {
   min-width: 0;
-  min-height: 128px;
-  padding: var(--space-2) var(--space-6) var(--space-4) 0;
+  min-height: 0;
+  padding: var(--space-3) var(--space-6) var(--space-3) 0;
   border-top: 0;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   text-align: center;
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row strong {
   color: var(--green-ink);
-  font-size: calc(var(--font-size-3xl) * 1.5);
+  font-size: clamp(
+    var(--font-size-2xl),
+    12cqi,
+    calc(var(--font-size-3xl) * 1.5)
+  );
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.05em;
   line-height: 1.08;
+  overflow: visible;
   max-width: 100%;
   overflow-wrap: normal;
   text-align: center;
+  text-overflow: clip;
   white-space: nowrap;
 }
 
@@ -2775,8 +2781,8 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__metadata {
-  min-height: 144px;
-  padding: var(--space-2) 0 var(--space-3) var(--space-3);
+  min-height: 0;
+  padding: var(--space-3) 0 var(--space-3) var(--space-3);
   border-top: 0;
   border-left: var(--border-divider);
   align-content: center;
@@ -2825,7 +2831,7 @@
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__insight {
   width: 100%;
-  min-height: 60px;
+  min-height: 52px;
   margin: 0;
   padding: var(--space-3) var(--space-4);
   border: 0;
@@ -2861,7 +2867,7 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__footer {
-  min-height: 36px;
+  min-height: var(--card-footer-min-height);
   margin: 0;
   padding: var(--space-2) 0 0;
   border-top: 0;
@@ -2906,11 +2912,11 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row--compact strong {
-  font-size: calc(var(--font-size-3xl) * 1.25);
+  font-size: var(--font-size-2xl);
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row--dense strong {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-xl);
 }
 
 /* Financial indicator cards: denser scale with the same horizontal anatomy. */
@@ -5286,7 +5292,482 @@
   }
 }
 
+/* Shared page-header variants and internal navigation. */
+@media screen {
+  .dashboard-shell .content-area .platform-page-header {
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .dashboard-shell .content-area .platform-page-header--editorial .pne-page-header__main {
+    padding: var(--header-padding-editorial);
+  }
+
+  .dashboard-shell .content-area .platform-page-header--listing .pne-page-header__main,
+  .dashboard-shell .content-area .platform-page-header--listing.education-compact-header {
+    padding: var(--header-padding-listing);
+  }
+
+  .dashboard-shell .content-area .platform-page-header--detail.education-compact-header {
+    padding: var(--header-padding-detail);
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-page-header .pne-page-header__eyebrow,
+    .platform-page-header .education-compact-header__eyebrow,
+    .home-hero__identity,
+    .detail-heading__copy > .eyebrow
+  ) {
+    margin: 0;
+    color: var(--green-deep);
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    line-height: var(--line-height-snug);
+    text-transform: uppercase;
+  }
+
+  .dashboard-shell .content-area .platform-page-header--editorial h1,
+  .dashboard-shell .content-area .home-hero__content h1 {
+    max-width: 30ch;
+    font-size: var(--header-title-editorial);
+    line-height: 1.1;
+  }
+
+  .dashboard-shell .content-area .platform-page-header--listing h1 {
+    max-width: 30ch;
+    font-size: var(--header-title-listing);
+    line-height: var(--line-height-tight);
+  }
+
+  .dashboard-shell .content-area .platform-page-header--detail h1,
+  .dashboard-shell .content-area :where(
+    .cycle-page--detail,
+    .financial-page--detail
+  ) .detail-heading :is(h2, h3) {
+    max-width: 34ch;
+    font-size: var(--header-title-detail);
+    line-height: var(--line-height-tight);
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-page-header .pne-page-header__description,
+    .platform-page-header .education-compact-header__description,
+    .home-hero__description,
+    .detail-heading__copy > p
+  ) {
+    max-width: var(--header-subtitle-max);
+    margin: 0;
+    color: var(--text-body);
+    font-size: var(--type-body);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-normal);
+    text-wrap: pretty;
+  }
+
+  .dashboard-shell .content-area .platform-page-header .pne-page-header__context {
+    min-height: var(--control-height);
+    padding-top: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--type-support);
+  }
+
+  .dashboard-shell .content-area .platform-page-header .education-compact-header__context {
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .platform-page-header .education-context-chip {
+    min-width: 144px;
+    min-height: var(--control-height);
+    padding: var(--space-2) var(--space-3);
+    border-color: var(--control-border);
+    border-radius: var(--control-radius);
+    background: var(--control-surface);
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .platform-page-header .education-context-chip__icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-page-header .education-context-chip__label,
+    .platform-detail-navigation__context span
+  ) {
+    color: var(--text-soft);
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-page-header .education-context-chip__value,
+    .platform-detail-navigation__context strong
+  ) {
+    color: var(--text-strong);
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area .platform-detail-navigation {
+    min-height: calc(var(--control-height) + var(--space-2));
+    padding: var(--space-1);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .cycle-detail-nav__position {
+    min-width: 64px;
+    color: var(--text-soft);
+    font-size: var(--type-support);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-snug);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-search-field,
+    .indicator-search,
+    .platform-filter-option,
+    .platform-navigation-button,
+    .filter-control select,
+    .educacao-age-detail__control select,
+    .financial-compact-module select
+  ) {
+    min-height: var(--control-height);
+    border-radius: var(--control-radius);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+    transition: var(--control-transition);
+  }
+
+  .dashboard-shell .content-area .platform-filter-option,
+  .dashboard-shell .content-area .platform-navigation-button,
+  .dashboard-shell .content-area .platform-segmented-option,
+  .dashboard-shell .content-area .platform-tab {
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+  }
+
+  .dashboard-shell .content-area .platform-tab {
+    min-height: var(--control-height);
+    border-radius: 0;
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+    transition: var(--control-transition);
+  }
+
+  .dashboard-shell .content-area .platform-segmented-option {
+    min-height: calc(var(--control-height) - var(--space-2));
+    padding: 7px var(--control-padding-inline);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+    transition: var(--control-transition);
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-filter-option,
+    .platform-navigation-button,
+    .platform-segmented-option,
+    .platform-tab
+  ):focus-visible {
+    border-color: var(--control-border-selected);
+    outline: 0;
+    box-shadow: var(--focus-ring);
+  }
+
+  .dashboard-shell .content-area :where(
+    .platform-filter-option,
+    .platform-navigation-button,
+    .platform-segmented-option,
+    .platform-tab
+  ):disabled {
+    border-color: var(--border-faint);
+    background: var(--surface-subtle);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.64;
+  }
+}
+
+/* Detail headers: shared hierarchy with domain-specific composition intact. */
+@media screen {
+  .dashboard-shell .content-area .platform-page-header--detail.education-compact-header h1,
+  .dashboard-shell .content-area .cycle-page--detail .detail-heading h2,
+  .dashboard-shell .content-area .cycle-page--detail .detail-heading h3,
+  .dashboard-shell .content-area .financial-page--detail .financial-detail-heading h1,
+  .dashboard-shell .content-area .financial-page--detail .financial-detail-heading h2,
+  .dashboard-shell .content-area .financial-page--detail .financial-detail-heading h3 {
+    max-width: 34ch;
+    color: var(--text-strong);
+    font-family: var(--font-serif);
+    font-size: var(--header-title-detail);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    text-wrap: balance;
+  }
+
+  .dashboard-shell .content-area :where(
+    .cycle-page--detail,
+    .financial-page--detail
+  ) .detail-heading__copy {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .financial-page--detail .financial-detail-heading {
+    padding: var(--header-padding-detail);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+    box-shadow: var(--shadow-sm);
+    align-items: center;
+  }
+
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized {
+    border-color: var(--border-card);
+    border-radius: var(--radius-md);
+    background: var(--surface-panel);
+  }
+
+  .dashboard-shell .content-area :where(
+    .financial-detail-heading__badges .indicator-stage-badge,
+    .financial-detail-heading__badges .status-badge
+  ) {
+    min-height: var(--card-status-min-height);
+    padding: 3px var(--space-2);
+    border-radius: var(--radius-pill);
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area :where(
+    .cycle-page--detail,
+    .financial-page--detail
+  ) .detail-heading + .metric-grid {
+    margin-top: var(--space-1);
+  }
+
+  .dashboard-shell .content-area :where(
+    .cycle-detail-view,
+    .financial-detail-view
+  ) .platform-navigation-button {
+    min-height: var(--control-height);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+    line-height: var(--line-height-snug);
+  }
+}
+
+/* Card foundations, preserving each family's own anatomy and density. */
+@media screen {
+  .dashboard-shell .content-area :where(
+    .home-entry-card,
+    .pne-entry-card,
+    .education-indicator-card,
+    .meta-card--cycle,
+    .pne-diagnostic-result
+  ) {
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    box-shadow: var(--card-shadow);
+  }
+
+  .dashboard-shell .content-area :where(
+    .home-entry-card,
+    .pne-entry-card,
+    .education-indicator-card,
+    .meta-card--cycle
+  ) {
+    transition: var(--card-transition);
+  }
+
+  .dashboard-shell .content-area :where(
+    .home-entry-card,
+    .pne-entry-card,
+    .education-indicator-card,
+    .meta-card--cycle
+  ):hover {
+    border-color: var(--border-strong-line);
+    background: var(--card-surface-hover);
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  .dashboard-shell .content-area :where(
+    .home-entry-card,
+    .pne-entry-card,
+    .education-indicator-card,
+    .meta-card--cycle
+  ):focus-visible {
+    border-color: var(--control-border-selected);
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 3px;
+    box-shadow: var(--focus-ring);
+    transform: none;
+  }
+
+  /* Navigation cards: roomy and action-led. */
+  .dashboard-shell .content-area :where(.home-entry-grid, .pne-entry-grid) {
+    gap: var(--card-gap);
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .dashboard-shell .content-area .home-entry-card,
+  .dashboard-shell .content-area .home-entry-card:last-child,
+  .dashboard-shell .content-area .pne-entry-card {
+    min-height: 0;
+    padding: var(--card-padding-roomy);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    gap: var(--card-section-gap);
+  }
+
+  .dashboard-shell .content-area .home-entry-card strong {
+    margin-top: var(--space-5);
+  }
+
+  .dashboard-shell .content-area :where(
+    .home-entry-card__footer,
+    .pne-entry-card__footer
+  ) {
+    min-height: var(--card-footer-min-height);
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: var(--border-divider);
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  /* Education indicator cards: natural height with a stable lower action area. */
+  .dashboard-shell .content-area .education-indicator-card.indicator-card-shell--education,
+  .dashboard-shell .content-area .education-indicator-card.indicator-card-shell--education-reference {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: auto;
+    padding: var(--card-padding);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    box-shadow: var(--card-shadow);
+  }
+
+  .dashboard-shell .content-area .education-indicator-card.indicator-card-shell--education {
+    grid-template-rows: auto auto auto 1px minmax(52px, auto) auto;
+    gap: 0;
+  }
+
+  .dashboard-shell .content-area .education-indicator-card .indicator-card-shell__title {
+    min-height: 0;
+    padding-top: var(--card-content-gap);
+  }
+
+  .dashboard-shell .content-area .education-indicator-card .indicator-card-shell__value-row,
+  .dashboard-shell .content-area .education-indicator-card .indicator-card-shell__metadata {
+    margin-top: var(--card-section-gap);
+  }
+
+  .dashboard-shell .content-area .education-indicator-card .indicator-card-shell__footer {
+    min-height: var(--card-footer-min-height);
+  }
+
+  /* PNE result cards: compact evidence stack with a consistent footer. */
+  .dashboard-shell .content-area .cycle-page .meta-card--cycle {
+    min-height: 0;
+    height: auto;
+    padding: var(--card-padding);
+    gap: var(--card-content-gap);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    box-shadow: var(--card-shadow);
+  }
+
+  .dashboard-shell .content-area .cycle-page .meta-card--cycle .meta-card__title {
+    min-height: 0;
+  }
+
+  .dashboard-shell .content-area .cycle-page .meta-card--cycle .meta-card__footer {
+    min-height: var(--card-footer-min-height);
+    margin-top: auto;
+    padding-top: var(--space-3);
+    border-top: var(--border-divider);
+  }
+
+  /* Diagnostic cards keep their dense composition and semantic status colors. */
+  .dashboard-shell .content-area .pne-diagnostic-theme {
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--surface-subtle);
+    overflow: visible;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result,
+  .dashboard-shell .content-area .pne-diagnostic-result--standalone {
+    --diagnostic-card-divider: var(--border-faint);
+    padding: 0;
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    background: var(--card-surface);
+    box-shadow: var(--card-shadow);
+  }
+
+  .dashboard-shell .content-area :where(
+    .pne-diagnostic-result__status,
+    .pne-diagnostic-support-reading__badge,
+    .status-badge
+  ) {
+    min-height: var(--card-status-min-height);
+    padding: 3px var(--space-2);
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area :where(
+    .indicator-card-shell__context,
+    .meta-card__identifier,
+    .pne-diagnostic-result__goal-context
+  ) {
+    font-size: var(--type-label);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+}
+
 @media print {
+  .dashboard-shell {
+    display: block !important;
+  }
+
+  .dashboard-shell .content-area {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
   .pne-page-header {
     margin-bottom: var(--space-5);
     print-color-adjust: exact;

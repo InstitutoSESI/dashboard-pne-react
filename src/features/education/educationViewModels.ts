@@ -5,9 +5,19 @@
 import {
   EDUCATION_COMPLEMENTARY_INDICATOR_CATALOG,
   EDUCATION_SECTION_GROUPS,
+  SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER,
   getEducationIndicatorCatalogItem,
 } from '../../data/educationIndicatorCatalog.js'
 import { PNE_CONTEXT_PROXY_INDICATOR_KEYS } from '../../utils/pneDisplayRules.js'
+import {
+  formatSchoolInfrastructurePercentage,
+  formatSchoolInfrastructureQuantity,
+  SCHOOL_INFRASTRUCTURE_CONTRACT_VERSION,
+  SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER,
+  SCHOOL_INFRASTRUCTURE_PUBLIC_COPY,
+  SCHOOL_INFRASTRUCTURE_SOURCE,
+  selectSchoolInfrastructureResult,
+} from '../../data/schoolInfrastructureContract.js'
 import { chartSeriesColor } from '../../utils/chartVisuals.js'
 import {
   depLabel,
@@ -36,19 +46,19 @@ function formatEducationIndicatorCount(count: number): string {
 }
 
 export function buildEducationPageViewModel({
-  sectionItemCount,
+  indicatorCount,
   selectedSectionKey,
   sectionKeys,
 }: {
-  sectionItemCount: number
+  indicatorCount: number
   selectedSectionKey: EducationSectionKey
   sectionKeys: { demand: EducationSectionKey; methodology: EducationSectionKey; overview: EducationSectionKey }
 }): EducationPageViewModel {
   const isOverviewSection = selectedSectionKey === sectionKeys.overview
   const isDemandSection = selectedSectionKey === sectionKeys.demand
   const isMethodologySection = selectedSectionKey === sectionKeys.methodology
-  const contextScope = sectionItemCount > 0
-    ? formatEducationIndicatorCount(sectionItemCount)
+  const contextScope = indicatorCount > 0
+    ? formatEducationIndicatorCount(indicatorCount)
     : isOverviewSection
       ? 'Síntese municipal'
       : isDemandSection
@@ -168,7 +178,10 @@ const PANORAMA_THEME_KEYS = {
 
 
 export function buildPneComplementaryTheme({ indicadores, results, rede }) {
-  if (!results) return null
+  const schoolInfrastructure = rede?.infraestrutura?.contractVersion === SCHOOL_INFRASTRUCTURE_CONTRACT_VERSION
+    ? rede.infraestrutura
+    : null
+  if (!results && !schoolInfrastructure) return null
 
   const itemByKey = buildPneCatalogItemMap(indicadores)
   const groupByIndicatorKey = new Map(
@@ -181,6 +194,91 @@ export function buildPneComplementaryTheme({ indicadores, results, rede }) {
       const group = groupByIndicatorKey.get(indicatorKey)
       const result = results?.[indicatorKey]
       const catalogItem = itemByKey.get(indicatorKey)
+      const isSchoolInfrastructureIndicator = SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER.includes(indicatorKey)
+      const schoolInfrastructureResult = isSchoolInfrastructureIndicator && schoolInfrastructure
+        ? selectSchoolInfrastructureResult(schoolInfrastructure, indicatorKey)
+        : null
+
+      if (indicatorKey === 'infraestrutura-basica' && schoolInfrastructure) {
+        const dimensions = SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.map((key) => ({
+          key,
+          label: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[key].shortLabel,
+          result: selectSchoolInfrastructureResult(schoolInfrastructure, key),
+        }))
+        return createIndicator({
+          key: indicatorKey,
+          label: 'Infraestrutura básica e espaços escolares',
+          description: 'Disponibilidade de serviços básicos e espaços escolares em 2025.',
+          themeKey: PANORAMA_THEME_KEYS.complementaresPne,
+          themeLabel: group?.label ?? 'Infraestrutura básica e espaços escolares',
+          themeShortLabel: 'Infraestrutura básica',
+          categoryLabel: group?.label ?? 'Infraestrutura básica e espaços escolares',
+          categories: [FILTER_KEYS.todos],
+          series: [],
+          currentValue: null,
+          currentYear: schoolInfrastructure.referenceYear,
+          formatType: 'percent',
+          mainCutLabel: 'Total',
+          groupKey: catalogEntry.groupKey,
+          pneComplementaryGroupKey: catalogEntry.groupKey,
+          schoolInfrastructure,
+          schoolInfrastructureDimensions: dimensions,
+          cardVariant: 'school-infrastructure-composite',
+          source: SCHOOL_INFRASTRUCTURE_SOURCE,
+          searchText: [
+            'infraestrutura básica espaços escolares',
+            ...dimensions.map(({ label }) => label),
+          ].join(' '),
+          statusTone: 'info',
+        })
+      }
+
+      if (isSchoolInfrastructureIndicator && schoolInfrastructure) {
+        if (!schoolInfrastructureResult) return null
+        const isInternet = indicatorKey === 'internet'
+        const historicalSeries = isInternet && hasPneComplementaryResult(result)
+          ? normalizeYearSeries(result.series).filter((point) => point.ano < schoolInfrastructure.referenceYear)
+          : []
+        const series = schoolInfrastructureResult.percentage == null
+          ? historicalSeries
+          : [...historicalSeries, {
+              ano: schoolInfrastructure.referenceYear,
+              valor: schoolInfrastructureResult.percentage,
+            }]
+        const publicCopy = SCHOOL_INFRASTRUCTURE_PUBLIC_COPY[indicatorKey]
+        const indicator = createIndicator({
+          key: indicatorKey,
+          label: publicCopy.label,
+          description: publicCopy.description,
+          themeKey: PANORAMA_THEME_KEYS.complementaresPne,
+          themeLabel: group?.label ?? catalogEntry.section,
+          themeShortLabel: group?.label ?? 'Infraestrutura',
+          categoryLabel: group?.label ?? catalogEntry.section,
+          categories: [FILTER_KEYS.todos],
+          series: isInternet ? series : [],
+          currentValue: schoolInfrastructureResult.percentage,
+          currentYear: schoolInfrastructure.referenceYear,
+          formatType: 'percent',
+          mainCutLabel: 'Total',
+          groupKey: catalogEntry.groupKey,
+          pneComplementaryGroupKey: catalogEntry.groupKey,
+          schoolInfrastructure,
+          schoolInfrastructureKey: indicatorKey,
+          schoolInfrastructureResult,
+          snapshotOnly: !isInternet,
+          source: SCHOOL_INFRASTRUCTURE_SOURCE,
+          cardReading: `${formatSchoolInfrastructureQuantity(schoolInfrastructureResult)} escolas`,
+          quickReading: `Situação em ${schoolInfrastructure.referenceYear}: ${formatSchoolInfrastructurePercentage(schoolInfrastructureResult)}.`,
+          statusDetail: `Retrato do Censo Escolar em ${schoolInfrastructure.referenceYear}.`,
+          statusLabel: `Situação em ${schoolInfrastructure.referenceYear}`,
+          statusTone: 'info',
+        })
+        return {
+          ...indicator,
+          currentValue: schoolInfrastructureResult.percentage,
+          currentDisplay: formatSchoolInfrastructurePercentage(schoolInfrastructureResult),
+        }
+      }
 
       if (!PNE_CONTEXT_PROXY_INDICATOR_KEYS.has(indicatorKey)) return null
       if (!hasPneComplementaryResult(result)) return null
@@ -417,6 +515,7 @@ export function buildEducationModel(blocos) {
   const fluxo = blocos.fluxo ?? {}
   const aprend = blocos.aprendizagem ?? {}
   const oferta = blocos.oferta_tecnica ?? {}
+  const educacaoIndigena = blocos.educacao_indigena ?? {}
   const aprendResumo = aprend.resumo_ultimo_ano ?? {}
   const preferredIdeb = getPreferredIdeb(aprendResumo)
 
@@ -428,6 +527,7 @@ export function buildEducationModel(blocos) {
     ...buildFluxoIndicators(fluxo),
     ...buildAprendizagemIndicators(aprend),
     ...buildOfertaIndicators(oferta),
+    ...buildIndigenousEducationIndicators(educacaoIndigena),
   ]
 
   const themes = [
@@ -438,6 +538,7 @@ export function buildEducationModel(blocos) {
     makeTheme('fluxo', 'Fluxo escolar', 'Fluxo', items),
     makeTheme('aprendizagem', 'Aprendizagem', 'Aprendizagem', items),
     makeTheme('oferta', 'Matrículas técnicas · Sinopse Estatística', 'Sinopse Estatística', items),
+    makeTheme('educacao_indigena', 'Educação indígena', 'Educação indígena', items),
   ]
 
   return {
@@ -478,9 +579,13 @@ function buildRedeIndicators(rede) {
   const porEtapa = resumo.por_etapa ?? {}
   const latestYear = rede.ultimo_ano
   const infra = rede.infraestrutura ?? {}
+  const schoolInfrastructure = infra.contractVersion === SCHOOL_INFRASTRUCTURE_CONTRACT_VERSION ? infra : null
+  const canonicalInternet = schoolInfrastructure
+    ? selectSchoolInfrastructureResult(schoolInfrastructure, 'internet')
+    : null
   const infraGroups = Object.values(infra.grupos ?? {})
   const infraDimensionCount = infraGroups.reduce((total, group) => total + (group.metricas?.length ?? 0), 0)
-  const infraLatestYear = infra.ultimo_ano ?? latestYear
+  const infraLatestYear = schoolInfrastructure?.referenceYear ?? infra.ultimo_ano ?? latestYear
   const stageOrder = ['infantil', 'fundamental', 'medio', 'eja', 'profissional']
   const base = { themeKey: 'rede', themeLabel: 'Escolas', themeShortLabel: 'Escolas', categories: [FILTER_KEYS.todos], isGeral: true, currentYear: latestYear }
 
@@ -507,18 +612,28 @@ function buildRedeIndicators(rede) {
       label: 'Infraestrutura',
       cardTitle: 'Panorama da infraestrutura escolar',
       cardVariant: 'exploratory',
-      description: 'Explore as dimensões de ambiente escolar, conectividade e equipamentos disponíveis nas escolas.',
-      series: valueSeries(series.internet, 'perc_internet'),
-      currentValue: resumo.perc_internet,
+      description: 'Explore as condições básicas, os espaços escolares, a conectividade e os equipamentos disponíveis nas escolas.',
+      series: schoolInfrastructure
+        ? [
+            ...valueSeries(series.internet, 'perc_internet')
+              .filter((point) => point.ano < schoolInfrastructure.referenceYear),
+            ...(canonicalInternet?.percentage == null ? [] : [{
+              ano: schoolInfrastructure.referenceYear,
+              valor: canonicalInternet.percentage,
+            }]),
+          ]
+        : valueSeries(series.internet, 'perc_internet'),
+      currentValue: canonicalInternet?.percentage ?? resumo.perc_internet,
       formatType: 'percent',
-      mainCutLabel: 'Escolas com internet',
+      mainCutLabel: 'Total',
       explore: buildRedeInfraExplore(rede),
       exploratorySummary: {
-        count: infraDimensionCount,
-        groupCount: infraGroups.length,
+        count: schoolInfrastructure ? SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER.length : infraDimensionCount,
+        groupCount: schoolInfrastructure ? 1 : infraGroups.length,
         label: 'dimensões',
         latestYear: infraLatestYear,
       },
+      schoolInfrastructure,
     }),
   ]
 }
@@ -676,6 +791,88 @@ function buildOfertaIndicators(oferta) {
   const explore = buildOfertaExplore(oferta)
   return [
     createIndicator({ key: 'oferta-total', label: 'Matrículas técnicas — Sinopse Estatística', description: 'Total de matrículas em cursos técnicos e profissionais segundo a Sinopse Estatística do Censo Escolar.', themeKey: 'oferta', themeLabel: 'Matrículas técnicas · Sinopse Estatística', themeShortLabel: 'Sinopse Estatística', categories: [FILTER_KEYS.profissional], stageLabel: 'Educação Profissional', series: normalizeYearSeries(series.total), currentValue: resumo.total_matriculas_tecnicas, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Matrículas técnicas · Sinopse Estatística', explore, notices: oferta.avisos ?? [] }),
+  ]
+}
+
+export function buildIndigenousEducationIndicators(block) {
+  const latestYear = block.ultimo_ano
+  const summary = block.resumo_ultimo_ano ?? {}
+  const series = block.series_totais ?? {}
+  const estimatedCoverage = block.coberturaEstimada ?? {}
+  const coverageSeries = Object.entries(estimatedCoverage.series ?? {}).map(([year, item]) => ({
+    ano: Number(year),
+    valor: item?.status === 'available' ? item.percentage : null,
+    status: item?.status ?? 'unavailable',
+  }))
+  const latestCoverage = coverageSeries.find((item) => item.ano === latestYear)
+  const base = {
+    themeKey: 'educacao_indigena',
+    themeLabel: 'Educação indígena',
+    themeShortLabel: 'Educação indígena',
+    categories: [FILTER_KEYS.todos],
+    isGeral: true,
+    currentYear: latestYear,
+    formatType: 'number',
+    mainCutLabel: 'Educação Escolar Indígena',
+    neutralTrend: true,
+    zeroMessage: 'Nenhuma ocorrência registrada no universo medido',
+    notices: block.avisos ?? [],
+  }
+
+  return [
+    createIndicator({
+      ...base,
+      key: 'indigena-cobertura-estimada-4-17',
+      label: 'Cobertura estimada da educação escolar indígena — 4 a 17 anos',
+      description: 'Relação entre as matrículas de pré-escola, ensino fundamental e ensino médio e a população indígena de 4 a 17 anos recenseada em 2022.',
+      series: coverageSeries,
+      currentValue: latestCoverage?.valor ?? null,
+      unit: '%',
+      formatType: 'percent',
+      indigenousUnitKey: 'cobertura',
+      neutralTrend: true,
+      zeroMessage: 'Não foram registradas matrículas nas etapas consideradas',
+    }),
+    createIndicator({
+      ...base,
+      key: 'indigena-matriculas',
+      label: 'Matrículas na educação escolar indígena',
+      description: 'Total municipal oficial de matrículas nas tabelas específicas de Educação Indígena da Sinopse Estatística.',
+      series: normalizeYearSeries(series.matriculas),
+      currentValue: summary.matriculas,
+      unit: 'matrículas',
+      indigenousUnitKey: 'matriculas',
+    }),
+    createIndicator({
+      ...base,
+      key: 'indigena-estabelecimentos',
+      label: 'Estabelecimentos com oferta de educação escolar indígena',
+      description: 'Total municipal oficial de estabelecimentos com oferta nas tabelas específicas de Educação Indígena da Sinopse Estatística.',
+      series: normalizeYearSeries(series.estabelecimentos),
+      currentValue: summary.estabelecimentos,
+      unit: 'estabelecimentos',
+      indigenousUnitKey: 'estabelecimentos',
+    }),
+    createIndicator({
+      ...base,
+      key: 'indigena-docentes',
+      label: 'Docentes da educação escolar indígena',
+      description: 'Total municipal oficial de docentes nas tabelas específicas de Educação Indígena da Sinopse Estatística.',
+      series: normalizeYearSeries(series.docentes),
+      currentValue: summary.docentes,
+      unit: 'docentes',
+      indigenousUnitKey: 'docentes',
+    }),
+    createIndicator({
+      ...base,
+      key: 'indigena-turmas',
+      label: 'Turmas da educação escolar indígena',
+      description: 'Total municipal oficial de turmas nas tabelas específicas de Educação Indígena da Sinopse Estatística.',
+      series: normalizeYearSeries(series.turmas),
+      currentValue: summary.turmas,
+      unit: 'turmas',
+      indigenousUnitKey: 'turmas',
+    }),
   ]
 }
 
@@ -1563,7 +1760,12 @@ function buildRedeExplore(rede, cut = { cutKey: 'total', cutLabel: 'Total do mun
 }
 
 export const INFRA_METRIC_LABELS = {
+  agua_potavel: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.agua_potavel.shortLabel,
+  energia_eletrica: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.energia_eletrica.shortLabel,
   internet: 'Escolas com internet',
+  biblioteca_sala_leitura: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.biblioteca_sala_leitura.shortLabel,
+  quadra_esportes: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.quadra_esportes.shortLabel,
+  esgoto_rede_publica: SCHOOL_INFRASTRUCTURE_PUBLIC_COPY.esgoto_rede_publica.shortLabel,
   internet_alunos: 'Internet disponível para alunos',
   internet_aprendizagem: 'Internet usada na aprendizagem',
   internet_comunidade: 'Internet aberta à comunidade',

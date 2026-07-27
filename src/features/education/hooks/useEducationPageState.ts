@@ -11,14 +11,24 @@ export function useEducationPageState(currentNavigation: EducationNavigationStat
   const detailNavigation = useDetailViewNavigation({ activeKey: selectedIndicatorKey, isOpen: isDetailOpen })
 
   useLayoutEffect(() => {
-    const sectionChanged = currentNavigation.section !== selectedSectionKey
-    const themeChanged = currentNavigation.shouldApplyTheme && currentNavigation.panoramaTheme !== selectedThemeKey
-    setSelectedSectionKey(currentNavigation.section)
-    if (currentNavigation.shouldApplyTheme) setSelectedThemeKey(currentNavigation.panoramaTheme)
-    if (sectionChanged || themeChanged) setSearchQuery('')
+    setSelectedSectionKey((previousSection) => {
+      if (previousSection !== currentNavigation.section) setSearchQuery('')
+      return currentNavigation.section
+    })
+    if (currentNavigation.shouldApplyTheme) {
+      setSelectedThemeKey((previousTheme) => {
+        if (previousTheme !== currentNavigation.panoramaTheme) setSearchQuery('')
+        return currentNavigation.panoramaTheme
+      })
+    }
     setSelectedIndicatorKey(currentNavigation.detailKey)
     setIsDetailOpen(Boolean(currentNavigation.detailKey))
-  }, [currentNavigation, selectedSectionKey, selectedThemeKey])
+  }, [
+    currentNavigation.detailKey,
+    currentNavigation.panoramaTheme,
+    currentNavigation.section,
+    currentNavigation.shouldApplyTheme,
+  ])
 
   return {
     detailNavigation,

@@ -263,6 +263,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
         description={cycleCopy.supportText}
         eyebrow={cycleCopy.eyebrow}
         title={title}
+        variant="listing"
       /> : null}
 
       <section className="cycle-workspace cycle-card-workspace">
