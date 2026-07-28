@@ -92,8 +92,26 @@ export function EducationIndicatorCard({
     neutralTrend: indicator.neutralTrend,
     zeroMessage: indicator.zeroMessage,
   })
-  const statusLabel = indicator.statusLabel ?? (comparison ? getDirectionLabel(direction, indicator.neutralTrend) : null)
-  const statusTone = indicator.statusTone ?? (indicator.neutralTrend ? 'muted' : getDirectionTone(direction))
+  /*
+   * O selo descreve a MESMA comparacao que o cartao exibe.
+   *
+   * Antes o rotulo preferia indicator.statusLabel, que vem de
+   * getIndicatorStatus e compara o valor atual com o primeiro ano da serie
+   * inteira, enquanto o marcador (seta) sempre saiu de comparison.difference,
+   * que e a variacao ano a ano mostrada logo abaixo em "Var. desde". Os dois
+   * periodos podem divergir com toda razao -- e o cartao entao exibia
+   * "aumento 95 alunos" ao lado de um selo escrito "Queda".
+   *
+   * Havendo comparacao no cartao, ela manda no rotulo, no tom e na seta.
+   * O rotulo externo continua valendo quando nao ha comparacao, que e o caso
+   * de "Situacao em 2025" e de series com um unico ano.
+   */
+  const comparisonLabel = comparison ? getDirectionLabel(direction, indicator.neutralTrend) : null
+  const statusLabel = comparisonLabel ?? indicator.statusLabel ?? null
+  const comparisonTone = comparison
+    ? (indicator.neutralTrend ? 'muted' : getDirectionTone(direction))
+    : null
+  const statusTone = comparisonTone ?? indicator.statusTone ?? 'default'
   const unitLabel = getCardUnitLabel(indicator)
   const footerLabel = isExploratory
     ? 'Abrir panorama'

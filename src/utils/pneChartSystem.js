@@ -40,8 +40,22 @@ export function buildPnePercentTicks(domain) {
   if (domain?.observed === true) {
     return buildObservedPercentageTicks(Number(domain.max))
   }
-  if (!domain || Number(domain.max) <= 100) return [0, 25, 50, 75, 100]
-  return buildEvenTicks(0, Number(domain.max), 6)
+  if (!domain) return [0, 25, 50, 75, 100]
+
+  const min = Number(domain.min) || 0
+  const max = Number(domain.max)
+
+  /*
+   * As marcas precisam cair dentro da faixa do dominio, sempre.
+   *
+   * A escala fixa [0, 25, 50, 75, 100] funcionava enquanto todo percentual ia
+   * de 0 a 100. Com o eixo ajustado aos dados ela passou a desenhar marcas
+   * fora da area de plotagem: piso abaixo do eixo X num dominio 80-100, e
+   * marca de 100 por cima da legenda num dominio 0-80.
+   */
+  if (min > 0) return buildEvenTicks(min, max, 5)
+  if (max >= 100) return max > 100 ? buildEvenTicks(0, max, 6) : [0, 25, 50, 75, 100]
+  return buildEvenTicks(0, max, 5)
 }
 
 export function buildObservedPercentageScale(values) {

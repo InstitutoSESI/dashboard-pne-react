@@ -119,11 +119,20 @@
   padding: var(--chart-canvas-padding);
 }
 
+/*
+ * O SVG mantem uma largura minima para continuar legivel (nao adianta espremer
+ * seis anos de barras em 290px). Isso so funciona se o contorno rolar: com
+ * overflow visible o grafico vazava do cartao no celular e o dado ficava
+ * inacessivel. Mesmo tratamento ja usado em .education-chart__canvas.
+ */
 .history-chart__canvas {
   flex: 1 1 auto;
   min-height: 0;
   padding-top: var(--space-1);
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
 }
 
 .education-chart {
@@ -235,7 +244,7 @@
 .complementary-chart__tick,
 .complementary-chart__x-label {
   fill: var(--chart-axis-text);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
 }
 
@@ -266,7 +275,7 @@
 .education-chart .chart-x-label--angled,
 .education-chart .chart-bar-label,
 .education-chart .chart-bar-value {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .education-detail-view .education-chart .chart-axis-label,
@@ -277,20 +286,20 @@
 .education-detail-view .education-chart .chart-bar-value,
 .education-detail-view .education-chart .chart-point-label,
 .education-detail-view .education-chart .chart-point-label.is-last {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .education-detail-view .history-chart .chart-grid text,
 .education-detail-view .history-chart .chart-x-labels text {
   fill: var(--chart-axis-text);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
 }
 
 .education-detail-view .history-chart .chart-point-label,
 .education-detail-view .history-chart .chart-point-label.is-last,
 .education-detail-view .history-chart .chart-meta-label {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -300,7 +309,7 @@
 .cycle-page .history-chart .chart-data-labels .chart-point-label,
 .cycle-page .history-chart .chart-data-labels .chart-point-label.is-last,
 .cycle-page .history-chart .chart-data-labels .chart-meta-label {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -310,7 +319,7 @@
 .chart-bar-label,
 .chart-bar-value,
 .complementary-chart__value-label {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   fill: var(--text-strong);
   paint-order: stroke;
@@ -383,7 +392,7 @@
 
 .projection-direct-label text {
   fill: var(--text-strong);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   paint-order: stroke;
   stroke: var(--surface-card);
@@ -431,7 +440,7 @@
 }
 
 .chart-mark:focus-visible {
-  filter: drop-shadow(0 0 3px rgba(62, 122, 94, 0.48));
+  filter: drop-shadow(0 0 3px rgba(47, 112, 87, 0.48));
   stroke: var(--focus-ring-color);
   stroke-width: 3;
 }
@@ -600,7 +609,7 @@
 
 .chart-missing-label {
   fill: var(--chart-axis-text);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   opacity: 0.78;
 }
@@ -692,3 +701,4 @@
     transition: none;
   }
 }
+

@@ -65,7 +65,7 @@ export function ReportChapter({
     <section className="municipal-technical-report__chapter" id={chapter.id} aria-labelledby={`${chapter.id}-title`}>
       <header className="municipal-technical-report__chapter-header">
         <div className="municipal-technical-report__chapter-kicker">
-          <span className="eyebrow">CAPÍTULO {chapter.number}</span>
+          <span className="eyebrow">Capítulo {chapter.number}</span>
           <span>Seções {String(chapter.startIndex + 1).padStart(2, '0')}–{String(chapter.endIndex + 1).padStart(2, '0')}</span>
         </div>
         <h2 id={`${chapter.id}-title`}>{chapter.title}</h2>

@@ -23,7 +23,7 @@
 
   .cycle-page .cycle-filter-panel .category-tab {
     min-height: var(--control-height);
-    padding: 9px 12px;
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-sm);
     background: var(--surface-soft);
   }
@@ -31,7 +31,7 @@
   .cycle-page .cycle-filter-panel .category-tab.is-active {
     border-color: var(--green-primary);
     background: var(--green-soft);
-    box-shadow: inset 0 0 0 1px rgba(62, 122, 94, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(47, 112, 87, 0.12);
   }
 
   .cycle-page .cycle-filter-panel .basic-education-filter-wrap {
@@ -232,7 +232,7 @@
 
 .cycle-page .meta-card__state-reference > span {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -395,7 +395,7 @@
 
 .cycle-page--detail .detail-panel--organized .metric-card__icon {
   display: block;
-  padding: 9px;
+  padding: var(--space-2);
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -558,7 +558,7 @@
 .cycle-page--detail .indicator-data-card__notice-icon {
   width: 32px;
   height: 32px;
-  padding: 7px;
+  padding: var(--space-2);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--green-soft);
@@ -704,7 +704,7 @@
 .cycle-page--detail .indicator-quick-reading__heading-icon {
   width: 28px;
   height: 28px;
-  padding: 6px;
+  padding: var(--space-1);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--green-soft);
@@ -788,7 +788,7 @@
 .cycle-page--detail .detail-panel--organized .indicator-quick-reading__icon {
   width: 34px;
   height: 34px;
-  padding: 8px;
+  padding: var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--green-soft);
   color: var(--green-deep);
@@ -801,7 +801,7 @@
 .cycle-page--detail .detail-panel--organized .indicator-quick-reading__list li > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .cycle-page--detail .detail-panel--organized .indicator-quick-reading__list li > div > span {
@@ -826,7 +826,7 @@
   .chart-x-labels text,
   .complementary-chart__x-label
 ) {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
 }
 
 .cycle-page--detail .indicator-chart-card,
@@ -882,7 +882,7 @@
 .content-area .cycle-page--detail .history-chart__subtitle {
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 
 .cycle-page--detail .indicator-chart-card .history-chart__canvas,
@@ -910,11 +910,11 @@
 }
 
 .cycle-page--detail .detail-panel--organized .history-chart svg text {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
 }
 
 .cycle-page--detail .detail-panel--organized .indicator-chart-card .history-chart .chart-data-labels text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -996,7 +996,7 @@
 .cycle-page--detail .complementary-data__trigger-icon {
   width: 36px;
   height: 36px;
-  padding: 8px;
+  padding: var(--space-2);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--green-soft);
@@ -1189,7 +1189,7 @@
 
 .cycle-page--detail .detail-panel--organized .complementary-chart svg text,
 .cycle-page--detail .detail-panel--organized .complementary-projection__chart svg text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--trend-projection .complementary-projection {
@@ -1427,13 +1427,13 @@
   padding: var(--space-3) var(--space-1) 0;
   border-top: var(--border-divider);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   line-height: 1.45;
 }
 
 .cycle-page--detail .detail-panel--organized .indicator-chart-card > .data-source-note :is(.data-source-note__label, .data-source-note__text) {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   line-height: 1.45;
 }
 
@@ -1454,13 +1454,13 @@
   padding: 0;
   border: 0;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   line-height: 1.45;
 }
 
 .cycle-page--detail .detail-panel--organized .pne-detail-footer > .data-source-note :is(.data-source-note__label, .data-source-note__text) {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   line-height: 1.45;
 }
 
@@ -1643,10 +1643,23 @@
   letter-spacing: 0.04em;
 }
 
+/*
+ * Titulo reserva sempre tres linhas (65px), que e o maximo real na base.
+ *
+ * Com altura livre, um titulo de duas linhas e outro de tres faziam o valor em
+ * destaque nascer com 22px de diferenca entre cartoes vizinhos -- exatamente
+ * uma linha de texto. Reservar o maximo nao deixa o cartao mais alto: a folga
+ * ja existia no rodape e apenas muda de lugar, comprando o alinhamento da
+ * fileira inteira.
+ */
 .cycle-page .meta-card--cycle .meta-card__title {
-  min-height: 54px;
+  min-height: 65px;
+  max-height: 65px;
   margin: 0;
   color: var(--text-strong);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
@@ -1654,20 +1667,24 @@
   -webkit-line-clamp: 3;
 }
 
+/*
+ * Linha de metricas do cartao de meta.
+ *
+ * Quatro colunas SEMPRE, mesmo quando o indicador nao tem tendencia: a quarta
+ * fica vazia. Antes eram tres colunas sem tendencia e quatro com, entao numa
+ * mesma fileira "Meta PNE" e "Distancia" caiam em posicoes diferentes de um
+ * cartao para o outro. A coluna vazia custa nada e alinha a fileira inteira.
+ *
+ * A primeira coluna usa min-content para que o valor do municipio, que e a
+ * evidencia principal, nunca seja truncado para caber.
+ */
 .cycle-page .meta-card--cycle .meta-card__value-row {
   display: grid;
-  grid-template-columns:
-    minmax(calc(var(--space-16) * 2), 1.2fr)
-    minmax(calc(var(--space-16) - var(--space-2)), 0.75fr)
-    minmax(0, 1.05fr);
+  grid-template-columns: minmax(min-content, 1.2fr) repeat(3, minmax(0, 0.9fr));
   align-items: end;
   gap: var(--space-1);
   min-height: 50px;
   margin: 0;
-}
-
-.cycle-page .meta-card--cycle.meta-card--has-trend .meta-card__value-row {
-  grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 0.9fr));
 }
 
 .cycle-page .meta-card--cycle .meta-card__metric {
@@ -1707,10 +1724,12 @@
 }
 
 .cycle-page .meta-card--cycle .meta-card__metric--current strong {
+  overflow: visible;
   color: var(--meta-status-color);
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-display);
+  text-overflow: clip;
 }
 
 .cycle-page .meta-card--cycle .meta-card__metric--target strong,
@@ -1779,15 +1798,16 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* Faixa de referencia estadual dentro do cartao de meta: adota --inset.
+   Faixa interna nao carrega borda propria; o degrau tonal e que separa. */
 .cycle-page .meta-card--cycle .meta-card__state-reference {
   min-height: 48px;
   margin-top: 0;
-  padding: var(--space-2) var(--space-3);
-  border: var(--border-default);
-  border-color: var(--border-faint);
-  border-radius: var(--radius-sm);
-  background: var(--surface-muted);
-  color: var(--text-soft);
+  padding: var(--card-pad-inset);
+  border: 0;
+  border-radius: var(--card-radius-inner);
+  background: var(--card-surface-inset);
+  color: var(--text-muted);
   font-size: var(--font-size-2xs);
 }
 
@@ -1872,7 +1892,7 @@
 }
 
 @media screen and (max-width: 680px) {
-  .cycle-page .meta-card--cycle.meta-card--has-trend .meta-card__value-row {
+  .cycle-page .meta-card--cycle .meta-card__value-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: var(--space-3);
   }
@@ -2128,7 +2148,7 @@
 .cycle-page--detail :is(.expansion-components-chart, .expansion-share-bullet, .expansion-index-chart) text {
   fill: var(--text-secondary);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .cycle-page--detail :is(.expansion-components-chart__label, .expansion-components-chart__value) { font-weight: var(--font-weight-semibold); }
 .cycle-page--detail .expansion-components-chart__value--positive { fill: var(--text-inverted); }
@@ -2159,7 +2179,7 @@
 .cycle-page--detail .expansion-share-analysis__interpretation {
   margin: 0;
   padding: var(--space-3) var(--space-4);
-  border-left: 3px solid var(--status-warn-ink);
+  border: 1px solid var(--status-warn-line);
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: var(--status-warn-bg);
   color: var(--text-secondary);
@@ -2479,7 +2499,7 @@
 .cycle-page--detail .absolute-expansion-tracking__icon {
   width: 40px;
   height: 40px;
-  padding: 9px;
+  padding: var(--space-2);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--surface-card);
@@ -2683,7 +2703,7 @@
 .cycle-page--detail .absolute-expansion-analysis__summary-icon {
   width: 32px;
   height: 32px;
-  padding: 7px;
+  padding: var(--space-2);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--surface-card);

@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { pathToFileURL } from 'node:url'
+import { inflateRawSync } from 'node:zlib'
+import writeXlsxFile from 'write-excel-file/node'
 
 const output = mkdtempSync(path.join(tmpdir(), 'dashboard-pne-education-'))
 execFileSync(process.execPath, [
@@ -25,6 +27,7 @@ const attendanceFilters = await import(moduleUrl('src/features/education/educati
 const overviewPresentation = await import(moduleUrl('src/features/education/municipalEducationOverviewPresentation.js'))
 const overviewLoader = await import(moduleUrl('src/data/municipalEducationOverview.js'))
 const pmeReferenceTable = await import(moduleUrl('src/features/education/pmeReferenceTableViewModel.js'))
+const technicalReportWorkbook = await import(moduleUrl('src/features/education/municipalTechnicalReportWorkbook.js'))
 const higherEducationValidation = await import(moduleUrl('src/data/higherEducationValidation.js'))
 const higherEducationData = await import(moduleUrl('src/data/higherEducationData.js'))
 const higherEducationViewModel = await import(moduleUrl('src/features/education/higherEducationViewModel.js'))
@@ -47,6 +50,210 @@ const schoolInfrastructureDocumentFiles = readdirSync(schoolInfrastructureDocume
 
 function readEducationDocument(fileName = schoolInfrastructureDocumentFiles[0]) {
   return JSON.parse(readFileSync(path.join(schoolInfrastructureDocumentsDirectory, fileName), 'utf8'))
+}
+
+function cellValue(cell) {
+  return cell && typeof cell === 'object' && 'value' in cell ? cell.value : cell
+}
+
+function workbookOverviewFixture() {
+  const snapshot = (value = 0, state = 'observed', year = 2025) => ({
+    value,
+    state,
+    year,
+    sourceId: 'inep',
+    sourceField: 'campo',
+  })
+  const percentage = (value = 0, state = 'observed', year = 2025) => ({
+    value,
+    numerator: value == null ? null : 0,
+    denominator: value == null ? null : 1,
+    state,
+    year,
+    sourceId: 'inep',
+  })
+  const breakdown = (value = 0, state = 'observed') => ({
+    enrollments: snapshot(value, state),
+    share: percentage(value == null ? null : 0, state),
+  })
+  const stage = (value = 0, state = 'observed') => ({
+    total: snapshot(value, state),
+    byNetwork: {
+      publicSubtotal: breakdown(value, state),
+      municipal: breakdown(value, state),
+      state: breakdown(value, state),
+      federal: breakdown(value, state),
+      private: breakdown(value, state),
+    },
+    bySchoolLocation: {
+      urban: breakdown(value, state),
+      rural: breakdown(value, state),
+    },
+  })
+  const performance = {
+    approval: snapshot(0),
+    failure: snapshot(0),
+    dropout: snapshot(0),
+  }
+  const comparison = {
+    value2015: snapshot(0, 'observed', 2015),
+    value2025: snapshot(0),
+    absoluteChange: 0,
+    percentageChange: percentage(0),
+  }
+  const historical = { total: comparison }
+
+  return {
+    schemaVersion: 'municipal-education-overview-v1',
+    publicationState: 'partial',
+    municipality: { idMunicipality: '4300000', name: 'São Borja', slug: 'sao-borja' },
+    reference: { year: 2025, generatedAt: '2026-07-27T12:00:00-03:00' },
+    universe: {
+      territorialBasis: 'school_location',
+      locationLabel: 'Localização da escola',
+      basicEducationSourceField: 'QT_MAT_BAS',
+      methodologyNotes: [],
+    },
+    basicEducation: { total: snapshot(0) },
+    basicEducationComposition: {
+      total: snapshot(0),
+      components: {
+        earlyChildhood: {
+          total: snapshot(0),
+          details: { creche: snapshot(0), preSchool: snapshot(0) },
+        },
+        elementary: {
+          total: snapshot(0),
+          details: { initialYears: snapshot(0), finalYears: snapshot(0) },
+        },
+        highSchool: {
+          total: snapshot(0),
+          details: { integratedTechnical: snapshot(0) },
+        },
+        youthAndAdultEducation: {
+          total: snapshot(0),
+          details: { elementary: snapshot(0), highSchool: snapshot(0) },
+        },
+        otherProfessionalOffers: {
+          total: snapshot(0),
+          details: {
+            concomitantTechnical: snapshot(0),
+            subsequentTechnical: snapshot(0),
+            otherOffers: snapshot(0),
+          },
+        },
+      },
+      reconciliation: {
+        id: 'total',
+        label: 'Total',
+        expected: 0,
+        observed: 0,
+        difference: 0,
+        status: 'reconciled',
+      },
+    },
+    specialEducation: {
+      total: snapshot(0),
+      commonClasses: snapshot(0),
+      exclusiveClasses: snapshot(0),
+    },
+    highSchool: {
+      total: stage(0),
+      integratedTechnical: {
+        total: snapshot(0),
+        shareOfHighSchool: percentage(0),
+      },
+    },
+    schoolPerformance: {
+      referenceYear: 2025,
+      stages: {
+        elementary: performance,
+        initialYears: performance,
+        finalYears: performance,
+        highSchool: performance,
+      },
+      sourceId: 'inep',
+    },
+    enrollmentComparison: {
+      years: [2015, 2025],
+      stages: {
+        basicEducation: historical,
+        earlyChildhood: historical,
+        creche: historical,
+        preSchool: historical,
+        elementary: historical,
+        initialYears: historical,
+        finalYears: historical,
+        highSchool: historical,
+        youthAndAdultEducation: historical,
+      },
+      methodologyNote: 'Comparação histórica.',
+    },
+    earlyChildhood: {
+      total: stage(null, 'unavailable'),
+      creche: stage(0),
+      preSchool: stage(0),
+    },
+    elementary: {
+      total: stage(0),
+      initialYears: stage(0),
+      finalYears: stage(0),
+    },
+    sources: [],
+    methodology: [],
+    quality: {
+      reconciliations: [],
+      semanticWarnings: [],
+      nullCoreRows: [],
+      completeness: {},
+      schoolPerformanceChecks: [],
+    },
+  }
+}
+
+function readZipEntry(buffer, entryName) {
+  const endOfCentralDirectorySignature = 0x06054b50
+  const centralDirectorySignature = 0x02014b50
+  const localFileSignature = 0x04034b50
+  const earliestOffset = Math.max(0, buffer.length - 65_557)
+  let endOfCentralDirectoryOffset = -1
+
+  for (let offset = buffer.length - 22; offset >= earliestOffset; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === endOfCentralDirectorySignature) {
+      endOfCentralDirectoryOffset = offset
+      break
+    }
+  }
+
+  assert.notEqual(endOfCentralDirectoryOffset, -1, 'diretório central do XLSX não encontrado')
+  const entryCount = buffer.readUInt16LE(endOfCentralDirectoryOffset + 10)
+  let offset = buffer.readUInt32LE(endOfCentralDirectoryOffset + 16)
+
+  for (let entryIndex = 0; entryIndex < entryCount; entryIndex += 1) {
+    assert.equal(buffer.readUInt32LE(offset), centralDirectorySignature)
+    const compressionMethod = buffer.readUInt16LE(offset + 10)
+    const compressedSize = buffer.readUInt32LE(offset + 20)
+    const fileNameLength = buffer.readUInt16LE(offset + 28)
+    const extraFieldLength = buffer.readUInt16LE(offset + 30)
+    const commentLength = buffer.readUInt16LE(offset + 32)
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42)
+    const fileName = buffer.subarray(offset + 46, offset + 46 + fileNameLength).toString('utf8')
+
+    if (fileName === entryName) {
+      assert.equal(buffer.readUInt32LE(localHeaderOffset), localFileSignature)
+      const localFileNameLength = buffer.readUInt16LE(localHeaderOffset + 26)
+      const localExtraFieldLength = buffer.readUInt16LE(localHeaderOffset + 28)
+      const contentOffset = localHeaderOffset + 30 + localFileNameLength + localExtraFieldLength
+      const compressed = buffer.subarray(contentOffset, contentOffset + compressedSize)
+      if (compressionMethod === 0) return compressed
+      if (compressionMethod === 8) return inflateRawSync(compressed)
+      assert.fail(`método de compressão ZIP não suportado no teste: ${compressionMethod}`)
+    }
+
+    offset += 46 + fileNameLength + extraFieldLength + commentLength
+  }
+
+  assert.fail(`entrada ${entryName} não encontrada no XLSX`)
 }
 
 const indicators = [
@@ -313,6 +520,232 @@ test('relatório técnico omite colunas de situação e fonte detalhada da Educa
   assert.equal((catalogSource.match(/id: 'capitulo-/g) ?? []).length, 6)
   assert.match(catalogSource, /Expansão das matrículas em cursos técnicos subsequentes/)
   assert.match(cssSource, /--technical-report-canvas-max:\s*1120px/)
+  assert.match(reportSource, /Baixar Excel/)
+  assert.match(reportSource, /getDiagnosticItems\('educacao_ambiental'\)/)
+  assert.match(reportSource, /getDiagnosticItems\('adequacao_ai', 'adequacao_af', 'adequacao_em', 'pos_graduacao', 'temporarios'\)/)
+  assert.match(reportSource, /getDiagnosticItems\('conselho_escolar'\)/)
+  assert.match(reportSource, /getDiagnosticItems\('salas_climatizadas', 'salas_acessiveis'\)/)
+})
+
+test('workbook municipal usa rótulos humanos, preserva estados e gera XLSX válido', async () => {
+  const environmentalEducationResult = pmeResult({
+    goalId: '6.a',
+    indicatorId: 'educacao_ambiental',
+    order: 1,
+    themeId: 'sustentabilidade',
+    currentValue: 0,
+  })
+  environmentalEducationResult.publicName = 'Escolas que promovem educação ambiental'
+  environmentalEducationResult.publicDescription = 'Participação das escolas que declaram promover ações de educação ambiental.'
+  const fullTimeResult = pmeResult({
+    goalId: '5.a',
+    indicatorId: 'basico_integral',
+    order: 2,
+    themeId: 'sustentabilidade',
+    currentValue: 0,
+  })
+  fullTimeResult.publicName = 'Alunos em jornada integral na rede pública'
+  fullTimeResult.publicDescription = 'Participação dos alunos em jornada integral na rede pública.'
+  const diagnostic = {
+    sources: [{
+      id: 'inep_censo_escolar',
+      organization: 'Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira (INEP)',
+      publicTitle: 'Censo Escolar',
+      period: '2025',
+      officialUrl: 'https://example.test/inep',
+    }],
+    presentation: {
+      themes: [{ id: 'sustentabilidade', order: 1, label: 'Sustentabilidade socioambiental' }],
+      resultDefinitions: [],
+    },
+    goals: [{
+      goalId: '6.a',
+      title: 'Meta 6',
+      order: 1,
+      results: [environmentalEducationResult, fullTimeResult],
+    }],
+  }
+  const input = {
+    educationItems: [
+      {
+        key: 'mat-eja',
+        label: 'matriculas_eja',
+        currentValue: 42,
+        currentDisplay: '42',
+        currentYear: 2025,
+        unit: 'matriculas',
+        source: 'censo_escolar',
+      },
+      {
+        key: 'docentes-total',
+        label: 'docentes_total',
+        currentValue: null,
+        currentDisplay: '—',
+        currentYear: 2025,
+        unit: 'docentes',
+        source: 'censo_escolar',
+      },
+    ],
+    emissionDate: '27/07/2026',
+    higherEducation: null,
+    municipalityId: '4300000',
+    municipalityName: 'São Borja',
+    municipalityPopulation: 59_000,
+    municipalitySlug: 'São Borja',
+    overview: null,
+    pmeDiagnostic: diagnostic,
+    pmeReferenceData: {
+      planningScenarios: {
+        basico_integral: {
+          indicatorKey: 'basico_integral',
+          historical: [{ year: 2025, numerator: 0, denominator: 120 }],
+        },
+      },
+    },
+    schoolInfrastructure: {
+      referenceYear: 2025,
+      years: [],
+    },
+    specialEducation: null,
+  }
+
+  const workbook = technicalReportWorkbook.buildMunicipalTechnicalReportWorkbook(input)
+  assert.equal(workbook.fileName, 'relatorio-tecnico-municipal-sao-borja-2025.xlsx')
+  assert.deepEqual(
+    workbook.sheets.map((sheet) => sheet.sheet),
+    [
+      'Orientações',
+      'Acompanhamento',
+      'Referências PNE',
+      'Matrículas por rede',
+      'Rendimento escolar',
+      'Série histórica',
+      'Infraestrutura',
+      'Educação Especial',
+      'Educação Superior',
+      'Fontes e metodologia',
+    ],
+  )
+
+  const trackingSheet = workbook.sheets.find((sheet) => sheet.sheet === 'Acompanhamento')
+  assert.ok(trackingSheet)
+  const headers = trackingSheet.data[2].map(cellValue)
+  assert.deepEqual(headers.slice(-5), [
+    'Meta municipal (preencher)',
+    'Prazo municipal (preencher)',
+    'Responsável pelo acompanhamento (preencher)',
+    'Periodicidade de revisão (preencher)',
+    'Observações da gestão (preencher)',
+  ])
+  assert.ok(headers.every((header) => typeof header === 'string' && !/[a-z]+_[a-z]+/.test(header)))
+
+  const rows = trackingSheet.data.slice(3)
+  const environmentalEducation = rows.find(
+    (row) => cellValue(row[2]) === 'Escolas que promovem educação ambiental',
+  )
+  assert.ok(environmentalEducation)
+  assert.equal(environmentalEducation[3].value, 0)
+  assert.equal(environmentalEducation[3].type, Number)
+  assert.equal(environmentalEducation[3].format, '0.00%')
+  assert.equal(cellValue(environmentalEducation[11]), 'Disponível')
+
+  const unavailableTeachers = rows.find((row) => cellValue(row[2]) === 'Total de docentes')
+  assert.ok(unavailableTeachers)
+  assert.equal(unavailableTeachers[3], null)
+  assert.equal(cellValue(unavailableTeachers[11]), 'Dado indisponível')
+
+  const eja = rows.find(
+    (row) => cellValue(row[2]) === 'Matrículas na Educação de Jovens e Adultos',
+  )
+  assert.ok(eja)
+  assert.equal(cellValue(eja[3]), 42)
+  assert.ok(eja.slice(-5).every((cell) =>
+    cellValue(cell) === '' && cell.backgroundColor === '#FEF3C7'))
+
+  const pneSheet = workbook.sheets.find((sheet) => sheet.sheet === 'Referências PNE')
+  assert.ok(pneSheet)
+  const pneHeaders = pneSheet.data[2].map(cellValue)
+  assert.ok(pneHeaders.includes('Numerador'))
+  assert.ok(pneHeaders.includes('Unidade do numerador'))
+  assert.ok(pneHeaders.includes('Denominador'))
+  assert.ok(pneHeaders.includes('Unidade do denominador'))
+  const numeratorIndex = pneHeaders.indexOf('Numerador')
+  const numeratorUnitIndex = pneHeaders.indexOf('Unidade do numerador')
+  const denominatorIndex = pneHeaders.indexOf('Denominador')
+  const denominatorUnitIndex = pneHeaders.indexOf('Unidade do denominador')
+  const fullTimeReference = pneSheet.data.slice(3).find(
+    (row) => cellValue(row[2]) === 'Alunos do público-alvo da Educação em Tempo Integral em jornada integral na rede pública',
+  )
+  assert.ok(fullTimeReference)
+  assert.equal(fullTimeReference[numeratorIndex].value, 0)
+  assert.equal(fullTimeReference[numeratorIndex].type, Number)
+  assert.equal(cellValue(fullTimeReference[numeratorUnitIndex]), 'matrículas')
+  assert.equal(fullTimeReference[denominatorIndex].value, 120)
+  assert.equal(cellValue(fullTimeReference[denominatorUnitIndex]), 'matrículas')
+  const environmentalReference = pneSheet.data.slice(3).find(
+    (row) => cellValue(row[2]) === 'Escolas que promovem educação ambiental',
+  )
+  assert.ok(environmentalReference)
+  assert.equal(environmentalReference[numeratorIndex], null)
+  assert.equal(environmentalReference[denominatorIndex], null)
+
+  const visibleText = workbook.sheets
+    .flatMap((sheet) => sheet.data)
+    .flatMap((row) => row)
+    .map(cellValue)
+    .filter((value) => typeof value === 'string')
+    .join('\n')
+  assert.doesNotMatch(
+    visibleText,
+    /matriculas_eja|docentes_total|censo_escolar|mat-eja|docentes-total|educacao_ambiental/,
+  )
+
+  const buffer = await writeXlsxFile(workbook.sheets, {
+    fontFamily: 'Arial',
+    fontSize: 10,
+  }).toBuffer()
+  assert.equal(buffer.subarray(0, 4).toString('hex'), '504b0304')
+
+  const workbookXml = readZipEntry(buffer, 'xl/workbook.xml').toString('utf8')
+  const sharedStringsXml = readZipEntry(buffer, 'xl/sharedStrings.xml').toString('utf8')
+  assert.match(workbookXml, /name="Orientações"/)
+  assert.match(workbookXml, /name="Acompanhamento"/)
+  assert.match(workbookXml, /name="Fontes e metodologia"/)
+  assert.match(sharedStringsXml, /Meta municipal \(preencher\)/)
+  assert.match(sharedStringsXml, /Escolas que promovem educação ambiental/)
+
+  const zoomScales = workbook.sheets.map((_, index) => {
+    const sheetXml = readZipEntry(buffer, `xl/worksheets/sheet${index + 1}.xml`).toString('utf8')
+    const zoomScale = /zoomScale="(\d+)"/.exec(sheetXml)
+    assert.ok(zoomScale, `aba ${index + 1} deve declarar uma escala de zoom`)
+    return Number(zoomScale[1])
+  })
+  assert.deepEqual(zoomScales, [90, 85, 85, 85, 85, 85, 85, 85, 85, 85])
+  assert.ok(zoomScales.every((zoomScale) => zoomScale >= 10 && zoomScale <= 400))
+})
+
+test('workbook não publica participação total quando o total da etapa está indisponível', () => {
+  const workbook = technicalReportWorkbook.buildMunicipalTechnicalReportWorkbook({
+    educationItems: [],
+    emissionDate: '27/07/2026',
+    higherEducation: null,
+    municipalityId: '4300000',
+    municipalityName: 'São Borja',
+    municipalitySlug: 'sao-borja',
+    overview: workbookOverviewFixture(),
+    pmeDiagnostic: null,
+    schoolInfrastructure: null,
+    specialEducation: null,
+  })
+  const networkSheet = workbook.sheets.find((sheet) => sheet.sheet === 'Matrículas por rede')
+  assert.ok(networkSheet)
+  const unavailableTotal = networkSheet.data.slice(3).find(
+    (row) => cellValue(row[0]) === 'Educação Infantil' && cellValue(row[1]) === 'Total',
+  )
+  assert.ok(unavailableTotal)
+  assert.equal(unavailableTotal[2], null)
+  assert.equal(unavailableTotal[3], null)
+  assert.equal(cellValue(unavailableTotal[5]), 'Dado indisponível')
 })
 
 test('loader de Educação Superior deduplica requisições simultâneas e limpa cache', async () => {

@@ -366,7 +366,7 @@ function FinancialModulePanel({
 
 function FinanceIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 18h16" />
       <path d="M7 18V9h3v9M12 18V5h3v13M17 18v-6h3v6" />
       <path d="M4 6h3" />

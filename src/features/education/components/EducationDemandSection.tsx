@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CategoryTabs } from '../../../components/CategoryTabs.jsx'
 import { IndicatorProjectionPanel } from '../../../components/IndicatorProjectionPanel.jsx'
+import { getBoundedDomain } from '../../../utils/chartDomain.js'
+import type { EducationProjectionViewContract } from '../educationAttendancePresentation'
 import { MetricCard } from '../../../components/MetricCard.jsx'
 import { QuickReadingHeading } from '../../../components/QuickReadingHeading.jsx'
 import { SegmentedControl } from '../../../components/SegmentedControl.jsx'
@@ -43,7 +45,21 @@ const DISPLAY_TITLES: Partial<Record<EducationProjectedIndicator['indicatorKey']
   escolar_6_14: 'Atendimento escolar — 6 a 14 anos',
 }
 
-const PERCENT_DOMAIN = { max: 100, min: 0 }
+/*
+ * O eixo era fixo em 0-100, e a serie de pre-escola (88% a 100%) virava um
+ * traco colado no topo com tres quartos do grafico vazios. getBoundedDomain
+ * usa a area disponivel mas garante um vao minimo de 20 p.p., para nao
+ * transformar variacao pequena em escalada. A meta entra no calculo para que
+ * a linha de referencia nunca fique fora do grafico.
+ */
+function resolveDomain(projection: EducationProjectionViewContract) {
+  const values = [
+    ...(projection.historical_percent ?? []),
+    ...(projection.projected_percent ?? []),
+    projection.target_percent,
+  ].filter((value): value is number => Number.isFinite(value as number))
+  return getBoundedDomain(values, 'percent')
+}
 const percentFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
@@ -137,7 +153,7 @@ export function EducationDemandSection({
             filters={(
               <div className="education-attendance-filters platform-filter-panel" aria-label="Filtros dos indicadores">
                 <div className="education-attendance-filter-group education-attendance-filter-group--type platform-filter-group">
-                  <span>TIPO DE INDICADOR</span>
+                  <span>Tipo de indicador</span>
                   <CategoryTabs
                     ariaLabel="Tipo de indicador"
                     categories={typeOptions}
@@ -149,7 +165,7 @@ export function EducationDemandSection({
                   />
                 </div>
                 <div className="education-attendance-filter-group education-attendance-filter-group--cut platform-filter-group">
-                  <span id="education-attendance-cut-label">RECORTE</span>
+                  <span id="education-attendance-cut-label">Recorte</span>
                   {effectiveType === 'integral' ? (
                     <div
                       aria-describedby={integralCutDescriptionId}
@@ -283,7 +299,7 @@ function ProjectedIndicatorSection({ cut, indicator }: {
               variant: 'attendance-focus',
             }}
             contextOnly
-            domainOverride={PERCENT_DOMAIN}
+            domainOverride={resolveDomain(projection)}
             maxXTicks={7}
             projection={projection}
             showContextAlerts={false}

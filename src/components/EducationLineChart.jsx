@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { getBoundedDomain } from '../utils/chartDomain.js'
 import { useChartViewport } from '../hooks/useChartViewport'
 import { isMissing } from '../utils/educationFormatters'
 import { selectPneYearTicks } from '../utils/pneChartSystem'
@@ -224,9 +225,9 @@ function getYAxisDomain(values, scaleType) {
   const maxVal = Math.max(...values)
   const rawRange = maxVal - minVal
 
-  if (scaleType === 'percent') return { min: 0, max: 100 }
-  if (scaleType === 'ideb') return { min: 0, max: 10 }
-  if (scaleType === 'inse') return { min: 0, max: 10 }
+  if (scaleType === 'percent' || scaleType === 'ideb' || scaleType === 'inse') {
+    return getBoundedDomain(values, scaleType)
+  }
 
   if (scaleType === 'saeb') {
     const margin = Math.max(rawRange * 0.45, 20)

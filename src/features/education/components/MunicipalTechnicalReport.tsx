@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { buildAppHash } from '../../../app/appHash'
 import { FINANCIAL_PAGE_KEYS } from '../../../data/financialPageKeys'
 import {
@@ -13,7 +13,10 @@ import type {
   StageSnapshot,
 } from '../municipalEducationOverviewTypes'
 import '../../../styles/municipal-technical-report-print.css'
-import type { Pne2026PublicDiagnosticV2 } from '../../diagnostic/diagnosticTypes'
+import type {
+  Pne2026PublicDiagnosticV2,
+  Pne2026PublicResultV2,
+} from '../../diagnostic/diagnosticTypes'
 import type { PmeReferenceDataSources } from '../pmeReferenceTableViewModel'
 import {
   MissingInformation,
@@ -30,6 +33,11 @@ import { PmeReferenceIndicatorsTable } from './PmeReferenceIndicatorsTable'
 import type { HigherEducationViewModel } from '../higherEducationTypes'
 import type { SchoolInfrastructureContract } from '../../../data/schoolInfrastructureContract'
 import { SchoolInfrastructureReportTable } from './SchoolInfrastructureReportTable'
+import type { SpecialEducationMunicipalDocument } from '../specialEducationTypes'
+import {
+  getSpecialEducationTechnicalReportYear,
+  SpecialEducationTechnicalReportSummary,
+} from './SpecialEducationTechnicalReportSummary'
 import {
   getMunicipalReportIndicatorLabel,
   MUNICIPAL_REPORT_CHAPTERS,
@@ -63,7 +71,12 @@ interface MunicipalTechnicalReportProps {
   pmeDiagnosticLoading?: boolean
   pmeReferenceData?: PmeReferenceDataSources
   schoolInfrastructure: SchoolInfrastructureContract | null
+  specialEducation: SpecialEducationMunicipalDocument | null
+  specialEducationError?: string | null
+  specialEducationLoading?: boolean
 }
+
+type ExcelExportStatus = 'idle' | 'generating' | 'success' | 'error'
 
 const NETWORK_ROWS = [
   ['Municipal', (stage: StageSnapshot) => stage.byNetwork.municipal],
@@ -189,7 +202,7 @@ function MunicipalSynthesis({
   return (
     <section className="municipal-technical-report__synthesis" id="sintese" aria-labelledby="sintese-municipal-title">
       <header>
-        <span className="eyebrow">SÍNTESE MUNICIPAL</span>
+        <span className="eyebrow">Síntese municipal</span>
         <h2 id="sintese-municipal-title">Panorama educacional em leitura rápida</h2>
         <p>Seleção concisa de medidas municipais disponíveis, sem avaliação automática da gestão.</p>
       </header>
@@ -225,7 +238,7 @@ function MunicipalSynthesis({
           />
         </div>
         <aside className="municipal-technical-report__synthesis-reading" aria-label="Leitura municipal em destaque">
-          <span className="eyebrow">LEITURA MUNICIPAL EM DESTAQUE</span>
+          <span className="eyebrow">Leitura municipal em destaque</span>
           <ul className="municipal-technical-report__synthesis-readings">
             <li>
               A Educação Básica registra {formatOverviewEnrollments(overview.basicEducation.total)} matrículas em {overview.basicEducation.total.year}.
@@ -290,6 +303,69 @@ function indicatorValue(item: ReportIndicator | undefined) {
     ) return display
   }
   return String(item.currentValue)
+}
+
+function formatDiagnosticResult(result: Pne2026PublicResultV2) {
+  const suppliedDisplay = result.current.displayText?.trim()
+  if (
+    suppliedDisplay
+    && !suppliedDisplay.includes('_')
+    && !/null|dados insuficientes|indicador indisponível/i.test(suppliedDisplay)
+  ) return suppliedDisplay
+
+  const formatted = result.current.displayValue.toLocaleString('pt-BR', {
+    maximumFractionDigits: 2,
+  })
+  if (result.current.unit === 'percent') return `${formatted}%`
+  if (result.current.unit === 'years') return `${formatted} anos`
+  return formatted
+}
+
+function diagnosticUnit(result: Pne2026PublicResultV2) {
+  if (result.current.unit === 'percent') return 'percentual'
+  if (result.current.unit === 'count') return 'quantidade'
+  if (result.current.unit === 'years') return 'anos'
+  return 'índice'
+}
+
+function getDiagnosticReportIndicators(
+  diagnostic: Pne2026PublicDiagnosticV2 | null,
+  keys: string[],
+): ReportIndicator[] {
+  if (!diagnostic) return []
+
+  const sourcesById = new Map(diagnostic.sources.map((source) => [source.id, source]))
+  const resultsByKey = new Map(
+    diagnostic.goals
+      .flatMap((goal) => goal.results)
+      .map((result) => [result.indicatorId, result]),
+  )
+
+  return keys.flatMap((key) => {
+    const result = resultsByKey.get(key)
+    if (!result) return []
+    const source = result.sourceIds
+      .map((sourceId) => sourcesById.get(sourceId))
+      .filter((item) => item != null)
+      .map((item) => item.organization ? `${item.organization} — ${item.publicTitle}` : item.publicTitle)
+      .join('; ')
+
+    return [{
+      key,
+      label: result.publicName,
+      currentDisplay: formatDiagnosticResult(result),
+      currentValue: result.current.value,
+      currentYear: result.current.year,
+      unit: diagnosticUnit(result),
+      source: source || 'INEP — Censo Escolar e bases declaradas no diagnóstico',
+    }]
+  })
+}
+
+function mergeReportIndicators(...groups: ReportIndicator[][]) {
+  const byKey = new Map<string, ReportIndicator>()
+  groups.flat().forEach((item) => byKey.set(item.key, item))
+  return [...byKey.values()]
 }
 
 function IndicatorTable({ caption, items }: { caption: string; items: ReportIndicator[] }) {
@@ -403,16 +479,80 @@ export function MunicipalTechnicalReport({
   pmeDiagnosticLoading,
   pmeReferenceData,
   schoolInfrastructure,
+  specialEducation,
+  specialEducationError,
+  specialEducationLoading,
 }: MunicipalTechnicalReportProps) {
+  const [excelExportState, setExcelExportState] = useState<{
+    municipalityId: string
+    status: ExcelExportStatus
+  }>(() => ({ municipalityId, status: 'idle' }))
+  const excelExportStatus = excelExportState.municipalityId === municipalityId
+    ? excelExportState.status
+    : 'idle'
+  const setExcelExportStatus = (status: ExcelExportStatus) => {
+    setExcelExportState({ municipalityId, status })
+  }
   const byKey = new Map(educationItems.map((item) => [item.key, item]))
   const getItems = (...keys: string[]) => keys.flatMap((key) => byKey.has(key) ? [byKey.get(key)!] : [])
+  const getDiagnosticItems = (...keys: string[]) =>
+    getDiagnosticReportIndicators(pmeDiagnostic, keys)
+  const earlyChildhoodAttendanceItems = getDiagnosticItems('creche', 'pre_escola')
+  const elementaryAttendanceItems = getDiagnosticItems('basico_6_17')
+  const highSchoolAttendanceItems = getDiagnosticItems('basico_15_17')
+  const fullTimeItems = mergeReportIndicators(
+    getItems('mat-integral'),
+    getDiagnosticItems('basico_integral', 'escolas_integral'),
+  )
+  const environmentalEducationItems = getDiagnosticItems('educacao_ambiental')
+  const ejaProfessionalItems = mergeReportIndicators(
+    getItems('eja_integrada_educacao_profissional'),
+    getDiagnosticItems('eja_integrada_educacao_profissional_percentual'),
+  )
+  const teachingConditionsItems = mergeReportIndicators(
+    getItems('alunos-turma-infantil', 'alunos-turma-fundamental', 'alunos-turma-medio'),
+    getDiagnosticItems('adequacao_ai', 'adequacao_af', 'adequacao_em', 'pos_graduacao', 'temporarios'),
+  )
+  const democraticManagementItems = mergeReportIndicators(
+    getDiagnosticItems('conselho_escolar'),
+    getItems('proposta_pedagogica'),
+  )
+  const classroomInfrastructureItems = getDiagnosticItems('salas_climatizadas', 'salas_acessiveis')
   const sources = overview?.sources ?? []
   const methodology = overview?.methodology ?? []
   const mainPeriod = overview?.reference.year ?? 'Sem referência municipal'
   const sourcesUpdatedAt = overview?.reference.generatedAt
     ? formatGenerationDate(overview.reference.generatedAt)
     : 'Conforme a fonte'
+  const specialEducationYear = getSpecialEducationTechnicalReportYear(specialEducation)
   const printReport = () => globalThis.window?.print()
+  const reportDataLoading = Boolean(
+    higherEducationLoading || pmeDiagnosticLoading || specialEducationLoading,
+  )
+  const exportExcel = async () => {
+    if (excelExportStatus === 'generating' || reportDataLoading) return
+    setExcelExportStatus('generating')
+    try {
+      const { downloadMunicipalTechnicalReportXlsx } = await import('../municipalTechnicalReportXlsx')
+      await downloadMunicipalTechnicalReportXlsx({
+        educationItems,
+        emissionDate,
+        higherEducation,
+        municipalityId,
+        municipalityName,
+        municipalityPopulation,
+        municipalitySlug,
+        overview,
+        pmeDiagnostic,
+        pmeReferenceData,
+        schoolInfrastructure,
+        specialEducation,
+      })
+      setExcelExportStatus('success')
+    } catch {
+      setExcelExportStatus('error')
+    }
+  }
   const navigateChapter = (event: MouseEvent<HTMLButtonElement>, direction: -1 | 1) => {
     event.preventDefault()
     const chapters = MUNICIPAL_REPORT_CHAPTERS
@@ -435,14 +575,19 @@ export function MunicipalTechnicalReport({
   const financialLink = (page: string) => buildAppHash(page, { municipio: municipalitySlug || undefined })
   const traceabilityRows = [
     ['2–4 e 8–11', 'Matrículas por etapa, modalidade, rede e localização', 'INEP — Censo Escolar', overview?.reference.year, 'matrículas'],
+    ['2–4', 'Atendimento estimado por faixa etária', 'INEP — Censo Escolar e base populacional do diagnóstico', earlyChildhoodAttendanceItems[0]?.currentYear ?? elementaryAttendanceItems[0]?.currentYear ?? highSchoolAttendanceItems[0]?.currentYear, '% estimado'],
     ['4', 'Rendimento escolar', 'INEP — Taxas de Rendimento Escolar', overview?.schoolPerformance.referenceYear, '%'],
-    ['5', 'Matrículas em tempo integral', 'INEP — Censo Escolar', byKey.get('mat-integral')?.currentYear, '%'],
+    ['5', 'Alunos e escolas com jornada em tempo integral', 'INEP — Censo Escolar', fullTimeItems[0]?.currentYear, '%'],
+    ['6', 'Escolas que promovem educação ambiental', 'INEP — Censo Escolar', environmentalEducationItems[0]?.currentYear, '% de escolas'],
     ['7', 'Educação escolar indígena e localização rural', 'INEP — Sinopse Estatística e Censo Escolar', byKey.get('indigena-matriculas')?.currentYear ?? byKey.get('mat-rural')?.currentYear, 'matrículas'],
+    ['8', 'EJA articulada à Educação Profissional', 'INEP — Censo Escolar e Sinopse Estatística', ejaProfessionalItems[0]?.currentYear, 'matrículas e %'],
+    ['9', 'Educação Especial, AEE e Educação Bilíngue de Surdos', 'INEP — Censo Escolar', specialEducationYear, 'diversas'],
     ['10', 'Educação Superior — graduação', 'INEP — Sinopse Estatística da Educação Superior', higherEducation?.latestMunicipalUsableYear, 'diversas'],
-    ['12', 'Docentes', 'INEP — Censo Escolar', byKey.get('docentes-total')?.currentYear, 'docentes'],
-    ['14', 'Infraestrutura escolar e conectividade', 'Censo Escolar/INEP', schoolInfrastructure?.referenceYear ?? byKey.get('internet')?.currentYear, '% de escolas'],
+    ['12', 'Docentes, organização das turmas e formação', 'INEP — Censo Escolar e indicadores educacionais', byKey.get('docentes-total')?.currentYear ?? teachingConditionsItems[0]?.currentYear, 'diversas'],
+    ['13', 'Conselho escolar e proposta pedagógica', 'INEP — Censo Escolar', democraticManagementItems[0]?.currentYear, '% de escolas públicas'],
+    ['14', 'Infraestrutura, conectividade e acessibilidade', 'Censo Escolar/INEP', schoolInfrastructure?.referenceYear ?? classroomInfrastructureItems[0]?.currentYear ?? byKey.get('internet')?.currentYear, '% de escolas ou salas'],
     ['16', 'Cenários de atendimento escolar', 'INEP e IBGE', null, '% e população'],
-    ['17', 'Indicadores próprios do PME', 'Base municipal do PME', null, 'diversas'],
+    ['17', 'Referências para o acompanhamento do PME', 'Diagnóstico público do PNE 2026–2036', null, 'diversas'],
   ] as const
 
   return (
@@ -450,17 +595,33 @@ export function MunicipalTechnicalReport({
       <header className="municipal-technical-report__hero">
         <div className="municipal-technical-report__hero-main">
           <div className="municipal-technical-report__hero-copy">
-            <span className="eyebrow">DOCUMENTO MUNICIPAL</span>
+            <span className="eyebrow">Documento municipal</span>
             <h1>Relatório Técnico Municipal</h1>
             <p>Síntese das condições educacionais do município, elaborada a partir das bases públicas oficiais mais recentes.</p>
           </div>
           <div className="municipal-technical-report__hero-actions">
+            <button
+              aria-busy={excelExportStatus === 'generating'}
+              className="platform-navigation-button municipal-technical-report__excel"
+              disabled={reportDataLoading || excelExportStatus === 'generating'}
+              type="button"
+              onClick={exportExcel}
+            >
+              {excelExportStatus === 'generating' ? 'Gerando Excel…' : 'Baixar Excel'}
+            </button>
             <button className="platform-navigation-button municipal-technical-report__print-preview" type="button" onClick={printReport}>
               Visualizar impressão
             </button>
             <button className="platform-navigation-button municipal-technical-report__print" type="button" onClick={printReport}>
               Imprimir relatório
             </button>
+            {reportDataLoading ? (
+              <p role="status" aria-live="polite">O Excel será liberado quando as bases complementares terminarem de carregar.</p>
+            ) : excelExportStatus === 'success' ? (
+              <p role="status" aria-live="polite">Arquivo Excel preparado para download.</p>
+            ) : excelExportStatus === 'error' ? (
+              <p role="alert" aria-live="assertive">Não foi possível gerar o Excel. Tente novamente.</p>
+            ) : null}
           </div>
         </div>
         <dl className="municipal-technical-report__hero-identity" aria-label="Identificação do relatório">
@@ -496,7 +657,7 @@ export function MunicipalTechnicalReport({
           metadata={overview ? `Referência principal: ${mainPeriod}` : undefined}
           title={(
             <>
-              <span className="eyebrow">SUMÁRIO</span>
+              <span className="eyebrow">Sumário</span>
               <h2 id="technical-report-summary-title">Capítulos e seções do relatório</h2>
             </>
           )}
@@ -538,15 +699,19 @@ export function MunicipalTechnicalReport({
           </dl>
         </ReportSection>
 
-        <ReportSection compact={!overview} model="metrics-table-stack" number={2} section={MUNICIPAL_REPORT_SECTIONS[1]} metadata={`INEP — Censo Escolar · ${mainPeriod}`}>
-          {overview ? <><SnapshotSummary values={[['Educação Infantil', overview.earlyChildhood.total.total], ['Creche', overview.earlyChildhood.creche.total], ['Pré-escola', overview.earlyChildhood.preSchool.total]]} /><StageOfferTable caption="Matrículas da Educação Infantil por rede" stage={overview.earlyChildhood.total} /><ReportMunicipalReading><p>A rede municipal responde por {formatOverviewEnrollments(overview.earlyChildhood.total.byNetwork.municipal.enrollments)} das {formatOverviewEnrollments(overview.earlyChildhood.total.total)} matrículas da Educação Infantil, equivalente a {formatOverviewPercentage(overview.earlyChildhood.total.byNetwork.municipal.share)}.</p></ReportMunicipalReading><ReportNote>A base disponível descreve oferta e matrículas. Cobertura populacional deve ser consultada em Cenários de atendimento escolar.</ReportNote></> : <MissingInformation />}
+        <ReportSection compact={!overview && !earlyChildhoodAttendanceItems.length && !getItems('alunos-turma-infantil').length} coverage="partial" model="metrics-table-stack" number={2} section={MUNICIPAL_REPORT_SECTIONS[1]} metadata={`INEP — Censo Escolar, base populacional e Média de Alunos por Turma · ${mainPeriod}`}>
+          {overview ? <><SnapshotSummary values={[['Educação Infantil', overview.earlyChildhood.total.total], ['Creche', overview.earlyChildhood.creche.total], ['Pré-escola', overview.earlyChildhood.preSchool.total]]} /><StageOfferTable caption="Matrículas da Educação Infantil por rede" stage={overview.earlyChildhood.total} /><ReportMunicipalReading><p>A rede municipal responde por {formatOverviewEnrollments(overview.earlyChildhood.total.byNetwork.municipal.enrollments)} das {formatOverviewEnrollments(overview.earlyChildhood.total.total)} matrículas da Educação Infantil, equivalente a {formatOverviewPercentage(overview.earlyChildhood.total.byNetwork.municipal.share)}.</p></ReportMunicipalReading></> : null}
+          <IndicatorTable caption="Atendimento estimado e organização das turmas" items={mergeReportIndicators(earlyChildhoodAttendanceItems, getItems('alunos-turma-infantil'))} />
+          <ReportNote>Os percentuais estimados combinam matrículas segundo a localização da escola e população residente. Não são taxas líquidas de atendimento e podem ultrapassar 100%. A média de alunos por turma não revela a distribuição entre escolas, redes ou localizações.</ReportNote>
         </ReportSection>
 
-        <ReportSection compact={!overview} model="metrics-table-stack" number={3} section={MUNICIPAL_REPORT_SECTIONS[2]} metadata={`INEP — Censo Escolar · ${mainPeriod}`}>
-          {overview ? <><SnapshotSummary values={[['Ensino Fundamental', overview.elementary.total.total], ['Anos iniciais', overview.elementary.initialYears.total], ['Anos finais', overview.elementary.finalYears.total]]} /><StageOfferTable caption="Matrículas do Ensino Fundamental por rede" stage={overview.elementary.total} /><ReportMunicipalReading><p>A rede municipal concentra {formatOverviewEnrollments(overview.elementary.total.byNetwork.municipal.enrollments)} matrículas do Ensino Fundamental, correspondentes a {formatOverviewPercentage(overview.elementary.total.byNetwork.municipal.share)} do total da etapa.</p></ReportMunicipalReading></> : <MissingInformation />}
+        <ReportSection compact={!overview && !elementaryAttendanceItems.length && !getItems('alunos-turma-fundamental').length} coverage="partial" model="metrics-table-stack" number={3} section={MUNICIPAL_REPORT_SECTIONS[2]} metadata={`INEP — Censo Escolar, base populacional e Média de Alunos por Turma · ${mainPeriod}`}>
+          {overview ? <><SnapshotSummary values={[['Ensino Fundamental', overview.elementary.total.total], ['Anos iniciais', overview.elementary.initialYears.total], ['Anos finais', overview.elementary.finalYears.total]]} /><StageOfferTable caption="Matrículas do Ensino Fundamental por rede" stage={overview.elementary.total} /><ReportMunicipalReading><p>A rede municipal concentra {formatOverviewEnrollments(overview.elementary.total.byNetwork.municipal.enrollments)} matrículas do Ensino Fundamental, correspondentes a {formatOverviewPercentage(overview.elementary.total.byNetwork.municipal.share)} do total da etapa.</p></ReportMunicipalReading></> : null}
+          <IndicatorTable caption="Atendimento estimado e organização das turmas" items={mergeReportIndicators(elementaryAttendanceItems, getItems('alunos-turma-fundamental'))} />
+          <ReportNote>O indicador de 6 a 17 anos combina matrículas no município da escola e população residente. É uma aproximação contextual e não uma taxa líquida de atendimento. A média de alunos por turma não revela a distribuição entre escolas, redes ou localizações.</ReportNote>
         </ReportSection>
 
-        <ReportSection compact={!overview} model="metrics-table-stack" number={4} section={MUNICIPAL_REPORT_SECTIONS[3]} metadata={`INEP — Censo Escolar e Taxas de Rendimento Escolar · ${mainPeriod}`}>
+        <ReportSection compact={!overview && !highSchoolAttendanceItems.length && !getItems('alunos-turma-medio').length} coverage="partial" model="metrics-table-stack" number={4} section={MUNICIPAL_REPORT_SECTIONS[3]} metadata={`INEP — Censo Escolar, base populacional e Taxas de Rendimento Escolar · ${mainPeriod}`}>
           {overview ? (
             <>
               <SnapshotSummary values={[['Ensino Médio', overview.highSchool.total.total], ['Técnico integrado', overview.highSchool.integratedTechnical.total]]} />
@@ -574,29 +739,41 @@ export function MunicipalTechnicalReport({
                 <p>A rede estadual reúne {formatOverviewEnrollments(overview.highSchool.total.byNetwork.state.enrollments)} matrículas do Ensino Médio, equivalentes a {formatOverviewPercentage(overview.highSchool.total.byNetwork.state.share)} do total da etapa.</p>
               </ReportMunicipalReading>
             </>
-          ) : <MissingInformation />}
+          ) : null}
+          <IndicatorTable caption="Atendimento estimado e organização das turmas" items={mergeReportIndicators(highSchoolAttendanceItems, getItems('alunos-turma-medio'))} />
+          <ReportNote>O indicador de 15 a 17 anos é contextual: combina matrículas no município da escola e população residente, portanto não equivale a uma taxa líquida de atendimento. A média de alunos por turma não revela a distribuição entre escolas, redes ou localizações.</ReportNote>
         </ReportSection>
 
-        <ReportSection compact={!getItems('mat-integral').length} model="table-only" number={5} section={MUNICIPAL_REPORT_SECTIONS[4]} metadata="INEP — Censo Escolar · Última referência disponível">
-          <IndicatorTable caption="Oferta de educação em tempo integral" items={getItems('mat-integral')} />
+        <ReportSection compact={!fullTimeItems.length} coverage="partial" model="table-only" number={5} section={MUNICIPAL_REPORT_SECTIONS[4]} metadata="INEP — Censo Escolar · Última referência disponível">
+          <IndicatorTable caption="Oferta de educação em tempo integral" items={fullTimeItems} />
+          <ReportNote>Os indicadores possuem universos diferentes: o percentual geral de matrículas, o público-alvo da rede pública e as escolas que atingem o limiar de jornada integral não devem ser somados.</ReportNote>
         </ReportSection>
       </ReportChapter>
 
       <ReportChapter chapter={MUNICIPAL_REPORT_CHAPTERS[1]}>
-        <ReportSection compact model="coverage" number={6} section={MUNICIPAL_REPORT_SECTIONS[5]} metadata="Bases públicas consultadas · Sem referência municipal comparável">
-          <MissingInformation />
+        <ReportSection compact={!environmentalEducationItems.length} coverage="partial" model="table-only" number={6} section={MUNICIPAL_REPORT_SECTIONS[5]} metadata="INEP — Censo Escolar · Última referência disponível">
+          <IndicatorTable caption="Sustentabilidade socioambiental nas escolas" items={environmentalEducationItems} />
+          <ReportNote>O indicador é declaratório e informa a presença de ações de educação ambiental; não mede sua intensidade, continuidade ou qualidade.</ReportNote>
         </ReportSection>
 
         <ReportSection coverage="partial" model="table-only" number={7} section={MUNICIPAL_REPORT_SECTIONS[6]} metadata="INEP — Sinopse Estatística e Censo Escolar · Última referência disponível">
           <IndicatorTable caption="Recortes indígenas e de localização rural disponíveis" items={getItems('indigena-cobertura-estimada-4-17', 'indigena-matriculas', 'indigena-estabelecimentos', 'indigena-docentes', 'indigena-turmas', 'mat-rural')} />
         </ReportSection>
 
-        <ReportSection compact={!overview && !getItems('mat-eja').length} model="metrics-only" number={8} section={MUNICIPAL_REPORT_SECTIONS[7]} metadata={`INEP — Censo Escolar · ${overview ? mainPeriod : 'Última referência disponível'}`}>
+        <ReportSection compact={!overview && !getItems('mat-eja').length && !ejaProfessionalItems.length} coverage="partial" model="metrics-only" number={8} section={MUNICIPAL_REPORT_SECTIONS[7]} metadata={`INEP — Censo Escolar e Sinopse Estatística · ${overview ? mainPeriod : 'Última referência disponível'}`}>
           {overview ? <><SnapshotSummary values={[['EJA', overview.basicEducationComposition.components.youthAndAdultEducation.total], ['EJA — Ensino Fundamental', overview.basicEducationComposition.components.youthAndAdultEducation.details.elementary], ['EJA — Ensino Médio', overview.basicEducationComposition.components.youthAndAdultEducation.details.highSchool]]} /><ReportMunicipalReading><p>A EJA registra {formatOverviewEnrollments(overview.basicEducationComposition.components.youthAndAdultEducation.total)} matrículas, distribuídas entre {formatOverviewEnrollments(overview.basicEducationComposition.components.youthAndAdultEducation.details.elementary)} no Ensino Fundamental e {formatOverviewEnrollments(overview.basicEducationComposition.components.youthAndAdultEducation.details.highSchool)} no Ensino Médio.</p></ReportMunicipalReading></> : <IndicatorTable caption="Matrículas da EJA" items={getItems('mat-eja')} />}
+          <IndicatorTable caption="Articulação da EJA com a Educação Profissional" items={ejaProfessionalItems} />
+          <ReportNote>O percentual considera as matrículas da EJA articuladas às ofertas profissionais previstas na metodologia em relação ao total elegível de matrículas da EJA.</ReportNote>
         </ReportSection>
 
-        <ReportSection compact={!overview} coverage="partial" model="metrics-only" number={9} section={MUNICIPAL_REPORT_SECTIONS[8]} metadata={`INEP — Censo Escolar · ${mainPeriod}`}>
-          {overview ? <><SnapshotSummary values={[['Educação Especial', overview.specialEducation.total], ['Classes comuns', overview.specialEducation.commonClasses], ['Classes exclusivas', overview.specialEducation.exclusiveClasses]]} /><ReportMunicipalReading><p>Das {formatOverviewEnrollments(overview.specialEducation.total)} matrículas da Educação Especial, {formatOverviewEnrollments(overview.specialEducation.commonClasses)} estão em classes comuns e {formatOverviewEnrollments(overview.specialEducation.exclusiveClasses)} em classes exclusivas.</p></ReportMunicipalReading><ReportNote>As matrículas da Educação Especial já estão incluídas nas etapas e modalidades. A oferta de AEE e a Educação Bilíngue de Surdos possuem consulta específica na seção Modalidades.</ReportNote></> : <MissingInformation />}
+        <ReportSection compact={!overview && !specialEducation} coverage="partial" model="metrics-only" number={9} section={MUNICIPAL_REPORT_SECTIONS[8]} metadata={`INEP — Censo Escolar · ${specialEducationYear ?? mainPeriod}`}>
+          {overview ? <><SnapshotSummary values={[['Educação Especial', overview.specialEducation.total], ['Classes comuns', overview.specialEducation.commonClasses], ['Classes exclusivas', overview.specialEducation.exclusiveClasses]]} /><ReportMunicipalReading><p>Das {formatOverviewEnrollments(overview.specialEducation.total)} matrículas da Educação Especial, {formatOverviewEnrollments(overview.specialEducation.commonClasses)} estão em classes comuns e {formatOverviewEnrollments(overview.specialEducation.exclusiveClasses)} em classes exclusivas.</p></ReportMunicipalReading></> : null}
+          <SpecialEducationTechnicalReportSummary
+            document={specialEducation}
+            error={specialEducationError}
+            loading={specialEducationLoading}
+          />
+          <ReportNote>As matrículas da Educação Especial já estão incluídas nas etapas e modalidades. A quantidade de escolas que oferecem AEE não representa o número de estudantes atendidos.</ReportNote>
         </ReportSection>
       </ReportChapter>
 
@@ -613,16 +790,19 @@ export function MunicipalTechnicalReport({
         <ReportSection compact={!overview && !getItems('mat-profissional', 'oferta-total').length} model="metrics-only" number={11} section={MUNICIPAL_REPORT_SECTIONS[10]} metadata={`INEP — Censo Escolar e Sinopse Estatística · ${overview ? mainPeriod : 'Última referência disponível'}`}>
           {overview ? <><SnapshotSummary values={[['Técnico integrado ao Ensino Médio', overview.highSchool.integratedTechnical.total], ['Outras ofertas profissionais', overview.basicEducationComposition.components.otherProfessionalOffers.total]]} /><ReportMunicipalReading><p>A oferta profissional reúne {formatOverviewEnrollments(overview.highSchool.integratedTechnical.total)} matrículas em cursos técnicos integrados ao Ensino Médio e {formatOverviewEnrollments(overview.basicEducationComposition.components.otherProfessionalOffers.total)} nas demais ofertas profissionais.</p></ReportMunicipalReading></> : <IndicatorTable caption="Educação profissional e tecnológica" items={getItems('mat-profissional', 'oferta-total')} />}
         </ReportSection>
-        <ReportSection compact={!getItems('docentes-total', 'docentes-infantil', 'docentes-fundamental', 'docentes-medio', 'docentes-eja', 'docentes-profissional').length} model="table-only" number={12} section={MUNICIPAL_REPORT_SECTIONS[11]} metadata="INEP — Censo Escolar · Última referência disponível">
+        <ReportSection compact={!getItems('docentes-total', 'docentes-infantil', 'docentes-fundamental', 'docentes-medio', 'docentes-eja', 'docentes-profissional').length && !teachingConditionsItems.length} coverage="partial" model="table-only" number={12} section={MUNICIPAL_REPORT_SECTIONS[11]} metadata="INEP — Censo Escolar e indicadores educacionais · Última referência disponível">
           <IndicatorTable caption="Docentes por etapa e modalidade" items={getItems('docentes-total', 'docentes-infantil', 'docentes-fundamental', 'docentes-medio', 'docentes-eja', 'docentes-profissional')} />
+          <IndicatorTable caption="Organização das turmas, formação e vínculos docentes" items={teachingConditionsItems} />
           {byKey.get('docentes-total') ? <ReportMunicipalReading><p>O município registra {indicatorValue(byKey.get('docentes-total'))} docentes no total; o Ensino Fundamental reúne {indicatorValue(byKey.get('docentes-fundamental'))} profissionais na referência publicada.</p></ReportMunicipalReading> : null}
+          <ReportNote>Conforme o indicador, os registros podem representar docentes, vínculos ou atuações; não devem ser somados como se fossem pessoas únicas.</ReportNote>
         </ReportSection>
 
       </ReportChapter>
 
       <ReportChapter chapter={MUNICIPAL_REPORT_CHAPTERS[3]}>
-        <ReportSection compact model="coverage" number={13} section={MUNICIPAL_REPORT_SECTIONS[12]} metadata="Bases públicas consultadas · Sem referência municipal comparável">
-          <MissingInformation />
+        <ReportSection compact={!democraticManagementItems.length} coverage="partial" model="table-only" number={13} section={MUNICIPAL_REPORT_SECTIONS[12]} metadata="INEP — Censo Escolar · Última referência disponível">
+          <IndicatorTable caption="Participação social e instrumentos de gestão" items={democraticManagementItems} />
+          <ReportNote>Os indicadores são registros declaratórios. Eles informam a existência do conselho ou do documento pedagógico, sem avaliar participação efetiva, frequência das reuniões ou qualidade da implementação.</ReportNote>
         </ReportSection>
 
         <ReportSection coverage="partial" model="table-only" number={14} section={MUNICIPAL_REPORT_SECTIONS[13]} metadata={`Censo Escolar/INEP · ${schoolInfrastructure?.referenceYear ?? 'Última referência disponível'}`}>
@@ -630,7 +810,8 @@ export function MunicipalTechnicalReport({
             <SchoolInfrastructureReportTable contract={schoolInfrastructure} />
           ) : null}
           <IndicatorTable caption="Infraestrutura e conectividade disponíveis" items={getItems('internet', 'internet_alunos', 'internet_aprendizagem', 'banda_larga', 'rede_local', 'rede_wireless', 'desktop_aluno', 'comp_portatil_aluno', 'tablet_aluno')} />
-          <ReportNote>As bases utilizadas ainda não oferecem recorte municipal específico de acessibilidade para esta edição.</ReportNote>
+          <IndicatorTable caption="Climatização e acessibilidade das salas de aula" items={classroomInfrastructureItems} />
+          <ReportNote>Climatização e acessibilidade usam como denominador as salas de aula utilizadas. A acessibilidade das salas é um recorte parcial e não resume todas as condições de acessibilidade da escola.</ReportNote>
         </ReportSection>
         <ReportSection coverage="partial" model="coverage" number={15} section={MUNICIPAL_REPORT_SECTIONS[14]} metadata="Módulos financeiros da plataforma · Períodos conforme cada fonte">
           <p>Os cálculos financeiros permanecem nos módulos homologados de Financiamento, evitando duplicação de regras no relatório educacional.</p>

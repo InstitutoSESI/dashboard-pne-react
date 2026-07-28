@@ -14,8 +14,14 @@ import {
   formatOverviewPercentage,
   formatSchoolPerformanceRate,
   getMunicipalOverviewMethodologyHighlights,
+  getOverviewNumericValue,
 } from '../municipalEducationOverviewPresentation'
 
+/*
+ * Etapa e uma sequencia (Infantil -> Fundamental -> Medio), entao a composicao
+ * usa a rampa sequencial. Rede e categoria sem ordem e usa hues distintos.
+ * Ver o bloco "Barras de proporcao" em design-tokens.css.
+ */
 interface EducationOverviewSectionProps {
   data: MunicipalEducationOverviewV1
 }
@@ -137,8 +143,8 @@ function EducationOverviewSummary({ data }: Pick<EducationOverviewSectionProps, 
             <span>Total oficial do Censo Escolar</span>
           </div>
         </dl>
-        <CompositionCategory id="regular-stages" label="Etapas regulares" groups={regularStages} />
-        <CompositionCategory id="modalities" label="Modalidades e outras ofertas" groups={modalities} />
+        <CompositionCategory id="regular-stages" label="Etapas regulares" groups={regularStages} total={composition.total} />
+        <CompositionCategory id="modalities" label="Modalidades e outras ofertas" groups={modalities} total={composition.total} />
         <div className="municipal-education-summary__notes" aria-label="Notas sobre a composição das matrículas">
           <p>As matrículas do técnico integrado já estão incluídas no total do Ensino Médio.</p>
           <p>As outras ofertas profissionais apresentadas não estão incluídas no Ensino Médio ou na EJA.</p>
@@ -149,10 +155,33 @@ function EducationOverviewSummary({ data }: Pick<EducationOverviewSectionProps, 
   )
 }
 
+/*
+ * Participacao do componente na Educacao Basica.
+ *
+ * A proporcao entre etapas e a leitura que faltava no cartao: sem ela o gestor
+ * precisa dividir de cabeca para saber o peso do Fundamental na rede. Fica ao
+ * lado do numero, dentro do proprio cartao, em vez de num grafico separado.
+ *
+ * Devolve null quando o componente ou o total nao sao publicaveis: ausente e
+ * nao aplicavel nao viram zero.
+ */
+function formatCompositionShare(value: SnapshotValue, total: SnapshotValue): string | null {
+  const amount = getOverviewNumericValue(value)
+  const base = getOverviewNumericValue(total)
+  if (amount === null || base === null || base <= 0) return null
+  return `${shareFormatter.format((amount / base) * 100)}% da Educação Básica`
+}
+
+const shareFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+})
+
 function CompositionCategory({
   groups,
   id,
   label,
+  total,
 }: {
   groups: ReadonlyArray<{
     key: string
@@ -162,25 +191,32 @@ function CompositionCategory({
   }>
   id: string
   label: string
+  total: SnapshotValue
 }) {
   const headingId = `municipal-education-summary-${id}`
   return (
     <section className={`municipal-education-summary__category municipal-education-summary__category--${id}`} aria-labelledby={headingId}>
       <h3 id={headingId}>{label}</h3>
       <div className="municipal-education-summary__components">
-        {groups.map((group) => (
-          <dl className="municipal-education-summary__group" key={group.key}>
-            <div className="municipal-education-summary__group-heading">
-              <dt>{group.label}</dt>
-              <dd>{formatOverviewEnrollments(group.value)}</dd>
-            </div>
-            <div className="municipal-education-summary__details">
-              {group.details.map(([detailLabel, value]) => (
-                <div key={detailLabel}><dt>{detailLabel}</dt><dd>{formatOverviewEnrollments(value)}</dd></div>
-              ))}
-            </div>
-          </dl>
-        ))}
+        {groups.map((group) => {
+          const share = formatCompositionShare(group.value, total)
+          return (
+            <dl className="municipal-education-summary__group" key={group.key}>
+              <div className="municipal-education-summary__group-heading">
+                <dt>{group.label}</dt>
+                <dd>{formatOverviewEnrollments(group.value)}</dd>
+                {share ? (
+                  <p className="municipal-education-summary__group-share">{share}</p>
+                ) : null}
+              </div>
+              <div className="municipal-education-summary__details">
+                {group.details.map(([detailLabel, value]) => (
+                  <div key={detailLabel}><dt>{detailLabel}</dt><dd>{formatOverviewEnrollments(value)}</dd></div>
+                ))}
+              </div>
+            </dl>
+          )
+        })}
       </div>
     </section>
   )

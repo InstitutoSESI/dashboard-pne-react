@@ -38,7 +38,7 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: linear-gradient(110deg, rgba(255, 253, 248, 0.8), transparent 42%);
+    background: linear-gradient(110deg, rgba(252, 254, 253, 0.8), transparent 42%);
     content: '';
     pointer-events: none;
   }
@@ -65,13 +65,16 @@
     color: var(--text-body);
   }
 
+  /* Rotulo de contexto e legenda, nao banner. Esta regra era a que ainda
+     impunha caixa alta tracked em Financiamento, Relatorio e PNE depois do
+     retipo da base. Ver "A Regra do Rotulo Silencioso" em docs/DESIGN.md. */
   .content-area :where(.eyebrow, .hero-eyebrow, .section-eyebrow) {
-    color: var(--green-deep);
-    font-size: 0.7rem;
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
     line-height: var(--line-height-snug);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .content-area :where(.page-card, .detail-panel, .cycle-workspace) h2,
@@ -114,7 +117,7 @@
 
   .dashboard-shell .brand-lockup {
     min-height: 104px;
-    padding: 26px 28px 24px;
+    padding: var(--space-6) var(--space-6) var(--space-6);
     border-bottom-color: rgba(225, 243, 231, 0.16);
   }
 
@@ -131,15 +134,15 @@
   }
 
   .dashboard-shell .sidebar-nav-label {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
     color: #a8c7b2;
-    font-size: 0.64rem;
+    font-size: var(--font-size-2xs);
     letter-spacing: 0.16em;
   }
 
   .dashboard-shell .top-nav {
-    gap: 8px;
-    padding: 22px 14px;
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-3);
   }
 
   .dashboard-shell .nav-item {
@@ -160,22 +163,22 @@
     border-color: rgba(172, 215, 185, 0.18);
     background: rgba(122, 184, 143, 0.18);
     color: #ffffff;
-    box-shadow: inset 3px 0 0 #a8d0b2;
+    border: 1px solid var(--green-accent);
   }
 
   .dashboard-shell .nav-group + .nav-group {
-    margin-top: 10px;
+    margin-top: var(--space-2);
   }
 
   .dashboard-shell .nav-subitems {
-    margin-left: 20px;
-    padding-left: 15px;
+    margin-left: var(--space-5);
+    padding-left: var(--space-4);
     border-left-color: rgba(171, 207, 181, 0.26);
   }
 
   .dashboard-shell .nav-subitem {
     min-height: 44px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: #bad0c2;
   }
 
@@ -192,7 +195,7 @@
 
   .dashboard-shell .sidebar-institutional-signature {
     min-height: 72px;
-    padding-inline: 28px;
+    padding-inline: var(--space-6);
     border-top-color: rgba(178, 209, 187, 0.2);
     color: #a8c7b2;
   }
@@ -204,7 +207,7 @@
     border-bottom-color: var(--border-line);
     background: var(--bg-context-bar);
     box-shadow: 0 1px 0 rgba(20, 54, 40, 0.02);
-    gap: 18px;
+    gap: var(--space-4);
   }
 
   .dashboard-shell .context-bar__selector {
@@ -213,22 +216,22 @@
 
   .dashboard-shell .context-bar__crumb {
     max-width: 32ch;
-    padding-left: 18px;
+    padding-left: var(--space-4);
     border-left: 1px solid var(--border-line);
     color: var(--text-soft);
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     line-height: var(--line-height-snug);
   }
 
   .dashboard-shell .context-bar__meta {
     color: var(--text-muted);
-    font-size: 0.69rem;
+    font-size: var(--font-size-2xs);
     letter-spacing: 0.03em;
   }
 
   .dashboard-shell .context-bar .municipio-selector__label {
     color: var(--green-deep);
-    font-size: 0.65rem;
+    font-size: var(--font-size-2xs);
     letter-spacing: 0.12em;
   }
 
@@ -250,7 +253,7 @@
   }
 
   .dashboard-shell .institutional-top-signature {
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .dashboard-shell .institutional-top-signature img {
@@ -280,7 +283,7 @@
   .dashboard-shell .content-area .platform-filter-panel {
     border-color: var(--border-card);
     border-radius: var(--radius-md);
-    background: rgba(255, 253, 248, 0.82);
+    background: var(--surface-card);
     box-shadow: none;
   }
 
@@ -339,9 +342,9 @@
 
   .dashboard-shell .content-area .status-badge {
     min-height: 24px;
-    padding: 4px 8px;
+    padding: var(--space-1) var(--space-2);
     border-radius: 4px;
-    font-size: 0.69rem;
+    font-size: var(--font-size-2xs);
     letter-spacing: 0.01em;
   }
 
@@ -386,8 +389,8 @@
 
   .dashboard-shell .content-area .home-hero__content {
     min-height: 286px;
-    padding: 22px 32px;
-    border-top: 4px solid var(--green-primary);
+    padding: var(--card-pad-hero);
+    border-top: var(--border-width) solid var(--green-accent);
     background: linear-gradient(
       135deg,
       var(--green-soft) 0%,
@@ -412,7 +415,7 @@
     max-width: 27ch;
     margin: 0;
     color: var(--text-strong);
-    font-size: clamp(1.85rem, 2.2vw, 2.15rem);
+    font-size: var(--font-size-3xl);
     letter-spacing: -0.025em;
     line-height: 1.12;
   }
@@ -428,7 +431,7 @@
   .dashboard-shell .content-area .home-context-card,
   .dashboard-shell .content-area .home-guidance-card {
     min-height: 286px;
-    padding: 22px;
+    padding: var(--space-5);
     background: var(--surface-card);
     align-content: start;
   }
@@ -441,33 +444,33 @@
   }
 
   .dashboard-shell .content-area .home-context-card__label {
-    color: var(--green-deep);
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    letter-spacing: var(--tracking-label);
     line-height: var(--line-height-snug);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .dashboard-shell .content-area .home-context-card strong {
     display: block;
-    margin-top: 12px;
+    margin-top: var(--space-3);
     color: var(--green-ink);
-    font-size: clamp(1.5rem, 2vw, 1.9rem);
+    font-size: var(--font-size-3xl);
     letter-spacing: -0.02em;
     line-height: var(--line-height-tight);
   }
 
   .dashboard-shell .content-area .home-context-card__list {
     display: grid;
-    gap: 10px;
-    margin: 18px 0 0;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
     padding: 0;
     list-style: none;
   }
 
   .dashboard-shell .content-area .home-context-card__list li {
     position: relative;
-    padding-left: 18px;
+    padding-left: var(--space-4);
     color: var(--text-body);
     font-size: var(--font-size-xs);
     line-height: var(--line-height-snug);
@@ -498,7 +501,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    margin: 14px 0 0;
+    margin: var(--space-3) 0 0;
     padding: 0;
     list-style: none;
   }
@@ -518,7 +521,7 @@
     z-index: 1;
     display: grid;
     grid-template-columns: 29px minmax(0, 1fr);
-    gap: 9px;
+    gap: var(--space-2);
     align-items: start;
   }
 
@@ -540,7 +543,7 @@
     color: var(--green-deep);
     display: grid;
     place-items: center;
-    font-size: 0.67rem;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-bold);
     line-height: 1;
   }
@@ -554,7 +557,7 @@
   }
 
   .dashboard-shell .content-area .home-guidance-step p {
-    margin: 3px 0 0;
+    margin: var(--space-1) 0 0;
     color: var(--text-body);
     font-size: var(--font-size-xs);
     line-height: var(--line-height-snug);
@@ -563,23 +566,23 @@
   .dashboard-shell .content-area .home-entry-section,
   .dashboard-shell .content-area .home-navigation-section,
   .dashboard-shell .content-area .home-section--foundation {
-    gap: 18px;
+    gap: var(--space-4);
   }
 
   .dashboard-shell .content-area .home-section__heading {
-    gap: 7px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area .home-section__label {
-    color: var(--green-deep);
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    letter-spacing: var(--tracking-label);
+    text-transform: none;
   }
 
   .dashboard-shell .content-area .home-section__heading h2 {
-    font-size: clamp(1.55rem, 2.1vw, 2rem);
-    letter-spacing: -0.025em;
+    font-size: var(--font-size-2xl);
+    letter-spacing: var(--tracking-title);
   }
 
   .dashboard-shell .content-area .home-entry-grid {
@@ -587,19 +590,19 @@
     overflow: hidden;
     border-top: 1px solid var(--border-strong-line);
     border-bottom: 1px solid var(--border-strong-line);
-    background: rgba(255, 253, 248, 0.52);
+    background: var(--surface-raised);
   }
 
   .dashboard-shell .content-area .home-entry-card {
     position: relative;
     min-height: 238px;
-    padding: 30px 28px 26px;
+    padding: var(--space-8) var(--space-6) var(--space-6);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-    gap: 14px;
+    gap: var(--space-3);
   }
 
   .dashboard-shell .content-area .home-entry-card:last-child {
@@ -607,12 +610,12 @@
   }
 
   .dashboard-shell .content-area .home-entry-card::before {
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     color: var(--signal-ochre);
     content: '0' counter(home-entry);
     counter-increment: home-entry;
     font-family: var(--font-serif);
-    font-size: 1.12rem;
+    font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
   }
 
@@ -634,23 +637,23 @@
   }
 
   .dashboard-shell .content-area .home-page .home-entry-card__icon svg {
-    width: 26px;
-    height: 26px;
+    width: var(--icon-lg);
+    height: var(--icon-lg);
     stroke-width: 1.65;
   }
 
   .dashboard-shell .content-area .home-entry-card strong {
     max-width: 15ch;
-    margin-top: 26px;
+    margin-top: var(--space-6);
     color: var(--text-strong);
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     letter-spacing: -0.02em;
   }
 
   .dashboard-shell .content-area .home-entry-card__footer {
     align-items: flex-end;
     color: var(--text-body);
-    font-size: 0.83rem;
+    font-size: var(--type-support);
     line-height: 1.6;
   }
 
@@ -660,7 +663,7 @@
   }
 
   .dashboard-shell .content-area .home-navigation-section {
-    padding-top: 4px;
+    padding-top: var(--space-1);
   }
 
   .dashboard-shell .content-area .home-navigation-section .home-section__intro {
@@ -675,7 +678,7 @@
 
   .dashboard-shell .content-area .home-navigation-step {
     min-height: 174px;
-    padding: 22px 22px 20px 0;
+    padding: var(--space-5) var(--space-5) var(--space-5) 0;
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -684,7 +687,7 @@
   }
 
   .dashboard-shell .content-area .home-navigation-step + .home-navigation-step {
-    padding-left: 22px;
+    padding-left: var(--space-5);
   }
 
   .dashboard-shell .content-area .home-navigation-step:last-child {
@@ -697,12 +700,12 @@
     background: transparent;
     color: var(--signal-ochre);
     font-family: var(--font-serif);
-    font-size: 1.15rem;
+    font-size: var(--font-size-lg);
   }
 
   .dashboard-shell .content-area .home-navigation-step h3 {
-    margin-top: 6px;
-    font-size: 1rem;
+    margin-top: var(--space-1);
+    font-size: var(--font-size-md);
   }
 
   .dashboard-shell .content-area .home-navigation-step p {
@@ -719,7 +722,7 @@
 
   .dashboard-shell .content-area .foundation-stat-grid .stat-card {
     min-height: 150px;
-    padding: 24px 22px;
+    padding: var(--space-6) var(--space-5);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -733,7 +736,7 @@
 
   .dashboard-shell .content-area .foundation-stat-grid .stat-card__title {
     color: var(--green-deep);
-    font-size: 1rem;
+    font-size: var(--font-size-md);
   }
 
   .dashboard-shell .content-area .foundation-stat-grid .stat-card__detail {
@@ -741,7 +744,7 @@
   }
 
   .dashboard-shell .content-area .home-about-panel {
-    padding: 28px 30px;
+    padding: var(--card-pad-base);
     border: var(--border-default);
     border-radius: var(--radius-md);
     background: var(--surface-moss);
@@ -768,7 +771,7 @@
 
   /* Editorial heroes and section heads shared by PNE, Education and Finance. */
   .dashboard-shell .content-area :where(.financial-overview-hero, .financial-hero, .educacao-hero) {
-    border-top: 4px solid var(--green-primary);
+    border-top: var(--border-width) solid var(--green-accent);
     box-shadow: var(--shadow-md);
   }
 
@@ -782,15 +785,15 @@
 
   .dashboard-shell .content-area .financial-overview-hero .pne-overview-hero__copy h1 {
     max-width: 19ch;
-    margin-top: 10px;
-    font-size: clamp(2.25rem, 3.5vw, 3.55rem);
+    margin-top: var(--space-2);
+    font-size: var(--font-size-4xl);
     letter-spacing: -0.04em;
     line-height: 1.04;
   }
 
   .dashboard-shell .content-area .financial-overview-hero .pne-overview-hero__copy p {
     max-width: 72ch;
-    margin-top: 14px;
+    margin-top: var(--space-3);
     font-size: var(--font-size-md);
     line-height: 1.65;
   }
@@ -798,7 +801,7 @@
   .dashboard-shell .content-area :where(.pne-overview-section, .legal-goals-filter-panel, .financial-section, .education-summary-section) {
     border-color: var(--border-card);
     border-radius: var(--radius-md);
-    background: rgba(255, 253, 248, 0.82);
+    background: var(--surface-card);
     box-shadow: none;
   }
 
@@ -807,12 +810,12 @@
   }
 
   .dashboard-shell .content-area :where(.pne-overview-section__heading, .financial-section-heading, .education-summary-header) {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area :where(.pne-overview-section__heading, .financial-section-heading) h2,
   .dashboard-shell .content-area .education-summary-title {
-    font-size: clamp(1.55rem, 2.3vw, 2.05rem);
+    font-size: var(--font-size-3xl);
     letter-spacing: -0.03em;
   }
 
@@ -833,7 +836,7 @@
 
   .dashboard-shell .content-area :where(.pne-concept-card, .pne-intro-card, .pne-anchor-card) {
     min-height: 168px;
-    padding: 24px 22px;
+    padding: var(--space-6) var(--space-5);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -848,13 +851,13 @@
   .dashboard-shell .content-area .pne-concept-card__index {
     color: var(--signal-ochre);
     font-family: var(--font-serif);
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
   }
 
   .dashboard-shell .content-area :where(.pne-concept-card h3, .pne-intro-card h3, .pne-anchor-card h3) {
-    margin-top: 12px;
+    margin-top: var(--space-3);
     color: var(--green-deep);
-    font-size: 1.05rem;
+    font-size: var(--font-size-md);
   }
 
   .dashboard-shell .content-area :where(.pne-concept-card p, .pne-intro-card p, .pne-anchor-card p) {
@@ -862,8 +865,8 @@
   }
 
   .dashboard-shell .content-area .pne-concept-card__note {
-    margin-top: 16px;
-    padding-top: 12px;
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
     border-top: 1px solid var(--border-line);
     color: var(--green-deep);
     font-size: var(--font-size-xs);
@@ -881,7 +884,7 @@
 
   .dashboard-shell .content-area .pne-expandable__summary {
     min-height: 58px;
-    padding-inline: 4px;
+    padding-inline: var(--space-1);
   }
 
   .dashboard-shell .content-area .pne-expandable__marker {
@@ -902,8 +905,8 @@
 
   .dashboard-shell .content-area .financial-hero__content > h1,
   .dashboard-shell .content-area .educacao-hero h1 {
-    margin-top: 8px;
-    font-size: clamp(2.05rem, 3vw, 3.15rem);
+    margin-top: var(--space-2);
+    font-size: var(--font-size-4xl);
     letter-spacing: -0.035em;
     line-height: 1.04;
   }
@@ -969,7 +972,7 @@
   }
 
   .dashboard-shell .content-area .educacao-hero__intro {
-    padding-right: 34px;
+    padding-right: var(--space-8);
   }
 
   .dashboard-shell .content-area .educacao-hero__meta {
@@ -999,7 +1002,7 @@
 
   .dashboard-shell .content-area .education-card {
     min-height: 128px;
-    padding: 18px 16px;
+    padding: var(--space-4) var(--space-4);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -1019,7 +1022,7 @@
   .dashboard-shell .content-area .education-card__value {
     color: var(--green-ink);
     max-width: 100%;
-    font-size: clamp(1.35rem, 2.2vw, 2.05rem);
+    font-size: var(--font-size-3xl);
     letter-spacing: -0.035em;
     white-space: nowrap;
   }
@@ -1052,7 +1055,7 @@
 
   .dashboard-shell .content-area .indicator-card-shell__title {
     color: var(--text-strong);
-    font-size: 1.05rem;
+    font-size: var(--font-size-md);
     letter-spacing: -0.015em;
   }
 
@@ -1091,12 +1094,12 @@
   }
 
   .dashboard-shell .content-area .indicator-card-shell__support {
-    padding-top: 12px;
+    padding-top: var(--space-3);
     border-top-color: var(--border-line);
   }
 
   .dashboard-shell .content-area .indicator-card-shell__footer {
-    padding-top: 12px;
+    padding-top: var(--space-3);
     border-top-color: var(--border-line);
   }
 
@@ -1115,7 +1118,7 @@
   .dashboard-shell .content-area :where(.indicator-chart-card, .education-chart) .chart-axis-label,
   .dashboard-shell .content-area :where(.indicator-chart-card, .education-chart) .chart-x-label {
     fill: var(--chart-axis-text);
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 
   .dashboard-shell .content-area :where(.indicator-chart-card, .education-chart) .chart-grid line {
@@ -1130,7 +1133,7 @@
   }
 
   .dashboard-shell .content-area .financial-hero__content {
-    padding-right: 38px;
+    padding-right: var(--space-10);
   }
 
   .dashboard-shell .content-area .financial-hero__aside {
@@ -1191,7 +1194,7 @@
 
   /* Detail views use the same navigation and metric strip as the overview. */
   .dashboard-shell .content-area .platform-detail-navigation {
-    gap: 10px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area .platform-navigation-button {
@@ -1210,13 +1213,13 @@
   }
 
   .dashboard-shell .content-area :where(.detail-panel, .cycle-detail-view, .financial-detail-view) .detail-heading {
-    padding-bottom: 18px;
+    padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--border-line);
   }
 
   .dashboard-shell .content-area :where(.detail-panel, .cycle-detail-view, .financial-detail-view) .detail-heading h3,
   .dashboard-shell .content-area :where(.detail-panel, .cycle-detail-view, .financial-detail-view) .detail-heading h2 {
-    font-size: clamp(1.3rem, 2vw, 1.75rem);
+    font-size: 1.75rem;
     letter-spacing: -0.025em;
   }
 
@@ -1230,7 +1233,7 @@
 
   .dashboard-shell .content-area :where(.detail-panel, .cycle-detail-view, .financial-detail-view) .metric-card {
     min-height: 112px;
-    padding: 18px;
+    padding: var(--space-4);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -1252,7 +1255,7 @@
   .dashboard-shell .content-area .empty-panel,
   .dashboard-shell .content-area .education-chart-empty {
     border-color: var(--border-card);
-    background: rgba(255, 253, 248, 0.88);
+    background: var(--surface-card);
   }
 
   .dashboard-shell .content-area .state-box--error {
@@ -1271,7 +1274,7 @@
 
   .dashboard-shell .content-area .empty-municipality-selector {
     width: min(320px, 100%);
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
 
   .dashboard-shell .content-area .educacao-explore-table--spaced {
@@ -1310,7 +1313,7 @@
 
   .dashboard-shell .content-area .home-hero__content,
   .dashboard-shell .content-area .financial-overview-hero .pne-overview-hero__copy {
-    padding-inline: 34px;
+    padding-inline: var(--space-8);
   }
 
   .dashboard-shell .content-area .educacao-hero__intro {
@@ -1322,11 +1325,11 @@
   }
 
   .dashboard-shell .content-area .home-hero__content h1 {
-    font-size: clamp(1.85rem, 2.8vw, 2.15rem);
+    font-size: var(--font-size-3xl);
   }
 
   .dashboard-shell .content-area .financial-overview-hero .pne-overview-hero__copy h1 {
-    font-size: clamp(2rem, 4vw, 3rem);
+    font-size: var(--font-size-4xl);
   }
 
   .dashboard-shell .content-area .education-summary-grid,
@@ -1373,7 +1376,7 @@
 
 @media screen and (max-width: 820px) {
   .dashboard-shell .content-area {
-    padding-top: 26px;
+    padding-top: var(--space-6);
   }
 
   .dashboard-shell .content-area .home-hero--institutional,
@@ -1420,7 +1423,7 @@
 
   .dashboard-shell .content-area .home-navigation-step,
   .dashboard-shell .content-area .home-navigation-step + .home-navigation-step {
-    padding: 20px 18px;
+    padding: var(--space-5) var(--space-4);
     border-right: 1px solid var(--border-line);
   }
 
@@ -1474,7 +1477,7 @@
   }
 
   .dashboard-shell .content-area .page-stack {
-    gap: 26px;
+    gap: var(--space-6);
   }
 
   .dashboard-shell .content-area .home-hero__content,
@@ -1497,12 +1500,12 @@
   .dashboard-shell .content-area .financial-hero__content > h1,
   .dashboard-shell .content-area .educacao-hero h1 {
     max-width: none;
-    font-size: clamp(2rem, 10vw, 2.65rem);
+    font-size: var(--font-size-4xl);
     line-height: 1.05;
   }
 
   .dashboard-shell .content-area .home-hero__content h1 {
-    font-size: clamp(1.75rem, 8vw, 2.15rem);
+    font-size: var(--font-size-3xl);
     line-height: 1.12;
   }
 
@@ -1539,7 +1542,7 @@
   .dashboard-shell .content-area .education-card,
   .dashboard-shell .content-area .financial-summary-grid .education-card {
     min-height: 0;
-    padding: 22px;
+    padding: var(--space-5);
     border-right: 0;
     border-top: 1px solid var(--border-line);
   }
@@ -1554,7 +1557,7 @@
   }
 
   .dashboard-shell .content-area .home-entry-card strong {
-    margin-top: 22px;
+    margin-top: var(--space-5);
   }
 
   .dashboard-shell .content-area .home-navigation-step,
@@ -1564,7 +1567,7 @@
 
   .dashboard-shell .content-area .home-about-panel {
     grid-template-columns: 1fr;
-    padding: 24px 22px;
+    padding: var(--space-6) var(--space-5);
   }
 
   .dashboard-shell .content-area .education-summary-grid,
@@ -1611,14 +1614,14 @@
   }
 
   .dashboard-shell .content-area .platform-filter-panel {
-    padding: 18px;
+    padding: var(--space-4);
   }
 
   .dashboard-shell .content-area .platform-filter-list,
   .dashboard-shell .content-area .platform-category-tabs {
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 4px;
+    padding-bottom: var(--space-1);
     scrollbar-width: thin;
   }
 
@@ -1706,12 +1709,12 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education .indicator-card-shell__context {
-  color: var(--green-deep);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education .indicator-card-shell__topline {
@@ -1730,8 +1733,8 @@
   color: var(--education-direction-ink);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.69rem;
+  gap: var(--space-1);
+  font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
 }
@@ -1824,7 +1827,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education .indicator-card-shell__insight-item:only-child {
@@ -1972,12 +1975,12 @@
 }
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__context {
-  color: var(--green-deep);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-label);
   line-height: 1;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .status-badge {
@@ -1989,7 +1992,7 @@
   color: var(--indicator-direction-ink);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
 }
@@ -2033,7 +2036,7 @@
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__value-row strong {
   color: var(--green-ink);
-  font-size: clamp(var(--font-size-2xl), 2.4vw, var(--font-size-3xl));
+  font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
@@ -2045,7 +2048,7 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__metadata {
@@ -2067,7 +2070,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__metadata-item + .indicator-card-shell__metadata-item {
@@ -2245,12 +2248,12 @@
 }
 
 .dashboard-shell .content-area .educacao-hero__meta-label {
-  color: var(--green-deep);
-  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-label);
   line-height: var(--line-height-snug);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .dashboard-shell .content-area .educacao-hero__municipality {
@@ -2319,8 +2322,17 @@
   text-align: left;
 }
 
+/*
+ * A linha do valor ancora no topo SEMPRE, havendo unidade ou nao.
+ *
+ * Antes o alinhamento mudava conforme o cartao tivesse ou nao a unidade
+ * ("alunos", "escolas"): flex-start com unidade, center sem. O numero nascia
+ * 12px mais baixo nos cartoes sem unidade e a fileira saia desalinhada.
+ */
+.dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__value-row,
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__value-row:has(> span) {
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__value-row strong {
@@ -2375,22 +2387,42 @@
   line-height: var(--line-height-tight);
 }
 
-/* Final cross-module calibration: PNE, Education and Finance share one card measure. */
+/*
+ * Final cross-module calibration: PNE, Education and Finance share one card measure.
+ *
+ * As TRES primeiras linhas sao fixas de proposito. Elas carregam rotulo, titulo
+ * e descricao, que variam entre uma e duas linhas de texto conforme o
+ * indicador. Com altura automatica, cada cartao resolvia a propria altura e o
+ * valor em destaque nascia num ponto diferente em cada um: numa mesma fileira
+ * havia ate 23px de desalinho entre vizinhos.
+ *
+ * Os valores abaixo sao os maximos medidos (rotulo 30px, titulo em duas linhas
+ * 38px, descricao em duas linhas 32px), entao nada e cortado.
+ *
+ * Da quarta linha em diante a altura e livre: o valor nunca pode ser truncado
+ * para caber, e a ultima linha absorve a folga para os rodapes continuarem
+ * alinhados entre cartoes.
+ */
 @media screen and (min-width: 701px) {
   .dashboard-shell .content-area .cycle-page .meta-card--cycle,
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) {
     min-height: var(--indicator-card-height-desktop);
-    height: var(--indicator-card-height-desktop);
   }
 
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) {
-    grid-template-rows: 24px 40px 29px 84px 48px minmax(24px, 1fr);
+    grid-template-rows:
+      30px
+      38px
+      32px
+      minmax(84px, auto)
+      minmax(48px, auto)
+      minmax(24px, 1fr);
     gap: 6px var(--space-3);
   }
 
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__title {
-    min-height: 40px;
-    max-height: 40px;
+    min-height: 38px;
+    max-height: 38px;
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
@@ -2398,8 +2430,12 @@
   }
 
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__description {
-    min-height: 29px;
-    max-height: 29px;
+    min-height: 32px;
+    max-height: 32px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) .indicator-card-shell__value-row,
@@ -2664,7 +2700,19 @@
   }
 }
 
-/* Education indicator card: compact scale of the approved portrait reference. */
+/*
+ * Education indicator card: compact scale of the approved portrait reference.
+ *
+ * As tres primeiras linhas sao fixas. Elas carregam rotulo, titulo e descricao,
+ * que variam entre uma e duas linhas conforme o indicador; com altura
+ * automatica cada cartao resolvia a propria e o valor em destaque nascia num
+ * ponto diferente em cada um -- ate 23px de desalinho numa mesma fileira.
+ * Os valores sao os maximos medidos, entao nada e cortado.
+ *
+ * Esta e a regra que vence para a variante --education-reference. Ha outras
+ * onze definicoes de grid-template-rows para este componente espalhadas pelo
+ * projeto: confirme qual esta ativa antes de mexer em qualquer uma.
+ */
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference {
   --education-card-inline-inset: var(--space-4);
   min-height: 0;
@@ -2673,7 +2721,7 @@
   padding: var(--education-card-inline-inset);
   border-radius: var(--card-radius);
   grid-template-columns: minmax(0, 1.75fr) minmax(96px, 1fr);
-  grid-template-rows: auto auto auto auto minmax(52px, auto) minmax(var(--card-footer-min-height), auto);
+  grid-template-rows: 30px 38px 32px auto minmax(52px, auto) minmax(var(--card-footer-min-height), auto);
   grid-template-areas:
     "topline topline"
     "title title"
@@ -2738,24 +2786,31 @@
   -webkit-line-clamp: unset;
 }
 
+/*
+ * O valor ancora no topo da propria linha, com ou sem unidade abaixo.
+ *
+ * Com justify-content: center, o bloco era centrado na altura da linha: um
+ * cartao com unidade ("2.629" + "alunos") ocupava mais altura que um sem
+ * ("23,3%"), e o numero nascia 12px mais baixo no segundo. Ancorando no topo,
+ * o numero cai no mesmo ponto em toda a fileira e a unidade desce por baixo.
+ *
+ * Esta e a regra vencedora entre onze que definem alinhamento neste elemento.
+ * Confirme qual esta ativa antes de mexer em qualquer outra.
+ */
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row {
   min-width: 0;
   min-height: 0;
   padding: var(--space-3) var(--space-6) var(--space-3) 0;
   border-top: 0;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   overflow: visible;
-  text-align: center;
+  text-align: left;
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__value-row strong {
   color: var(--green-ink);
-  font-size: clamp(
-    var(--font-size-2xl),
-    12cqi,
-    calc(var(--font-size-3xl) * 1.5)
-  );
+  font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.05em;
   line-height: 1.08;
@@ -2829,14 +2884,17 @@
   display: none;
 }
 
+/* Bloco de leitura dentro do cartao: raio interno, nao raio de cartao.
+   Estava em --radius-md, o mesmo do cartao que o contem, o que fazia a faixa
+   competir com a propria borda do cartao. */
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__insight {
   width: 100%;
   min-height: 52px;
   margin: 0;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--card-pad-inset);
   border: 0;
-  border-radius: var(--radius-md);
-  background: var(--surface-moss);
+  border-radius: var(--card-radius-inner);
+  background: var(--card-surface-emphasis);
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 0;
@@ -3549,8 +3607,8 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-action svg {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -3707,7 +3765,7 @@
     gap: var(--space-5);
     padding: var(--panel-inset-intermediate);
     border: var(--border-default);
-    border-left: 3px solid var(--green-primary);
+    border: 1px solid var(--green-accent);
     border-radius: var(--radius-md);
     background: var(--surface-sand);
   }
@@ -4403,7 +4461,7 @@
     padding: var(--space-4);
     border: 0;
     border-bottom: var(--border-width) solid var(--border-card);
-    border-left: 3px solid var(--green-primary);
+    border: 1px solid var(--green-accent);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     background: var(--surface-sand);
   }
@@ -4462,8 +4520,8 @@
     .pne-diagnostic-theme__icon,
     .pne-diagnostic-result__icon
   ) svg {
-    width: 21px;
-    height: 21px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -4512,7 +4570,7 @@
   .dashboard-shell .content-area .pne-diagnostic-theme__results {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: var(--space-2);
     margin: 0;
     padding: 0;
     border: 0;
@@ -4526,7 +4584,7 @@
     display: grid;
     gap: var(--space-2);
     margin-top: calc(var(--space-2) * -1);
-    padding: 10px 14px;
+    padding: var(--space-2) var(--space-3);
     border: var(--border-width) solid var(--border-card);
     border-radius: var(--radius-md);
     background: var(--surface-card);
@@ -4555,7 +4613,7 @@
     flex: 0 1 auto;
     min-width: 0;
     min-height: 36px;
-    padding: 6px 10px;
+    padding: var(--space-1) var(--space-2);
     white-space: normal;
   }
 
@@ -4577,7 +4635,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: stretch;
-    gap: 6px;
+    gap: var(--space-1);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-theme-summary > div {
@@ -4585,8 +4643,8 @@
     display: grid;
     align-content: center;
     justify-items: center;
-    gap: 2px;
-    padding: 6px 8px;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
     border: var(--border-width) solid var(--border-card);
     border-radius: var(--radius-sm);
     background: var(--surface-card);
@@ -4629,8 +4687,8 @@
     display: grid;
     grid-template-columns: minmax(0, 39fr) minmax(0, 61fr);
     align-items: start;
-    gap: 16px;
-    padding: 9px 12px;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-3);
     border-bottom: 1px solid var(--border-card);
     background: var(--surface-card);
   }
@@ -4643,7 +4701,7 @@
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
-    gap: 7px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__icon {
@@ -4658,8 +4716,8 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__icon svg {
-    width: 19px;
-    height: 19px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -4671,7 +4729,7 @@
     min-width: 0;
     display: grid;
     align-content: start;
-    gap: 3px;
+    gap: var(--space-1);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__header > div {
@@ -4682,7 +4740,7 @@
   .dashboard-shell .content-area .pne-diagnostic-result__header h4 {
     margin: 0;
     color: var(--text-strong);
-    font-size: 14px;
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     line-height: 1.27;
     text-wrap: pretty;
@@ -4691,7 +4749,7 @@
   .dashboard-shell .content-area .pne-diagnostic-result__goal-context {
     margin: 0;
     color: var(--green-deep);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.25;
   }
@@ -4699,13 +4757,13 @@
   .dashboard-shell .content-area .pne-diagnostic-result__status {
     width: fit-content;
     display: inline-flex;
-    margin-top: 5px;
-    padding: 2px 7px;
+    margin-top: var(--space-1);
+    padding: var(--space-1) var(--space-2);
     border: var(--border-width) solid var(--border-line);
     border-radius: var(--radius-sm);
     background: var(--surface-muted);
     color: var(--text-body);
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.2;
   }
@@ -4742,8 +4800,8 @@
     display: grid;
     align-content: center;
     justify-items: center;
-    gap: 3px;
-    padding: 9px 10px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-2);
     border-left: var(--border-width) solid var(--diagnostic-card-divider);
     text-align: center;
   }
@@ -4754,7 +4812,7 @@
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures dt {
     color: var(--text-soft);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-medium);
     line-height: 1.25;
   }
@@ -4763,14 +4821,14 @@
     min-width: 0;
     display: grid;
     justify-items: center;
-    gap: 2px;
+    gap: var(--space-1);
     margin: 0;
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures dd strong {
     display: block;
     color: var(--text-strong);
-    font-size: 17px;
+    font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-tight);
     font-variant-numeric: tabular-nums;
@@ -4784,28 +4842,28 @@
 
   .dashboard-shell .content-area .pne-diagnostic-result__measure--current dd strong {
     color: var(--green-deep);
-    font-size: 21px;
+    font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
     line-height: 1.05;
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measure--target dd strong {
-    font-size: 18px;
+    font-size: var(--font-size-lg);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measure--state dd strong {
     color: var(--text-body);
-    font-size: 17px;
+    font-size: var(--font-size-md);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measure--difference dd strong {
-    font-size: 17px;
+    font-size: var(--font-size-md);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures dd span {
     display: block;
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     line-height: 1.25;
   }
 
@@ -4834,39 +4892,41 @@
     border-top: 0;
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row--count-1 {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row--count-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row--count-3 {
-    grid-template-columns:
-      minmax(0, 27fr)
-      minmax(0, 34fr)
-      minmax(0, 39fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row {
-    grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row--count-1 {
-    grid-template-columns: minmax(0, 1fr);
+  /*
+   * Ritmo de coluna unico para toda evidencia do diagnostico.
+   *
+   * Antes cada linha tinha um template proprio por contagem de blocos
+   * (--count-1, --count-2, --count-3, e outro conjunto para a linha de
+   * fechamento). Como o numero de blocos varia por meta, cada cartao ganhava
+   * uma silhueta diferente e a pagina lia como se estivesse desalinhada.
+   *
+   * Com trilha de largura fixa, os blocos fluem e se alinham entre linhas e
+   * entre cartoes, independentemente de quantos existem em cada meta.
+   */
+  .dashboard-shell .content-area :is(
+    .pne-diagnostic-result__comparison-row,
+    .pne-diagnostic-result__closing-row
+  ) {
+    grid-template-columns: repeat(auto-fit, minmax(min(272px, 100%), 1fr));
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__analytic-block {
     min-width: 0;
     display: grid;
     align-content: start;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-block + .pne-diagnostic-result__analytic-block {
-    border-left: var(--border-width) solid var(--diagnostic-card-divider);
+  /*
+   * Separacao por espaco, nao por borda: num grid que reflui, o bloco que cai
+   * no inicio da linha seguinte herdaria uma borda esquerda solta.
+   */
+  .dashboard-shell .content-area :is(
+    .pne-diagnostic-result__comparison-row,
+    .pne-diagnostic-result__closing-row
+  ) {
+    gap: 2px var(--space-4);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__closing-row--count-2
@@ -4879,13 +4939,13 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__analytic-heading h5 {
     margin: 0;
     color: var(--text-strong);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.25;
   }
@@ -4900,8 +4960,8 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__analytic-icon svg {
-    width: 17px;
-    height: 17px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -4911,24 +4971,24 @@
 
   .dashboard-shell .content-area .pne-diagnostic-result__analytic-copy {
     display: grid;
-    gap: 2px;
+    gap: var(--space-1);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__analytic-copy p {
     margin: 0;
     color: var(--text-body);
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     line-height: 1.35;
   }
 
   .dashboard-shell .content-area .pne-diagnostic-support-reading__badge {
     width: fit-content;
-    padding: 2px 7px;
+    padding: var(--space-1) var(--space-2);
     border: var(--border-width) solid var(--border-line);
     border-radius: var(--radius-sm);
     background: var(--surface-muted);
     color: var(--text-body);
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.2;
   }
@@ -4960,7 +5020,7 @@
 
   .dashboard-shell .content-area .pne-diagnostic-result__main-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: var(--space-2);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures {
@@ -4975,16 +5035,13 @@
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row--count-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row--count-3
-    .pne-diagnostic-result__analytic-block:last-child {
-    grid-column: 1 / -1;
-    padding: 8px 12px;
-    border-top: var(--border-width) solid var(--diagnostic-card-divider);
-    border-left: 0;
+  /* Abaixo de 1080px a trilha estreita; o auto-fit ja reflui sozinho, sem
+     precisar de excecao por contagem de blocos. */
+  .dashboard-shell .content-area :is(
+    .pne-diagnostic-result__comparison-row,
+    .pne-diagnostic-result__closing-row
+  ) {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__closing-row {
@@ -4994,7 +5051,7 @@
   .dashboard-shell .content-area .pne-diagnostic-result__closing-row
     .pne-diagnostic-result__analytic-block + .pne-diagnostic-result__analytic-block {
     margin-top: 0;
-    padding: 8px 12px;
+    padding: var(--space-2) var(--space-3);
     border-top: var(--border-width) solid var(--diagnostic-card-divider);
     border-left: 0;
   }
@@ -5002,7 +5059,7 @@
 
 @media screen and (max-width: 620px) {
   .dashboard-shell .content-area .pne-diagnostic-theme-nav {
-    padding: 10px 12px;
+    padding: var(--space-2) var(--space-3);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-theme__header {
@@ -5020,7 +5077,7 @@
   .dashboard-shell .content-area .pne-diagnostic-result__main-row {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
-    padding: 9px 12px;
+    padding: var(--space-2) var(--space-3);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__identity {
@@ -5033,8 +5090,8 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__icon svg {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-md);
+    height: var(--icon-md);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures {
@@ -5042,7 +5099,7 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__measures > div {
-    padding: 7px 8px;
+    padding: var(--space-2) var(--space-2);
     border-left: 0;
   }
 
@@ -5070,7 +5127,7 @@
     .pne-diagnostic-result__comparison-row,
     .pne-diagnostic-result__closing-row
   ) .pne-diagnostic-result__analytic-block {
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-2);
   }
 
   .dashboard-shell .content-area :is(
@@ -5078,7 +5135,7 @@
     .pne-diagnostic-result__closing-row
   ) .pne-diagnostic-result__analytic-block + .pne-diagnostic-result__analytic-block {
     margin-top: 0;
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-2);
     border-top: var(--border-width) solid var(--diagnostic-card-divider);
     border-left: 0;
   }
@@ -5116,12 +5173,12 @@
 
   .dashboard-shell .content-area .pne-page-header__eyebrow,
   .dashboard-shell .content-area .pne-page-header__aside-title {
-    color: var(--green-deep);
+    color: var(--text-muted);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.08em;
+    letter-spacing: var(--tracking-label);
     line-height: var(--line-height-snug);
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   .dashboard-shell .content-area .pne-page-header h1 {
@@ -5318,9 +5375,20 @@
   .dashboard-shell .content-area :where(
     .platform-page-header .pne-page-header__eyebrow,
     .platform-page-header .education-compact-header__eyebrow,
-    .home-hero__identity,
     .detail-heading__copy > .eyebrow
   ) {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    line-height: var(--line-height-snug);
+    text-transform: none;
+  }
+
+  /* Assinatura do produto: o unico kicker em caixa alta que permanece, por
+     ser marca nomeada e nao escada de secao. */
+  .dashboard-shell .content-area .home-hero__identity {
     margin: 0;
     color: var(--green-deep);
     font-size: var(--type-label);
@@ -5468,11 +5536,17 @@
     transition: var(--control-transition);
   }
 
+  /*
+   * Rotulo de controle nao quebra no meio da palavra: "Ensino Fundamental"
+   * virava "Ensino Fundamenta" + "l" quando a faixa ficava estreita. O texto
+   * fica em uma linha e o proprio controle rola, em vez de partir a palavra.
+   */
   .dashboard-shell .content-area .platform-segmented-option {
     min-height: calc(var(--control-height) - var(--space-2));
-    padding: 7px var(--control-padding-inline);
+    padding: var(--space-2) var(--control-padding-inline);
     font-size: var(--control-font-size);
     font-weight: var(--control-font-weight);
+    white-space: nowrap;
     transition: var(--control-transition);
   }
 
@@ -5700,8 +5774,19 @@
     box-shadow: var(--card-shadow);
   }
 
+  /*
+   * O titulo reserva tres linhas para que o valor em destaque nasca no mesmo
+   * ponto em todos os cartoes da fileira. Havia um min-height: 0 aqui que
+   * anulava a reserva definida em pne-cycle-experience.css e devolvia 22px de
+   * desalinho -- exatamente uma linha de titulo -- entre vizinhos.
+   */
   .dashboard-shell .content-area .cycle-page .meta-card--cycle .meta-card__title {
-    min-height: 0;
+    min-height: 65px;
+    max-height: 65px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 
   .dashboard-shell .content-area .cycle-page .meta-card--cycle .meta-card__footer {

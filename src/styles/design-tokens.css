@@ -13,8 +13,9 @@
   --font-sans: "Public Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
 
-  /* Escala tipografica */
-  --font-size-2xs: 0.75rem;
+  /* Escala tipografica. Passo fixo em rem: UI de produto e lida em DPI
+     constante, e titulo fluido encolhe onde nao deveria. */
+  --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -42,47 +43,71 @@
   --type-body: var(--font-size-sm);
   --type-support: 0.8125rem;
   --type-label: var(--font-size-xs);
-  --header-title-editorial: clamp(2.25rem, 2rem + 0.8vw, 2.75rem);
+  --header-title-editorial: 2.375rem;
   --header-title-listing: var(--font-size-3xl);
-  --header-title-detail: clamp(1.625rem, 1.45rem + 0.55vw, 2rem);
-  --header-subtitle-max: 68ch;
+  --header-title-detail: 1.75rem;
+  --header-subtitle-max: 62ch;
   --header-padding-editorial: var(--space-8);
   --header-padding-listing: var(--space-6);
   --header-padding-detail: var(--space-5);
 
-  /* Identidade cromatica editorial SESI-RS */
+  /* Ajuste otico dos titulos. Serif editorial fecha levemente; rotulos e
+     dados em sans ficam neutros. Piso de tracking: -0.02em. */
+  --tracking-display: -0.018em;
+  --tracking-title: -0.012em;
+  --tracking-flat: 0;
+  --tracking-label: 0.01em;
+
+  /*
+   * Identidade cromatica editorial SESI-RS.
+   *
+   * A rampa de neutros e tingida no proprio verde da marca (hue OKLCH ~162),
+   * nao em bege generico. Isso da aos cartoes uma separacao real da pagina
+   * (razao card/fundo 1.23 contra 1.11 da rampa quente anterior) e mantem a
+   * identidade institucional em vez de diluí-la num fundo quente neutro.
+   *
+   * Todo token de texto abaixo atinge no minimo 4.5:1 sobre --bg-app, que e a
+   * superficie mais escura em que texto assenta. Ver docs/DESIGN.md.
+   */
   --green-brand-dark: #10382f;
   --green-primary: #2f7057;
   --green-deep: #22523f;
-  --green-soft: #e7f0ea;
+  --green-soft: #e1f2e8;
   --green-accent: #8fbba1;
   --green-ink: #0b2b24;
 
-  --bg-body: #e9e6de;
-  --bg-app: #f4f1e9;
-  --bg-context-bar: rgba(255, 253, 248, 0.96);
-  --surface-card: #fffdf8;
-  --surface-muted: #eceae2;
+  --bg-body: #dae1dd;
+  --bg-app: #e2e8e5;
+  --bg-context-bar: rgba(252, 254, 253, 0.98);
+  --surface-card: #fcfefd;
+  --surface-raised: #f3f7f5;
+  --surface-muted: #e6ece9;
   --surface-ink: #153d33;
-  --surface-moss: #edf3ee;
-  --surface-sand: #f5efe3;
+  --surface-moss: #e1f2e8;
+  /* Aposentado. Era areia quente (#f4eee1) e virou o unico elemento fora da
+     familia depois que a rampa passou a ser tingida no verde. O que separava
+     essa superficie das demais era a matiz, e era ela que destoava. Aponta
+     para o degrau neutro equivalente; nao reintroduza um neutro quente. */
+  --surface-sand: var(--surface-muted);
 
-  --border-card: #dfe4dc;
-  --border-line: #d2dad2;
-  --border-faint: #e9ece7;
-  --border-strong-line: #bac9bd;
+  --border-card: #cfd5d2;
+  --border-line: #c6ceca;
+  --border-faint: #dfe3e1;
+  --border-strong-line: #acb8b1;
 
-  --text-strong: #17241e;
-  --text: #26332c;
-  --text-body: #4e5b53;
-  --text-muted: #78867d;
-  --text-soft: #607067;
-  --text-faint: #929e96;
+  --text-strong: #1b241f;
+  --text: #2e3632;
+  --text-body: #505753;
+  --text-muted: #616965;
+  /* soft e faint sao apelidos historicos: apontam para o piso acessivel.
+     Nao reintroduza um cinza mais claro para texto. */
+  --text-soft: var(--text-muted);
+  --text-faint: var(--text-muted);
   --text-inverted: #f5faf6;
-  --source-label: #6a6559;
-  --signal-ochre: #ae7c2e;
-  --signal-clay: #a95e49;
-  --signal-blue: #436b83;
+  --source-label: var(--text-muted);
+  --signal-ochre: #8e5e00;
+  --signal-clay: #9d533f;
+  --signal-blue: #446c85;
 
   /* Acentos semanticos das secoes de Indicadores de Educacao. */
   --education-section-accent: var(--green-primary);
@@ -158,35 +183,41 @@
   --text-subtle: var(--text-soft);
   --text-placeholder: #5f5b52;
 
-  /* Estados semanticos existentes */
+  /* Estados semanticos. Cada *-ink atinge 4.5:1 sobre card e sobre --bg-app. */
   --status-ok-ink: #245c47;
-  --status-ok-bg: #e7f0ea;
+  --status-ok-bg: #e1f2e8;
   --status-ok-line: #2f7057;
   --status-warn-ink: #7f5b23;
-  --status-warn-bg: #f7efdd;
-  --status-warn-line: #ae7c2e;
+  --status-warn-bg: #f6eeda;
+  --status-warn-line: #8e5e00;
   --status-far-ink: #8e4536;
-  --status-far-bg: #f5e7e1;
-  --status-far-line: #a95e49;
-  --status-muted-ink: #68766d;
-  --status-muted-bg: #eceae2;
-  --status-muted-line: #929e96;
+  --status-far-bg: #f4e6e1;
+  --status-far-line: #9d533f;
+  --status-muted-ink: #5e6b62;
+  --status-muted-bg: #e6ece9;
+  --status-muted-line: #acb8b1;
   --status-info-ink: var(--green-deep);
   --status-info-bg: var(--green-soft);
   --status-info-line: var(--green-primary);
 
-  /* Visualizacao de dados */
+  /*
+   * Visualizacao de dados.
+   * Series: >=3:1 sobre o cartao (elemento grafico) e distinguiveis entre si.
+   * Rotulo de eixo e texto, entao segue o piso de 4.5:1; a linha do eixo e
+   * elemento grafico e segue 3:1; a malha e decorativa e pode ser mais leve.
+   */
   --chart-primary: #2f7057;
   --chart-secondary: #7e9f8a;
-  --chart-grid: #dfe6df;
-  --chart-axis: #929e96;
-  --chart-axis-text: var(--text-soft);
-  --chart-series-1: var(--chart-primary);
-  --chart-series-2: #436b83;
-  --chart-series-3: #ae7c2e;
-  --chart-series-4: #735c7f;
-  --chart-series-5: #a95e49;
-  --chart-series-6: #5f7776;
+  --chart-grid: #d4d9d6;
+  --chart-axis: #7b827e;
+  --chart-axis-text: var(--text-muted);
+  --chart-series-1: #307057;
+  --chart-series-2: #296389;
+  --chart-series-3: #9d671c;
+  --chart-series-4: #71497a;
+  --chart-series-5: #9c4f44;
+  --chart-series-6: #467f82;
+
   --chart-surface-padding: var(--space-5);
   --chart-surface-padding-mobile: var(--space-4);
   --chart-surface-gap: var(--space-4);
@@ -200,11 +231,11 @@
   --accent-strong: var(--green-deep);
   --accent-soft: var(--green-accent);
   --accent-ghost: var(--green-soft);
-  --accent-ghost-2: #f2f7f3;
+  --accent-ghost-2: #eef6f1;
   --brand-green-dark: var(--green-brand-dark);
 
   --background: var(--bg-app);
-  --background-2: #fbf9f3;
+  --background-2: var(--surface-raised);
   --background-3: var(--surface-muted);
 
   --border: rgba(42, 67, 54, 0.14);
@@ -218,11 +249,11 @@
 
   --surface: var(--surface-card);
   --surface-strong: var(--surface-card);
-  --surface-soft: #fbf9f3;
-  --surface-warm: #fffdf8;
+  --surface-soft: var(--surface-raised);
+  --surface-warm: var(--surface-card);
   --surface-page: var(--bg-app);
   --surface-panel: var(--surface-card);
-  --surface-subtle: var(--surface-soft);
+  --surface-subtle: var(--surface-raised);
 
   /* Acoes e foco */
   --action-primary-bg: var(--green-primary);
@@ -274,6 +305,62 @@
   --page-gap: 24px;
   --section-gap: 24px;
   --card-gap: 16px;
+  /*
+   * Anatomia de cartao: seis variantes nomeadas.
+   *
+   * O painel renderizava 32 assinaturas visuais distintas de cartao -- o mesmo
+   * objeto com padding 8, 12, 16, 20, 22, 24, 28 ou 40, raio 7 ou 10 e quatro
+   * fundos, conforme o arquivo que o estilizou por ultimo. As variantes abaixo
+   * sao o contrato: toda superficie de cartao consome um destes conjuntos.
+   *
+   *   base      superficie padrao de painel e cartao de entrada
+   *   dense     grade de indicadores, onde muitos cartoes lado a lado pedem
+   *             menos respiro por unidade
+   *   hero      abertura de pagina
+   *   compact   metrica pequena e ladrilho de apoio
+   *   inset     faixa interna dentro de um cartao (nunca um cartao aninhado)
+   *   emphasis  bloco de leitura e interpretacao
+   *
+   * Ver docs/DESIGN.md, secao Components.
+   */
+  /*
+   * Escala de icone.
+   *
+   * Todo icone de UI usa viewBox 0 0 24 24 e traco de 1.7. O que variava era o
+   * tamanho de renderizacao: havia doze (14, 15, 16, 17, 18, 19, 21, 22, 26,
+   * 28, 34, 40px), nenhum deles escolhido. Quatro degraus cobrem os usos:
+   *
+   *   sm  ao lado de rotulo e em linha de tabela
+   *   md  padrao de UI: botao, item de lista, cabecalho de bloco
+   *   lg  cabecalho de secao e de cartao
+   *   xl  cartao de entrada e estado vazio
+   *
+   * As caixas acompanham a mesma escala e usam o raio interno do sistema.
+   */
+  --icon-sm: 16px;
+  --icon-md: 18px;
+  --icon-lg: 24px;
+  --icon-xl: 32px;
+
+  --icon-box-sm: 28px;
+  --icon-box-md: 32px;
+  --icon-box-lg: 44px;
+  --icon-box-xl: 48px;
+
+  --card-pad-base: var(--space-5);
+  --card-pad-dense: var(--space-4);
+  --card-pad-hero: var(--space-8);
+  --card-pad-compact: var(--space-3);
+  --card-pad-inset: var(--space-3) var(--space-4);
+
+  --card-radius-base: var(--radius-md);
+  --card-radius-inner: var(--radius-sm);
+
+  --card-surface-base: var(--surface-card);
+  --card-surface-inset: var(--surface-raised);
+  --card-surface-emphasis: var(--green-soft);
+  --card-border-emphasis: var(--green-accent);
+
   --card-border: var(--border-default);
   --card-radius: var(--radius-md);
   --card-surface: var(--surface-panel);
@@ -290,7 +377,9 @@
   --indicator-card-padding: var(--space-4);
   --indicator-card-height-desktop: 324px;
   --indicator-card-height-mobile: 364px;
-  --panel-inset: var(--space-6);
+  /* Alinhado a --card-pad-base: painel de pagina e cartao de pagina sao a
+     mesma superficie e nao devem ter respiros diferentes. */
+  --panel-inset: var(--card-pad-base);
   --panel-inset-intermediate: var(--space-5);
   --panel-inset-mobile: var(--space-4);
   --hero-padding-block: 32px;
@@ -370,10 +459,10 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Gradientes existentes. Usar apenas quando codificarem hierarquia. */
-  --grad-page: linear-gradient(180deg, var(--bg-body) 0%, var(--bg-app) 26%, #f7f4ed 100%);
-  --grad-card: linear-gradient(180deg, #fffdf8 0%, #fbfaf5 100%);
-  --grad-card-hover: linear-gradient(180deg, #fffefa 0%, #f5f8f3 100%);
-  --grad-hero: linear-gradient(135deg, #fffdf8 0%, #f1f5ef 100%);
+  --grad-page: linear-gradient(180deg, var(--bg-body) 0%, var(--bg-app) 26%, #e7edea 100%);
+  --grad-card: linear-gradient(180deg, var(--surface-card) 0%, #f8fbfa 100%);
+  --grad-card-hover: linear-gradient(180deg, var(--surface-card) 0%, #eff6f2 100%);
+  --grad-hero: linear-gradient(135deg, var(--surface-card) 0%, #eaf3ee 100%);
   --grad-pill-active: linear-gradient(180deg, var(--green-primary), var(--green-deep));
   --grad-header: linear-gradient(180deg, #123d32 0%, var(--green-brand-dark) 100%);
 }

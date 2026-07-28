@@ -811,7 +811,7 @@
 
 .siope-public-summary__item > strong {
   color: var(--text-strong);
-  font-size: clamp(var(--font-size-lg), 2vw, var(--font-size-2xl));
+  font-size: var(--font-size-2xl);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
   overflow-wrap: anywhere;
@@ -889,7 +889,7 @@
 
 .siope-application__lead > strong {
   color: var(--text-strong);
-  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-4xl));
+  font-size: var(--font-size-4xl);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
 }
@@ -1009,10 +1009,17 @@
   border-top: 0;
 }
 
+/*
+ * align-items: start impede que os tres cartoes de etapa estiquem ate a altura
+ * do painel "Avanco entre as etapas", que tem tres linhas de texto. Sem isso
+ * cada etapa carregava ~120px de vazio no rodape so para emparelhar alturas.
+ * O alinhamento que importa aqui e o do topo e o dos valores, nao o da base.
+ */
 .siope-execution__layout {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(240px, 0.7fr);
+  align-items: start;
   gap: var(--space-4);
 }
 
@@ -1373,7 +1380,7 @@
 
 .financial-page .siope-public-summary__item > strong {
   color: var(--green-deep);
-  font-size: clamp(var(--font-size-sm), 1.35vw, var(--font-size-xl));
+  font-size: var(--font-size-xl);
   letter-spacing: -0.01em;
 }
 
@@ -1389,8 +1396,8 @@
 }
 
 .siope-metric-icon svg {
-  width: 15px;
-  height: 15px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .financial-page .siope-metric-icon {
@@ -1566,7 +1573,7 @@
 
 .financial-page .siope-mde-history__item {
   height: 146px;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .financial-page .siope-mde-history__bar-track {
@@ -1632,7 +1639,7 @@
 
 .financial-page .siope-execution__stages strong {
   margin-top: var(--space-1);
-  font-size: clamp(var(--font-size-sm), 1.05vw, var(--font-size-lg));
+  font-size: var(--font-size-lg);
   overflow-wrap: normal;
   white-space: nowrap;
 }
@@ -1677,7 +1684,7 @@
 
 .siope-execution-history__comparison header > div {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .siope-execution-history__comparison header span {
@@ -1792,8 +1799,8 @@
 }
 
 .financial-page .siope-method-disclosure--application .platform-support-disclosure__summary .siope-metric-icon svg {
-  width: 22px;
-  height: 22px;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
 }
 
 .financial-page .siope-method-disclosure--application .platform-support-disclosure__body {
@@ -2012,7 +2019,7 @@
 
 .fundeb-public-summary .siope-public-summary__item > strong {
   color: var(--green-deep);
-  font-size: clamp(var(--font-size-sm), 1.35vw, var(--font-size-xl));
+  font-size: var(--font-size-xl);
   letter-spacing: -0.01em;
 }
 
@@ -2040,7 +2047,7 @@
 
 .fundeb-lead-metric > strong {
   color: var(--green-deep);
-  font-size: clamp(var(--font-size-xl), 2.4vw, var(--font-size-3xl));
+  font-size: var(--font-size-3xl);
 }
 
 .fundeb-section-layout > .siope-application__primary-list {
@@ -2585,7 +2592,7 @@
   grid-row: 1 / span 2;
   width: 8px;
   height: 8px;
-  margin-top: 6px;
+  margin-top: var(--space-1);
 }
 
 .financial-detail-view .financial-quick-reading p {
@@ -2857,8 +2864,9 @@
 .vaar-panel .vaar-insight-card {
   min-height: 148px;
   height: 100%;
-  padding: var(--space-4);
-  background: var(--surface-soft);
+  padding: var(--card-pad-dense);
+  border-radius: var(--card-radius-base);
+  background: var(--card-surface-base);
 }
 
 .vaar-panel .vaar-insight-values {
@@ -2878,7 +2886,7 @@
   padding: var(--space-2) var(--space-3);
   display: grid;
   align-content: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .vaar-panel .vaar-insight-values div + div {
@@ -2972,9 +2980,9 @@
 }
 
 .vaar-panel .vaar-year-card__header {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--card-pad-inset);
   border-bottom: var(--border-divider);
-  background: var(--surface-soft);
+  background: var(--card-surface-inset);
 }
 
 .vaar-panel .vaar-metric-list {
@@ -3219,7 +3227,7 @@
   margin: var(--space-1) 0 0;
   color: var(--text-strong);
   font-family: var(--font-serif);
-  font-size: clamp(var(--font-size-2xl), 3vw, var(--font-size-3xl));
+  font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   text-wrap: balance;
@@ -3370,8 +3378,8 @@
 }
 
 .municipal-finance-summary-card__icon svg {
-  width: 17px;
-  height: 17px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .municipal-finance-summary-card__label {
@@ -3607,7 +3615,7 @@
 
 .municipal-finance-constitutional-metric__primary-value {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-metric__primary-value .municipal-finance-value {
@@ -3630,7 +3638,7 @@
 
 .municipal-finance-constitutional-rule--mde {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-rule--mde > strong {
@@ -3723,7 +3731,7 @@
 .municipal-finance-constitutional-reconciliation dl > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-reconciliation dd {
@@ -3796,7 +3804,7 @@
 .municipal-finance-constitutional-source-grid header > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-source-meta,
@@ -3814,7 +3822,7 @@
 .municipal-finance-constitutional-source-values > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-source-values > div {
@@ -4011,7 +4019,7 @@
 .municipal-finance-execution-outstanding > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-execution-outstanding dt {
@@ -4192,7 +4200,7 @@
 }
 
 .municipal-finance-fundeb .municipal-finance-section__heading {
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-fundeb-list > li {
@@ -4233,7 +4241,7 @@
   grid-area: amount;
   display: grid;
   justify-items: start;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-fundeb-list__amount > span {
@@ -4391,7 +4399,7 @@
 .municipal-finance-qse-groups dl > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-qse-groups dt {
@@ -4894,7 +4902,7 @@
 .municipal-finance-sources__groups ul li {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-sources__groups a,
@@ -5226,7 +5234,7 @@
   grid-template-rows: auto auto auto;
   align-content: center;
   column-gap: var(--space-3);
-  row-gap: 2px;
+  row-gap: var(--space-1);
 }
 
 .financial-page--detail .financial-detail-view .metric-card--large {
@@ -5238,9 +5246,9 @@
   grid-column: 1;
   grid-row: 1 / -1;
   align-self: center;
-  width: 34px;
-  height: 34px;
-  padding: 8px;
+  width: var(--icon-box-sm);
+  height: var(--icon-box-sm);
+  padding: var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--green-soft);
   color: var(--green-deep);
@@ -5351,7 +5359,7 @@
 .financial-page--detail .financial-quick-reading .indicator-quick-reading__heading-icon {
   width: 28px;
   height: 28px;
-  padding: 6px;
+  padding: var(--space-1);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--green-soft);
@@ -5365,9 +5373,9 @@
 
 .financial-page--detail .financial-quick-reading .education-quick-reading__icon {
   box-sizing: border-box;
-  width: 34px;
-  height: 34px;
-  padding: 8px;
+  width: var(--icon-box-sm);
+  height: var(--icon-box-sm);
+  padding: var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--green-soft);
   color: var(--green-deep);
@@ -5409,7 +5417,7 @@
 .financial-page--detail .financial-quick-reading .education-quick-reading__list li > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .financial-page--detail .financial-quick-reading .education-quick-reading__list li > div > span {
@@ -5626,8 +5634,8 @@
 }
 
 .financial-panorama-period__icon svg {
-  width: 18px;
-  height: 18px;
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 .financial-panorama-period > div {
@@ -5706,8 +5714,8 @@
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card__icon svg {
-  width: 17px;
-  height: 17px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .municipal-finance-panorama .municipal-finance-summary-card--forecast .municipal-finance-summary-card__icon {
@@ -5784,7 +5792,7 @@
   flex: 0 0 auto;
   display: grid;
   justify-items: end;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-constitutional-primary-grid,
@@ -5848,8 +5856,8 @@
 }
 
 .municipal-finance-constitutional-revenue__icon svg {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 .municipal-finance-constitutional-revenue > p {
@@ -5892,8 +5900,13 @@
   padding: var(--space-4);
 }
 
+/*
+ * auto-fit em vez de tres colunas proporcionais fixas: as proporcoes nao tinham
+ * variante mobile e sobreviviam ate 390px, espremendo cada cartao em ~90px e
+ * quebrando "17,58 p.p. acima do minimo" em uma palavra por linha.
+ */
 .municipal-finance-panorama .municipal-finance-constitutional-application {
-  grid-template-columns: 1.05fr 0.88fr 1.17fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(248px, 100%), 1fr));
   gap: var(--space-3);
 }
 
@@ -5937,8 +5950,8 @@
 }
 
 .municipal-finance-constitutional-card__icon svg {
-  width: 17px;
-  height: 17px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .municipal-finance-constitutional-card__year {
@@ -6027,7 +6040,7 @@
 }
 
 .municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary > div {
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-panorama .municipal-finance-constitutional-disclosure .platform-support-disclosure__summary :is(h3, p) {
@@ -6201,7 +6214,7 @@
 .municipal-finance-fundeb-overview__total {
   display: grid;
   align-content: start;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-fundeb-overview__total > :is(span:not(.municipal-finance-value), small) {
@@ -6293,7 +6306,7 @@
 .municipal-finance-fundeb-overview__footer > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-fundeb-overview__footer p {
@@ -6374,7 +6387,7 @@
 }
 
 .municipal-finance-panorama .municipal-finance-qse-chart .chart-grid text {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
 }
 
 .municipal-finance-panorama .municipal-finance-qse-reading {
@@ -6401,7 +6414,7 @@
 .municipal-finance-panorama .municipal-finance-qse-reading .indicator-quick-reading__heading-icon {
   width: 28px;
   height: 28px;
-  padding: 6px;
+  padding: var(--space-1);
   box-sizing: border-box;
   border-radius: var(--radius-pill);
   background: var(--green-soft);
@@ -6442,7 +6455,7 @@
 .municipal-finance-panorama .municipal-finance-qse-reading .indicator-quick-reading__list li > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .municipal-finance-panorama .municipal-finance-qse-reading .indicator-quick-reading__list li span {
@@ -6724,7 +6737,7 @@
   .siope-execution-history__comparison li > div {
     align-items: flex-start;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-1);
   }
 
   .siope-execution-history__comparison li strong {
@@ -7336,8 +7349,8 @@
 }
 
 .financial-page .fundeb-summary .education-card__icon svg {
-  width: 22px;
-  height: 22px;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -7488,8 +7501,8 @@
 }
 
 .pnate-metric-icon svg {
-  width: 16px;
-  height: 16px;
+  width: var(--icon-sm);
+  height: var(--icon-sm);
 }
 
 .pnate-summary-card > span:not(.pnate-metric-icon) {
@@ -7830,7 +7843,7 @@
 .dashboard-shell .content-area .financial-overview-page .financial-overview-hero .pne-overview-hero__copy h1 {
   max-width: 26ch;
   margin-top: 0;
-  font-size: clamp(2rem, 3vw, 2.7rem);
+  font-size: var(--font-size-4xl);
   line-height: 1.1;
 }
 
@@ -7863,8 +7876,8 @@
 }
 
 .financial-overview-panorama__icon svg {
-  width: 26px;
-  height: 26px;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
 }
 
 .financial-overview-panorama__copy {
@@ -8015,7 +8028,7 @@
 
 .financial-overview-concepts__header > div {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .financial-overview-concepts__header h2 {
@@ -8099,7 +8112,7 @@
   }
 
   .dashboard-shell .content-area .financial-overview-page .financial-overview-hero .pne-overview-hero__copy h1 {
-    font-size: clamp(1.85rem, 8.5vw, 2.25rem);
+    font-size: var(--header-title-editorial);
   }
 
   .financial-overview-panorama {

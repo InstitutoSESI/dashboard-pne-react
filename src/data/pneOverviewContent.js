@@ -1,6 +1,6 @@
 export const pneOverviewContent = {
   hero: {
-    eyebrow: 'PLANO NACIONAL DE EDUCAÇÃO',
+    eyebrow: 'Plano Nacional de Educação',
     title: 'O PNE como referência para acompanhar a educação municipal',
     description:
       'O Plano Nacional de Educação organiza a agenda educacional brasileira em um ciclo decenal, conectando diretrizes, objetivos, metas, estratégias, governança e monitoramento por dados oficiais.',
@@ -13,7 +13,7 @@ export const pneOverviewContent = {
     ],
   },
   introduction: {
-    eyebrow: 'REFERÊNCIA NACIONAL',
+    eyebrow: 'Referência nacional',
     title: 'O que é o PNE',
     lead:
       'O PNE é o plano nacional que orienta prioridades, responsabilidades e formas de acompanhamento da política educacional brasileira. Ele serve como referência comum para União, Estados, Distrito Federal e Municípios planejarem e avaliarem ações no próximo decênio.',
@@ -66,7 +66,7 @@ export const pneOverviewContent = {
     },
   ],
   guidelineSection: {
-    eyebrow: 'DIRETRIZES DO PNE',
+    eyebrow: 'Diretrizes do PNE',
     title: 'Princípios para orientar planos decenais',
     description:
       'As diretrizes abaixo estão agrupadas por tema para facilitar a leitura por gestores municipais e equipes técnicas.',
@@ -143,7 +143,7 @@ export const pneOverviewContent = {
     },
   ],
   objectiveSection: {
-    eyebrow: 'OBJETIVOS GERAIS',
+    eyebrow: 'Objetivos gerais',
     title: 'O que o PNE busca transformar',
     description:
       'Os objetivos gerais indicam as mudanças esperadas para a educação nacional e ajudam a organizar o acompanhamento municipal por finalidade.',
@@ -215,7 +215,7 @@ export const pneOverviewContent = {
     },
   ],
   goalStrategySection: {
-    eyebrow: 'METAS E ESTRATÉGIAS',
+    eyebrow: 'Metas e estratégias',
     title: 'Como transformar o plano em acompanhamento',
     description:
       'As metas indicam referências para verificar mudanças. As estratégias apontam caminhos de ação para que objetivos e metas sejam alcançados.',
@@ -267,7 +267,7 @@ export const pneOverviewContent = {
     },
   ],
   governanceSection: {
-    eyebrow: 'GOVERNANÇA E DADOS OFICIAIS',
+    eyebrow: 'Governança e dados oficiais',
     title: 'Como o PNE prevê acompanhamento contínuo',
     description:
       'A lei trata de colaboração federativa, monitoramento, avaliação e uso de dados oficiais para sustentar decisões públicas.',
@@ -323,7 +323,7 @@ export const pneOverviewContent = {
     },
   ],
   entrySection: {
-    eyebrow: 'COMO USAR NO PAINEL',
+    eyebrow: 'Como usar no painel',
     title: 'Acompanhe o PNE pelo município',
     description:
       'Use o ciclo encerrado, o ciclo vigente, as metas legais e o diagnóstico municipal como portas de entrada para compreender a educação local.',

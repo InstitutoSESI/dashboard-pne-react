@@ -155,7 +155,7 @@ export function EducationPage({
   )
   const specialEducationState = useSpecialEducation(
     selectedId ?? loadedMunicipalityId,
-    selectedSectionKey === EDUCATION_SECTION_KEYS.modalities,
+    selectedSectionKey === EDUCATION_SECTION_KEYS.modalities || isTechnicalReportRoute,
   )
   const [printEmissionDate, setPrintEmissionDate] = useState(() => printDateFormatter.format(new Date()))
   const [selectedSistemaSIndicator, setSelectedSistemaSIndicator] = useState('total_escolas')
@@ -233,7 +233,7 @@ export function EducationPage({
         />
         <section className="empty-state">
           <div className="empty-state__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 10L12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 3 2.5 6 2.5s6-1.5 6-2.5v-5" />
             </svg>
           </div>
@@ -625,6 +625,7 @@ export function EducationPage({
             projections: municipioData?.pne_2026_2036?.projecoes,
           }}
           schoolInfrastructure={schoolInfrastructure}
+          specialEducationState={specialEducationState}
           state={municipalOverviewState}
         />
       ) : isDemandSection && !isSistemaSTheme ? (
@@ -719,6 +720,7 @@ function MunicipalTechnicalReportContent({
   municipalitySlug,
   pmeReferenceData,
   schoolInfrastructure,
+  specialEducationState,
   state,
 }: {
   diagnosticState: ReturnType<typeof useMunicipioDiagnostic>
@@ -734,6 +736,7 @@ function MunicipalTechnicalReportContent({
     projections?: Record<string, unknown> | null
   }
   schoolInfrastructure: SchoolInfrastructureContract | null
+  specialEducationState: ReturnType<typeof useSpecialEducation>
   state: MunicipalEducationOverviewState
 }) {
   if (state.status === 'idle' || state.status === 'loading') {
@@ -765,6 +768,9 @@ function MunicipalTechnicalReportContent({
       pmeDiagnosticLoading={diagnosticState.status === 'loading'}
       pmeReferenceData={pmeReferenceData}
       schoolInfrastructure={schoolInfrastructure}
+      specialEducation={specialEducationState.data?.document ?? null}
+      specialEducationError={specialEducationState.error}
+      specialEducationLoading={specialEducationState.loading}
     />
   )
 }

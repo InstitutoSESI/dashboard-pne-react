@@ -19,6 +19,19 @@ function hasPublicValue(value: DisplayValue): value is DisplayValue & { value: n
     && Number.isFinite(value.value)
 }
 
+/*
+ * Valor numerico para uso em visualizacao (barra de proporcao).
+ *
+ * Devolve null sempre que o dado nao for publicavel. Isso e deliberado: zero
+ * observado e um dado ("nenhuma matricula nesta rede"), enquanto ausente e
+ * nao aplicavel nao sao. Tratar os tres como 0 desenharia uma barra que afirma
+ * algo que a fonte nao diz.
+ */
+export function getOverviewNumericValue(value: DisplayValue | undefined): number | null {
+  if (!value) return null
+  return hasPublicValue(value) ? value.value : null
+}
+
 export function formatOverviewEnrollments(value: DisplayValue): string {
   return hasPublicValue(value) ? numberFormatter.format(value.value) : '—'
 }

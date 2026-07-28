@@ -94,11 +94,11 @@
   .content-area :where(.eyebrow, .section-eyebrow, .hero-eyebrow),
   .content-area :where(.educacao-explore__eyebrow, .indicator-chart-eyebrow),
   .content-area :where(.indicator-control-bar__label, .indicator-stage-segmented-label) {
-    color: var(--green-deep);
+    color: var(--text-muted);
     font-family: var(--font-sans);
-    font-size: var(--type-label);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-label);
     line-height: var(--line-height-snug);
     text-transform: none;
   }
@@ -125,11 +125,11 @@
   .content-area .financial-indicator-reference > span,
   .content-area .interpretation-box > span,
   .content-area .complementary-data__eyebrow {
-    color: var(--green-deep);
+    color: var(--text-muted);
     font-family: var(--font-sans);
-    font-size: var(--type-label);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
-    letter-spacing: 0.02em;
+    letter-spacing: var(--tracking-label);
     line-height: var(--line-height-snug);
     text-transform: none;
   }
@@ -177,8 +177,8 @@
   }
 
   .content-area :where(.platform-search-field, .indicator-search) svg {
-    width: 16px;
-    height: 16px;
+    width: var(--icon-sm);
+    height: var(--icon-sm);
     flex: 0 0 16px;
     fill: none;
     stroke: currentColor;
@@ -336,7 +336,7 @@
     border-color: var(--control-border-selected);
     background: var(--control-surface-selected);
     color: var(--control-text-selected);
-    box-shadow: inset 0 0 0 1px rgba(62, 122, 94, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(47, 112, 87, 0.1);
   }
 
   .content-area .platform-filter-option:disabled,
@@ -374,7 +374,7 @@
   .content-area .platform-filter-option :where(.category-tab__count, .diagnostic-theme-filter__count) {
     min-width: 24px;
     height: 24px;
-    padding-inline: 7px;
+    padding-inline: var(--space-2);
     border: 0;
     border-radius: var(--radius-pill);
     background: var(--surface-card);
@@ -408,7 +408,12 @@
     background: var(--surface-muted);
     box-shadow: none;
     display: inline-flex;
-    flex-wrap: wrap;
+    /* Opcoes rolam em vez de quebrar: com wrap, uma opcao apertada partia o
+       proprio rotulo ("Ensino Fundamenta" / "l"). */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
     gap: var(--space-1);
   }
 
@@ -553,7 +558,7 @@
     border-color: var(--control-border-selected);
     background: var(--control-surface);
     color: var(--control-text-selected);
-    box-shadow: inset 0 0 0 1px rgba(62, 122, 94, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(47, 112, 87, 0.08);
   }
 
   .content-area :where(.educacao-scope-card__title, .educacao-module-card__title) {
@@ -722,7 +727,7 @@
 
   .content-area .status-badge {
     min-height: var(--card-status-min-height);
-    padding: 4px 9px;
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-pill);
     font-family: var(--font-sans);
     font-size: var(--font-size-xs);
@@ -1417,8 +1422,8 @@
   }
 
   .content-area .indicator-card-shell--education-reference .indicator-card-shell__insight-marker svg {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
@@ -1783,7 +1788,7 @@
 .content-area .platform-support-disclosure__summary > div {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .content-area .platform-support-disclosure__summary :is(h3, p),
@@ -2310,5 +2315,59 @@
     width: 100%;
     margin-block: var(--space-5);
     padding: var(--space-4);
+  }
+}
+
+/*
+ * Contrato de anatomia de cartao.
+ *
+ * Seis variantes nomeadas cobrem toda superficie de cartao do painel. Elas
+ * existem para que padding, raio, fundo e borda parem de ser decididos caso a
+ * caso: adote uma variante em vez de escrever a combinacao de novo.
+ *
+ * Regra: cartao nao aninha em cartao. Para agrupar por dentro, use --inset,
+ * que e faixa e nao superficie.
+ *
+ * Valores em design-tokens.css, bloco "Anatomia de cartao".
+ */
+@media screen {
+  .surface-card,
+  .surface-card--dense,
+  .surface-card--hero,
+  .surface-card--compact {
+    min-width: 0;
+    border: var(--border-default);
+    border-radius: var(--card-radius-base);
+    background: var(--card-surface-base);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .surface-card { padding: var(--card-pad-base); }
+  .surface-card--dense { padding: var(--card-pad-dense); }
+  .surface-card--hero { padding: var(--card-pad-hero); }
+
+  .surface-card--compact {
+    padding: var(--card-pad-compact);
+    border-radius: var(--card-radius-inner);
+  }
+
+  /* Faixa interna: agrupa dentro de um cartao sem virar outro cartao.
+     Sem borda propria; o degrau tonal e que separa. */
+  .surface-inset {
+    min-width: 0;
+    padding: var(--card-pad-inset);
+    border: 0;
+    border-radius: var(--card-radius-inner);
+    background: var(--card-surface-inset);
+  }
+
+  /* Bloco de leitura: marca "isto e interpretacao, nao dado bruto".
+     Borda completa, nunca tarja lateral. */
+  .surface-emphasis {
+    min-width: 0;
+    padding: var(--card-pad-inset);
+    border: var(--border-width) solid var(--card-border-emphasis);
+    border-radius: var(--card-radius-inner);
+    background: var(--card-surface-emphasis);
   }
 }
