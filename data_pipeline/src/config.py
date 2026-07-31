@@ -27,3 +27,12 @@ CENSO_ESCOLAR_SOURCE_DIR = Path(
         SESI_DB_DIR / "data" / "censo_escolar",
     )
 ).resolve()
+POPULATION_PROJECTION_SOURCE_PATH = Path(
+    os.environ.get(
+        "POPULATION_PROJECTION_SOURCE_PATH",
+        SESI_DB_DIR
+        / "data"
+        / "projecao_populacao"
+        / "projecao_pop.xlsx",
+    )
+).resolve()

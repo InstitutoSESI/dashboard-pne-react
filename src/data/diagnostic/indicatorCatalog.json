@@ -2,8 +2,8 @@
   "catalogVersion": "municipal-diagnostic-indicators-v2",
   "caveat": "Catálogo canônico P0/P1. Não substitui os indicadores e projeções por ente que o Inep deve estabelecer nos 180 dias da Lei 15.388/2026.",
   "generatedAt": "2026-07-19",
-  "generatedFrom": "public/data/indicadores.json + regras P0/P1 do pipeline + Lei 15.388/2026",
-  "indicatorCount": 49,
+  "generatedFrom": "contracts/pne2026-goal-indicator-contract.json + contracts/pne2026-diagnostic-presentation-policy.json",
+  "indicatorCount": 54,
   "legalTextValidation": {
     "validatedGoalTexts": 73,
     "totalGoalTexts": 73,
@@ -42,11 +42,9 @@
         "1.a"
       ],
       "limits": [
-        "Acompanha a cobertura da população de 0 a 3 anos que frequenta escola/creche; não mede demanda manifesta por vaga em creche.",
-        "Indicador estimado com todas as matrículas localizadas no município e a população residente da faixa etária. Por mobilidade escolar e oferta regional, o resultado pode superar 100%.",
-        "Não mede demanda manifesta por vaga em creche."
+        "Bases territoriais distintas podem produzir valores acima de 100%."
       ],
-      "name": "População de 0 a 3 anos que frequenta a escola/creche",
+      "name": "Matrículas de crianças de 0 a 3 anos em relação à população residente estimada",
       "numerator": "mat_basico_0_3",
       "periodicity": "anual",
       "sourceIds": [
@@ -69,11 +67,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
       "valueDomainPolicy": "allow_above_max_known_mixed_territorial_basis",
-      "displayPolicy": "preserve_raw_value",
+      "displayPolicy": "cap_at_100_preserve_raw_for_audit",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -105,10 +103,9 @@
         "1.c"
       ],
       "limits": [
-        "Acompanha a população de 4 a 5 anos que frequenta escola/creche, alinhada à universalização da pré-escola.",
-        "Indicador estimado com todas as matrículas localizadas no município e a população residente da faixa etária. Por mobilidade escolar e oferta regional, o resultado pode superar 100%."
+        "Bases territoriais distintas podem produzir valores acima de 100%."
       ],
-      "name": "População de 4 a 5 anos que frequenta a escola/creche",
+      "name": "Matrículas de crianças de 4 a 5 anos em relação à população residente estimada",
       "numerator": "mat_infantil_pre",
       "periodicity": "anual",
       "sourceIds": [
@@ -131,11 +128,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
       "valueDomainPolicy": "allow_above_max_known_mixed_territorial_basis",
-      "displayPolicy": "preserve_raw_value",
+      "displayPolicy": "cap_at_100_preserve_raw_for_audit",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -167,10 +164,9 @@
         "4.a"
       ],
       "limits": [
-        "Acompanha a frequência à educação básica da população de 6 a 17 anos.",
-        "Indicador estimado com todas as matrículas localizadas no município e a população residente da faixa etária. Por mobilidade escolar e oferta regional, o resultado pode superar 100%."
+        "Bases territoriais distintas podem produzir valores acima de 100%."
       ],
-      "name": "População de 6 a 17 anos que frequenta a educação básica",
+      "name": "Matrículas de 6 a 17 anos em relação à população residente estimada",
       "numerator": "mat_basico_6_17",
       "periodicity": "anual",
       "sourceIds": [
@@ -193,11 +189,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
       "valueDomainPolicy": "allow_above_max_known_mixed_territorial_basis",
-      "displayPolicy": "preserve_raw_value",
+      "displayPolicy": "cap_at_100_preserve_raw_for_audit",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -214,54 +210,42 @@
         "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
         "validationId": "pne-law-15388-2026-validation-v1"
       },
-      "operationalizationStatus": "methodologically_incompatible",
+      "operationalizationStatus": "informational",
       "currentImplementation": {
         "legalTextCheckedAt": "2026-07-19",
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
       "denominator": "pop_15_17",
-      "direction": "at_least",
-      "finality": "goal_monitoring",
+      "direction": null,
+      "finality": "context",
       "formula": "100 * sum(mat_basico_15_17) / denominator_aggregate(pop_15_17)",
       "indicatorId": "basico_15_17",
       "legalGoalRefs": [
         "4.a"
       ],
       "limits": [
-        "Acompanha matrículas da educação básica associadas à faixa de 15 a 17 anos em relação à população residente da faixa.",
-        "Indicador estimado com todas as matrículas localizadas no município e a população residente da faixa etária. Por mobilidade escolar e oferta regional, o resultado pode superar 100%.",
-        "A implementação usa meta configurada de 85%, incompatível com a Meta 4.a vigente de universalização até o terceiro ano."
+        "Bases territoriais distintas podem produzir valores acima de 100%."
       ],
-      "name": "Matrículas da educação básica de estudantes de 15 a 17 anos em relação à população da faixa",
+      "name": "Matrículas de 15 a 17 anos em relação à população residente estimada",
       "numerator": "mat_basico_15_17",
       "periodicity": "anual",
       "sourceIds": [
         "inep_censo_escolar",
         "municipal_age_population_panel"
       ],
-      "targets": [
-        {
-          "dimension": "overall",
-          "direction": "at_least",
-          "legalGoalRef": "4.a",
-          "validationStatus": "official_law",
-          "value": 100,
-          "year": 2029
-        }
-      ],
+      "targets": [],
       "territorialCut": {
         "denominator": "população residente municipal",
         "numerator": "município da escola"
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
       "valueDomainPolicy": "allow_above_max_known_mixed_territorial_basis",
-      "displayPolicy": "preserve_raw_value",
-      "configuredReferenceRole": "legacy_reference_not_legal_target"
+      "displayPolicy": "cap_at_100_preserve_raw_for_audit"
     },
     {
       "administrativeDependence": [
@@ -283,19 +267,19 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": "mat_basico",
+      "denominator": "matrículas públicas da Educação Básica",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "100 * sum(mat_basico_integral) / denominator_aggregate(mat_basico)",
+      "formula": "100 * mat_basico_integral / mat_basico",
       "indicatorId": "basico_integral",
       "legalGoalRefs": [
         "6.a"
       ],
       "limits": [
-        "Acompanha a parcela de estudantes da educação básica pública em jornada integral."
+        "O indicador usa município da escola no numerador e no denominador."
       ],
       "name": "Alunos do público-alvo da ETI em jornada integral na rede pública",
-      "numerator": "mat_basico_integral",
+      "numerator": "matrículas públicas do público-alvo da ETI em jornada integral",
       "periodicity": "anual",
       "sourceIds": [
         "inep_censo_escolar"
@@ -324,11 +308,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "bounded_percentage_0_100",
+      "displayPolicy": "round_only_for_display",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -556,20 +540,20 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": "mat_medio",
+      "denominator": "total de matrículas do ensino médio",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "100 * sum(mat_integrado_total) / denominator_aggregate(mat_medio)",
+      "formula": "100 * sum(mat_integrado_total + mat_concomitante_total) / sum(mat_medio)",
       "indicatorId": "medio_tecnico_articulado_percentual",
       "legalGoalRefs": [
         "12.a"
       ],
       "limits": [
-        "Acompanha as matrículas em cursos técnicos integrados sobre o total de matrículas do ensino médio. Matrículas concomitantes permanecem disponíveis apenas como informação complementar.",
-        "O numerador principal contém somente matrículas integradas; concomitantes ficam como apoio, embora a Meta 12.a exija integrada ou concomitante."
+        "Integrado e concomitante são colunas distintas no agregado oficial e são somados sem deduplicação arbitrária.",
+        "A fonte conta matrículas, não estudantes únicos; por isso a relação serve ao acompanhamento municipal, não ao cumprimento legal, e pode superar 100%."
       ],
-      "name": "Ensino médio articulado à educação profissional técnica",
-      "numerator": "mat_integrado_total",
+      "name": "Matrículas técnicas integradas ou concomitantes em relação às matrículas do Ensino Médio",
+      "numerator": "matrículas técnicas integradas + matrículas técnicas concomitantes",
       "periodicity": "anual",
       "sourceIds": [
         "inep_censo_escolar"
@@ -590,11 +574,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": null,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": null
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "allow_above_max_non_unique_enrolments",
+      "displayPolicy": "preserve_raw_value",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -617,19 +601,20 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": "expansões anuais públicas e privadas positivas acumuladas",
+      "denominator": "expansão líquida total das matrículas desde 2025",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "100 * expansão_pública_positiva_acumulada / expansão_total_positiva_acumulada",
+      "formula": "100 * (publica_atual - publica_2025) / (total_atual - total_2025)",
       "indicatorId": "medio_tecnico_participacao_publica",
       "legalGoalRefs": [
         "12.a"
       ],
       "limits": [
-        "Acompanha a participação pública na expansão da EPT de nível médio, uma parte da meta legal."
+        "A base é exclusivamente 2025 e não se desloca para o primeiro ano disponível.",
+        "Sem observação posterior a 2025 não há resultado; valores negativos ou acima de 100% são preservados quando a expansão total é positiva."
       ],
       "name": "Participação acumulada do segmento público na expansão da EPT de nível médio",
-      "numerator": "expansões anuais públicas positivas acumuladas",
+      "numerator": "expansão líquida das matrículas públicas desde 2025",
       "periodicity": "anual",
       "sourceIds": [
         "inep_censo_escolar"
@@ -650,11 +635,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": null,
+        "maximum": null
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "allow_unbounded_net_expansion_share",
+      "displayPolicy": "preserve_raw_value",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -677,19 +662,20 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": "matrículas subsequentes em 2015",
+      "denominator": "matrículas subsequentes em 2025",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "100 * (matrículas_ano / matrículas_2015 - 1)",
+      "formula": "100 * (mat_subsequente_atual - mat_subsequente_2025) / mat_subsequente_2025",
       "indicatorId": "subsequente_expansao",
       "legalGoalRefs": [
         "12.b"
       ],
       "limits": [
-        "Acompanha expansão acumulada dos cursos técnicos subsequentes; não mede qualidade nem permanência."
+        "A base é exclusivamente 2025 e não se desloca para o primeiro ano positivo ou disponível.",
+        "Base zero é não aplicável; retrações e expansões acima de 100% são preservadas."
       ],
       "name": "Expansão acumulada das matrículas em cursos técnicos subsequentes",
-      "numerator": "matrículas subsequentes no ano - matrículas no ano-base 2015",
+      "numerator": "matrículas subsequentes no ano atual - matrículas subsequentes em 2025",
       "periodicity": "anual",
       "sourceIds": [
         "inep_censo_escolar"
@@ -710,11 +696,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": -100,
+        "maximum": null
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "allow_accumulated_growth_from_minus_100",
+      "displayPolicy": "preserve_raw_value",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -737,23 +723,24 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": null,
+      "denominator": "universo avaliado elegível, sem componente publicado",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "média municipal de taxa_alfabetizacao da rede pública",
+      "formula": "PC_ALUNO_ALFABETIZADO oficial",
       "indicatorId": "alfabetizacao",
       "legalGoalRefs": [
         "3.a"
       ],
       "limits": [
-        "Acompanha estudantes alfabetizados na rede pública, usado como referência municipal para alfabetização.",
-        "A implementação compara diretamente com 100% e omite o marco legal de 80% no quinto ano."
+        "Rede municipal e município da escola.",
+        "Divulgação condicionada à participação mínima de 70%.",
+        "Sem projeção na primeira publicação."
       ],
-      "name": "Estudantes alfabetizados na rede pública",
-      "numerator": null,
+      "name": "Estudantes alfabetizados ao final do 2º ano do Ensino Fundamental — rede municipal",
+      "numerator": "componente não publicado",
       "periodicity": "anual",
       "sourceIds": [
-        "pipeline_alfabetizacao_provenance_pending"
+        "inep_avaliacao_alfabetizacao"
       ],
       "targets": [
         {
@@ -779,11 +766,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "bounded_percentage_0_100",
+      "displayPolicy": "round_only_for_display",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -1674,7 +1661,7 @@
       "currentImplementation": {
         "legalTextCheckedAt": "2026-07-19",
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
-        "tracksGoal": true
+        "tracksGoal": false
       },
       "denominator": "total_docentes",
       "direction": "at_least",
@@ -1734,7 +1721,7 @@
       "currentImplementation": {
         "legalTextCheckedAt": "2026-07-19",
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
-        "tracksGoal": true
+        "tracksGoal": false
       },
       "denominator": "rendimento bruto médio mensal de outros assalariados com nível superior",
       "direction": "at_least",
@@ -1794,7 +1781,7 @@
       "currentImplementation": {
         "legalTextCheckedAt": "2026-07-19",
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
-        "tracksGoal": true
+        "tracksGoal": false
       },
       "denominator": "total_docentes",
       "direction": "at_most",
@@ -2775,7 +2762,7 @@
       ],
       "name": "Taxa de alfabetização da população de 15 anos ou mais",
       "numerator": "alfabetizadas_15_mais",
-      "periodicity": "decenal/irregular",
+      "periodicity": "census_2010_2022_irregular",
       "sourceIds": [
         "ibge_censo_demografico_2010_2022"
       ],
@@ -2828,10 +2815,10 @@
       "currentImplementation": {
         "legalTextCheckedAt": "2026-07-19",
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
-        "tracksGoal": true
+        "tracksGoal": false
       },
       "denominator": "populacao_18_mais_total",
-      "direction": "at_least",
+      "direction": null,
       "finality": "goal_monitoring",
       "formula": "100 * sum(populacao_18_mais_ensino_fundamental_concluido) / denominator_aggregate(populacao_18_mais_total)",
       "indicatorId": "fundamental_concluido_18_mais",
@@ -2844,20 +2831,11 @@
       ],
       "name": "População de 18 anos ou mais com ensino fundamental concluído",
       "numerator": "populacao_18_mais_ensino_fundamental_concluido",
-      "periodicity": "decenal/irregular",
+      "periodicity": "census_2010_2022_irregular",
       "sourceIds": [
         "ibge_censo_demografico_2010_2022"
       ],
-      "targets": [
-        {
-          "dimension": "overall",
-          "direction": "at_least",
-          "legalGoalRef": "11.b",
-          "validationStatus": "official_law",
-          "value": 85,
-          "year": 2036
-        }
-      ],
+      "targets": [],
       "territorialCut": {
         "denominator": "população residente",
         "numerator": "população residente"
@@ -2891,22 +2869,23 @@
         "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
         "tracksGoal": true
       },
-      "denominator": "populacao_15_29_total",
+      "denominator": "população censitária de 15 a 29 anos",
       "direction": "at_least",
       "finality": "goal_monitoring",
-      "formula": "100 * sum(populacao_15_29_ensino_fundamental_concluido) / denominator_aggregate(populacao_15_29_total)",
+      "formula": "100 * (concluintes_15_17 + concluintes_18_24 + concluintes_25_29) / (total_15_17 + total_18_24 + total_25_29)",
       "indicatorId": "fundamental_concluido_15_29",
       "legalGoalRefs": [
         "11.b"
       ],
       "limits": [
-        "Acompanha a conclusão do ensino fundamental na população de 15 a 29 anos."
+        "Somente o snapshot de 2022 é canônico; 2010 não é concatenado.",
+        "Sem interpolação, tendência ou projeção."
       ],
       "name": "População de 15 a 29 anos com ensino fundamental concluído",
-      "numerator": "populacao_15_29_ensino_fundamental_concluido",
-      "periodicity": "decenal/irregular",
+      "numerator": "população de 15 a 29 anos com ensino fundamental concluído",
+      "periodicity": "census_2022_snapshot",
       "sourceIds": [
-        "ibge_censo_demografico_2010_2022"
+        "ibge_censo_demografico_2022_educacao_10061"
       ],
       "targets": [
         {
@@ -2924,11 +2903,11 @@
       },
       "unit": "percent",
       "validRange": {
-        "maximum": 100,
-        "minimum": 0
+        "minimum": 0,
+        "maximum": 100
       },
-      "valueDomainPolicy": "exclude_outside_declared_domain",
-      "displayPolicy": "cap_to_declared_range_for_display_only",
+      "valueDomainPolicy": "preserve_raw_without_cap",
+      "displayPolicy": "round_only_for_display",
       "configuredReferenceRole": "quantitative_reference"
     },
     {
@@ -2964,7 +2943,7 @@
       ],
       "name": "População de 18 anos ou mais com ensino médio concluído",
       "numerator": "populacao_18_mais_ensino_medio_concluido",
-      "periodicity": "decenal/irregular",
+      "periodicity": "census_2010_2022_irregular",
       "sourceIds": [
         "ibge_censo_demografico_2010_2022"
       ],
@@ -3024,7 +3003,7 @@
       ],
       "name": "População de 18 a 29 anos com ensino médio concluído",
       "numerator": "populacao_18_29_ensino_medio_concluido",
-      "periodicity": "decenal/irregular",
+      "periodicity": "census_2010_2022_irregular",
       "sourceIds": [
         "ibge_censo_demografico_2010_2022"
       ],
@@ -3050,6 +3029,279 @@
       "valueDomainPolicy": "exclude_outside_declared_domain",
       "displayPolicy": "cap_to_declared_range_for_display_only",
       "configuredReferenceRole": "quantitative_reference"
+    },
+    {
+      "administrativeDependence": [
+        "all"
+      ],
+      "category": "escolaridade_populacao",
+      "correspondence": "direct",
+      "legalCorrespondence": "direct",
+      "legalTextValidated": true,
+      "legalValidation": {
+        "validatedAt": "2026-07-19",
+        "lawVersion": "Lei nº 15.388/2026 — texto vigente em 2026-07-19",
+        "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
+        "validationId": "pne-law-15388-2026-validation-v1"
+      },
+      "operationalizationStatus": "direct",
+      "currentImplementation": {
+        "legalTextCheckedAt": "2026-07-19",
+        "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
+        "tracksGoal": true
+      },
+      "denominator": "população censitária de 15 anos ou mais",
+      "direction": "at_least",
+      "finality": "goal_monitoring",
+      "formula": "100 * (concluintes_15_17 + concluintes_18_mais) / (total_15_17 + total_18_mais)",
+      "indicatorId": "fundamental_concluido_15_mais",
+      "legalGoalRefs": [
+        "11.b"
+      ],
+      "limits": [
+        "A SIDRA 10061 de 2022 não publica categoria indeterminada ou não resposta separada.",
+        "Somente o snapshot de 2022 é canônico; sem interpolação, tendência ou projeção."
+      ],
+      "name": "População de 15 anos ou mais com ensino fundamental concluído",
+      "numerator": "população de 15 anos ou mais com ensino fundamental concluído",
+      "periodicity": "census_2022_snapshot",
+      "sourceIds": [
+        "ibge_censo_demografico_2022_educacao_10061"
+      ],
+      "targets": [
+        {
+          "dimension": "overall",
+          "direction": "at_least",
+          "legalGoalRef": "11.b",
+          "validationStatus": "official_law",
+          "value": 85,
+          "year": 2036
+        }
+      ],
+      "territorialCut": {
+        "denominator": "população residente",
+        "numerator": "população residente"
+      },
+      "unit": "percent",
+      "validRange": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "valueDomainPolicy": "preserve_raw_without_cap",
+      "displayPolicy": "round_only_for_display",
+      "configuredReferenceRole": "quantitative_reference"
+    },
+    {
+      "administrativeDependence": [
+        "all"
+      ],
+      "category": "territorios",
+      "correspondence": "partial",
+      "legalCorrespondence": "partial",
+      "legalTextValidated": true,
+      "legalValidation": {
+        "validatedAt": "2026-07-19",
+        "lawVersion": "Lei nº 15.388/2026 — texto vigente em 2026-07-19",
+        "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
+        "validationId": "pne-law-15388-2026-validation-v1"
+      },
+      "operationalizationStatus": "informational",
+      "currentImplementation": {
+        "legalTextCheckedAt": "2026-07-19",
+        "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
+        "tracksGoal": false
+      },
+      "denominator": "população indígena residente de 4 a 17 anos recenseada em 2022",
+      "direction": null,
+      "finality": "context",
+      "formula": "100 * matriculas_indigenas_localizadas_4_17 / populacao_indigena_residente_4_17_2022",
+      "indicatorId": "educacao_indigena_cobertura_estimada_4_17",
+      "legalGoalRefs": [
+        "9.d"
+      ],
+      "limits": [
+        "Retrato do último ano materializado, sem série, tendência ou projeção.",
+        "Matrículas e pessoas residentes usam universos territoriais distintos; valores acima de 100% são preservados."
+      ],
+      "name": "Cobertura estimada da educação escolar indígena — 4 a 17 anos",
+      "numerator": "matrículas da oferta escolar indígena localizada, alinhadas às etapas de 4 a 17 anos",
+      "periodicity": "anual",
+      "sourceIds": [
+        "inep_censo_escolar",
+        "ibge_censo_demografico_2022_indigena_9970"
+      ],
+      "targets": [],
+      "territorialCut": {
+        "numerator": "município da escola",
+        "denominator": "população indígena residente municipal em 2022"
+      },
+      "unit": "percent",
+      "validRange": {
+        "minimum": 0,
+        "maximum": null
+      },
+      "valueDomainPolicy": "mixed_territorial_basis_above_100",
+      "displayPolicy": "preserve_raw_value"
+    },
+    {
+      "administrativeDependence": [
+        "all"
+      ],
+      "category": "educacao_especial",
+      "correspondence": "partial",
+      "legalCorrespondence": "partial",
+      "legalTextValidated": true,
+      "legalValidation": {
+        "validatedAt": "2026-07-19",
+        "lawVersion": "Lei nº 15.388/2026 — texto vigente em 2026-07-19",
+        "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
+        "validationId": "pne-law-15388-2026-validation-v1"
+      },
+      "operationalizationStatus": "informational",
+      "currentImplementation": {
+        "legalTextCheckedAt": "2026-07-19",
+        "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
+        "tracksGoal": false
+      },
+      "denominator": "escolas com matrículas da educação especial",
+      "direction": null,
+      "finality": "context",
+      "formula": "100 * escolas_elegiveis_com_oferta_aee / escolas_com_matriculas_educacao_especial",
+      "indicatorId": "aee_oferta_escolas_elegiveis",
+      "legalGoalRefs": [
+        "10.b"
+      ],
+      "limits": [
+        "Mede oferta escolar, não estudantes elegíveis nem estudantes efetivamente atendidos.",
+        "Sala de recursos e inclusão em classe comum permanecem como detalhamento."
+      ],
+      "name": "Escolas com matrículas da Educação Especial que oferecem AEE",
+      "numerator": "escolas elegíveis que oferecem AEE",
+      "periodicity": "anual",
+      "sourceIds": [
+        "inep_censo_escolar"
+      ],
+      "targets": [],
+      "territorialCut": {
+        "numerator": "escolas localizadas no município",
+        "denominator": "escolas localizadas no município"
+      },
+      "unit": "percent",
+      "validRange": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "valueDomainPolicy": "bounded_percentage_0_100",
+      "displayPolicy": "round_only_for_display"
+    },
+    {
+      "administrativeDependence": [
+        "all"
+      ],
+      "category": "educacao_superior",
+      "correspondence": "partial",
+      "legalCorrespondence": "partial",
+      "legalTextValidated": true,
+      "legalValidation": {
+        "validatedAt": "2026-07-19",
+        "lawVersion": "Lei nº 15.388/2026 — texto vigente em 2026-07-19",
+        "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
+        "validationId": "pne-law-15388-2026-validation-v1"
+      },
+      "operationalizationStatus": "informational",
+      "currentImplementation": {
+        "legalTextCheckedAt": "2026-07-19",
+        "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
+        "tracksGoal": false
+      },
+      "denominator": "não se aplica (contagem absoluta)",
+      "direction": null,
+      "finality": "context",
+      "formula": "concluintes_graduacao_oferta_local",
+      "indicatorId": "superior_concluintes_oferta_local",
+      "legalGoalRefs": [
+        "14.c"
+      ],
+      "limits": [
+        "Oferta localizada não equivale à população residente.",
+        "A meta nacional absoluta não é convertida em referência municipal."
+      ],
+      "name": "Concluintes da graduação na oferta localizada no município",
+      "numerator": "concluintes da graduação na oferta localizada no município",
+      "periodicity": "anual",
+      "sourceIds": [
+        "inep_censo_educacao_superior"
+      ],
+      "targets": [],
+      "territorialCut": {
+        "numerator": "localização da oferta do curso",
+        "denominator": "não se aplica"
+      },
+      "unit": "count",
+      "validRange": {
+        "minimum": 0,
+        "maximum": null
+      },
+      "valueDomainPolicy": "nonnegative_count",
+      "displayPolicy": "integer"
+    },
+    {
+      "administrativeDependence": [
+        "all"
+      ],
+      "category": "educacao_superior",
+      "correspondence": "partial",
+      "legalCorrespondence": "partial",
+      "legalTextValidated": true,
+      "legalValidation": {
+        "validatedAt": "2026-07-19",
+        "lawVersion": "Lei nº 15.388/2026 — texto vigente em 2026-07-19",
+        "source": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm",
+        "validationId": "pne-law-15388-2026-validation-v1"
+      },
+      "operationalizationStatus": "informational",
+      "currentImplementation": {
+        "legalTextCheckedAt": "2026-07-19",
+        "officialInepPerEntityDefinitionStatus": "pending_within_180_day_legal_window",
+        "tracksGoal": false
+      },
+      "denominator": "total docente na decomposição exaustiva por titulação",
+      "direction": null,
+      "finality": "context",
+      "formula": "100 * (docentes_mestrado + docentes_doutorado) / docentes_total_titulacao_exaustiva",
+      "indicatorId": "superior_docentes_mestres_doutores_sede",
+      "legalGoalRefs": [
+        "15.c"
+      ],
+      "limits": [
+        "A territorialidade é a sede administrativa da IES, não residência docente.",
+        "Sem todos os recortes legais por organização e categoria administrativa, a relação permanece complementar."
+      ],
+      "name": "Docentes com mestrado ou doutorado nas IES com sede no município",
+      "numerator": "docentes com mestrado ou doutorado",
+      "periodicity": "anual",
+      "sourceIds": [
+        "inep_censo_educacao_superior"
+      ],
+      "targets": [],
+      "territorialCut": {
+        "numerator": "sede administrativa da IES",
+        "denominator": "sede administrativa da IES"
+      },
+      "unit": "percent",
+      "validRange": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "valueDomainPolicy": "bounded_percentage_0_100",
+      "displayPolicy": "round_only_for_display"
     }
-  ]
+  ],
+  "projectionMetadata": {
+    "generator": "scripts/generate-diagnostic-catalog.mjs",
+    "contractVersion": "1.9.0",
+    "contractNormalizedSha256": "c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5",
+    "presentationPolicyVersion": "1.7.0",
+    "presentationPolicyNormalizedSha256": "c330fb98c727dbb461b809a5f178f92ac73661ee3fe4e9c73cfb9b38ea9f1d3b"
+  }
 }

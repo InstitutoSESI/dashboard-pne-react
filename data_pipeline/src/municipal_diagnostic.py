@@ -5,13 +5,19 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .pne.goal_indicator_contract import (
+    CONTRACT,
+    get_relation_context,
+    get_relations_for_indicator,
+)
+
 
 SCHEMA_VERSION = "municipal-diagnostic-v2"
 METHODOLOGY_VERSION = "municipal-diagnostic-p3c-v1"
 ATTENTION_ORDER_METHOD = "legacy-relative-gap-v2"
 EVIDENCE_METHODOLOGY_VERSION = "municipal-evidence-p3c-v1"
 SELECTION_METHODOLOGY_VERSION = "municipal-decision-summary-p3c-v2"
-EXPECTED_INDICATOR_COUNT = 49
+EXPECTED_INDICATOR_COUNT = 54
 STATE_EQUIVALENCE_TOLERANCE = 0.1
 MINIMUM_STATE_COVERAGE_RATE = 0.8
 MINIMUM_DISTRIBUTION_MUNICIPALITIES = 20
@@ -24,6 +30,7 @@ INEQUALITY_PILOT_MINIMUM_CELL_SIZE = 10
 GOVERNANCE_RULE_VERSION = "municipal-governance-p3c-v1"
 EXPOSURE_RULE_VERSION = "municipal-network-exposure-p3b-v1"
 TRAJECTORY_RULE_VERSION = "municipal-trajectory-p2-v1"
+PNE_2026_CYCLE_ID = "pne_2026_2036"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CATALOG_PATH = (
@@ -826,8 +833,8 @@ def _projection_value_for_year(projection: Mapping[str, Any], year: int | None) 
     if year is None:
         return None
     years = projection.get("years") or []
-    values = projection.get("projected_percent_raw") or projection.get(
-        "projected_percent"
+    values = projection.get("projected_percent") or projection.get(
+        "projected_percent_raw"
     ) or []
     for candidate_year, value in zip(years, values):
         if _integer(candidate_year) == year:
@@ -867,6 +874,7 @@ def _build_trajectory(
     remaining_gap: float | None,
     projections: Mapping[str, Any] | None,
     planning_scenarios: Mapping[str, Any] | None,
+    allow_projection: bool = True,
 ) -> dict[str, Any]:
     indicator_id = str(definition["indicatorId"])
     current_year = _integer(result.get("end_year"))
@@ -884,8 +892,14 @@ def _build_trajectory(
     trend = result.get("trend") or {}
     slope = _finite_number(trend.get("slope"))
     observations = _integer(trend.get("observations")) or 0
+    trend_status = str(trend.get("status") or "").lower()
     observed_pace = None
-    if slope is not None and observations >= 3 and direction in {"at_least", "at_most"}:
+    if (
+        slope is not None
+        and observations >= 3
+        and trend_status not in {"inconclusive", "unavailable"}
+        and direction in {"at_least", "at_most"}
+    ):
         observed_pace = slope if direction == "at_least" else -slope
 
     required_pace = None
@@ -903,6 +917,8 @@ def _build_trajectory(
         pace_status = "target_already_met"
     elif target_value is None or direction not in {"at_least", "at_most"}:
         pace_status = "not_applicable"
+    elif trend_status == "inconclusive":
+        pace_status = "inconclusive"
     elif observed_pace is None:
         pace_status = "insufficient_history"
     elif observed_pace < -1e-9:
@@ -924,35 +940,64 @@ def _build_trajectory(
     quality = "not_assessed"
     warning_codes: list[str] = []
     source_codes = ["pne_trend"] if trend else []
+    model_trend: dict[str, Any] | None = None
+    denominator_model: dict[str, Any] | None = None
+    uncertainty: dict[str, Any] = {
+        "status": "not_estimated",
+        "interval": None,
+        "reason": (
+            "O cenário é determinístico e não estima intervalo probabilístico."
+        ),
+        "interpretation": (
+            "O resultado depende das premissas declaradas e não constitui "
+            "previsão oficial."
+        ),
+    }
 
-    if projection.get("available") is True:
+    if allow_projection and projection.get("available") is True:
         scenario_type = "trend_projection"
         model = str(projection.get("method") or "attendance_projection")
-        horizon_year = _integer(projection.get("target_year"))
+        horizon_year = _integer(
+            projection.get("horizon_year", projection.get("target_year"))
+        )
         projected_value = _projection_value_for_year(projection, target_year)
         if projected_value is None and target_year == horizon_year:
             projected_value = _finite_number(
-                projection.get("projected_2036_raw", projection.get("projected_2036"))
+                projection.get("projected_2036", projection.get("projected_2036_raw"))
             )
         points = [
             {"year": year, "rawValue": value}
             for year, value in zip(
                 projection.get("years") or [],
-                projection.get("projected_percent_raw")
-                or projection.get("projected_percent")
+                projection.get("projected_percent")
+                or projection.get("projected_percent_raw")
                 or [],
             )
         ]
         estimated_achievement_year = _projected_achievement_year(
             points, target=target_value, direction=direction
         )
+        if isinstance(projection.get("trend"), Mapping):
+            model_trend = dict(projection["trend"])
+        if isinstance(projection.get("denominator_model"), Mapping):
+            denominator_model = dict(projection["denominator_model"])
+        if isinstance(projection.get("uncertainty"), Mapping):
+            uncertainty = {
+                **uncertainty,
+                **dict(projection["uncertainty"]),
+            }
+        if model_trend and model_trend.get("diverges") is True:
+            estimated_achievement_year = None
+            warning_codes.append("attendance_projection_divergent_trends")
         quality = str(projection.get("quality") or "not_assessed")
         warning_codes.extend(
             f"attendance_projection_warning_{index + 1:02d}"
             for index, _ in enumerate(projection.get("warnings") or [])
         )
         source_codes.append("attendance_projection")
-    elif scenario.get("status") == "available":
+        if denominator_model:
+            source_codes.append("population_projection")
+    elif allow_projection and scenario.get("status") == "available":
         scenario_type = "component_maintenance"
         model = str(scenario.get("model") or "last_components")
         horizon_year = _integer((scenario.get("projectionPeriod") or {}).get("endYear"))
@@ -979,12 +1024,38 @@ def _build_trajectory(
             f"maintenance_scenario_warning_{index + 1:02d}"
             for index, _ in enumerate((scenario.get("diagnostics") or {}).get("warnings") or [])
         )
+        model_trend = {
+            "method": model,
+            "selectedBasis": "latest_observed_components_held_constant",
+            "diverges": False,
+        }
+        denominator_model = {
+            "method": model,
+            "description": (
+                "O cenário mantém os componentes mais recentes do numerador "
+                "e do denominador, conforme o artefato de planejamento aprovado."
+            ),
+        }
+        uncertainty["reason"] = (
+            "O cenário de manutenção não estima intervalo probabilístico."
+        )
         source_codes.append("approved_planning_scenario")
-    elif target_value is not None and target_year is not None:
+    elif allow_projection and target_value is not None and target_year is not None:
         scenario_type = "required_trajectory"
         model = "linear_required_pace"
         horizon_year = target_year
         projected_value = target_value
+        uncertainty = {
+            "status": "not_applicable",
+            "interval": None,
+            "reason": (
+                "A trajetória representa o ritmo necessário até a referência, "
+                "não uma projeção estatística."
+            ),
+            "interpretation": (
+                "O valor informa esforço requerido e não probabilidade de alcance."
+            ),
+        }
         source_codes.append("legal_or_configured_reference")
     elif slope is not None and observations >= 3:
         scenario_type = "historical_trend_only"
@@ -1006,7 +1077,9 @@ def _build_trajectory(
         "horizonYear": horizon_year,
         "projectedValue": projected_value,
         "estimatedAchievementYear": estimated_achievement_year,
-        "uncertainty": "not_estimated",
+        "trendModel": model_trend,
+        "denominatorModel": denominator_model,
+        "uncertainty": uncertainty,
         "quality": quality,
         "sourceCodes": source_codes,
         "warningCodes": warning_codes,
@@ -1503,12 +1576,87 @@ def _domain_status(
     )
 
 
+def _canonical_domain_status(
+    raw_value: float | None,
+    indicator: Mapping[str, Any],
+) -> tuple[str, str | None, list[dict[str, str]]]:
+    if raw_value is None:
+        return "not_evaluated", None, []
+    policy = CONTRACT["valuePolicies"][indicator["valuePolicyId"]]
+    minimum = _finite_number(policy.get("expectedMinimum"))
+    maximum = _finite_number(policy.get("expectedMaximum"))
+    if minimum is not None and raw_value < minimum:
+        return (
+            "outside_domain_unverifiable",
+            "unverifiable",
+            [
+                _reason(
+                    "value_below_canonical_expected_minimum",
+                    "O valor está abaixo do mínimo esperado pela política canônica.",
+                    source_field="pne2026-goal-indicator-contract",
+                )
+            ],
+        )
+    flags: list[dict[str, str]] = []
+    if maximum is not None and raw_value > maximum:
+        flags.append(
+            _reason(
+                "value_above_canonical_expected_maximum",
+                "O valor bruto foi preservado acima do máximo esperado e requer explicação.",
+                source_field="pne2026-goal-indicator-contract",
+            )
+        )
+    if indicator["conceptuallyMayExceed100"] and raw_value > 100:
+        flags.append(
+            _reason(
+                "VALUE_ABOVE_100_ALLOWED_BY_METHOD",
+                "Valor acima de 100% permitido pela política canônica do indicador.",
+                source_field="pne2026-goal-indicator-contract",
+            )
+        )
+    return "within_domain", None, flags
+
+
 def _configured_reference(
     indicator_id: str,
     result: Mapping[str, Any],
     definition: Mapping[str, Any],
     null_reasons: dict[str, dict[str, str]],
+    *,
+    canonical_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if canonical_context is not None:
+        relation = canonical_context["relation"]
+        legal_reference = canonical_context.get("legalReference") or {}
+        milestone = legal_reference.get("milestone")
+        if not relation["canDistance"] or milestone is None:
+            reason = _reason(
+                "canonical_reference_not_enabled",
+                "O contrato canônico não autoriza referência quantitativa para esta relação.",
+                source_field="pne2026-goal-indicator-contract",
+            )
+            null_reasons["configuredReference.value"] = reason
+            null_reasons["configuredReference.year"] = reason
+            null_reasons["configuredReference.direction"] = reason
+            return {
+                "value": None,
+                "year": None,
+                "direction": canonical_context["goal"]["direction"],
+                "label": "Sem referência canônica aplicável",
+                "kind": "not_applicable",
+                "validationStatus": "not_applicable",
+            }
+        return {
+            "value": _finite_number(milestone.get("value")),
+            "year": _integer(milestone.get("year")),
+            "direction": milestone.get("direction"),
+            "label": str(canonical_context["goal"]["publicTitle"]),
+            "kind": "official_law_reference",
+            "validationStatus": legal_reference.get(
+                "validationStatus", "official_law"
+            ),
+        }
+
     value = _finite_number(result.get("meta"))
     direction = result.get("direction") or definition.get("direction")
     milestones = definition.get("targets") or []
@@ -1601,6 +1749,7 @@ def _build_indicator(
     detail: Mapping[str, Any] | None = None,
     projections: Mapping[str, Any] | None = None,
     planning_scenarios: Mapping[str, Any] | None = None,
+    cycle_id: str | None = None,
 ) -> dict[str, Any]:
     indicator_id = str(definition["indicatorId"])
     theme = str(definition["category"])
@@ -1608,6 +1757,23 @@ def _build_indicator(
     raw_value = _finite_number(result.get("end_value"))
     available = result.get("available") is True and raw_value is not None
     null_reasons: dict[str, dict[str, str]] = {}
+    canonical_relations = (
+        get_relations_for_indicator(indicator_id)
+        if cycle_id == PNE_2026_CYCLE_ID
+        else []
+    )
+    canonical_relation = (
+        canonical_relations[0] if len(canonical_relations) == 1 else None
+    )
+    canonical_context = (
+        get_relation_context(
+            canonical_relation["goalId"],
+            indicator_id,
+            current_year,
+        )
+        if canonical_relation is not None
+        else None
+    )
 
     if current_year is None:
         null_reasons["currentYear"] = _reason(
@@ -1627,11 +1793,23 @@ def _build_indicator(
             source_field="rawValue",
         )
 
-    domain_status, domain_data_status, domain_flags = _domain_status(
-        indicator_id, raw_value, definition
-    )
+    if canonical_context is not None:
+        domain_status, domain_data_status, domain_flags = (
+            _canonical_domain_status(
+                raw_value,
+                canonical_context["indicator"],
+            )
+        )
+    else:
+        domain_status, domain_data_status, domain_flags = _domain_status(
+            indicator_id, raw_value, definition
+        )
     configured_reference = _configured_reference(
-        indicator_id, result, definition, null_reasons
+        indicator_id,
+        result,
+        definition,
+        null_reasons,
+        canonical_context=canonical_context,
     )
     direction = configured_reference.get("direction")
     if direction not in {"at_least", "at_most"}:
@@ -1642,28 +1820,38 @@ def _build_indicator(
             source_field="configuredReference.direction",
         )
 
-    legal_goal_refs = [str(value) for value in definition.get("legalGoalRefs", [])]
-    legal_correspondence = str(
-        definition.get("legalCorrespondence")
-        or definition.get("correspondence")
-        or "informational"
-    )
-    operationalization_status = str(
-        definition.get("operationalizationStatus")
-        or (
-            legal_correspondence
-            if legal_correspondence
-            in {
-                "direct",
-                "partial",
-                "proxy",
-                "methodologically_incompatible",
-                "pending_official_definition",
-                "informational",
-            }
-            else "informational"
+    if canonical_context is not None:
+        relation = canonical_context["relation"]
+        legal_goal_refs = [str(relation["goalId"])]
+        legal_correspondence = (
+            "direct" if relation["legacyCoverage"] == "direta" else "partial"
         )
-    )
+        operationalization_status = legal_correspondence
+    else:
+        legal_goal_refs = [
+            str(value) for value in definition.get("legalGoalRefs", [])
+        ]
+        legal_correspondence = str(
+            definition.get("legalCorrespondence")
+            or definition.get("correspondence")
+            or "informational"
+        )
+        operationalization_status = str(
+            definition.get("operationalizationStatus")
+            or (
+                legal_correspondence
+                if legal_correspondence
+                in {
+                    "direct",
+                    "partial",
+                    "proxy",
+                    "methodologically_incompatible",
+                    "pending_official_definition",
+                    "informational",
+                }
+                else "informational"
+            )
+        )
 
     data_status = "available" if available else "missing"
     if domain_data_status and available:
@@ -1675,6 +1863,16 @@ def _build_indicator(
         for index, message in enumerate(definition.get("limits", []))
     ]
     flags.extend(domain_flags)
+    if canonical_context is not None and canonical_context["relation"].get(
+        "internalNote"
+    ):
+        flags.append(
+            _reason(
+                "canonical_relation_note",
+                str(canonical_context["relation"]["internalNote"]),
+                source_field="pne2026-goal-indicator-contract",
+            )
+        )
 
     comparison_status = "eligible"
     comparison_allowed = True
@@ -1687,6 +1885,42 @@ def _build_indicator(
                 "Indicador sem resultado municipal disponível; o valor permanece nulo.",
             )
         )
+    elif canonical_context is not None:
+        relation = canonical_context["relation"]
+        if domain_status != "within_domain":
+            comparison_status = "outside_domain"
+            comparison_allowed = False
+            exclusion_reasons.append(
+                (domain_flags[0] if domain_flags else None)
+                or _reason(
+                    "outside_domain",
+                    "Valor fora do domínio declarado e sem regra oficial de tratamento.",
+                )
+            )
+        elif (
+            relation["mode"] != "progress"
+            or not relation["canDistance"]
+            or not relation["canStatus"]
+        ):
+            comparison_status = "not_applicable"
+            comparison_allowed = False
+            exclusion_reasons.append(
+                _reason(
+                    "canonical_relation_not_classifying",
+                    "O contrato canônico não autoriza distância ou classificação para esta relação.",
+                    source_field="pne2026-goal-indicator-contract",
+                )
+            )
+        elif configured_reference["value"] is None or direction is None:
+            comparison_status = "pending_official_definition"
+            comparison_allowed = False
+            exclusion_reasons.append(
+                _reason(
+                    "canonical_reference_unavailable",
+                    "O contrato canônico não resolveu referência quantitativa aplicável.",
+                    source_field="pne2026-goal-indicator-contract",
+                )
+            )
     elif indicator_id == "aee":
         block = SPECIAL_COMPARISON_BLOCKS[indicator_id]
         comparison_status = str(block["status"])
@@ -1804,7 +2038,14 @@ def _build_indicator(
             operationalization_status=operationalization_status,
         )
     }
-    source_ids = [str(value) for value in definition.get("sourceIds", [])]
+    source_ids = [
+        str(value)
+        for value in (
+            canonical_context["indicator"]["sourceIds"]
+            if canonical_context is not None
+            else definition.get("sourceIds", [])
+        )
+    ]
     source: dict[str, Any] = {
         "sourceIds": source_ids,
         "labels": [SOURCE_REGISTRY.get(source_id, source_id) for source_id in source_ids],
@@ -1832,6 +2073,10 @@ def _build_indicator(
         remaining_gap=remaining_gap,
         projections=projections,
         planning_scenarios=planning_scenarios,
+        allow_projection=bool(
+            canonical_context is None
+            or canonical_context["relation"]["canProjection"]
+        ),
     )
     municipal_exposure = _build_municipal_exposure(resolved_detail, current_year)
     governance = _build_governance(indicator_id, municipal_exposure)
@@ -1871,7 +2116,14 @@ def _build_indicator(
         "indicatorId": indicator_id,
         "theme": theme,
         "themeLabel": CATEGORY_LABELS.get(theme, theme),
-        "title": str(definition.get("name") or indicator_id),
+        "title": str(
+            (
+                canonical_context["relation"].get("publicLabelOverride")
+                or canonical_context["indicator"]["publicTitle"]
+            )
+            if canonical_context is not None
+            else definition.get("name") or indicator_id
+        ),
         "currentYear": current_year,
         "rawValue": raw_value,
         "displayValue": display_value,
@@ -1888,7 +2140,15 @@ def _build_indicator(
         "operationalizationStatus": operationalization_status,
         "valueDomainStatus": domain_status,
         "targetComparisonStatus": comparison_status,
-        "targetMilestones": list(definition.get("targets") or []),
+        "targetMilestones": (
+            list(
+                (canonical_context.get("legalReference") or {}).get(
+                    "milestones", []
+                )
+            )
+            if canonical_context is not None
+            else list(definition.get("targets") or [])
+        ),
         "configuredReference": configured_reference,
         "goalAttained": goal_attained,
         "favorableDistance": favorable_distance,
@@ -1903,7 +2163,24 @@ def _build_indicator(
             "numerator": str(definition.get("numerator") or ""),
             "denominator": str(definition.get("denominator") or ""),
             "territorialBasis": dict(definition.get("territorialCut") or {}),
-            "valueDomainPolicy": str(definition.get("valueDomainPolicy") or ""),
+            "valueDomainPolicy": str(
+                canonical_context["indicator"]["valuePolicyId"]
+                if canonical_context is not None
+                else definition.get("valueDomainPolicy") or ""
+            ),
+            **(
+                {
+                    "formulaId": canonical_context["indicator"]["formulaId"],
+                    "implementationKey": CONTRACT["formulas"][
+                        canonical_context["indicator"]["formulaId"]
+                    ]["implementationKey"],
+                    "contractTerritoriality": canonical_context["indicator"][
+                        "territoriality"
+                    ],
+                }
+                if canonical_context is not None
+                else {}
+            ),
             "displayPolicy": str(definition.get("displayPolicy") or ""),
         },
         "methodologyVersion": METHODOLOGY_VERSION,
@@ -1927,6 +2204,14 @@ def _scenario_is_below_reference(indicator: Mapping[str, Any]) -> bool:
         "trend_projection",
         "component_maintenance",
         "historical_trend_only",
+    }:
+        return False
+    if (trajectory.get("trendModel") or {}).get("diverges") is True:
+        return False
+    if str(trajectory.get("quality") or "").lower() in {
+        "baixa",
+        "insuficiente",
+        "not_assessed",
     }:
         return False
     projected = _finite_number(trajectory.get("projectedValue"))
@@ -2721,10 +3006,11 @@ def _public_similar_municipalities(
 def _public_trajectory(indicator: Mapping[str, Any]) -> dict[str, Any] | None:
     trajectory = indicator.get("trajectory") or {}
     pace = _finite_number(trajectory.get("observedFavorableAnnualPace"))
+    scenario_type = str(trajectory.get("scenarioType") or "")
     if (
         indicator.get("targetComparisonStatus") != "eligible"
         or trajectory.get("status") != "available"
-        or trajectory.get("scenarioType") != "component_maintenance"
+        or scenario_type not in {"component_maintenance", "trend_projection"}
         or str(trajectory.get("quality") or "not_assessed").lower()
         == "not_assessed"
         or pace is None
@@ -2741,17 +3027,65 @@ def _public_trajectory(indicator: Mapping[str, Any]) -> dict[str, Any] | None:
     else:
         historical_state = "stable"
         historical_reading = "O resultado permaneceu próximo do mesmo nível."
+    trend_model = trajectory.get("trendModel") or {}
+    selected_basis = str(trend_model.get("selectedBasis") or "")
+    uses_municipal_state_trend = (
+        selected_basis == "municipal_state_shrunk_theil_sen_log"
+    )
+    uses_state_enrollment_trend = (
+        trajectory.get("model")
+        == "state_aggregate_damped_holt_enrollment_with_state_age_denominator"
+    )
     payload: dict[str, Any] = {
         "historicalState": historical_state,
         "historicalReading": historical_reading,
+        "modelReading": (
+            "Cenário modelado pela manutenção dos componentes observados mais recentes."
+            if scenario_type == "component_maintenance"
+            else (
+                "Cenário que combina o histórico de matrículas do município e "
+                "do Rio Grande do Sul com a evolução projetada da população."
+                if uses_municipal_state_trend
+                else (
+                    "Cenário que parte do número mais recente de matrículas do "
+                    "município, acompanha a evolução das matrículas no Rio "
+                    "Grande do Sul e considera a evolução projetada da população."
+                    if uses_state_enrollment_trend
+                    else (
+                        "Cenário que mantém o número mais recente de matrículas "
+                        "e considera a evolução projetada da população."
+                    )
+                )
+            )
+        ),
+        "denominatorReading": (
+            "O denominador integra o cenário pelos componentes mais recentes aprovados."
+            if scenario_type == "component_maintenance"
+            else (
+                "O denominador parte da população municipal observada e acompanha "
+                "a variação etária projetada para o Rio Grande do Sul."
+            )
+        ),
     }
+    if trend_model.get("diverges") is True:
+        payload["uncertaintyReading"] = (
+            "As evoluções recente e de longo prazo apontam direções opostas; "
+            "o cenário deve ser lido com cautela e não divulga um ano exato de "
+            "alcance. Não há intervalo probabilístico."
+        )
+    else:
+        payload["uncertaintyReading"] = (
+            "O teste retrospectivo cobre horizontes de um a cinco anos. O "
+            "cenário não possui intervalo probabilístico até 2036 e não é uma "
+            "previsão oficial."
+        )
     estimated_year = _integer(trajectory.get("estimatedAchievementYear"))
     base_year = _integer(trajectory.get("baseYear"))
     if estimated_year is not None and (base_year is None or estimated_year >= base_year):
         payload["estimatedAchievementYear"] = estimated_year
         payload["achievementReading"] = (
-            "Se a evolução recente continuar, o município pode alcançar o valor "
-            f"previsto em {estimated_year}."
+            "No cenário modelado, o valor de referência seria alcançado em "
+            f"{estimated_year}; esse ano não é uma previsão oficial."
         )
     return payload
 
@@ -3033,6 +3367,7 @@ def build_municipal_diagnostic_v2(
     projections: Mapping[str, Any] | None = None,
     planning_scenarios: Mapping[str, Any] | None = None,
     inequality_pilot_rows: Sequence[Mapping[str, Any]] | None = None,
+    cycle_id: str | None = None,
 ) -> dict[str, Any]:
     resolved_catalog = dict(catalog or load_indicator_catalog())
     definitions = list(resolved_catalog.get("indicators", []))
@@ -3051,6 +3386,7 @@ def build_municipal_diagnostic_v2(
             detail=(indicator_details or {}).get(definition["indicatorId"], {}),
             projections=projections,
             planning_scenarios=planning_scenarios,
+            cycle_id=cycle_id,
         )
         for index, definition in enumerate(definitions)
     ]
@@ -3231,6 +3567,11 @@ def build_municipal_diagnostic_v2(
         "warnings": warnings,
         "generationMetadata": {
             "generator": "build_municipal_diagnostic_v2",
+            "cycleContract": (
+                "pne2026-goal-indicator-contract-v1"
+                if cycle_id == PNE_2026_CYCLE_ID
+                else "legacy-isolated"
+            ),
             "catalogVersion": resolved_catalog.get("catalogVersion"),
             "attentionOrderingMethod": ATTENTION_ORDER_METHOD,
             "attentionOrderingStatus": "provisional",

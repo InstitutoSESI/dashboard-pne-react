@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.pne.goal_indicator_contract import (
+    CONTRACT,
+    get_formula_for_indicator,
+    get_indicator,
+    get_indicator_reference_profile,
+)
 
 PUBLIC_CONTRACT_VERSION = "planning-scenarios-v1"
 APPROVED_MODEL = "last_components"
+CYCLE_END_YEAR = int(CONTRACT["cycle"]["endYear"])
 INDICATOR_KEYS = (
     "basico_integral",
     "escolas_integral",
@@ -106,7 +114,10 @@ def build_reference_trajectory(
         )
         waypoints.append({"year": target_year, "value": required_value})
 
-    projection_end = max(2036, max(int(target["year"]) for target in targets))
+    projection_end = max(
+        CYCLE_END_YEAR,
+        max(int(target["year"]) for target in targets),
+    )
     if waypoints[-1]["year"] != projection_end:
         waypoints.append({"year": projection_end, "value": required_value})
 
@@ -151,7 +162,12 @@ def build_reference_targets(
             {
                 "year": target_year,
                 "value": float(target["value"]),
-                "type": "configured_reference",
+                "type": target.get("type", "configured_reference"),
+                **(
+                    {"referenceId": target["referenceId"]}
+                    if target.get("referenceId")
+                    else {}
+                ),
                 "requiredAnnualPacePp": round(annual_pace, 6),
             }
         )
@@ -161,16 +177,56 @@ def build_reference_targets(
 
 
 def _to_public_contract(contract: dict[str, Any]) -> dict[str, Any]:
-    trajectory = build_reference_trajectory(contract)
-    targets = build_reference_targets(contract, trajectory)
+    indicator_key = str(contract["indicatorKey"])
+    observed_years = [
+        int(point["year"])
+        for point in contract.get("historical", [])
+        if _is_number(point.get("year"))
+    ]
+    reference = get_indicator_reference_profile(
+        indicator_key,
+        max(observed_years) if observed_years else None,
+    )
+    reference_contract = dict(contract)
+    if reference and reference["kind"] == "legal":
+        reference_contract["direction"] = reference["direction"]
+        reference_contract["targets"] = [
+            {
+                **milestone,
+                "type": "official_law_reference",
+                "referenceId": reference["referenceId"],
+            }
+            for milestone in reference["milestones"]
+        ]
+    trajectory = build_reference_trajectory(reference_contract)
+    targets = build_reference_targets(reference_contract, trajectory)
+    indicator = get_indicator(indicator_key) or {}
+    formula = get_formula_for_indicator(indicator_key) or {}
     return {
         "contractVersion": PUBLIC_CONTRACT_VERSION,
-        "indicatorKey": contract["indicatorKey"],
+        "indicatorKey": indicator_key,
         "strategy": contract["strategy"],
         "scenarioType": "maintenance",
         "status": contract["status"],
-        "direction": contract["direction"],
-        "targetValidationStatus": "configured_unvalidated",
+        "direction": reference_contract["direction"],
+        "referenceKind": reference["kind"] if reference else "configured",
+        "referenceId": reference["referenceId"] if reference else None,
+        "targetValidationStatus": (
+            reference["validationStatus"]
+            if reference and reference["kind"] == "legal"
+            else "configured_unvalidated"
+        ),
+        "formulaId": indicator.get("formulaId"),
+        "formula": {
+            key: formula[key]
+            for key in (
+                "implementationKey",
+                "description",
+                "numerator",
+                "denominator",
+            )
+            if formula.get(key) is not None
+        },
         "sourcePeriod": contract.get("sourcePeriod"),
         "projectionPeriod": contract.get("projectionPeriod"),
         "targets": targets,
@@ -206,6 +262,107 @@ def _validate_contract(
         )
     if contract.get("strategy") != "ratio_of_counts":
         raise ValueError(f"{indicator_key}/{municipality}: invalid strategy")
+
+    historical = contract.get("historical")
+    projected = contract.get("projected")
+    if not isinstance(historical, list) or not historical:
+        raise ValueError(f"{indicator_key}/{municipality}: missing historical series")
+    if not isinstance(projected, list) or not projected:
+        raise ValueError(f"{indicator_key}/{municipality}: missing projected series")
+
+    historical_years = [point.get("year") for point in historical]
+    if not all(_is_number(year) and float(year).is_integer() for year in historical_years):
+        raise ValueError(f"{indicator_key}/{municipality}: invalid historical year")
+    historical_years = [int(year) for year in historical_years]
+    if (
+        historical_years != sorted(set(historical_years))
+        or any(
+            right - left != 1
+            for left, right in zip(historical_years, historical_years[1:])
+        )
+    ):
+        raise ValueError(
+            f"{indicator_key}/{municipality}: historical years must be unique and consecutive"
+        )
+
+    source_period = contract.get("sourcePeriod") or {}
+    if (
+        source_period.get("startYear") != historical_years[0]
+        or source_period.get("endYear") != historical_years[-1]
+    ):
+        raise ValueError(f"{indicator_key}/{municipality}: invalid source period")
+
+    latest = historical[-1]
+    latest_numerator = latest.get("numerator")
+    latest_denominator = latest.get("denominator")
+    if (
+        not _is_number(latest_numerator)
+        or not _is_number(latest_denominator)
+        or float(latest_numerator) < 0
+        or float(latest_denominator) <= 0
+    ):
+        raise ValueError(
+            f"{indicator_key}/{municipality}: invalid latest components"
+        )
+    latest_numerator = float(latest_numerator)
+    latest_denominator = float(latest_denominator)
+    latest_value = 100.0 * latest_numerator / latest_denominator
+
+    projection_period = contract.get("projectionPeriod") or {}
+    projection_start = projection_period.get("startYear")
+    projection_end = projection_period.get("endYear")
+    if (
+        not _is_number(projection_start)
+        or not _is_number(projection_end)
+        or not float(projection_start).is_integer()
+        or not float(projection_end).is_integer()
+    ):
+        raise ValueError(f"{indicator_key}/{municipality}: invalid projection period")
+    projection_start = int(projection_start)
+    projection_end = int(projection_end)
+    if (
+        projection_start != historical_years[-1] + 1
+        or projection_end != CYCLE_END_YEAR
+    ):
+        raise ValueError(
+            f"{indicator_key}/{municipality}: projection period is not aligned to the cycle"
+        )
+
+    expected_years = list(range(projection_start, projection_end + 1))
+    projected_years = [point.get("year") for point in projected]
+    if projected_years != expected_years:
+        raise ValueError(
+            f"{indicator_key}/{municipality}: projected years must be complete and consecutive"
+        )
+
+    for point in projected:
+        if point.get("status") != "available":
+            raise ValueError(
+                f"{indicator_key}/{municipality}: persistence point is unavailable"
+            )
+        for field, expected in (
+            ("rawNumerator", latest_numerator),
+            ("numerator", latest_numerator),
+            ("rawDenominator", latest_denominator),
+            ("denominator", latest_denominator),
+            ("rawValue", latest_value),
+            ("displayValue", latest_value),
+        ):
+            value = point.get(field)
+            if not _is_number(value) or not math.isclose(
+                float(value),
+                expected,
+                rel_tol=0,
+                abs_tol=1e-5,
+            ):
+                raise ValueError(
+                    f"{indicator_key}/{municipality}: {field} violates "
+                    "last-components persistence"
+                )
+        if point.get("boundedValue") is not None or point.get("limitsApplied"):
+            raise ValueError(
+                f"{indicator_key}/{municipality}: persistence cannot apply hidden bounds"
+            )
 
 
 def _load_json(path: Path) -> dict[str, Any]:

@@ -7,17 +7,29 @@ import { MetaCard } from '../components/MetaCard'
 import { SearchField } from '../components/SearchField'
 import { SegmentedControl } from '../components/SegmentedControl'
 import { PNE_2026_INDICATOR_GOAL_REFS } from '../data/pne2026IndicatorGoalRefs'
+import {
+  PNE_2026_GOAL_INDICATOR_CONTRACT,
+  PNE_2026_RELATIONSHIP_MODES,
+  canPne2026RelationEnterCycleSummary,
+  getPne2026RelationContext,
+  reconcilePne2026MunicipalResult,
+} from '../data/pne2026GoalIndicatorContract'
 import { PNE_2014_INDICATOR_GOAL_REFS } from '../data/pne2014IndicatorGoalRefs'
 import { buildThematicGroups } from '../data/thematicGroups'
-import { loadMunicipioDetails, loadMunicipioDiagnostic, loadPneStateReference } from '../data/staticData'
+import { loadMunicipioDetails, loadMunicipioInequality, loadPneStateReference } from '../data/staticData'
 import { normalizePopulationPercentResults } from '../utils/indicatorValues'
+import { resolvePneCycleMunicipalResults } from '../utils/pneCycleDiagnosticResults'
 import { getPneCycleCopy } from '../utils/pneCycleCopy'
-import { filterPneComparableCategories } from '../utils/pneDisplayRules'
+import {
+  applyPneCycleVisibilityPolicy,
+  canIncludePneCycleSummary,
+} from '../utils/pneDisplayRules'
 import { resolveDetailSequence, useDetailViewNavigation } from '../hooks/useDetailViewNavigation'
 import { PnePageHeader } from '../components/PnePageHeader'
 import { getHashContext, setHashContext } from '../utils/hashNavigation'
 import { useAsyncData } from '../utils/useAsyncData'
 import { buildPne2026AccumulativePresentationModel } from '../utils/pneAccumulativeCycle'
+import { useMunicipioDiagnostic } from '../hooks/useMunicipioDiagnostic'
 
 const CYCLE_SOURCE_NOTE = 'INEP, Censo Escolar, SAEB, IBGE e bases oficiais consolidadas no painel.'
 const PNE_2026_DETAIL_REDIRECTS = {
@@ -33,8 +45,14 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
   const rawInitialDetailKey = getHashContext().params.get('detalhe') ?? ''
   const initialDetailKey = resolveCycleDetailKey(cycle, rawInitialDetailKey)
   const cycleCopy = getPneCycleCopy(cycle)
+  const municipalDiagnosticState = useMunicipioDiagnostic(
+    cycle === 'pne_2026_2036' ? municipioData?.id_municipio : null,
+  )
   const categories = useMemo(
-    () => enrichGoalRefs(indicadores?.cycles?.[cycle]?.categories ?? [], cycle),
+    () => appendPne2026ComparableItems(
+      enrichGoalRefs(indicadores?.cycles?.[cycle]?.categories ?? [], cycle),
+      cycle,
+    ),
     [indicadores, cycle],
   )
   const [selectedGroupKey, setSelectedGroupKey] = useState('')
@@ -44,6 +62,14 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
   const [searchQuery, setSearchQuery] = useState('')
   const previousCycleRef = useRef(cycle)
   const municipioResults = municipioData?.[cycle]?.indicadores ?? null
+  const combinedMunicipioResults = useMemo(
+    () => resolvePneCycleMunicipalResults(
+      cycle,
+      municipioResults,
+      municipalDiagnosticState.data?.pne2026PublicDiagnostic,
+    ),
+    [cycle, municipalDiagnosticState.data, municipioResults],
+  )
   const { data: stateReference } = useAsyncData(
     () => loadPneStateReference(cycle).catch(() => null),
     [cycle],
@@ -57,16 +83,16 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     [categories],
   )
   const normalizedMunicipioResults = useMemo(
-    () => normalizePopulationPercentResults(municipioResults, allCycleItems),
-    [municipioResults, allCycleItems],
+    () => normalizePopulationPercentResults(combinedMunicipioResults, allCycleItems, cycle),
+    [combinedMunicipioResults, allCycleItems, cycle],
   )
-  const comparableCategories = useMemo(
-    () => filterPneComparableCategories(categories, normalizedMunicipioResults),
-    [categories, normalizedMunicipioResults],
+  const visibleCategories = useMemo(
+    () => applyPneCycleVisibilityPolicy(categories, normalizedMunicipioResults, cycle),
+    [categories, normalizedMunicipioResults, cycle],
   )
   const thematicGroups = useMemo(
-    () => buildThematicGroups(comparableCategories),
-    [comparableCategories],
+    () => buildThematicGroups(visibleCategories, cycle),
+    [cycle, visibleCategories],
   )
   const selectedGroup = useMemo(() => {
     if (!thematicGroups.length) return null
@@ -75,6 +101,12 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
       thematicGroups[0]
     )
   }, [thematicGroups, selectedGroupKey])
+
+  useEffect(() => {
+    if (!selectedGroup || selectedGroup.key === selectedGroupKey) return
+    setSelectedGroupKey(selectedGroup.key)
+    setSelectedBasicEducationFilterKey('todos')
+  }, [selectedGroup, selectedGroupKey])
 
   const selectedBasicEducationFilter = useMemo(() => {
     const filters = selectedGroup?.filters ?? []
@@ -121,12 +153,12 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
   const { activeIndex, previousItem, nextItem } = resolveDetailSequence(filteredGroupItems, activeItem?.key)
   const cycleManagementStats = useMemo(
     () => buildCycleManagementStats(
-      comparableCategories,
+      cycle === 'pne_2026_2036' ? categories : visibleCategories,
       normalizedMunicipioResults,
       cycle,
       municipioDetails,
     ),
-    [comparableCategories, normalizedMunicipioResults, cycle, municipioDetails],
+    [categories, visibleCategories, normalizedMunicipioResults, cycle, municipioDetails],
   )
   const isCycleTransition = previousCycleRef.current !== cycle
   const isShowingDetail = Boolean(!isCycleTransition && isDetailOpen && activeItem)
@@ -138,7 +170,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     loading: inequalityPilotLoading,
   } = useAsyncData(
     () => shouldLoadInequalityPilot && municipioData?.id_municipio
-      ? loadMunicipioDiagnostic(municipioData.id_municipio)
+      ? loadMunicipioInequality(municipioData.id_municipio)
       : null,
     [municipioData?.id_municipio, shouldLoadInequalityPilot],
   )
@@ -232,15 +264,46 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
       {!isShowingDetail ? <PnePageHeader
         asideLabel="Resumo dos indicadores do ciclo"
         asideContent={<dl className="pne-page-header__metrics">
+          {cycle === 'pne_2026_2036' ? (
+            <>
+              <PneHeaderMetric
+                detail="Resultados disponíveis com referência prevista na meta"
+                label="Referências previstas nas metas"
+                tone="success"
+                value={`${cycleManagementStats.legal.achieved} de ${cycleManagementStats.legal.total} alcançadas`}
+              />
+              <PneHeaderMetric
+                detail="Resultados disponíveis com referência de acompanhamento"
+                label="Referências de acompanhamento"
+                tone="info"
+                value={`${cycleManagementStats.tracking.achieved} de ${cycleManagementStats.tracking.total} alcançadas`}
+              />
+              <PneHeaderMetric
+                detail="Indicadores do ciclo sem resultado comparável no período"
+                label="Sem comparação no período"
+                tone="info"
+                value={`${cycleManagementStats.withoutComparison} indicadores`}
+              />
+            </>
+          ) : (
+            <>
           <PneHeaderMetric
             detail={cycleCopy.summary.totalDetail}
             label={cycleCopy.summary.totalLabel}
+            tone="info"
+            value={cycleManagementStats.displayedTotal}
+          />
+          <PneHeaderMetric
+            detail={cycleManagementStats.displayedTotal
+              ? `${cycleManagementStats.monitorableTotal} de ${cycleManagementStats.displayedTotal} indicadores exibidos`
+              : cycleCopy.summary.emptyDetail}
+            label={cycleCopy.summary.conclusiveLabel}
             tone="info"
             value={cycleManagementStats.monitorableTotal}
           />
           <PneHeaderMetric
             detail={cycleManagementStats.monitorableTotal
-              ? `${cycleManagementStats.achievedPercent}% ${cycleCopy.summary.detailLabel}`
+              ? `${cycleManagementStats.achieved} de ${cycleManagementStats.monitorableTotal} conclusivos · ${cycleManagementStats.achievedPercent}%`
               : cycleCopy.summary.emptyDetail}
             label={cycleCopy.summary.achievedLabel}
             tone="success"
@@ -250,7 +313,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
           />
           <PneHeaderMetric
             detail={cycleManagementStats.monitorableTotal
-              ? `${cycleManagementStats.attentionPercent}% ${cycleCopy.summary.detailLabel}`
+              ? `${cycleManagementStats.attention} de ${cycleManagementStats.monitorableTotal} conclusivos · ${cycleManagementStats.attentionPercent}%`
               : cycleCopy.summary.emptyDetail}
             label={cycleCopy.summary.belowLabel}
             tone="attention"
@@ -258,6 +321,8 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
               ? cycleManagementStats.attention
               : '-'}
           />
+            </>
+          )}
         </dl>}
         context={<>Município em foco: <strong>{selectedMunicipio}</strong></>}
         description={cycleCopy.supportText}
@@ -265,6 +330,8 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
         title={title}
         variant="listing"
       /> : null}
+
+      {!isShowingDetail && cycle === 'pne_2026_2036' ? <PneStatusLegend /> : null}
 
       <section className="cycle-workspace cycle-card-workspace">
         {isShowingDetail ? (
@@ -376,9 +443,8 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
             <DataSourceNote className="cycle-source-line" source={CYCLE_SOURCE_NOTE} />
             {cycle === 'pne_2026_2036' ? (
               <p className="cycle-complementary-note">
-                Dados complementares estão disponíveis em Indicadores de Educação.
-                Uma meta legal pode ter mais de um indicador associado; por isso o total
-                de indicadores pode ser maior que o total de metas acompanhadas.
+                As referências de acompanhamento são aproximações municipais úteis e
+                não comprovam, isoladamente, o cumprimento integral da meta legal.
               </p>
             ) : null}
           </>
@@ -399,13 +465,80 @@ function enrichGoalRefs(categories, cycle) {
 
   return categories.map((category) => ({
     ...category,
-    items: (category.items ?? []).map((item) => ({
-      ...item,
-      ...(refMap[item.key]
-        ? { metaRef: refMap[item.key] }
-        : {}),
-    })),
+    items: (category.items ?? []).map((item) => {
+      const metaRef = refMap[item.key]
+      const context = cycle === 'pne_2026_2036' && metaRef
+        ? getPne2026RelationContext(metaRef, item.key)
+        : null
+      const relation = context?.relation
+
+      return {
+        ...item,
+        ...(metaRef ? { metaRef } : {}),
+        ...(relation
+          ? {
+              monitoringMode: relation.mode,
+              canDistance: relation.canDistance,
+              canStatus: relation.canStatus,
+              canProjection: relation.canProjection,
+              includeInCycleSummary: canPne2026RelationEnterCycleSummary(relation),
+              includeInReferenceSummary: relation.includeInReferenceSummary,
+              desc:
+                relation.publicDescriptionOverride
+                ?? context.indicator?.publicDescription
+                ?? item.desc,
+              label:
+                relation.publicLabelOverride
+                ?? context.indicator?.publicTitle
+                ?? item.label,
+              title:
+                relation.publicLabelOverride
+                ?? context.indicator?.publicTitle
+                ?? item.title
+                ?? item.label,
+            }
+          : {}),
+      }
+    }),
   }))
+}
+
+function appendPne2026ComparableItems(categories, cycle) {
+  if (cycle !== 'pne_2026_2036') return categories
+  const existingKeys = new Set(
+    categories.flatMap((category) => (
+      (category.items ?? []).map((item) => item.key)
+    )),
+  )
+  const items = PNE_2026_GOAL_INDICATOR_CONTRACT.relations.flatMap((relation) => {
+    if (
+      existingKeys.has(relation.indicatorId)
+      || !canPne2026RelationEnterCycleSummary(relation)
+      || ![
+        PNE_2026_RELATIONSHIP_MODES.PROGRESS,
+        PNE_2026_RELATIONSHIP_MODES.TRACKING,
+      ].includes(relation.mode)
+    ) return []
+    const indicator = PNE_2026_GOAL_INDICATOR_CONTRACT.indicators[relation.indicatorId]
+    if (!indicator) return []
+    return [{
+      key: relation.indicatorId,
+      label: relation.publicLabelOverride ?? indicator.publicTitle,
+      title: relation.publicLabelOverride ?? indicator.publicTitle,
+      desc: relation.publicDescriptionOverride ?? indicator.publicDescription,
+      metaRef: relation.goalId,
+      value_mode: indicator.unit,
+      monitoringMode: relation.mode,
+      canDistance: relation.canDistance,
+      canStatus: relation.canStatus,
+      canProjection: relation.canProjection,
+      includeInCycleSummary: true,
+      includeInReferenceSummary: relation.includeInReferenceSummary,
+    }]
+  })
+  return items.length
+    ? [...categories, { key: 'pne2026_comparable', items }]
+    : categories
 }
 
 function PneHeaderMetric({ detail, label, tone, value }) {
@@ -415,6 +548,28 @@ function PneHeaderMetric({ detail, label, tone, value }) {
       <dd>{value}</dd>
       <small>{detail}</small>
     </div>
+  )
+}
+
+function PneStatusLegend() {
+  const items = [
+    { label: 'Verde — referência alcançada', tone: 'success' },
+    { label: 'Vermelho — abaixo da referência prevista na meta', tone: 'danger' },
+    { label: 'Amarelo — abaixo da referência de acompanhamento', tone: 'warning' },
+  ]
+
+  return (
+    <aside className="cycle-status-legend" aria-label="Legenda das situações">
+      <strong>Legenda</strong>
+      <div>
+        {items.map((item) => (
+          <span key={item.tone}>
+            <i className={`cycle-status-legend__dot cycle-status-legend__dot--${item.tone}`} aria-hidden="true" />
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </aside>
   )
 }
 
@@ -473,13 +628,25 @@ function buildCycleManagementStats(categories, municipioResults, cycle, municipi
     achieved: 0,
     achievedPercent: 0,
     attention: 0,
+    displayedTotal: 0,
     monitorableTotal: 0,
+    legal: { achieved: 0, total: 0 },
+    tracking: { achieved: 0, total: 0 },
+    withoutComparison: 0,
   }
 
   const allCycleItems = categories.flatMap((category) => category.items ?? [])
+  stats.displayedTotal = allCycleItems.length
 
   allCycleItems.forEach((item) => {
-    const result = municipioResults?.[item.key]
+    const municipalResult = municipioResults?.[item.key]
+    const result = cycle === 'pne_2026_2036'
+      ? reconcilePne2026MunicipalResult({
+          goalId: item.metaRef,
+          indicatorId: item.key,
+          result: municipalResult,
+        }).result
+      : municipalResult
     const accumulativePresentation = buildPne2026AccumulativePresentationModel({
       cycle,
       indicatorKey: item.key,
@@ -488,13 +655,15 @@ function buildCycleManagementStats(categories, municipioResults, cycle, municipi
     })
 
     if (
-      item.include_in_cycle_summary === false ||
-      item.monitoring_mode === 'approximate_reference' ||
-      item.tracks_goal === false ||
-      !result ||
-      result.available === false ||
-      result.tracks_goal === false
+      cycle === 'pne_2026_2036'
+      && ['unavailable', 'not_applicable', 'suppressed'].includes(result?.dataStatus)
+      && item.includeInCycleSummary === true
     ) {
+      stats.withoutComparison += 1
+      return
+    }
+
+    if (!canIncludePneCycleSummary({ cycleId: cycle, item, result })) {
       return
     }
 
@@ -503,8 +672,15 @@ function buildCycleManagementStats(categories, municipioResults, cycle, municipi
     }
 
     stats.monitorableTotal += 1
-    if (accumulativePresentation ? accumulativePresentation.summaryState === 'achieved' : result.atingida === true) {
+    const achieved = accumulativePresentation
+      ? accumulativePresentation.summaryState === 'achieved'
+      : result.atingida === true
+    const mode = item.monitoringMode ?? result.monitoringMode ?? result.monitoring_mode
+    const bucket = mode === 'tracking' ? stats.tracking : stats.legal
+    bucket.total += 1
+    if (achieved) {
       stats.achieved += 1
+      bucket.achieved += 1
     } else {
       stats.attention += 1
     }

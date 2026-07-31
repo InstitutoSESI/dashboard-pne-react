@@ -17,8 +17,9 @@ def _display_rounded(value):
     return 0.0 if rounded == 0 else rounded
 
 def _goal_achieved(distance):
-    rounded_distance = _display_rounded(distance)
-    return rounded_distance is not None and rounded_distance >= 0
+    if distance is None or pd.isna(distance):
+        return False
+    return float(distance) >= 0
 
 def _fmt_number(value, pattern=",.1f"):
     if value is None or pd.isna(value):

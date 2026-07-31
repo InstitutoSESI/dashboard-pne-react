@@ -9,6 +9,18 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping, MutableMapping
 
+from .pne.diagnostic_presentation_policy import (
+    POLICY,
+    get_presentation_entry,
+    policy_hash,
+)
+from .pne.goal_indicator_contract import (
+    CONTRACT,
+    CONTRACT_VERSION,
+    contract_hash,
+    get_relation,
+    get_relation_context,
+)
 from .municipal_diagnostic import (
     _public_number,
     _public_similar_municipalities,
@@ -38,6 +50,20 @@ EXPECTED_ESSENTIALS = [
     "adequacao_af",
     "salas_acessiveis",
 ]
+FROZEN_CONTRACT_VERSION = "1.3.0"
+FROZEN_CONTRACT_HASH = (
+    "8a27520704db43c35d464f231c8c8af90cf71c30855bdc43168647d764ef3cdd"
+)
+FROZEN_POLICY_VERSION = "1.1.0"
+FROZEN_POLICY_HASH = (
+    "c24aeadd7d9aa065ec71f91fa3d3c23d88ebdd6850384b9b6eb7ac31bf5befe8"
+)
+FROZEN_PUBLIC_RELATION_IDS = {
+    "relation.11.b.fundamental_concluido_18_mais",
+}
+FROZEN_CONTEXTUAL_PAIRS = {
+    ("11.b", "fundamental_concluido_18_mais"),
+}
 
 
 def _goal_sort_key(goal_id: str) -> tuple[int, str]:
@@ -62,10 +88,43 @@ def _integer(value: Any) -> int | None:
     return int(numeric)
 
 
+def _raw_display_text(value: float, unit: str) -> str:
+    rendered = format(value, ".15g")
+    if unit == "percent":
+        return f"{rendered}%"
+    if unit == "years":
+        return f"{rendered} anos"
+    return rendered
+
+
 def _merge_usage(catalog: Mapping[str, Any], result: Mapping[str, Any]) -> dict[str, bool]:
     usage = dict(catalog["defaultUsage"])
     usage.update(result.get("usage") or {})
     return {key: bool(value) for key, value in usage.items()}
+
+
+def _contract_relation(definition: Mapping[str, Any]) -> Mapping[str, Any]:
+    relation = get_relation(definition.get("goalId"), definition.get("indicatorId"))
+    if relation is None:
+        raise ValueError(
+            "Resultado do diagnóstico ausente do contrato meta×indicador: "
+            f"{definition.get('goalId')}:{definition.get('indicatorId')}."
+        )
+    return relation
+
+
+def _monitoring_mode(definition: Mapping[str, Any]) -> str:
+    relation = _contract_relation(definition)
+    if relation["relationId"] in FROZEN_PUBLIC_RELATION_IDS:
+        return str(definition.get("monitoringMode", "progress"))
+    return str(definition.get("monitoringMode", relation["mode"]))
+
+
+def _summary_priority_order(entry: Mapping[str, Any] | None) -> int | None:
+    display_group = str((entry or {}).get("displayGroup") or "")
+    if not display_group.startswith("summary-"):
+        return None
+    return _integer(display_group.removeprefix("summary-"))
 
 
 def _validate_catalog(catalog: Mapping[str, Any]) -> None:
@@ -73,6 +132,19 @@ def _validate_catalog(catalog: Mapping[str, Any]) -> None:
         raise ValueError("Versão inesperada do catálogo canônico de apresentação.")
     if catalog.get("schemaVersion") != PUBLIC_SCHEMA_VERSION:
         raise ValueError("Schema público inesperado no catálogo canônico de apresentação.")
+    projection_metadata = catalog.get("projectionMetadata") or {}
+    if (
+        projection_metadata.get("contractVersion") != FROZEN_CONTRACT_VERSION
+        or projection_metadata.get("contractNormalizedSha256")
+        != FROZEN_CONTRACT_HASH
+        or projection_metadata.get("presentationPolicyVersion")
+        != FROZEN_POLICY_VERSION
+        or projection_metadata.get("presentationPolicyNormalizedSha256")
+        != FROZEN_POLICY_HASH
+    ):
+        raise ValueError(
+            "Projeção de apresentação desatualizada em relação ao contrato ou à política."
+        )
 
     results = list(catalog.get("results") or [])
     if len(results) != 34:
@@ -115,11 +187,10 @@ def _validate_catalog(catalog: Mapping[str, Any]) -> None:
         for item in results
         if item["relationshipType"] == "contextual_proxy"
     }
-    if contextual_pairs != {
-        ("4.a", "basico_15_17"),
-        ("11.b", "fundamental_concluido_18_mais"),
-    }:
-        raise ValueError("Os dois proxies contextuais não correspondem à homologação.")
+    if contextual_pairs != FROZEN_CONTEXTUAL_PAIRS:
+        raise ValueError(
+            "Os proxies contextuais divergem das capacidades do contrato."
+        )
 
     source_ids = {source["id"] for source in catalog.get("sources") or []}
     referenced_source_ids = {
@@ -147,6 +218,48 @@ def _validate_catalog(catalog: Mapping[str, Any]) -> None:
         if item.get("classificationPolicy") not in classification_ids:
             raise ValueError(f"Política de classificação ausente: {item.get('indicatorId')}")
 
+        relation = _contract_relation(item)
+        expected_mode = _monitoring_mode(item)
+        if item.get("monitoringMode", "progress") != expected_mode:
+            raise ValueError(
+                "Modo divergente do contrato meta×indicador: "
+                f"{item['goalId']}:{item['indicatorId']}."
+            )
+        if expected_mode == "hidden":
+            continue
+        if (
+            not relation["includeInDiagnostic"]
+            and relation["relationId"] not in FROZEN_PUBLIC_RELATION_IDS
+        ):
+            raise ValueError(
+                "Resultado autorizado pelo catálogo está desabilitado no contrato: "
+                f"{item['goalId']}:{item['indicatorId']}."
+            )
+
+        allowed = (
+            []
+            if expected_mode != "progress"
+            else catalog["classificationPolicies"][item["classificationPolicy"]][
+                "allowed"
+            ]
+        )
+        if not relation["canStatus"] and allowed:
+            raise ValueError(
+                "Relação sem capacidade de status usa política classificatória: "
+                f"{item['goalId']}:{item['indicatorId']}."
+            )
+
+        expected_name = relation.get("publicLabelOverride")
+        if (
+            expected_mode == relation["mode"]
+            and expected_name
+            and item.get("publicName") != expected_name
+        ):
+            raise ValueError(
+                "Nome público divergente do contrato meta×indicador: "
+                f"{item['goalId']}:{item['indicatorId']}."
+            )
+
 
 @lru_cache(maxsize=1)
 def _cached_catalog() -> dict[str, Any]:
@@ -164,6 +277,16 @@ def load_pne2026_diagnostic_presentation_catalog() -> dict[str, Any]:
 def _public_result_definition(
     catalog: Mapping[str, Any], definition: Mapping[str, Any]
 ) -> dict[str, Any]:
+    relation = _contract_relation(definition)
+    editorial = get_presentation_entry(relation["relationId"])
+    if (
+        relation["includeInDiagnostic"]
+        and relation["relationId"] not in FROZEN_PUBLIC_RELATION_IDS
+        and editorial is None
+    ):
+        raise ValueError(
+            f"Relação elegível sem política visual: {relation['relationId']}."
+        )
     payload = {
         key: deepcopy(definition[key])
         for key in (
@@ -172,6 +295,7 @@ def _public_result_definition(
             "goalTitle",
             "indicatorId",
             "publicName",
+            "monitoringMode",
             "themeId",
             "tier",
             "priorityOrder",
@@ -186,6 +310,20 @@ def _public_result_definition(
         )
         if key in definition
     }
+    if editorial is not None:
+        payload["resultOrder"] = editorial["displayOrder"]
+        payload["themeId"] = editorial["themeId"]
+        payload["tier"] = (
+            "essential"
+            if editorial["summaryPriority"] == "essential"
+            else "complementary"
+        )
+        payload["priorityOrder"] = _summary_priority_order(editorial)
+    projected_mode = _monitoring_mode(definition)
+    if projected_mode == "progress":
+        payload.pop("monitoringMode", None)
+    else:
+        payload["monitoringMode"] = projected_mode
     payload["relationshipReading"] = catalog["relationshipReadings"][
         definition["relationshipType"]
     ]
@@ -211,9 +349,16 @@ def apply_pne2026_diagnostic_presentation(
             if definition is None:
                 continue
             item["goalId"] = definition["goalId"]
-            item["diagnosticPresentation"] = _public_result_definition(
-                catalog, definition
-            )
+            item["monitoring_mode"] = _monitoring_mode(definition)
+            if item["monitoring_mode"] != "progress":
+                item["include_in_cycle_summary"] = False
+            relation = _contract_relation(definition)
+            if get_presentation_entry(relation["relationId"]) is not None:
+                item["diagnosticPresentation"] = _public_result_definition(
+                    catalog, definition
+                )
+            else:
+                item.pop("diagnosticPresentation", None)
 
 
 def _technical_indicator_index(
@@ -245,27 +390,28 @@ def _classification_from_pne(
     return None
 
 
-def _indicator_reference_from_pne(
+def _indicator_reference_from_contract(
     definition: Mapping[str, Any],
     observed: Mapping[str, Any],
-    technical: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     reference = deepcopy(definition["indicatorReference"])
-    configured = (technical or {}).get("configuredReference") or {}
-    value = _finite_number(configured.get("value"))
-    if value is None:
-        value = _finite_number(observed.get("meta"))
-    year = _integer(configured.get("year"))
-    direction = configured.get("direction") or observed.get("direction")
-    if value is not None:
-        reference["value"] = value
-    if year is not None:
-        reference["year"] = year
-    if direction:
-        reference["direction"] = direction
-    for key in ("label", "kind", "validationStatus"):
-        if configured.get(key) is not None:
-            reference[key] = deepcopy(configured[key])
+    context = get_relation_context(
+        str(definition["goalId"]),
+        str(definition["indicatorId"]),
+        _integer(observed.get("end_year")),
+    )
+    legal_reference = (context or {}).get("legalReference") or {}
+    milestone = legal_reference.get("milestone")
+    if milestone is None:
+        milestones = legal_reference.get("milestonesAtYear") or []
+        milestone = milestones[0] if len(milestones) == 1 else None
+    if milestone is not None:
+        reference["value"] = milestone["value"]
+        reference["year"] = milestone["year"]
+        reference["direction"] = milestone["direction"]
+        reference["validationStatus"] = legal_reference.get(
+            "validationStatus", "official_law"
+        )
     return reference
 
 
@@ -411,41 +557,89 @@ def build_pne2026_public_diagnostic_v2(
     """Project the existing municipal PNE output into the non-materialized v2."""
 
     catalog = _cached_catalog()
+    catalog_by_relation_id = {
+        _contract_relation(item)["relationId"]: item
+        for item in catalog["results"]
+    }
     definitions = [
-        _public_result_definition(catalog, item) for item in catalog["results"]
+        _public_result_definition(catalog, definition)
+        for definition in sorted(
+            catalog["results"],
+            key=lambda item: item["resultOrder"],
+        )
+        if _monitoring_mode(definition) != "hidden"
     ]
     policies = catalog["valuePolicies"]
-    classification_policies = catalog["classificationPolicies"]
     pne_indicators = _pne_indicator_index(pne_cycle_payload)
     technical_indicators = _technical_indicator_index(diagnostic_contract)
 
     results: list[dict[str, Any]] = []
     for definition in definitions:
+        relation = _contract_relation(definition)
+        projected_mode = _monitoring_mode(definition)
+        can_distance = projected_mode == "progress" and relation["canDistance"]
+        can_status = projected_mode == "progress" and relation["canStatus"]
+        can_projection = projected_mode == "progress" and relation["canProjection"]
+        relation_context = get_relation_context(
+            relation["goalId"],
+            relation["indicatorId"],
+        )
+        if relation_context is None:
+            raise ValueError(f"Relação canônica não resolvida: {relation['relationId']}.")
+        indicator_contract = relation_context["indicator"]
+        missing_policy = CONTRACT["missingPolicies"][
+            indicator_contract["missingPolicyId"]
+        ]
+        value_policy = CONTRACT["valuePolicies"][
+            indicator_contract["valuePolicyId"]
+        ]
+        if value_policy["preserveRawValue"] is not True:
+            raise ValueError(
+                f"Política canônica não preserva valor bruto: {relation['relationId']}."
+            )
         observed = pne_indicators.get(definition["indicatorId"]) or {}
         value = _finite_number(observed.get("end_value"))
         year = _integer(observed.get("end_year"))
         if observed.get("available") is not True or value is None or year is None:
+            if missing_policy["publishWhenMissing"] is True:
+                raise ValueError(
+                    f"Política de ausência sem projeção pública implementada: {relation['relationId']}."
+                )
             continue
         technical = technical_indicators.get(definition["indicatorId"])
         source = _source_from_pne(technical)
-        source_ids = list(source.get("sourceIds") or definition["sourceIds"])
-        indicator_reference = _indicator_reference_from_pne(
-            definition, observed, technical
+        source_ids = (
+            list(definition.get("sourceIds") or [])
+            if relation["relationId"]
+            == "relation.11.b.fundamental_concluido_15_29"
+            else list(relation_context["indicator"]["sourceIds"])
         )
-        allowed = set(
-            classification_policies[definition["classificationPolicy"]]["allowed"]
+        if source:
+            source["sourceIds"] = source_ids
+        indicator_reference = (
+            None
+            if not can_distance
+            else _indicator_reference_from_contract(definition, observed)
+        )
+        allowed = (
+            set()
+            if not can_status
+            else {"advance", "maintain"}
         )
         classification = _classification_from_pne(observed, allowed)
-        display_value = _finite_number((technical or {}).get("displayValue"))
-        remaining_gap = _finite_number((technical or {}).get("remainingGap"))
-        favorable_difference = _finite_number(
-            (technical or {}).get("favorableDistance")
+        remaining_gap = (
+            None
+            if not can_distance
+            else _finite_number((technical or {}).get("remainingGap"))
+        )
+        favorable_difference = (
+            None
+            if not can_distance
+            else _finite_number((technical or {}).get("favorableDistance"))
         )
         display = observed.get("display") or {}
-        direction = observed.get("direction") or (technical or {}).get(
-            "direction"
-        ) or definition["direction"]
-        unit = (technical or {}).get("unit") or "percent"
+        direction = relation_context["goal"]["direction"]
+        unit = relation_context["indicator"]["unit"]
         result = {
             "resultOrder": definition["resultOrder"],
             "goalId": definition["goalId"],
@@ -453,26 +647,33 @@ def build_pne2026_public_diagnostic_v2(
             "themeId": definition["themeId"],
             "tier": definition["tier"],
             "priorityOrder": definition["priorityOrder"],
-            "publicName": (technical or {}).get("title")
-            or definition["publicName"],
+            "publicName": definition["publicName"],
             "publicDescription": definition["relationshipReading"],
             "relationshipType": definition["relationshipType"],
             "relationshipReading": definition["relationshipReading"],
             "direction": direction,
             "current": {
                 "value": value,
-                "displayValue": display_value if display_value is not None else value,
+                "displayValue": value,
                 "year": year,
                 "unit": unit,
             },
             "indicatorReference": indicator_reference,
-            "legalGoal": deepcopy(definition["legalGoal"]),
+            "legalGoal": deepcopy(definition.get("legalGoal")),
             "classification": classification,
             "remainingGap": remaining_gap,
             "favorableDifference": favorable_difference,
-            "distance": _finite_number(observed.get("distance")),
-            "publicReading": display.get("interpretation"),
-            "status": display.get("status"),
+            "distance": (
+                None
+                if not can_distance
+                else _finite_number(observed.get("distance"))
+            ),
+            "publicReading": (
+                display.get("interpretation")
+                if can_status
+                else None
+            ),
+            "status": display.get("status") if can_status else None,
             "valuePolicy": {
                 "id": definition["valuePolicy"],
                 "publicExplanation": policies[definition["valuePolicy"]][
@@ -481,19 +682,26 @@ def build_pne2026_public_diagnostic_v2(
             },
             "sourceIds": source_ids,
         }
-        if display.get("end_value") is not None:
-            result["current"]["displayText"] = display["end_value"]
+        result["current"]["displayText"] = _raw_display_text(value, unit)
         if source:
             result["source"] = source
         if "finalReference" in definition:
             result["finalReference"] = deepcopy(definition["finalReference"])
         if "methodology" in definition:
             result["methodology"] = deepcopy(definition["methodology"])
-        result.update(
-            _optional_evidence(
-                definition, technical
-            )
-        )
+        optional_evidence = _optional_evidence(definition, technical)
+        if relation["stateReferencePolicy"] == "none":
+            for field in (
+                "stateComparison",
+                "statewidePosition",
+                "similarMunicipalities",
+            ):
+                optional_evidence.pop(field, None)
+        if not can_projection:
+            optional_evidence.pop("trajectory", None)
+        result.update(optional_evidence)
+        if not can_projection:
+            result.pop("trajectory", None)
         results.append(result)
 
     grouped_goals: list[dict[str, Any]] = []
@@ -532,7 +740,14 @@ def build_pne2026_public_diagnostic_v2(
             }
     sources = [source_registry[source_id] for source_id in sorted(used_source_ids)]
     relationship_counts = Counter(result["relationshipType"] for result in results)
-    classification_counts = Counter(result["classification"] for result in results)
+    progress_results = [
+        result
+        for result in results
+        if _contract_relation(result)["includeInReferenceSummary"]
+    ]
+    classification_counts = Counter(
+        result["classification"] for result in progress_results
+    )
     summary = {
         "authorizedResultCount": len(definitions),
         "availableResultCount": len(results),
@@ -550,7 +765,9 @@ def build_pne2026_public_diagnostic_v2(
             relationship_type: relationship_counts[relationship_type]
             for relationship_type in sorted(EXPECTED_RELATIONSHIP_TYPES)
         },
-        "stateComparisonCount": sum("stateComparison" in result for result in results),
+        "stateComparisonCount": sum(
+            "stateComparison" in result for result in progress_results
+        ),
         "statewidePositionCount": sum("statewidePosition" in result for result in results),
         "similarMunicipalitiesCount": sum(
             "similarMunicipalities" in result for result in results
@@ -562,11 +779,11 @@ def build_pne2026_public_diagnostic_v2(
         ),
         "stateAboveOrNearCount": sum(
             (result.get("stateComparison") or {}).get("state") in {"above", "near"}
-            for result in results
+            for result in progress_results
         ),
         "stateBelowCount": sum(
             (result.get("stateComparison") or {}).get("state") == "below"
-            for result in results
+            for result in progress_results
         ),
     }
 
@@ -632,16 +849,27 @@ def audit_pne2026_public_diagnostic_v2(
     """Audit every municipality in memory without writing public contracts."""
 
     catalog = _cached_catalog()
-    definition_ids = [item["indicatorId"] for item in catalog["results"]]
+    visible_catalog_results = [
+        item
+        for item in catalog["results"]
+        if _monitoring_mode(item) != "hidden"
+    ]
+    definition_ids = [item["indicatorId"] for item in visible_catalog_results]
     definition_id_set = set(definition_ids)
     historical_source_blocker_ids = {
         item["indicatorId"] for item in catalog["results"] if not item["sourceIds"]
     }
     allowed_classifications = {
-        item["indicatorId"]: set(
-            catalog["classificationPolicies"][item["classificationPolicy"]]["allowed"]
+        item["indicatorId"]: (
+            set()
+            if _monitoring_mode(item) == "complementary"
+            else set(
+                catalog["classificationPolicies"][item["classificationPolicy"]][
+                    "allowed"
+                ]
+            )
         )
-        for item in catalog["results"]
+        for item in visible_catalog_results
     }
     available_per_municipality: list[int] = []
     v2_occurrences = Counter()
@@ -696,7 +924,11 @@ def audit_pne2026_public_diagnostic_v2(
         for indicator_id, result in v2_by_id.items():
             v2_occurrences[indicator_id] += 1
             classifications[result.get("classification")] += 1
-            directions[result["indicatorReference"].get("direction", result.get("direction")) or result.get("direction")] += 1
+            reference = result.get("indicatorReference") or {}
+            directions[
+                reference.get("direction", result.get("direction"))
+                or result.get("direction")
+            ] += 1
             relationships[result["relationshipType"]] += 1
             value = result["current"]["value"]
             if value > 100:
@@ -727,7 +959,7 @@ def audit_pne2026_public_diagnostic_v2(
                     expected_source.get("sourceIds")
                     or next(
                         item["sourceIds"]
-                        for item in catalog["results"]
+                        for item in visible_catalog_results
                         if item["indicatorId"] == indicator_id
                     )
                 )
@@ -778,10 +1010,17 @@ def audit_pne2026_public_diagnostic_v2(
         "publicationReady": publication_ready,
         "municipalityCount": municipality_count,
         "authorizedPairCount": len(catalog["results"]),
-        "goalCount": len({item["goalId"] for item in catalog["results"]}),
+        "goalCount": len({item["goalId"] for item in visible_catalog_results}),
         "indicatorCount": len(definition_ids),
-        "essentialCount": sum(item["tier"] == "essential" for item in catalog["results"]),
-        "complementaryCount": sum(item["tier"] == "complementary" for item in catalog["results"]),
+        "essentialCount": sum(
+            item["tier"] == "essential"
+            and _monitoring_mode(item) == "progress"
+            for item in visible_catalog_results
+        ),
+        "complementaryCount": sum(
+            _monitoring_mode(item) == "complementary"
+            for item in visible_catalog_results
+        ),
         "sourceBlockedIndicatorIds": [],
         "historicalSourceBlockerIndicatorIds": sorted(
             historical_source_blocker_ids

@@ -9,6 +9,7 @@ from src.data_loader import load_basico_integral_por_dependencia_data
 from src.data_loader import load_censo_populacao_alfabetizacao_data
 from src.data_loader import load_censo_populacao_ensino_fundamental_6_14_data
 from src.data_loader import load_censo_populacao_ensino_fundamental_concluido_15_29_data
+from src.data_loader import load_censo_populacao_ensino_fundamental_concluido_15_mais_data
 from src.data_loader import load_censo_populacao_ensino_fundamental_concluido_18_mais_data
 from src.data_loader import load_censo_populacao_ensino_medio_15_17_data
 from src.data_loader import load_censo_populacao_ensino_medio_concluido_18_29_data
@@ -35,6 +36,8 @@ from src.data_loader import load_pre_escola_por_dependencia_data
 from src.medio_tecnico_articulado import (
     MedioTecnicoArticuladoValidationError,
     calculate_medio_tecnico_articulado_series,
+    calculate_public_expansion_series,
+    calculate_subsequent_expansion_series,
 )
 from src.school_infrastructure_materialization import (
     REFERENCE_YEAR as SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
@@ -1114,14 +1117,14 @@ def build_medio_tecnico_articulado_percentual_details(municipio):
     series_total = [
         {
             "ano": int(row["ano"]),
-            "valor": int(row["mat_integrado_total"]),
+            "valor": int(row["mat_articulado_total"]),
         }
         for _, row in valid_ratio.iterrows()
     ]
     series_components = [
         {
             "ano": int(row["ano"]),
-            "numerador": int(row["mat_integrado_total"]),
+            "numerador": int(row["mat_articulado_total"]),
             "denominador": int(row["mat_medio"]),
             "percentual": float(row["percentual_calculado"]),
             "integrado": int(row["mat_integrado_total"]),
@@ -1175,14 +1178,17 @@ def build_medio_tecnico_articulado_percentual_details(municipio):
         int(row["ano"]) for _, row in valid_ratio.iterrows() if bool(row["acima_de_100"])
     ]
     payload = {
-        "title": "Ensino médio articulado à educação profissional técnica",
+        "title": (
+            "Matrículas em cursos técnicos integrados ou concomitantes "
+            "em relação às matrículas do ensino médio"
+        ),
         "subtitle": (
-            "Percentual das matrículas em cursos técnicos integrados em relação ao "
-            "total de matrículas do ensino médio."
+            "Percentual das matrículas em cursos técnicos integrados ou concomitantes "
+            "em relação ao total de matrículas do ensino médio."
         ),
         "unit": "%",
         "calculation": {
-            "numerator_label": "Matrículas em cursos técnicos integrados",
+            "numerator_label": "Matrículas em cursos técnicos integrados ou concomitantes",
             "denominator_label": "Total de matrículas do ensino médio",
         },
         "series_total": series_total,
@@ -1192,10 +1198,9 @@ def build_medio_tecnico_articulado_percentual_details(municipio):
         "series_auxiliares": series_auxiliares,
         "source": "INEP — Sinopse Estatística da Educação Básica.",
         "methodology_note": (
-            "Indicador calculado pela relação entre as matrículas em cursos técnicos "
-            "integrados ao ensino médio e o total de matrículas do ensino médio. As "
-            "matrículas concomitantes permanecem apresentadas no aprofundamento como "
-            "informação complementar."
+            "Indicador calculado pela soma das matrículas em cursos técnicos integrados "
+            "e concomitantes, dividida pelo total de matrículas do ensino médio. A fonte "
+            "não identifica estudantes únicos, por isso a relação permanece complementar."
         ),
         "reference": {
             "year": 2036,
@@ -1279,163 +1284,80 @@ def build_medio_tecnico_total_details(municipio):
 
 def build_medio_tecnico_participacao_publica_details(municipio):
     df = _safe_load(load_ept_nivel_medio_data)
-    required_columns = {
-        "ano",
-        "municipio",
-        "mat_ept_nivel_medio_total",
-        "mat_ept_nivel_medio_publica",
-    }
-    if df.empty or not required_columns.issubset(df.columns):
+    if df.empty or "municipio" not in df.columns:
         return None
-
     dff = df[df["municipio"] == municipio].copy()
     if dff.empty:
         return None
-
-    dff["ano"] = pd.to_numeric(dff["ano"], errors="coerce")
-    dff["mat_ept_nivel_medio_total"] = pd.to_numeric(
-        dff["mat_ept_nivel_medio_total"], errors="coerce"
-    )
-    dff["mat_ept_nivel_medio_publica"] = pd.to_numeric(
-        dff["mat_ept_nivel_medio_publica"], errors="coerce"
-    )
-    dff = dff.dropna(
-        subset=["ano", "mat_ept_nivel_medio_total", "mat_ept_nivel_medio_publica"]
-    ).copy()
-    if dff.empty:
+    try:
+        calculated = calculate_public_expansion_series(dff)
+    except MedioTecnicoArticuladoValidationError:
         return None
-
-    dff["ano"] = dff["ano"].astype(int)
-    dff["mat_ept_nivel_medio_total"] = dff["mat_ept_nivel_medio_total"].clip(lower=0)
-    dff["mat_ept_nivel_medio_publica"] = dff["mat_ept_nivel_medio_publica"].clip(lower=0)
-
-    total_by_year = (
-        dff.groupby("ano", as_index=False)["mat_ept_nivel_medio_total"]
-        .sum()
-        .rename(columns={"mat_ept_nivel_medio_total": "valor"})
-        .sort_values("ano")
-    )
-    total_by_year["valor"] = total_by_year["valor"].astype(int)
-    series_total = [
-        {"ano": int(row["ano"]), "valor": int(row["valor"])}
-        for _, row in total_by_year.iterrows()
-        if row["valor"] > 0
-    ]
-
-    yearly = (
-        dff.groupby("ano", as_index=False)
-        .agg(
-            {
-                "mat_ept_nivel_medio_publica": "sum",
-                "mat_ept_nivel_medio_total": "max",
-            }
-        )
-        .sort_values("ano")
-    )
-    series_components = []
-    for _, row in yearly.iterrows():
-        numerador = row["mat_ept_nivel_medio_publica"]
-        denominador = row["mat_ept_nivel_medio_total"]
-        if pd.isna(numerador) or pd.isna(denominador) or denominador <= 0:
-            continue
-        numerador = int(numerador)
-        denominador = int(denominador)
-        series_components.append(
+    available = calculated[calculated["data_status"] == "available"]
+    if available.empty:
+        return None
+    return {
+        "title": "Participação pública na expansão da EPT de nível médio desde 2025",
+        "subtitle": "Participação da expansão líquida pública na expansão líquida total desde a base fixa de 2025.",
+        "unit": "%",
+        "calculation": {
+            "numerator_label": "Expansão líquida pública",
+            "denominator_label": "Expansão líquida total",
+        },
+        "series_components": [
             {
                 "ano": int(row["ano"]),
-                "numerador": numerador,
-                "denominador": denominador,
-                "percentual": round((numerador / denominador) * 100, 1),
+                "numerador": float(row["numerador"]),
+                "denominador": float(row["denominador"]),
+                "percentual": float(row["valor"]),
             }
-        )
-
-    if not series_total or not series_components:
-        return None
-
-    series_dependencia = _build_column_based_dependency_series(df, municipio, {
-        "federal": "mat_ept_nivel_medio_federal",
-        "estadual": "mat_ept_nivel_medio_estadual",
-        "municipal": "mat_ept_nivel_medio_municipal",
-        "privada": "mat_ept_nivel_medio_privada",
-    })
-
-    payload = {
-        "title": "Participação acumulada do segmento público na expansão da EPT de nível médio",
-        "subtitle": "Compara o número de matrículas públicas com o total de matrículas em EPT de nível médio a cada ano.",
-        "unit": "matrículas",
-        "calculation": {
-            "numerator_label": "Matrículas em EPT de nível médio - público",
-            "denominator_label": "Total de matrículas em EPT de nível médio",
-        },
-        "series_total": series_total,
-        "series_components": series_components,
+            for _, row in available.iterrows()
+        ],
+        "source": "INEP — Sinopse Estatística da Educação Básica.",
+        "methodology_note": (
+            "Base fixa em 2025; rede pública federal, estadual e municipal. "
+            "Expansões negativas e valores acima de 100% são preservados."
+        ),
     }
-
-    if series_dependencia:
-        payload["series_dependencia"] = series_dependencia
-
-    return payload
 
 
 def build_subsequente_expansao_details(municipio):
     df = _safe_load(load_ept_nivel_medio_data)
-    required_columns = {
-        "ano",
-        "municipio",
-        "mat_subsequente_total",
-    }
-    if df.empty or not required_columns.issubset(df.columns):
+    if df.empty or "municipio" not in df.columns:
         return None
-
     dff = df[df["municipio"] == municipio].copy()
     if dff.empty:
         return None
-
-    dff["ano"] = pd.to_numeric(dff["ano"], errors="coerce")
-    dff["mat_subsequente_total"] = pd.to_numeric(
-        dff["mat_subsequente_total"], errors="coerce"
-    )
-    dff = dff.dropna(subset=["ano", "mat_subsequente_total"]).copy()
-    if dff.empty:
+    try:
+        calculated = calculate_subsequent_expansion_series(dff)
+    except MedioTecnicoArticuladoValidationError:
         return None
-
-    dff["ano"] = dff["ano"].astype(int)
-    dff["mat_subsequente_total"] = dff["mat_subsequente_total"].clip(lower=0)
-
-    total_by_year = (
-        dff.groupby("ano", as_index=False)["mat_subsequente_total"]
-        .sum()
-        .rename(columns={"mat_subsequente_total": "valor"})
-        .sort_values("ano")
-    )
-    total_by_year["valor"] = total_by_year["valor"].astype(int)
-    series_total = [
-        {"ano": int(row["ano"]), "valor": int(row["valor"])}
-        for _, row in total_by_year.iterrows()
-        if row["valor"] > 0
-    ]
-
-    if not series_total:
+    available = calculated[calculated["data_status"] == "available"]
+    if available.empty:
         return None
-
-    series_dependencia = _build_column_based_dependency_series(df, municipio, {
-        "federal": "mat_subsequente_federal",
-        "estadual": "mat_subsequente_estadual",
-        "municipal": "mat_subsequente_municipal",
-        "privada": "mat_subsequente_privada",
-    })
-
-    payload = {
-        "title": "Expansão acumulada das matrículas em cursos técnicos subsequentes",
-        "subtitle": "Número absoluto de matrículas em cursos técnicos subsequentes da Educação Profissional e Tecnológica de nível médio no município.",
-        "unit": "matrículas",
-        "series_total": series_total,
+    return {
+        "title": "Expansão das matrículas em cursos técnicos subsequentes desde 2025",
+        "subtitle": "Expansão percentual em relação à base fixa de 2025.",
+        "unit": "%",
+        "calculation": {
+            "numerator_label": "Variação absoluta desde 2025",
+            "denominator_label": "Matrículas subsequentes em 2025",
+        },
+        "series_components": [
+            {
+                "ano": int(row["ano"]),
+                "numerador": float(row["numerador"]),
+                "denominador": float(row["denominador"]),
+                "percentual": float(row["valor"]),
+            }
+            for _, row in available.iterrows()
+        ],
+        "source": "INEP — Sinopse Estatística da Educação Básica.",
+        "methodology_note": (
+            "Base fixa em 2025; base zero é não aplicável. Retrações e expansões "
+            "acima de 100% são preservadas."
+        ),
     }
-
-    if series_dependencia:
-        payload["series_dependencia"] = series_dependencia
-
-    return payload
 
 
 def build_eja_integrada_educacao_profissional_details(municipio):
@@ -1969,7 +1891,7 @@ def build_conselho_escolar_details(municipio):
         denominator_column="escolas_publicas_total",
         numerator_label="Escolas públicas com conselho escolar",
         denominator_label="Total de escolas públicas",
-        title="Escolas públicas com conselho escolar instituído e em funcionamento",
+        title="Escolas públicas que declararam possuir conselho escolar",
         unit="escolas públicas",
         include_public_dependency=True,
     )
@@ -2247,6 +2169,19 @@ def build_fundamental_concluido_15_29_details(municipio):
         unit="pessoas",
         numerator_label="População de 15 a 29 anos com ensino fundamental concluído",
         denominator_label="População de 15 a 29 anos",
+    )
+
+
+def build_fundamental_concluido_15_mais_details(municipio):
+    return _build_censo_percentual_details(
+        municipio,
+        loader=load_censo_populacao_ensino_fundamental_concluido_15_mais_data,
+        numerator_column="populacao_15_mais_ensino_fundamental_concluido",
+        denominator_column="populacao_15_mais_total",
+        title="População de 15 anos ou mais com ensino fundamental concluído",
+        unit="pessoas",
+        numerator_label="População de 15 anos ou mais com ensino fundamental concluído",
+        denominator_label="População de 15 anos ou mais",
     )
 
 
@@ -2925,6 +2860,7 @@ DETAIL_BUILDERS = {
     "ensino_fundamental_ou_completo_pop_6_14": build_ensino_fundamental_ou_completo_pop_6_14_details,
     "fundamental_concluido_18_mais": build_fundamental_concluido_18_mais_details,
     "fundamental_concluido_15_29": build_fundamental_concluido_15_29_details,
+    "fundamental_concluido_15_mais": build_fundamental_concluido_15_mais_details,
     "medio_concluido_18_mais": build_medio_concluido_18_mais_details,
     "medio_concluido_18_29": build_medio_concluido_18_29_details,
     "escolaridade_media_18_29": build_escolaridade_media_18_29_details,

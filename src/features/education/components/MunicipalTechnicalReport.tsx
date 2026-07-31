@@ -14,8 +14,8 @@ import type {
 } from '../municipalEducationOverviewTypes'
 import '../../../styles/municipal-technical-report-print.css'
 import type {
-  Pne2026PublicDiagnosticV2,
-  Pne2026PublicResultV2,
+  Pne2026DiagnosticResultViewModel,
+  Pne2026DiagnosticViewModel,
 } from '../../diagnostic/diagnosticTypes'
 import type { PmeReferenceDataSources } from '../pmeReferenceTableViewModel'
 import {
@@ -66,7 +66,7 @@ interface MunicipalTechnicalReportProps {
   municipalityPopulation?: unknown
   municipalitySlug?: string | null
   overview: MunicipalEducationOverviewV1 | null
-  pmeDiagnostic: Pne2026PublicDiagnosticV2 | null
+  pmeDiagnostic: Pne2026DiagnosticViewModel | null
   pmeDiagnosticError?: string | null
   pmeDiagnosticLoading?: boolean
   pmeReferenceData?: PmeReferenceDataSources
@@ -305,7 +305,10 @@ function indicatorValue(item: ReportIndicator | undefined) {
   return String(item.currentValue)
 }
 
-function formatDiagnosticResult(result: Pne2026PublicResultV2) {
+function formatDiagnosticResult(result: Pne2026DiagnosticResultViewModel) {
+  if (result.dataStatus !== 'available') {
+    return result.dataStatusLabel ?? 'Não disponível para o período'
+  }
   const suppliedDisplay = result.current.displayText?.trim()
   if (
     suppliedDisplay
@@ -321,7 +324,7 @@ function formatDiagnosticResult(result: Pne2026PublicResultV2) {
   return formatted
 }
 
-function diagnosticUnit(result: Pne2026PublicResultV2) {
+function diagnosticUnit(result: Pne2026DiagnosticResultViewModel) {
   if (result.current.unit === 'percent') return 'percentual'
   if (result.current.unit === 'count') return 'quantidade'
   if (result.current.unit === 'years') return 'anos'
@@ -329,7 +332,7 @@ function diagnosticUnit(result: Pne2026PublicResultV2) {
 }
 
 function getDiagnosticReportIndicators(
-  diagnostic: Pne2026PublicDiagnosticV2 | null,
+  diagnostic: Pne2026DiagnosticViewModel | null,
   keys: string[],
 ): ReportIndicator[] {
   if (!diagnostic) return []
@@ -498,7 +501,10 @@ export function MunicipalTechnicalReport({
   const getDiagnosticItems = (...keys: string[]) =>
     getDiagnosticReportIndicators(pmeDiagnostic, keys)
   const earlyChildhoodAttendanceItems = getDiagnosticItems('creche', 'pre_escola')
-  const elementaryAttendanceItems = getDiagnosticItems('basico_6_17')
+  const hasEarlyChildhoodAttendanceAbove100 = earlyChildhoodAttendanceItems.some(
+    (item) => Number.isFinite(Number(item.currentValue)) && Number(item.currentValue) > 100,
+  )
+  const elementaryAttendanceItems = getDiagnosticItems('basico_6_17', 'alfabetizacao')
   const highSchoolAttendanceItems = getDiagnosticItems('basico_15_17')
   const fullTimeItems = mergeReportIndicators(
     getItems('mat-integral'),
@@ -507,7 +513,16 @@ export function MunicipalTechnicalReport({
   const environmentalEducationItems = getDiagnosticItems('educacao_ambiental')
   const ejaProfessionalItems = mergeReportIndicators(
     getItems('eja_integrada_educacao_profissional'),
-    getDiagnosticItems('eja_integrada_educacao_profissional_percentual'),
+    getDiagnosticItems('eja_atendimento_18_mais', 'eja_integrada_educacao_profissional_percentual'),
+  )
+  const higherEducationDiagnosticItems = getDiagnosticItems(
+    'graduacao_frequencia_18_24',
+    'superior_completo_25_34',
+    'taxa_bruta_graduacao',
+    'docentes_tempo_integral_ies',
+    'docentes_tempo_integral_universidades',
+    'docentes_tempo_integral_centros_universitarios',
+    'docentes_tempo_integral_faculdades',
   )
   const teachingConditionsItems = mergeReportIndicators(
     getItems('alunos-turma-infantil', 'alunos-turma-fundamental', 'alunos-turma-medio'),
@@ -702,7 +717,9 @@ export function MunicipalTechnicalReport({
         <ReportSection compact={!overview && !earlyChildhoodAttendanceItems.length && !getItems('alunos-turma-infantil').length} coverage="partial" model="metrics-table-stack" number={2} section={MUNICIPAL_REPORT_SECTIONS[1]} metadata={`INEP — Censo Escolar, base populacional e Média de Alunos por Turma · ${mainPeriod}`}>
           {overview ? <><SnapshotSummary values={[['Educação Infantil', overview.earlyChildhood.total.total], ['Creche', overview.earlyChildhood.creche.total], ['Pré-escola', overview.earlyChildhood.preSchool.total]]} /><StageOfferTable caption="Matrículas da Educação Infantil por rede" stage={overview.earlyChildhood.total} /><ReportMunicipalReading><p>A rede municipal responde por {formatOverviewEnrollments(overview.earlyChildhood.total.byNetwork.municipal.enrollments)} das {formatOverviewEnrollments(overview.earlyChildhood.total.total)} matrículas da Educação Infantil, equivalente a {formatOverviewPercentage(overview.earlyChildhood.total.byNetwork.municipal.share)}.</p></ReportMunicipalReading></> : null}
           <IndicatorTable caption="Atendimento estimado e organização das turmas" items={mergeReportIndicators(earlyChildhoodAttendanceItems, getItems('alunos-turma-infantil'))} />
-          <ReportNote>Os percentuais estimados combinam matrículas segundo a localização da escola e população residente. Não são taxas líquidas de atendimento e podem ultrapassar 100%. A média de alunos por turma não revela a distribuição entre escolas, redes ou localizações.</ReportNote>
+          <ReportNote>
+            Os percentuais estimados combinam matrículas segundo a localização da escola e população residente. Não são taxas líquidas de atendimento. {hasEarlyChildhoodAttendanceAbove100 ? 'Há resultado acima de 100% neste município, preservado em seu valor bruto. ' : ''}A média de alunos por turma não revela a distribuição entre escolas, redes ou localizações.
+          </ReportNote>
         </ReportSection>
 
         <ReportSection compact={!overview && !elementaryAttendanceItems.length && !getItems('alunos-turma-fundamental').length} coverage="partial" model="metrics-table-stack" number={3} section={MUNICIPAL_REPORT_SECTIONS[2]} metadata={`INEP — Censo Escolar, base populacional e Média de Alunos por Turma · ${mainPeriod}`}>
@@ -778,12 +795,13 @@ export function MunicipalTechnicalReport({
       </ReportChapter>
 
       <ReportChapter chapter={MUNICIPAL_REPORT_CHAPTERS[2]}>
-        <ReportSection compact={higherEducation?.availability === 'unavailable'} model="table-only" number={10} section={MUNICIPAL_REPORT_SECTIONS[9]} metadata={`INEP — Sinopse Estatística da Educação Superior · ${higherEducation?.latestMunicipalUsableYear ?? 'Sem referência municipal'}`}>
+        <ReportSection compact={higherEducation?.availability === 'unavailable' && !higherEducationDiagnosticItems.length} model="table-only" number={10} section={MUNICIPAL_REPORT_SECTIONS[9]} metadata={`INEP e IBGE · ${higherEducation?.latestMunicipalUsableYear ?? higherEducationDiagnosticItems[0]?.currentYear ?? 'Sem referência municipal'}`}>
           <HigherEducationReportContent
             error={higherEducationError}
             loading={higherEducationLoading}
             viewModel={higherEducation}
           />
+          <IndicatorTable caption="Indicadores de graduação e docentes em tempo integral" items={higherEducationDiagnosticItems} />
           <a className="platform-navigation-button" href={educationLink('educacao-superior')}>Abrir página de Educação Superior</a>
         </ReportSection>
 

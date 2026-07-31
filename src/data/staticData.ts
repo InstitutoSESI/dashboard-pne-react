@@ -4,7 +4,7 @@ import type {
   MunicipiosIndexPayload,
   MunicipiosPayload,
 } from '../types/data'
-import type { MunicipalDiagnosticContractV2 } from '../features/diagnostic/diagnosticTypes'
+import type { MunicipalInequalityDocument } from '../types/municipalInequality'
 
 type JsonObject = Record<string, unknown>
 
@@ -62,8 +62,8 @@ export function loadMunicipioData(idMunicipio: string): Promise<MunicipioData> {
   return loadJson<MunicipioData>(`/data/municipios/${idMunicipio}/index.json`)
 }
 
-export function loadMunicipioDiagnostic(idMunicipio: string): Promise<MunicipalDiagnosticContractV2> {
-  return loadJson<MunicipalDiagnosticContractV2>(`/data/municipios/${idMunicipio}/diagnostico.json`)
+export function loadMunicipioInequality(idMunicipio: string): Promise<MunicipalInequalityDocument> {
+  return loadJson<MunicipalInequalityDocument>(`/data/municipios/${idMunicipio}/diagnostico.json`)
 }
 
 export function loadMunicipioDetails(idMunicipio: string): Promise<JsonObject> {

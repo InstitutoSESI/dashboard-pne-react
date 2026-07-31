@@ -6,41 +6,35 @@ import { SearchField } from '../components/SearchField'
 import {
   PNE_2026_LEGAL_GOAL_INDICATOR_MAP,
   PNE_2026_LEGAL_GOAL_MAPPING_METADATA,
+  getPne2026PublicLegalGoalRelations,
 } from '../data/pne2026LegalGoalIndicatorMap'
 import {
   formatIndicatorValue,
-  formatMetaValue,
-  getIndicatorTitle,
   resolveIndicatorUnit,
-  roundPpString,
 } from '../utils/format'
 import { normalizePopulationPercentResults } from '../utils/indicatorValues'
-import { getPneCycleCopy } from '../utils/pneCycleCopy'
-import { isPne2026AccumulativeIndicator } from '../utils/pneAccumulativeCycle'
 import {
-  isPneComparableIndicator,
-  isPneContextProxyRelation,
-} from '../utils/pneDisplayRules'
+  PNE_2026_RELATIONSHIP_MODES,
+  reconcilePne2026MunicipalResult,
+} from '../data/pne2026GoalIndicatorContract'
+import { useMunicipioDiagnostic } from '../hooks/useMunicipioDiagnostic'
+import { mergePne2026DiagnosticResults } from '../utils/pneCycleDiagnosticResults'
+import {
+  PNE_LEGAL_GOAL_CATEGORIES,
+  PNE_LEGAL_GOAL_CATEGORY_LABELS,
+  buildPneLegalGoalsSummary,
+  getPne2026CanonicalCycleItems,
+  getPneLegalDataStatusLabel,
+  getPneLegalGoalCategory,
+  getPneLegalRelationPresentation,
+  indexPne2026DiagnosticResults,
+} from '../utils/pneLegalGoalsPresentation'
+import { getPneComparisonStatusPresentation } from '../utils/pneIndicatorPresentation'
 
 const PNE_2026_CYCLE = 'pne_2026_2036'
-const PNE_2026_COPY = getPneCycleCopy(PNE_2026_CYCLE)
 const EMPTY_ARRAY = []
 
-const METHODOLOGY_WARNINGS_BY_KEY = {
-  salas_climatizadas:
-    'Proxy parcial de conforto térmico; não mede todo o padrão físico do estabelecimento.',
-  salas_acessiveis:
-    'Proxy parcial de acessibilidade; não mede toda a acessibilidade escolar.',
-}
-
-const COVERAGE_LABELS = {
-  contexto: 'Indicador de contexto',
-  direta: 'Acompanhamento direto',
-  parcial: 'Cobertura parcial',
-  proxy: 'Proxy metodológico',
-  sem_comparavel: 'Sem acompanhamento municipal comparável',
-  sem_indicador: 'Sem indicador municipal',
-}
+const COVERAGE_LABELS = PNE_LEGAL_GOAL_CATEGORY_LABELS
 
 const ALL_THEMES_FILTER = 'todos'
 const UNMAPPED_THEME_LABEL = 'Tema sem indicador associado'
@@ -62,16 +56,31 @@ export function PneLegalGoalsPage({
   const [showUntrackedGoals, setShowUntrackedGoals] = useState(false)
   const [themeFilter, setThemeFilter] = useState(ALL_THEMES_FILTER)
   const [searchQuery, setSearchQuery] = useState('')
+  const municipalDiagnosticState = useMunicipioDiagnostic(
+    municipioData?.id_municipio,
+  )
+  const diagnostic = municipalDiagnosticState.data?.pne2026PublicDiagnostic ?? null
+  const diagnosticResultByRelation = useMemo(
+    () => indexPne2026DiagnosticResults(diagnostic),
+    [diagnostic],
+  )
 
   const cycleCategories = indicadores?.cycles?.[PNE_2026_CYCLE]?.categories ?? EMPTY_ARRAY
   const cycleItems = useMemo(
-    () => cycleCategories.flatMap((category) =>
-      (category.items ?? []).map((item) => ({
+    () => {
+      const catalogItems = cycleCategories.flatMap((category) =>
+        (category.items ?? []).map((item) => ({
+          ...item,
+          categoryKey: category.key,
+          categoryLabel: category.label,
+        })),
+      )
+      const catalogByKey = new Map(catalogItems.map((item) => [item.key, item]))
+      return getPne2026CanonicalCycleItems().map((item) => ({
+        ...catalogByKey.get(item.key),
         ...item,
-        categoryKey: category.key,
-        categoryLabel: category.label,
-      })),
-    ),
+      }))
+    },
     [cycleCategories],
   )
   const itemByKey = useMemo(
@@ -80,26 +89,42 @@ export function PneLegalGoalsPage({
   )
 
   const municipioResults = municipioData?.[PNE_2026_CYCLE]?.indicadores ?? null
-  const normalizedResults = useMemo(
-    () => normalizePopulationPercentResults(municipioResults, cycleItems),
-    [cycleItems, municipioResults],
+  const combinedMunicipioResults = useMemo(
+    () => mergePne2026DiagnosticResults(municipioResults, diagnostic),
+    [diagnostic, municipioResults],
   )
-  const projections = municipioData?.[PNE_2026_CYCLE]?.projecoes ?? {}
+  const normalizedResults = useMemo(
+    () => normalizePopulationPercentResults(combinedMunicipioResults, cycleItems, PNE_2026_CYCLE),
+    [combinedMunicipioResults, cycleItems],
+  )
 
   const summary = useMemo(
-    () => buildCoverageSummary(PNE_2026_LEGAL_GOAL_INDICATOR_MAP, normalizedResults),
-    [normalizedResults],
+    () => buildPneLegalGoalsSummary(PNE_2026_LEGAL_GOAL_INDICATOR_MAP),
+    [],
   )
 
   const themeOptions = useMemo(
-    () => [
-      { label: 'Todos os temas', value: ALL_THEMES_FILTER },
-      ...cycleCategories.map((category) => ({
-        label: category.label,
-        value: category.key,
-      })),
-    ],
-    [cycleCategories],
+    () => {
+      const categoriesByKey = new Map()
+      cycleItems.forEach((item) => {
+        if (!categoriesByKey.has(item.categoryKey)) {
+          categoriesByKey.set(item.categoryKey, {
+            label: item.categoryLabel,
+            order: item.categoryOrder ?? Number.MAX_SAFE_INTEGER,
+            value: item.categoryKey,
+          })
+        }
+      })
+      return [
+        { label: 'Todos os temas', value: ALL_THEMES_FILTER },
+        ...[...categoriesByKey.values()]
+          .toSorted((left, right) => (
+            left.order - right.order || left.label.localeCompare(right.label, 'pt-BR')
+          ))
+          .map(({ label, value }) => ({ label, value })),
+      ]
+    },
+    [cycleItems],
   )
 
   const filteredGoals = useMemo(() => {
@@ -140,12 +165,16 @@ export function PneLegalGoalsPage({
   }, [itemByKey, searchQuery, themeFilter])
 
   const trackedGoals = useMemo(
-    () => filteredGoals.filter((goal) => classifyGoalCoverage(goal, normalizedResults) !== 'sem_comparavel'),
-    [filteredGoals, normalizedResults],
+    () => filteredGoals.filter(
+      (goal) => getPneLegalGoalCategory(goal) !== PNE_LEGAL_GOAL_CATEGORIES.WITHOUT_INDICATOR,
+    ),
+    [filteredGoals],
   )
   const untrackedGoals = useMemo(
-    () => filteredGoals.filter((goal) => classifyGoalCoverage(goal, normalizedResults) === 'sem_comparavel'),
-    [filteredGoals, normalizedResults],
+    () => filteredGoals.filter(
+      (goal) => getPneLegalGoalCategory(goal) === PNE_LEGAL_GOAL_CATEGORIES.WITHOUT_INDICATOR,
+    ),
+    [filteredGoals],
   )
 
   function toggleGoal(goalId) {
@@ -191,24 +220,24 @@ export function PneLegalGoalsPage({
           value={summary.total}
         />
         <SummaryCard
-          detail="metas únicas com ao menos um indicador comparável"
-          label="Metas legais acompanhadas"
-          value={summary.tracked}
-        />
-        <SummaryCard
-          detail="melhor cobertura disponível para a meta"
+          detail="relação pública diretamente aderente"
           label="Acompanhamento direto"
           value={summary.direct}
         />
         <SummaryCard
-          detail="com indicador comparável, mas não integral"
-          label="Cobertura parcial"
+          detail="relação pública parcial ou aproximativa"
+          label="Acompanhamento parcial"
           value={summary.partial}
         />
         <SummaryCard
-          detail="sem distância/status interpretável"
-          label="Sem acompanhamento comparável"
-          value={summary.withoutComparableTracking}
+          detail="relação pública sem comparação municipal"
+          label="Informação complementar"
+          value={summary.complementary}
+        />
+        <SummaryCard
+          detail="sem relação pública utilizável"
+          label="Sem indicador municipal"
+          value={summary.withoutIndicator}
         />
       </section>
 
@@ -216,10 +245,9 @@ export function PneLegalGoalsPage({
         <div>
           <span>Aviso metodológico</span>
           <p>
-            Indicadores de contexto não representam cumprimento da meta legal e
-            não exibem distância da meta. Uma meta legal pode ter mais de um
-            indicador associado; por isso o total de indicadores pode ser maior
-            que o total de metas acompanhadas.
+            A classificação descreve a aderência metodológica entre meta e
+            indicador; não avalia o desempenho municipal. As quatro categorias
+            são mutuamente exclusivas e totalizam as 73 metas legais.
           </p>
         </div>
         <CoverageLegend />
@@ -230,7 +258,7 @@ export function PneLegalGoalsPage({
           <h2>Selecione um município para acompanhar os indicadores relacionados</h2>
           <p>
             A matriz legal já está disponível, mas resultados atuais, distâncias
-            e projeções dependem da escolha de um município.
+            e situações observadas dependem da escolha de um município.
           </p>
           {onMunicipioChange ? (
             <div className="legal-goals-empty-municipio__selector">
@@ -286,7 +314,7 @@ export function PneLegalGoalsPage({
           </section>
 
           <div className="legal-goals-results-meta platform-results-summary">
-            <span>{trackedGoals.length} metas acompanhadas exibidas</span>
+            <span>{trackedGoals.length} metas com informação municipal</span>
             <p>
               {getSelectedThemeLabel(themeOptions, themeFilter)} · {selectedMunicipio} ·
               Lei nº 15.388/2026
@@ -306,9 +334,9 @@ export function PneLegalGoalsPage({
                   itemByKey={itemByKey}
                   key={goal.legalGoalId}
                   normalizedResults={normalizedResults}
+                  diagnosticResultByRelation={diagnosticResultByRelation}
                   onNavigate={onNavigate}
                   onToggle={() => toggleGoal(goal.legalGoalId)}
-                  projections={projections}
                 />
               ))}
             </section>
@@ -317,8 +345,6 @@ export function PneLegalGoalsPage({
           <UntrackedLegalGoals
             goals={untrackedGoals}
             isOpen={showUntrackedGoals}
-            itemByKey={itemByKey}
-            normalizedResults={normalizedResults}
             onToggle={() => setShowUntrackedGoals((current) => !current)}
           />
         </>
@@ -340,19 +366,24 @@ function SummaryCard({ detail, label, value }) {
 function CoverageLegend() {
   const legendItems = [
     {
-      coverage: 'direta',
+      coverage: PNE_LEGAL_GOAL_CATEGORIES.DIRECT,
       description: 'o indicador acompanha de forma próxima a meta legal.',
       label: 'Acompanhamento direto',
     },
     {
-      coverage: 'parcial',
+      coverage: PNE_LEGAL_GOAL_CATEGORIES.PARTIAL,
       description: 'o indicador mede uma parte relevante da meta, mas não representa sozinho todo o texto legal.',
-      label: 'Cobertura parcial',
+      label: 'Acompanhamento parcial',
     },
     {
-      coverage: 'sem_comparavel',
-      description: 'ainda não há fonte municipal adequada para acompanhar a meta no painel.',
-      label: 'Sem acompanhamento municipal comparável',
+      coverage: PNE_LEGAL_GOAL_CATEGORIES.COMPLEMENTARY,
+      description: 'há informação municipal útil, sem comparação com referência.',
+      label: 'Informação complementar',
+    },
+    {
+      coverage: PNE_LEGAL_GOAL_CATEGORIES.WITHOUT_INDICATOR,
+      description: 'não há relação pública municipal utilizável no contrato atual.',
+      label: 'Sem indicador municipal',
     },
   ]
 
@@ -372,17 +403,17 @@ function CoverageLegend() {
 }
 
 function LegalGoalAccordionItem({
+  diagnosticResultByRelation,
   goal,
   isExpanded,
   itemByKey,
   normalizedResults,
   onNavigate,
   onToggle,
-  projections,
 }) {
   const contentId = `legal-goal-panel-${goal.legalGoalId.replace('.', '-')}`
-  const goalCoverage = classifyGoalCoverage(goal, normalizedResults)
-  const comparableRelations = getComparableGoalRelations(goal, normalizedResults)
+  const goalCoverage = getPneLegalGoalCategory(goal)
+  const visibleRelations = getVisibleGoalRelations(goal)
   const goalThemeLabel = getGoalThemeSummary(goal, itemByKey)
 
   return (
@@ -409,22 +440,36 @@ function LegalGoalAccordionItem({
 
       {isExpanded ? (
         <div className="legal-goal-card__body" id={contentId}>
-          <p className="legal-goal-full-text">{goal.legalText}</p>
-          {comparableRelations.length === 0 ? (
+          <section className="legal-goal-legal-text">
+            <h3>Texto legal</h3>
+            <div className="legal-goal-legal-text__meta">
+              <span>Meta {goal.legalGoalId}</span>
+              <span>{goalThemeLabel}</span>
+            </div>
+            <p className="legal-goal-full-text">{goal.legalText}</p>
+          </section>
+          {visibleRelations.length === 0 ? (
             <NoMunicipalIndicator reason={goal.noMunicipalIndicatorReason} />
           ) : (
-            <div className="legal-goal-indicator-list">
-              {comparableRelations.map((indicatorRelation) => (
+            <section className="legal-goal-monitoring">
+              <h3>
+                {visibleRelations.length > 1
+                  ? `Indicadores municipais associados — ${visibleRelations.length}`
+                  : 'Como esta meta é acompanhada no município'}
+              </h3>
+              <div className="legal-goal-indicator-list">
+              {visibleRelations.map((indicatorRelation) => (
                 <LegalGoalIndicator
+                  diagnosticResult={diagnosticResultByRelation.get(indicatorRelation.relationId)}
                   indicatorRelation={indicatorRelation}
                   item={itemByKey.get(indicatorRelation.indicatorId)}
                   key={`${goal.legalGoalId}-${indicatorRelation.indicatorId}`}
                   onNavigate={onNavigate}
-                  projection={projections?.[indicatorRelation.indicatorId]}
                   result={normalizedResults?.[indicatorRelation.indicatorId]}
                 />
               ))}
-            </div>
+              </div>
+            </section>
           )}
         </div>
       ) : null}
@@ -451,7 +496,7 @@ function NoMunicipalIndicator({ reason }) {
   )
 }
 
-function UntrackedLegalGoals({ goals, isOpen, itemByKey, normalizedResults, onToggle }) {
+function UntrackedLegalGoals({ goals, isOpen, onToggle }) {
   if (!goals.length) return null
 
   return (
@@ -463,7 +508,7 @@ function UntrackedLegalGoals({ goals, isOpen, itemByKey, normalizedResults, onTo
         type="button"
       >
         <span>
-          <strong>Metas sem acompanhamento municipal comparável</strong>
+          <strong>Metas sem indicador municipal</strong>
           <em>{goals.length} metas nos filtros atuais</em>
         </span>
         <span className="legal-goal-chevron" aria-hidden="true" />
@@ -481,20 +526,12 @@ function UntrackedLegalGoals({ goals, isOpen, itemByKey, normalizedResults, onTo
             <article className="legal-goals-untracked__item" key={goal.legalGoalId}>
               <div className="legal-goals-untracked__heading">
                 <span className="legal-goal-code">Meta {goal.legalGoalId}</span>
-                <CoverageBadge coverage="sem_comparavel" />
+                <CoverageBadge coverage={PNE_LEGAL_GOAL_CATEGORIES.WITHOUT_INDICATOR} />
               </div>
               <p className="legal-goals-untracked__text">{goal.legalText}</p>
               <p className="legal-goals-untracked__reason">
-                {getUntrackedReasonLabel(goal, normalizedResults)}
+                {getUntrackedReasonLabel(goal)}
               </p>
-              {goal.relatedIndicators.length ? (
-                <p className="legal-goals-untracked__related">
-                  Dados relacionados:{' '}
-                  {goal.relatedIndicators
-                    .map((indicatorRelation) => itemByKey.get(indicatorRelation.indicatorId)?.label ?? indicatorRelation.indicatorId)
-                    .join(', ')}
-                </p>
-              ) : null}
             </article>
           ))}
         </div>
@@ -503,134 +540,153 @@ function UntrackedLegalGoals({ goals, isOpen, itemByKey, normalizedResults, onTo
   )
 }
 
-function LegalGoalIndicator({ indicatorRelation, item, onNavigate, projection, result }) {
-  const hasCatalogItem = Boolean(item)
-  const hasMunicipalResult = hasUsableMunicipalResult(indicatorRelation, result)
-  const isAccumulativeBaseline = (
-    isPne2026AccumulativeIndicator(PNE_2026_CYCLE, indicatorRelation.indicatorId) &&
-    Number(result?.end_year) <= 2025
-  )
-  const unit = resolveIndicatorUnit(item, result)
-  const comparable = !isAccumulativeBaseline && hasMunicipalResult && isComparableLegalIndicator(indicatorRelation, result)
-  const showDistance = comparable && hasComparableDistance(indicatorRelation, result)
-  const showProjection = comparable && hasProjection2036(indicatorRelation, projection)
-  const showStatus = comparable && hasReadableStatus(result)
-  const indicatorCoverage = getIndicatorCoverage(indicatorRelation, result)
-  const relationType = getRelationTypeLabel(indicatorRelation, result)
-  const methodologyWarning = getMethodologyWarning(indicatorRelation, result)
-  const indicatorTitle = hasCatalogItem
-    ? getIndicatorTitle(item, result)
-    : indicatorRelation.indicatorId
-  const relationCopy = buildRelationCopy(indicatorRelation, methodologyWarning)
+function LegalGoalIndicator({
+  diagnosticResult,
+  indicatorRelation,
+  item,
+  onNavigate,
+  result: municipalResult,
+}) {
+  const result = reconcilePne2026MunicipalResult({
+    goalId: indicatorRelation.legalGoalId,
+    indicatorId: indicatorRelation.indicatorId,
+    result: municipalResult,
+  }).result
+  const relationshipMode = indicatorRelation.monitoringMode
+  const isComplementary =
+    relationshipMode === PNE_2026_RELATIONSHIP_MODES.COMPLEMENTARY
+  const relationPresentation = getPneLegalRelationPresentation({
+    diagnosticResult,
+    item,
+    relation: indicatorRelation,
+  })
+  const dataStatus = diagnosticResult?.dataStatus
+    ?? result?.dataStatus
+    ?? (hasUsableMunicipalResult(indicatorRelation, result) ? 'available' : 'unavailable')
+  const hasMunicipalResult = dataStatus === 'available'
+  const unit = relationPresentation.indicator?.unit ?? resolveIndicatorUnit(item, result)
+  const currentValue = diagnosticResult?.current?.value ?? result?.end_value
+  const currentYear = diagnosticResult?.current?.year ?? result?.end_year
+  const referenceValue = diagnosticResult?.indicatorReference?.value ?? result?.meta
+  const distanceValue = diagnosticResult?.distance ?? result?.distance
+  const direction = diagnosticResult?.direction
+    ?? diagnosticResult?.indicatorReference?.direction
+    ?? result?.direction
+    ?? indicatorRelation.direction
+  const achieved = Number.isFinite(Number(distanceValue))
+    ? Number(distanceValue) >= 0
+    : typeof result?.atingida === 'boolean'
+      ? result.atingida
+      : null
+  const statusPresentation = getPneComparisonStatusPresentation({
+    achieved,
+    dataStatus,
+    direction,
+    mode: relationshipMode,
+  })
+  const indicatorCoverage = isComplementary
+    ? PNE_LEGAL_GOAL_CATEGORIES.COMPLEMENTARY
+    : indicatorRelation.coverage === 'direta'
+      ? PNE_LEGAL_GOAL_CATEGORIES.DIRECT
+      : PNE_LEGAL_GOAL_CATEGORIES.PARTIAL
+  const sourceResult = {
+    ...result,
+    end_value: currentValue,
+    end_year: currentYear,
+  }
   const sourceContext = {
     block: 'pne',
     cycle: PNE_2026_CYCLE,
     indicatorKey: indicatorRelation.indicatorId,
     item,
-    result,
+    result: sourceResult,
   }
 
   return (
-    <article className="legal-goal-indicator">
+    <article className={`legal-goal-indicator legal-goal-indicator--${relationshipMode}`}>
       <header className="legal-goal-indicator__header">
         <div>
           <span className="legal-goal-indicator__eyebrow">
-            Indicador usado no painel · {item?.categoryLabel ?? 'Indicador relacionado'} · {indicatorRelation.indicatorId}
+            Indicador municipal associado · {relationPresentation.modeLabel}
           </span>
-          <h3>{indicatorTitle}</h3>
-          {item?.desc ? (
-            <p>{isAccumulativeBaseline ? getAccumulativeLegalDescription(indicatorRelation.indicatorId) : item.desc}</p>
-          ) : null}
+          <h4>{relationPresentation.publicName}</h4>
         </div>
         <CoverageBadge coverage={indicatorCoverage} />
       </header>
 
       <div className="legal-goal-relation-meta">
-        <span>Leitura no painel: <strong>{relationType}</strong></span>
-        {isPneContextProxyRelation(indicatorRelation, result) ? (
-          <span>Sem distância, status de meta ou projeção.</span>
-        ) : null}
+        <span>Natureza da referência: <strong>{relationPresentation.referenceNatureLabel}</strong></span>
+        <span>Modo público: <strong>{relationPresentation.modeLabel}</strong></span>
       </div>
 
-      <div className="legal-goal-explanation-grid">
-        <div className="legal-goal-explanation">
-          <span>Indicador usado no painel</span>
-          <p>{indicatorTitle}</p>
-        </div>
-        <div className="legal-goal-explanation">
-          <span>Por que este indicador foi associado</span>
-          <p>{relationCopy.rationale}</p>
-        </div>
-        {relationCopy.limit ? (
+      <section className="legal-goal-result">
+        <h5>Resultado atual</h5>
+        {!hasMunicipalResult ? (
+          <p className="legal-goal-indicator__empty">
+            {getPneLegalDataStatusLabel(dataStatus) ?? 'Sem resultado comparável no período'}
+          </p>
+        ) : (
+          <div className="legal-goal-metric-grid">
+            <LegalMetric
+              label="Valor municipal"
+              value={diagnosticResult?.current?.displayText
+                ?? formatIndicatorValue(currentValue, unit)}
+            />
+            <LegalMetric
+              label="Ano"
+              value={getReadableYear(currentYear) ?? '—'}
+            />
+            {!isComplementary ? (
+              <>
+                <LegalMetric
+                  label={relationPresentation.referenceNatureLabel}
+                  value={formatIndicatorValue(referenceValue, unit)}
+                />
+                <LegalMetric
+                  label="Distância"
+                  tone={statusPresentation.tone}
+                  value={formatDistance({
+                    ...result,
+                    distance: distanceValue,
+                    display: { ...result?.display, distance: null },
+                  }, unit)}
+                />
+                <LegalMetric
+                  label={relationshipMode === PNE_2026_RELATIONSHIP_MODES.TRACKING
+                    ? 'Situação de acompanhamento'
+                    : 'Situação'}
+                  tone={statusPresentation.tone}
+                  value={statusPresentation.text ?? 'Situação indisponível'}
+                />
+              </>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      <section className="legal-goal-interpretation">
+        <h5>Como interpretar</h5>
+        <div className="legal-goal-explanation-grid">
+          <div className="legal-goal-explanation">
+            <span>O que o indicador mede</span>
+            <p>{relationPresentation.measurement}</p>
+          </div>
+          <div className="legal-goal-explanation">
+            <span>Relação com a meta</span>
+            <p>{relationPresentation.relationship}</p>
+          </div>
           <div className="legal-goal-explanation legal-goal-explanation--limit">
             <span>Limite da leitura</span>
-            <p>{relationCopy.limit}</p>
+            <p>{relationPresentation.limitation}</p>
           </div>
-        ) : null}
-      </div>
-
-      {!hasCatalogItem ? (
-        <div className="legal-goal-indicator__empty">
-          Indicador mapeado não encontrado no catálogo atual do ciclo PNE 2026-2036.
         </div>
-      ) : !hasMunicipalResult ? (
-        <div className="legal-goal-indicator__empty">
-          Sem leitura municipal disponível para este indicador no ciclo vigente.
-        </div>
-      ) : isAccumulativeBaseline ? (
-        <div className="legal-goal-metric-grid">
-          <LegalMetric label="Situação no ciclo" tone="muted" value="Linha de base definida" />
-          <LegalMetric label="Ano de referência" value="2025" />
-          <LegalMetric
-            label="Meta de referência"
-            value={indicatorRelation.indicatorId === 'medio_tecnico_participacao_publica' ? '50%' : '+60%'}
-          />
-          <LegalMetric label="Resultado do ciclo" tone="muted" value="Disponível a partir de 2026" />
-        </div>
-      ) : (
-        <div className="legal-goal-metric-grid">
-          <LegalMetric
-            label="Valor mais recente"
-            value={formatCurrentValue(result, unit)}
-          />
-          <LegalMetric
-            label="Ano de referência"
-            value={getReadableYear(result?.end_year) ?? '—'}
-          />
-          {comparable ? (
-            <LegalMetric
-              detail={result.meta_label ?? 'Meta de referência do indicador'}
-              label="Meta de referência"
-              value={formatMetaValue(result, unit)}
-            />
-          ) : null}
-          {showDistance ? (
-            <LegalMetric
-              label="Distância da meta"
-              tone={result.atingida ? 'success' : 'warning'}
-              value={formatDistance(result, unit)}
-            />
-          ) : null}
-          {showStatus ? (
-            <LegalMetric
-              label="Situação no momento"
-              tone={result.atingida ? 'success' : 'warning'}
-              value={result.atingida ? PNE_2026_COPY.status.achieved : PNE_2026_COPY.status.below}
-            />
-          ) : null}
-          {showProjection ? (
-            <LegalMetric
-              detail={formatProjectionDistance(projection.distance_to_target_2036)}
-              label="Projeção para 2036"
-              tone={projection.status_2036 === 'tende_a_atingir' ? 'success' : 'warning'}
-              value={formatProjectionPercent(projection.projected_2036)}
-            />
-          ) : null}
-        </div>
-      )}
+      </section>
 
       <div className="legal-goal-indicator__footer">
-        <PneSourceNotes context={sourceContext} />
+        <span className="legal-goal-territoriality">
+          Territorialidade: <strong>{relationPresentation.territorialityLabel}</strong>
+        </span>
+        <PneSourceNotes compact context={sourceContext} />
         {onNavigate ? (
           <button
             className="legal-goal-open-cycle"
@@ -645,13 +701,6 @@ function LegalGoalIndicator({ indicatorRelation, item, onNavigate, projection, r
   )
 }
 
-function getAccumulativeLegalDescription(indicatorId) {
-  if (indicatorId === 'medio_tecnico_participacao_publica') {
-    return 'Pelo menos 50% das novas matrículas de EPT de nível médio criadas no ciclo deverão ser públicas. O acompanhamento começa na linha de base de 2025.'
-  }
-  return 'A expansão de 60% das matrículas em cursos técnicos subsequentes será acompanhada a partir da linha de base de 2025.'
-}
-
 function LegalMetric({ detail, label, tone = 'default', value }) {
   return (
     <div className={`legal-goal-metric legal-goal-metric--${tone}`}>
@@ -659,35 +708,6 @@ function LegalMetric({ detail, label, tone = 'default', value }) {
       <strong>{value ?? '—'}</strong>
       {detail ? <small>{detail}</small> : null}
     </div>
-  )
-}
-
-function buildCoverageSummary(goals, results) {
-  return goals.reduce(
-    (summary, goal) => {
-      const coverage = classifyGoalCoverage(goal, results, { allowMatrixFallback: true })
-
-      summary.total += 1
-
-      if (coverage === 'direta') {
-        summary.direct += 1
-        summary.tracked += 1
-      } else if (coverage === 'parcial') {
-        summary.partial += 1
-        summary.tracked += 1
-      } else if (coverage === 'sem_comparavel') {
-        summary.withoutComparableTracking += 1
-      }
-
-      return summary
-    },
-    {
-      direct: 0,
-      partial: 0,
-      tracked: 0,
-      total: 0,
-      withoutComparableTracking: 0,
-    },
   )
 }
 
@@ -732,11 +752,7 @@ function getSelectedThemeLabel(themeOptions, themeFilter) {
   )
 }
 
-function getUntrackedReasonLabel(goal, results) {
-  if (hasContextualRelatedData(goal, results)) {
-    return 'Possui apenas dado contextual'
-  }
-
+function getUntrackedReasonLabel(goal) {
   const normalizedReason = normalizeText(goal.noMunicipalIndicatorReason)
   if (
     normalizedReason.includes('administrativa') ||
@@ -748,103 +764,8 @@ function getUntrackedReasonLabel(goal, results) {
   return 'Sem fonte municipal anual adequada'
 }
 
-function buildRelationCopy(indicatorRelation, methodologyWarning) {
-  const relationNote = String(indicatorRelation?.relationNote ?? '').trim()
-  const noteParts = relationNote.split(';').map((part) => part.trim()).filter(Boolean)
-  const rationale = noteParts[0] || relationNote || 'Nota metodológica não disponível na matriz.'
-  const limitParts = noteParts.slice(1)
-
-  if (
-    methodologyWarning &&
-    !limitParts.some((part) => normalizeText(part) === normalizeText(methodologyWarning))
-  ) {
-    limitParts.push(methodologyWarning)
-  }
-
-  return {
-    limit: indicatorRelation?.coverage === 'direta'
-      ? ''
-      : limitParts.join(' ') || relationNote || methodologyWarning,
-    rationale,
-  }
-}
-
-function classifyGoalCoverage(goal, results, { allowMatrixFallback = false } = {}) {
-  const comparableRelations = getComparableGoalRelations(goal, results, { allowMatrixFallback })
-
-  if (!comparableRelations.length) return 'sem_comparavel'
-  if (comparableRelations.some((indicatorRelation) => indicatorRelation.coverage === 'direta')) {
-    return 'direta'
-  }
-  return 'parcial'
-}
-
-function getComparableGoalRelations(goal, results, { allowMatrixFallback = false } = {}) {
-  return (goal.relatedIndicators ?? []).filter((indicatorRelation) => (
-    isComparableGoalRelation(indicatorRelation, results, { allowMatrixFallback })
-  ))
-}
-
-function isComparableGoalRelation(indicatorRelation, results, { allowMatrixFallback = false } = {}) {
-  const result = results?.[indicatorRelation.indicatorId]
-
-  if (!result && allowMatrixFallback) {
-    return (
-      indicatorRelation.hasDistance !== false &&
-      !isPneContextProxyRelation(indicatorRelation)
-    )
-  }
-
-  return isPneComparableIndicator({
-    indicatorKey: indicatorRelation.indicatorId,
-    indicatorRelation,
-    result,
-  })
-}
-
-function hasContextualRelatedData(goal, results) {
-  return (goal.relatedIndicators ?? []).some((indicatorRelation) => (
-    isPneContextProxyRelation(indicatorRelation, results?.[indicatorRelation.indicatorId])
-  ))
-}
-
-function getIndicatorCoverage(indicatorRelation, result) {
-  if (!isPneContextProxyRelation(indicatorRelation, result)) {
-    return indicatorRelation.coverage === 'direta' ? 'direta' : 'parcial'
-  }
-
-  return isProxyMethodologicalRelation(indicatorRelation) ? 'proxy' : 'contexto'
-}
-
-function getRelationTypeLabel(indicatorRelation, result) {
-  if (isPneContextProxyRelation(indicatorRelation, result)) {
-    return isProxyMethodologicalRelation(indicatorRelation)
-      ? 'Contexto/proxy'
-      : 'Contexto'
-  }
-  if (indicatorRelation.coverage === 'direta') return 'Direta'
-  if (indicatorRelation.coverage === 'parcial') return 'Parcial'
-  if (indicatorRelation.coverage === 'aproximada') return 'Aproximada'
-  return indicatorRelation.coverage ?? 'Relacionada'
-}
-
-function getMethodologyWarning(indicatorRelation, result) {
-  const indicatorId = indicatorRelation.indicatorId
-
-  if (METHODOLOGY_WARNINGS_BY_KEY[indicatorId]) {
-    return METHODOLOGY_WARNINGS_BY_KEY[indicatorId]
-  }
-
-  if (isPneContextProxyRelation(indicatorRelation, result)) {
-    return 'Indicador exibido apenas como contexto metodológico; não representa cumprimento da meta legal.'
-  }
-
-  return ''
-}
-
-function isProxyMethodologicalRelation(indicatorRelation) {
-  const note = normalizeText(indicatorRelation?.relationNote)
-  return note.includes('proxy')
+function getVisibleGoalRelations(goal) {
+  return getPne2026PublicLegalGoalRelations(goal.legalGoalId)
 }
 
 function hasUsableMunicipalResult(indicatorRelation, result) {
@@ -858,68 +779,16 @@ function hasUsableMunicipalResult(indicatorRelation, result) {
   return (result.series ?? []).some((point) => Number.isFinite(Number(point?.valor)))
 }
 
-function isComparableLegalIndicator(indicatorRelation, result) {
-  return isPneComparableIndicator({
-    indicatorKey: indicatorRelation.indicatorId,
-    indicatorRelation,
-    result,
-  })
-}
-
-function hasComparableDistance(indicatorRelation, result) {
-  if (!isComparableLegalIndicator(indicatorRelation, result)) return false
-  return Number.isFinite(Number(result?.distance))
-}
-
-function hasProjection2036(indicatorRelation, projection) {
-  return (
-    indicatorRelation.hasProjection2036 === true &&
-    projection?.available === true &&
-    Number.isFinite(Number(projection.projected_2036))
-  )
-}
-
-function hasReadableStatus(result) {
-  const status = result?.display?.status
-  if (!status) return false
-
-  const normalizedStatus = normalizeText(status)
-  return !(
-    normalizedStatus.includes('visualizacao') ||
-    normalizedStatus.includes('informativo') ||
-    normalizedStatus.includes('indispon') ||
-    normalizedStatus.includes('sem dados')
-  )
-}
-
-function formatCurrentValue(result, unit) {
-  if (result?.display?.end_value) return result.display.end_value
-  return formatIndicatorValue(result?.end_value, unit)
-}
-
 function formatDistance(result, unit) {
-  const ppOptions = { keepOneDecimal: unit === 'index' }
-  const displayDistance = roundPpString(result?.display?.distance, ppOptions)
-
-  if (displayDistance) return displayDistance
-
   const numericDistance = Number(result?.distance)
   if (!Number.isFinite(numericDistance)) return '—'
 
   const sign = numericDistance > 0 ? '+' : ''
-  return `${sign}${PERCENT_FORMATTER.format(numericDistance)} p.p.`
-}
-
-function formatProjectionPercent(value) {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? `${PERCENT_FORMATTER.format(numeric)}%` : '—'
-}
-
-function formatProjectionDistance(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return 'Distância estimada não disponível'
-  const sign = numeric > 0 ? '+' : ''
-  return `Distância estimada: ${sign}${PERCENT_FORMATTER.format(numeric)} p.p.`
+  const formatted = `${sign}${PERCENT_FORMATTER.format(numericDistance)}`
+  if (unit === 'percent') return `${formatted} p.p.`
+  if (unit === 'years') return `${formatted} anos`
+  if (unit === 'index') return `${formatted} pontos`
+  return formatted
 }
 
 function getReadableYear(value) {

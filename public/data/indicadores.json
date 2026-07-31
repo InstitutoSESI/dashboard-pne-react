@@ -95,10 +95,11 @@
           "items": [
             {
               "key": "alfabetizacao",
-              "label": "Estudantes alfabetizados na rede pública",
+              "label": "Crianças alfabetizadas na rede municipal",
               "sub": "",
-              "desc": "Percentual de estudantes alfabetizados na rede pública do município.",
-              "meta_label": "Meta PNE 2024"
+              "desc": "Percentual de estudantes da rede municipal considerados alfabetizados ao final do 2º ano do ensino fundamental. O indicador utiliza o padrão nacional da Avaliação da Alfabetização e não corresponde exatamente ao critério da Meta 5 do PNE 2014–2024, que previa alfabetização até o final do 3º ano.",
+              "meta_label": "Resultado observado",
+              "tracks_goal": false
             },
             {
               "key": "ideb_anos_iniciais",
@@ -226,45 +227,195 @@
           "items": [
             {
               "key": "creche",
-              "label": "População de 0 a 3 anos que frequenta a escola/creche",
+              "label": "Matrículas de crianças de 0 a 3 anos em relação à população residente estimada",
               "sub": "",
-              "desc": "Percentual da população de 0 a 3 anos que frequenta a escola ou creche.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Relaciona as matrículas de crianças de 0 a 3 anos registradas nas escolas do município à população residente estimada da mesma faixa. Como parte das crianças pode estudar fora do município de residência, a razão bruta pode superar 100%; nesses casos, o painel exibe 100% e preserva o valor bruto para auditoria. O indicador é utilizado para acompanhar a referência prevista na meta.",
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.creche",
+              "formula": "100 * sum(mat_basico_0_3) / denominator_aggregate(pop_0_3)",
+              "sourceIds": [
+                "inep_censo_escolar",
+                "municipal_age_population_panel"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_mixed_territorial_basis",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.1.a.creche",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 60,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "pre_escola",
-              "label": "População de 4 a 5 anos que frequenta a escola/creche",
+              "label": "Matrículas de crianças de 4 a 5 anos em relação à população residente estimada",
               "sub": "",
-              "desc": "Percentual da população de 4 a 5 anos que frequenta a escola ou creche.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Relaciona as matrículas de crianças de 4 a 5 anos registradas nas escolas do município à população residente estimada da mesma faixa. Como parte das crianças pode estudar fora do município de residência, a razão bruta pode superar 100%; nesses casos, o painel exibe 100% e preserva o valor bruto para auditoria. O indicador é utilizado para acompanhar a referência prevista na meta.",
+              "meta_label": "Meta PNE 2028",
+              "formulaId": "formula.pre_escola",
+              "formula": "100 * sum(mat_infantil_pre) / denominator_aggregate(pop_4_5)",
+              "sourceIds": [
+                "inep_censo_escolar",
+                "municipal_age_population_panel"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_mixed_territorial_basis",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.1.c.pre_escola",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2028,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "basico_6_17",
-              "label": "População de 6 a 17 anos que frequenta a educação básica",
+              "label": "Matrículas de 6 a 17 anos em relação à população residente estimada",
               "sub": "",
-              "desc": "Percentual da população de 6 a 17 anos que frequenta a educação básica.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Relaciona as matrículas de 6 a 17 anos registradas nas escolas do município à população residente estimada da mesma faixa. Como parte dos estudantes pode estudar fora do município de residência, a razão bruta pode superar 100%; nesses casos, o painel exibe 100% e preserva o valor bruto para auditoria. O indicador é utilizado para acompanhar a referência prevista na meta.",
+              "meta_label": "Meta PNE 2029",
+              "formulaId": "formula.basico_6_17",
+              "formula": "100 * sum(mat_basico_6_17) / denominator_aggregate(pop_6_17)",
+              "sourceIds": [
+                "inep_censo_escolar",
+                "municipal_age_population_panel"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_mixed_territorial_basis",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.4.a.basico_6_17",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2029,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "basico_15_17",
-              "label": "Matrículas da educação básica de estudantes de 15 a 17 anos em relação à população da faixa",
+              "label": "Matrículas de 15 a 17 anos em relação à população residente estimada",
               "sub": "",
-              "desc": "Matrículas da educação básica associadas à faixa de 15 a 17 anos, no município da escola, divididas pela população residente da faixa.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Relaciona as matrículas de 15 a 17 anos registradas nas escolas do município à população residente estimada da mesma faixa. Como parte dos estudantes pode estudar fora do município de residência, a razão bruta pode superar 100%; nesses casos, o painel exibe 100% e preserva o valor bruto para auditoria. A referência de 100% é usada somente para acompanhamento municipal.",
+              "meta_label": "Referência de acompanhamento",
+              "formulaId": "formula.basico_15_17",
+              "formula": "100 * sum(mat_basico_15_17) / denominator_aggregate(pop_15_17)",
+              "sourceIds": [
+                "inep_censo_escolar",
+                "municipal_age_population_panel"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_mixed_territorial_basis",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.4.a.basico_15_17",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "basico_integral",
               "label": "Alunos do público-alvo da ETI em jornada integral na rede pública",
               "sub": "",
-              "desc": "Percentual de alunos da educação básica pública que pertencem ao público-alvo da Educação em Tempo Integral (ETI) e estão em jornada de tempo integral.",
-              "meta_label": "Meta PNE 2031"
+              "desc": "Razão entre matrículas do público-alvo da educação em tempo integral em jornada integral e matrículas públicas da Educação Básica.",
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.basico_integral",
+              "formula": "100 * mat_basico_integral / mat_basico",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.6.a.basico_integral",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 35,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "escolas_integral",
               "label": "Escolas públicas com alunos em jornada de tempo integral",
               "sub": "",
               "desc": "Percentual de escolas públicas da educação básica que possuem, pelo menos, 25% dos alunos em jornada integral.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.escolas_integral",
+              "formula": "pne2026.escolas_integral",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.6.a.escolas_integral",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 65,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "aee",
@@ -279,37 +430,130 @@
               "label": "Percentual das matrículas da EJA articuladas à educação profissional",
               "sub": "",
               "desc": "Percentual das matrículas da EJA articuladas à educação profissional no município.",
-              "meta_label": "Referência intermediária PNE 2031",
+              "meta_label": "Meta PNE 2031",
               "presentationMode": "ratio-dual-milestone",
               "tracks_goal": true,
-              "value_mode": "percent"
+              "value_mode": "percent",
+              "formulaId": "formula.eja_integrada_educacao_profissional_percentual",
+              "formula": "pne2026.eja_integrada_educacao_profissional_percentual",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.12.c.eja_integrada_educacao_profissional_percentual",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 25,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "medio_tecnico_articulado_percentual",
-              "label": "Ensino médio articulado à educação profissional técnica",
+              "label": "Matrículas técnicas integradas ou concomitantes em relação às matrículas do Ensino Médio",
               "sub": "Indicador aproximado",
-              "desc": "Percentual das matrículas em cursos técnicos integrados em relação ao total de matrículas do ensino médio.",
+              "desc": "Razão entre a soma das matrículas técnicas integradas e concomitantes e as matrículas do Ensino Médio. A fonte trabalha com matrículas agregadas e não oferece identificador para deduplicar estudantes; o resultado não representa necessariamente pessoas únicas. A referência de 50% é de acompanhamento.",
               "source": "INEP — Sinopse Estatística da Educação Básica.",
-              "meta_label": "Meta PNE 2036",
+              "meta_label": "Referência de acompanhamento",
               "show_in_cycle": true,
               "include_in_cycle_summary": true,
               "tracks_goal": true,
               "coverage": "aproximada",
-              "value_mode": "percent"
+              "value_mode": "percent",
+              "formulaId": "formula.medio_tecnico_articulado_percentual.v2",
+              "formula": "100 * sum(mat_integrado_total + mat_concomitante_total) / sum(mat_medio)",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_enrolment_ratio",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.12.a.medio_tecnico_articulado_percentual",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 50,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "medio_tecnico_participacao_publica",
               "label": "Participação acumulada do segmento público na expansão da EPT de nível médio",
               "sub": "",
-              "desc": "Participação acumulada do segmento público nas expansões anuais positivas das matrículas da Educação Profissional e Tecnológica de nível médio no município, considerando a evolução de 2015 até o ano analisado.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Participação da expansão líquida pública na expansão líquida total da EPT de nível médio desde a base fixa de 2025.",
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.medio_tecnico_participacao_publica.v2",
+              "formula": "100 * (publica_atual - publica_2025) / (total_atual - total_2025)",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_net_expansion_share",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.12.a.medio_tecnico_participacao_publica",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "subsequente_expansao",
               "label": "Expansão acumulada das matrículas em cursos técnicos subsequentes",
               "sub": "",
-              "desc": "Expansão acumulada das matrículas nos cursos técnicos subsequentes da Educação Profissional e Tecnológica de nível médio no município, considerando a evolução a partir de 2015.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Expansão percentual das matrículas técnicas subsequentes em relação à base fixa de 2025.",
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.subsequente_expansao.v2",
+              "formula": "100 * (mat_subsequente_atual - mat_subsequente_2025) / mat_subsequente_2025",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_accumulated_growth",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.12.b.subsequente_expansao",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 60,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             }
           ]
         },
@@ -321,73 +565,334 @@
           "items": [
             {
               "key": "alfabetizacao",
-              "label": "Estudantes alfabetizados na rede pública",
+              "label": "Estudantes alfabetizados ao final do 2º ano do Ensino Fundamental — rede municipal",
               "sub": "",
-              "desc": "Percentual de estudantes alfabetizados na rede pública do município.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Percentual de estudantes avaliados no 2º ano do Ensino Fundamental da rede municipal que alcançaram o padrão nacional de alfabetização.",
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.alfabetizacao",
+              "formula": "PC_ALUNO_ALFABETIZADO oficial",
+              "sourceIds": [
+                "inep_avaliacao_alfabetizacao"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.3.a.alfabetizacao",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 80,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_matematica_anos_iniciais",
               "label": "Desempenho em Matemática - anos iniciais",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Matemática - anos iniciais.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_matematica_anos_iniciais",
+              "formula": "pne2026.saeb_matematica_anos_iniciais",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.a.saeb_matematica_anos_iniciais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 70,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 90,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_matematica_anos_finais",
               "label": "Desempenho em Matemática - anos finais",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Matemática - anos finais.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_matematica_anos_finais",
+              "formula": "pne2026.saeb_matematica_anos_finais",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.b.saeb_matematica_anos_finais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 60,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 85,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_matematica_ensino_medio",
               "label": "Desempenho em Matemática - ensino médio",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Matemática - ensino médio.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_matematica_ensino_medio",
+              "formula": "pne2026.saeb_matematica_ensino_medio",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.d.saeb_matematica_ensino_medio",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 80,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_portugues_anos_iniciais",
               "label": "Desempenho em Português - anos iniciais",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Português - anos iniciais.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_portugues_anos_iniciais",
+              "formula": "pne2026.saeb_portugues_anos_iniciais",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.a.saeb_portugues_anos_iniciais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 70,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 90,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_portugues_anos_finais",
               "label": "Desempenho em Português - anos finais",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Português - anos finais.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_portugues_anos_finais",
+              "formula": "pne2026.saeb_portugues_anos_finais",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.b.saeb_portugues_anos_finais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 60,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 85,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "saeb_portugues_ensino_medio",
               "label": "Desempenho em Português - ensino médio",
               "sub": "",
               "desc": "Percentual de estudantes nos níveis básico ou superior e adequado ou superior em Português - ensino médio.",
-              "meta_label": "Meta PNE 2031"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.saeb_portugues_ensino_medio",
+              "formula": "pne2026.saeb_portugues_ensino_medio",
+              "sourceIds": [
+                "inep_saeb"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_source_rounding",
+              "conceptuallyMayExceed100": true,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.5.d.saeb_portugues_ensino_medio",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 50,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 80,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "adequate_or_higher"
+                  }
+                ]
+              }
             },
             {
               "key": "idade_regular_quinto",
-              "label": "Estudantes que concluem os anos iniciais na idade regular",
+              "label": "Estudantes matriculados sem distorção — anos iniciais",
               "sub": "",
-              "desc": "Percentual de estudantes que concluem os anos iniciais do ensino fundamental na idade adequada.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Percentual derivado de 100 − taxa de distorção idade-série nos anos iniciais do ensino fundamental. Mede matrículas sem distorção e não mede conclusão.",
+              "meta_label": "Referência de acompanhamento",
+              "formulaId": "formula.idade_regular_quinto",
+              "formula": "pne2026.idade_regular_quinto",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.4.b.idade_regular_quinto",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "idade_regular_nono",
-              "label": "Estudantes que concluem os anos finais na idade regular",
+              "label": "Estudantes matriculados sem distorção — anos finais",
               "sub": "",
-              "desc": "Percentual de estudantes que concluem os anos finais do ensino fundamental na idade adequada.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Percentual derivado de 100 − taxa de distorção idade-série nos anos finais do ensino fundamental. Mede matrículas sem distorção e não mede conclusão.",
+              "meta_label": "Referência de acompanhamento",
+              "formulaId": "formula.idade_regular_nono",
+              "formula": "pne2026.idade_regular_nono",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.4.c.idade_regular_nono",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "idade_regular_medio",
-              "label": "Estudantes que concluem o ensino médio na idade regular",
+              "label": "Estudantes matriculados sem distorção — Ensino Médio",
               "sub": "",
-              "desc": "Percentual de estudantes que concluem o ensino médio na idade adequada.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Percentual derivado de 100 − taxa de distorção idade-série no Ensino Médio. Mede matrículas sem distorção e não mede conclusão.",
+              "meta_label": "Referência de acompanhamento",
+              "formulaId": "formula.idade_regular_medio",
+              "formula": "pne2026.idade_regular_medio",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.4.d.idade_regular_medio",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             }
           ]
         },
@@ -402,42 +907,132 @@
               "label": "Docentes com formação adequada nos anos iniciais",
               "sub": "",
               "desc": "Percentual de docentes com formação adequada nos anos iniciais do ensino fundamental.",
-              "meta_label": "Meta PNE 2036"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.adequacao_ai",
+              "formula": "pne2026.adequacao_ai",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.17.a.adequacao_ai",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "adequacao_af",
               "label": "Docentes com formação adequada nos anos finais",
               "sub": "",
               "desc": "Percentual de docentes com formação adequada nos anos finais do ensino fundamental.",
-              "meta_label": "Meta PNE 2036"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.adequacao_af",
+              "formula": "pne2026.adequacao_af",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.17.a.adequacao_af",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "adequacao_em",
               "label": "Docentes com formação adequada no ensino médio",
               "sub": "",
               "desc": "Percentual de docentes com formação adequada no ensino médio.",
-              "meta_label": "Meta PNE 2036"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.adequacao_em",
+              "formula": "pne2026.adequacao_em",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.17.a.adequacao_em",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "pos_graduacao",
               "label": "Docentes da educação básica com pós-graduação",
               "sub": "",
               "desc": "Percentual de docentes da educação básica com especialização, mestrado ou doutorado.",
-              "meta_label": "Meta PNE 2036"
+              "formulaId": "formula.pos_graduacao",
+              "formula": "pne2026.pos_graduacao",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "rendimento_magisterio",
               "label": "Rendimento do magistério em relação a outros profissionais com nível superior",
               "sub": "",
               "desc": "Relação percentual entre o rendimento bruto médio mensal dos profissionais do magistério da educação básica, com nível superior completo, e o rendimento bruto médio mensal dos demais profissionais assalariados, com nível superior completo.",
-              "meta_label": "Meta PNE 2036"
+              "formulaId": "formula.rendimento_magisterio",
+              "formula": "pne2026.rendimento_magisterio",
+              "sourceIds": [
+                "pipeline_rendimento_professores_provenance_pending"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_comparative_ratio",
+              "conceptuallyMayExceed100": true
             },
             {
               "key": "temporarios",
               "label": "Docentes da rede pública com contrato temporário",
               "sub": "",
               "desc": "Percentual de docentes da rede pública com vínculo temporário.",
-              "meta_label": "Meta PNE 2031"
+              "formulaId": "formula.temporarios",
+              "formula": "pne2026.temporarios",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             }
           ]
         },
@@ -454,24 +1049,45 @@
               "label": "Escolas da educação básica com acesso à internet",
               "sub": "",
               "desc": "Percentual de escolas da educação básica com acesso à internet.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.internet",
+              "formula": "pne2026.internet",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "internet_alunos",
               "label": "Escolas com internet disponível para os alunos",
               "sub": "",
               "desc": "Percentual de escolas com internet disponível para uso dos alunos.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.internet_alunos",
+              "formula": "pne2026.internet_alunos",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "internet_aprendizagem",
               "label": "Escolas com internet usada na aprendizagem",
               "sub": "",
               "desc": "Percentual de escolas com internet aplicada aos processos de ensino e aprendizagem.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.internet_aprendizagem",
+              "formula": "pne2026.internet_aprendizagem",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "internet_comunidade",
@@ -502,24 +1118,45 @@
               "label": "Escolas com rede local de computadores",
               "sub": "",
               "desc": "Percentual de escolas com rede local de interligação de computadores.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.rede_local",
+              "formula": "pne2026.rede_local",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "rede_wireless",
               "label": "Escolas com rede local sem fio",
               "sub": "",
               "desc": "Percentual de escolas com rede local wireless.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.rede_wireless",
+              "formula": "pne2026.rede_wireless",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "banda_larga",
               "label": "Escolas com internet banda larga",
               "sub": "",
               "desc": "Percentual de escolas com oferta de internet banda larga.",
-              "meta_label": "Visualização informativa",
-              "tracks_goal": false
+              "tracks_goal": false,
+              "formulaId": "formula.banda_larga",
+              "formula": "pne2026.banda_larga",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "educacao_ambiental",
@@ -527,15 +1164,55 @@
               "sub": "",
               "desc": "Percentual de escolas que promovem educação ambiental.",
               "meta_label": "Meta PNE 2036",
-              "tracks_goal": true
+              "tracks_goal": true,
+              "formulaId": "formula.educacao_ambiental",
+              "formula": "pne2026.educacao_ambiental",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.8.c.educacao_ambiental",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "conselho_escolar",
-              "label": "Escolas públicas com conselho escolar instituído e em funcionamento",
+              "label": "Escolas públicas que declararam possuir conselho escolar",
               "sub": "",
-              "desc": "Percentual de escolas públicas da educação básica com conselho escolar instituído e em pleno funcionamento.",
-              "meta_label": "Meta PNE 2036",
-              "tracks_goal": true
+              "desc": "Percentual de escolas públicas que declararam possuir conselho escolar no Censo Escolar. A informação é declaratória e não comprova composição, regularidade de reuniões, permanência ou funcionamento efetivo.",
+              "meta_label": "Referência de acompanhamento",
+              "tracks_goal": true,
+              "formulaId": "formula.conselho_escolar",
+              "formula": "pne2026.conselho_escolar",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.18.b.conselho_escolar",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "proposta_pedagogica",
@@ -547,19 +1224,53 @@
             },
             {
               "key": "salas_climatizadas",
-              "label": "Salas de aula climatizadas",
+              "label": "Salas de aula utilizadas que são climatizadas",
               "sub": "",
-              "desc": "Percentual de salas de aula utilizadas que são climatizadas.",
-              "meta_label": "Meta PNE 2036",
-              "tracks_goal": true
+              "desc": "Percentual das salas de aula utilizadas que são climatizadas. A climatização é um componente de conforto térmico; o indicador não representa toda a infraestrutura escolar nem comprova adequação térmica integral.",
+              "meta_label": "Referência de acompanhamento",
+              "tracks_goal": true,
+              "formulaId": "formula.salas_climatizadas",
+              "formula": "pne2026.salas_climatizadas",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.8.b.salas_climatizadas",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "salas_acessiveis",
-              "label": "Salas de aula com acessibilidade",
+              "label": "Salas de aula utilizadas com acessibilidade",
               "sub": "",
-              "desc": "Percentual de salas de aula utilizadas com acessibilidade.",
-              "meta_label": "Meta PNE 2036",
-              "tracks_goal": true
+              "desc": "Percentual das salas de aula utilizadas com acessibilidade. Esse é apenas um componente da infraestrutura acessível; o indicador não comprova acessibilidade integral da escola nem representa sozinho a cesta de infraestrutura mínima.",
+              "meta_label": "Referência de acompanhamento",
+              "tracks_goal": true,
+              "formulaId": "formula.salas_acessiveis",
+              "formula": "pne2026.salas_acessiveis",
+              "sourceIds": [
+                "inep_censo_escolar"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "monitoring",
+                "referenceId": "monitoring.19.c.salas_acessiveis",
+                "validationStatus": "municipal_monitoring",
+                "direction": "at_least",
+                "value": 100,
+                "unit": "percent",
+                "milestones": []
+              }
             },
             {
               "key": "desktop_aluno",
@@ -598,39 +1309,150 @@
               "label": "Taxa de alfabetização da população de 15 anos ou mais",
               "sub": "",
               "desc": "Percentual da população de 15 anos ou mais alfabetizada, com base nos Censos Demográficos.",
-              "meta_label": "Meta vigente do PNE"
+              "meta_label": "Meta PNE 2031",
+              "formulaId": "formula.alfabetizacao_pop_15_mais",
+              "formula": "pne2026.alfabetizacao_pop_15_mais",
+              "sourceIds": [
+                "ibge_censo_demografico_2010_2022"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.11.a.alfabetizacao_pop_15_mais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2031,
+                    "value": 97,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  },
+                  {
+                    "year": 2036,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "fundamental_concluido_18_mais",
               "label": "População de 18 anos ou mais com ensino fundamental concluído",
               "sub": "",
               "desc": "Percentual da população de 18 anos ou mais com ensino fundamental concluído, com base nos Censos Demográficos.",
-              "meta_label": "Meta PNE 2036"
+              "formulaId": "formula.fundamental_concluido_18_mais",
+              "formula": "pne2026.fundamental_concluido_18_mais",
+              "sourceIds": [
+                "ibge_censo_demografico_2010_2022"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false
             },
             {
               "key": "fundamental_concluido_15_29",
               "label": "População de 15 a 29 anos com ensino fundamental concluído",
               "sub": "",
-              "desc": "Percentual da população de 15 a 29 anos com ensino fundamental concluído, com base nos Censos Demográficos.",
-              "meta_label": "Meta PNE 2036"
+              "desc": "Razão censitária da população de 15 a 29 anos com ensino fundamental concluído no snapshot de 2022.",
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.fundamental_concluido_15_29.census_2022.v2",
+              "formula": "100 * (concluintes_15_17 + concluintes_18_24 + concluintes_25_29) / (total_15_17 + total_18_24 + total_25_29)",
+              "sourceIds": [
+                "ibge_censo_demografico_2022_educacao_10061"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.11.b.fundamental_concluido_15_29",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "medio_concluido_18_mais",
               "label": "População de 18 anos ou mais com ensino médio concluído",
               "sub": "",
               "desc": "Percentual da população de 18 anos ou mais com ensino médio concluído, com base nos Censos Demográficos.",
-              "meta_label": "Meta PNE 2036"
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.medio_concluido_18_mais",
+              "formula": "pne2026.medio_concluido_18_mais",
+              "sourceIds": [
+                "ibge_censo_demografico_2010_2022"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.11.c.medio_concluido_18_mais",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 75,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             },
             {
               "key": "medio_concluido_18_29",
               "label": "População de 18 a 29 anos com ensino médio concluído",
               "sub": "",
               "desc": "Percentual da população de 18 a 29 anos com ensino médio concluído, com base nos Censos Demográficos.",
-              "meta_label": "Meta PNE 2036"
+              "meta_label": "Meta PNE 2036",
+              "formulaId": "formula.medio_concluido_18_29",
+              "formula": "pne2026.medio_concluido_18_29",
+              "sourceIds": [
+                "ibge_censo_demografico_2010_2022"
+              ],
+              "contractVersion": "1.9.0",
+              "valuePolicyId": "raw_bounded_expected",
+              "conceptuallyMayExceed100": false,
+              "reference": {
+                "kind": "legal",
+                "referenceId": "reference.11.c.medio_concluido_18_29",
+                "validationStatus": "official_law",
+                "direction": "at_least",
+                "milestones": [
+                  {
+                    "year": 2036,
+                    "value": 100,
+                    "unit": "percent",
+                    "direction": "at_least",
+                    "dimension": "overall"
+                  }
+                ]
+              }
             }
           ]
         }
       ]
     }
+  },
+  "contractProjection": {
+    "generator": "scripts/generate-diagnostic-catalog.mjs",
+    "contractVersion": "1.9.0",
+    "contractNormalizedSha256": "c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5"
   }
 }

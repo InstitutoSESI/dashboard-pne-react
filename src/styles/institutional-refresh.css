@@ -135,7 +135,7 @@
 
   .dashboard-shell .sidebar-nav-label {
     margin-bottom: var(--space-2);
-    color: #a8c7b2;
+    color: var(--nav-label);
     font-size: var(--font-size-2xs);
     letter-spacing: 0.16em;
   }
@@ -149,20 +149,20 @@
     min-height: 50px;
     border-color: transparent;
     border-radius: var(--radius-sm);
-    color: #c7dbce;
+    color: var(--nav-text);
     transition: background-color var(--duration-normal) var(--ease-out), color var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
   }
 
   .dashboard-shell .nav-item:hover,
   .dashboard-shell .nav-group.is-open > .nav-item {
-    background: rgba(166, 207, 178, 0.09);
-    color: #f7fbf8;
+    background: var(--nav-bg-hover);
+    color: var(--nav-text-active);
   }
 
   .dashboard-shell .nav-item.is-active {
-    border-color: rgba(172, 215, 185, 0.18);
-    background: rgba(122, 184, 143, 0.18);
-    color: #ffffff;
+    border-color: var(--nav-divider);
+    background: var(--nav-bg-active);
+    color: var(--nav-text-active);
     border: 1px solid var(--green-accent);
   }
 
@@ -173,23 +173,23 @@
   .dashboard-shell .nav-subitems {
     margin-left: var(--space-5);
     padding-left: var(--space-4);
-    border-left-color: rgba(171, 207, 181, 0.26);
+    border-left-color: var(--nav-divider);
   }
 
   .dashboard-shell .nav-subitem {
     min-height: 44px;
     border-radius: var(--radius-sm);
-    color: #bad0c2;
+    color: var(--nav-text);
   }
 
   .dashboard-shell .nav-subitem:hover {
-    background: rgba(255, 255, 255, 0.065);
-    color: #ffffff;
+    background: var(--nav-bg-hover);
+    color: var(--nav-text-active);
   }
 
   .dashboard-shell .nav-subitem.is-active {
-    background: rgba(132, 192, 150, 0.16);
-    color: #ffffff;
+    background: var(--nav-bg-active);
+    color: var(--nav-text-active);
     box-shadow: inset 2px 0 0 #a8d0b2;
   }
 
@@ -197,7 +197,7 @@
     min-height: 72px;
     padding-inline: var(--space-6);
     border-top-color: rgba(178, 209, 187, 0.2);
-    color: #a8c7b2;
+    color: var(--nav-label);
   }
 
   /* Context bar: municipal identity first, page breadcrumb as a reading cue. */
@@ -878,10 +878,6 @@
     background: transparent;
   }
 
-  .dashboard-shell .content-area .pne-expandable + .pne-expandable {
-    border-top: 0;
-  }
-
   .dashboard-shell .content-area .pne-expandable__summary {
     min-height: 58px;
     padding-inline: var(--space-1);
@@ -1031,7 +1027,7 @@
   .dashboard-shell .content-area .financial-indicator-card {
     min-height: 294px;
     border: 1px solid var(--border-card);
-    border-top: 3px solid var(--green-primary);
+    border-top: var(--border-width) solid var(--green-accent);
     border-radius: var(--radius-md);
     background: var(--surface-card);
     box-shadow: var(--shadow-sm);
@@ -2411,9 +2407,9 @@
 
   .dashboard-shell .content-area :is(.educacao-page, .financial-page) .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial) {
     grid-template-rows:
-      30px
-      38px
-      32px
+      var(--indicator-row-topline)
+      var(--indicator-row-title)
+      var(--indicator-row-description)
       minmax(84px, auto)
       minmax(48px, auto)
       minmax(24px, 1fr);
@@ -2721,7 +2717,7 @@
   padding: var(--education-card-inline-inset);
   border-radius: var(--card-radius);
   grid-template-columns: minmax(0, 1.75fr) minmax(96px, 1fr);
-  grid-template-rows: 30px 38px 32px auto minmax(52px, auto) minmax(var(--card-footer-min-height), auto);
+  grid-template-rows: var(--indicator-row-topline) var(--indicator-row-title) var(--indicator-row-description) auto minmax(52px, auto) minmax(var(--card-footer-min-height), auto);
   grid-template-areas:
     "topline topline"
     "title title"
@@ -3557,8 +3553,7 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-section-heading > p,
-  .dashboard-shell .content-area .pne-diagnostic-theme__heading > p,
-  .dashboard-shell .content-area .pne-diagnostic-result__header > p {
+  .dashboard-shell .content-area .pne-diagnostic-theme__heading > p {
     margin: 0;
     color: var(--green-deep);
     font-size: var(--font-size-xs);
@@ -3652,7 +3647,7 @@
 
   .dashboard-shell .content-area .pne-diagnostic-summary__cards {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     margin: var(--space-5) 0 0;
     overflow: hidden;
@@ -3699,6 +3694,31 @@
 
   .dashboard-shell .content-area .pne-diagnostic-summary-card--neutral dd {
     color: var(--text-strong);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-summary__availability,
+  .dashboard-shell .content-area .pne-diagnostic-complementary-note {
+    margin: var(--space-3) 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-view-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-view-switcher .pne-diagnostic-filter {
+    min-height: var(--control-height);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-complementary-note {
+    max-width: var(--content-reading-max);
+    padding-top: var(--space-3);
+    border-top: var(--border-divider);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-filters {
@@ -3786,7 +3806,7 @@
 
   .dashboard-shell .content-area .pne-diagnostic-theme-summary {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     margin: 0;
     overflow: hidden;
     border: var(--border-default);
@@ -4006,6 +4026,188 @@
 
 .diagnostic-print-report {
   display: none;
+}
+
+@media screen {
+  .dashboard-shell .content-area .legal-goal-card,
+  .dashboard-shell .content-area .legal-goal-card.is-expanded {
+    border-color: var(--border-card);
+    background: var(--surface-card);
+  }
+
+  .dashboard-shell .content-area .legal-goal-toggle:hover,
+  .dashboard-shell .content-area .legal-goal-toggle:focus-visible {
+    background: var(--surface-raised);
+  }
+
+  .dashboard-shell .content-area .coverage-badge {
+    border-color: var(--border-line);
+    background: var(--surface-raised);
+    color: var(--text);
+  }
+
+  .dashboard-shell .content-area .legal-goal-card__body,
+  .dashboard-shell .content-area .legal-goal-monitoring,
+  .dashboard-shell .content-area .legal-goal-result,
+  .dashboard-shell .content-area .legal-goal-interpretation {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .dashboard-shell .content-area :is(
+    .legal-goal-legal-text,
+    .legal-goal-monitoring,
+    .legal-goal-result,
+    .legal-goal-interpretation
+  ) > :is(h3, h5) {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area .legal-goal-legal-text {
+    padding: var(--card-pad-inset);
+    border-radius: var(--card-radius-inner);
+    background: var(--surface-raised);
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .legal-goal-legal-text__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .dashboard-shell .content-area .legal-goal-full-text {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator-list {
+    counter-reset: legal-indicator;
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator {
+    counter-increment: legal-indicator;
+    padding: var(--space-4);
+    border: var(--border-default);
+    border-radius: var(--card-radius-inner);
+    background: var(--surface-raised);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator + .legal-goal-indicator {
+    margin-top: 0;
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator__header h4 {
+    margin: var(--space-1) 0 0;
+    color: var(--text-strong);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator__eyebrow {
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-label);
+    text-transform: none;
+  }
+
+  .dashboard-shell .content-area .legal-goal-explanation {
+    border-color: var(--border-faint);
+    background: var(--surface-card);
+  }
+
+  .dashboard-shell .content-area .legal-goal-explanation span {
+    color: var(--text-muted);
+    letter-spacing: var(--tracking-label);
+    text-transform: none;
+  }
+
+  .dashboard-shell .content-area .legal-goal-explanation--limit {
+    border-color: var(--border-line);
+    background: var(--surface-muted);
+  }
+
+  .dashboard-shell .content-area .legal-goal-explanation--limit span {
+    color: var(--text-muted);
+  }
+
+  .dashboard-shell .content-area .legal-goal-metric {
+    border-color: var(--border-card);
+    background: var(--surface-card);
+    box-shadow: none;
+  }
+
+  .dashboard-shell .content-area .legal-goal-metric--success {
+    border-color: var(--status-ok-line);
+    background: var(--status-ok-bg);
+  }
+
+  .dashboard-shell .content-area .legal-goal-metric--warning {
+    border-color: var(--status-warn-line);
+    background: var(--status-warn-bg);
+  }
+
+  .dashboard-shell .content-area .legal-goal-metric--danger {
+    border-color: var(--status-far-line);
+    background: var(--status-far-bg);
+  }
+
+  .dashboard-shell .content-area .legal-goal-metric--danger strong {
+    color: var(--status-far-ink);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator__empty {
+    margin: 0;
+    border-style: solid;
+    background: var(--surface-muted);
+    color: var(--text);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator__footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: center;
+  }
+
+  .dashboard-shell .content-area .legal-goal-territoriality {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-snug);
+  }
+
+  .dashboard-shell .content-area .legal-goal-territoriality strong {
+    color: var(--text);
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .dashboard-shell .content-area .legal-goals-summary-grid,
+  .dashboard-shell .content-area .legal-goal-explanation-grid,
+  .dashboard-shell .content-area .legal-goal-metric-grid,
+  .dashboard-shell .content-area .legal-goal-indicator__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator {
+    padding: var(--space-3);
+  }
+
+  .dashboard-shell .content-area .legal-goal-indicator__footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media print {
@@ -4617,6 +4819,103 @@
     white-space: normal;
   }
 
+  /* =====================================================================
+   * Guia de leitura: o que significam as etiquetas dos quadros
+   * (Posicao no RS, Municipios semelhantes, Evolucao recente).
+   * ===================================================================== */
+  .dashboard-shell .content-area .pne-diagnostic-legend {
+    padding: var(--panel-inset-intermediate);
+    border: var(--border-width) solid var(--border-card);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__intro {
+    margin: var(--space-2) 0 var(--space-4);
+    max-width: var(--content-reading-max);
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: var(--space-3);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card {
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-width) solid var(--border-faint);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card-icon {
+    width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 18px;
+    color: var(--green-deep);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card-icon svg {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card-head h3 {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.3;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__card-desc {
+    margin: 0;
+    color: var(--text-body);
+    font-size: var(--font-size-2xs);
+    line-height: 1.4;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__items {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-1) 0 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__item {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__item dt {
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-legend__item dd {
+    margin: 0;
+    color: var(--text-body);
+    font-size: var(--font-size-2xs);
+    line-height: 1.35;
+  }
+
   .dashboard-shell .content-area .pne-diagnostic-themes {
     gap: calc(var(--space-8) + var(--space-2));
   }
@@ -4633,7 +4932,7 @@
   .dashboard-shell .content-area .pne-diagnostic-theme-summary {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: var(--space-1);
   }
@@ -4677,33 +4976,6 @@
     box-shadow: 0 1px 2px rgba(24, 54, 42, 0.05);
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__primary {
-    display: grid;
-    min-width: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__main-row {
-    min-width: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 39fr) minmax(0, 61fr);
-    align-items: start;
-    gap: var(--space-4);
-    padding: var(--space-2) var(--space-3);
-    border-bottom: 1px solid var(--border-card);
-    background: var(--surface-card);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__main-row > * {
-    min-width: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__identity {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
-    gap: var(--space-2);
-  }
-
   .dashboard-shell .content-area .pne-diagnostic-result__icon {
     width: 32px;
     height: 32px;
@@ -4725,27 +4997,6 @@
     stroke-width: 1.7;
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__header {
-    min-width: 0;
-    display: grid;
-    align-content: start;
-    gap: var(--space-1);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__header > div {
-    min-width: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__header h3,
-  .dashboard-shell .content-area .pne-diagnostic-result__header h4 {
-    margin: 0;
-    color: var(--text-strong);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-    line-height: 1.27;
-    text-wrap: pretty;
-  }
-
   .dashboard-shell .content-area .pne-diagnostic-result__goal-context {
     margin: 0;
     color: var(--green-deep);
@@ -4757,15 +5008,25 @@
   .dashboard-shell .content-area .pne-diagnostic-result__status {
     width: fit-content;
     display: inline-flex;
-    margin-top: var(--space-1);
-    padding: var(--space-1) var(--space-2);
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
     border: var(--border-width) solid var(--border-line);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-pill);
     background: var(--surface-muted);
     color: var(--text-body);
     font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.2;
+  }
+
+  /* Bolinha de situacao: descreve, nao julga (verde = alcancada, ocre = abaixo). */
+  .dashboard-shell .content-area .pne-diagnostic-result__status::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-pill);
+    background: var(--text-muted);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-result__status--advance {
@@ -4774,223 +5035,31 @@
     color: var(--status-warn-ink);
   }
 
+  .dashboard-shell .content-area .pne-diagnostic-result__status--advance::before {
+    background: var(--status-warn-line);
+  }
+
   .dashboard-shell .content-area .pne-diagnostic-result__status--maintain {
     border-color: var(--border-strong-line);
     background: var(--surface-moss);
     color: var(--green-deep);
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__measures {
-    min-width: 0;
-    display: grid;
-    grid-template-columns:
-      minmax(0, 1.1fr)
-      minmax(0, 0.9fr)
-      minmax(0, 0.9fr)
-      minmax(0, 1fr);
-    margin: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures--count-2 {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures > div {
-    min-width: 0;
-    display: grid;
-    align-content: center;
-    justify-items: center;
-    gap: var(--space-1);
-    padding: var(--space-2) var(--space-2);
-    border-left: var(--border-width) solid var(--diagnostic-card-divider);
-    text-align: center;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures > div:first-child {
-    border-left: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures dt {
-    color: var(--text-soft);
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.25;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures dd {
-    min-width: 0;
-    display: grid;
-    justify-items: center;
-    gap: var(--space-1);
-    margin: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures dd strong {
-    display: block;
-    color: var(--text-strong);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
-    line-height: var(--line-height-tight);
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measure--current {
-    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-    background: var(--surface-card);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measure--current dd strong {
-    color: var(--green-deep);
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
-    line-height: 1.05;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measure--target dd strong {
-    font-size: var(--font-size-lg);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measure--state dd strong {
-    color: var(--text-body);
-    font-size: var(--font-size-md);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measure--difference dd strong {
-    font-size: var(--font-size-md);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures dd span {
-    display: block;
-    color: var(--text-muted);
-    font-size: var(--font-size-2xs);
-    line-height: 1.25;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result--maintain
-    .pne-diagnostic-result__measure--difference dd strong {
-    color: var(--status-ok-ink);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result--advance
-    .pne-diagnostic-result__measure--difference dd strong {
-    color: var(--status-warn-ink);
-  }
-
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) {
-    min-width: 0;
-    display: grid;
-    align-items: start;
-    padding: 0;
-    border-top: var(--border-width) solid var(--diagnostic-card-divider);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row {
-    border-top: 0;
-  }
-
-  /*
-   * Ritmo de coluna unico para toda evidencia do diagnostico.
-   *
-   * Antes cada linha tinha um template proprio por contagem de blocos
-   * (--count-1, --count-2, --count-3, e outro conjunto para a linha de
-   * fechamento). Como o numero de blocos varia por meta, cada cartao ganhava
-   * uma silhueta diferente e a pagina lia como se estivesse desalinhada.
-   *
-   * Com trilha de largura fixa, os blocos fluem e se alinham entre linhas e
-   * entre cartoes, independentemente de quantos existem em cada meta.
-   */
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) {
-    grid-template-columns: repeat(auto-fit, minmax(min(272px, 100%), 1fr));
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-block {
-    min-width: 0;
-    display: grid;
-    align-content: start;
-    gap: var(--space-1);
-    padding: var(--space-2) var(--space-3);
-  }
-
-  /*
-   * Separacao por espaco, nao por borda: num grid que reflui, o bloco que cai
-   * no inicio da linha seguinte herdaria uma borda esquerda solta.
-   */
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) {
-    gap: 2px var(--space-4);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row--count-2
-    > .pne-diagnostic-result__analytic-block:last-child {
-    align-self: stretch;
-    align-content: center;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-heading {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-heading h5 {
-    margin: 0;
-    color: var(--text-strong);
-    font-size: var(--font-size-2xs);
-    font-weight: var(--font-weight-semibold);
-    line-height: 1.25;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-icon {
-    width: 18px;
-    height: 18px;
-    display: grid;
-    place-items: center;
-    flex: 0 0 18px;
-    color: var(--green-deep);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-icon svg {
-    width: var(--icon-sm);
-    height: var(--icon-sm);
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.7;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-copy {
-    display: grid;
-    gap: var(--space-1);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__analytic-copy p {
-    margin: 0;
-    color: var(--text-body);
-    font-size: var(--font-size-xs);
-    line-height: 1.35;
+  .dashboard-shell .content-area .pne-diagnostic-result__status--maintain::before {
+    background: var(--green-primary);
   }
 
   .dashboard-shell .content-area .pne-diagnostic-support-reading__badge {
     width: fit-content;
-    padding: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-3);
     border: var(--border-width) solid var(--border-line);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-pill);
     background: var(--surface-muted);
     color: var(--text-body);
     font-size: var(--font-size-2xs);
     font-weight: var(--font-weight-semibold);
     line-height: 1.2;
+    white-space: nowrap;
   }
 
   .dashboard-shell .content-area .pne-diagnostic-support-reading__badge--positive {
@@ -5005,55 +5074,364 @@
     color: var(--status-warn-ink);
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row
-    .pne-diagnostic-result__analytic-block:last-child
-    .pne-diagnostic-result__analytic-copy p {
-    color: var(--text);
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology {
+    border-top: var(--border-width) solid var(--diagnostic-card-divider);
+    background: var(--surface-muted);
   }
 
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology summary {
+    width: fit-content;
+    padding: var(--space-2) var(--space-3);
+    color: var(--green-deep);
+    cursor: pointer;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.25;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology > div {
+    display: grid;
+    gap: var(--space-2);
+    padding: 0 var(--space-3) var(--space-3);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology p {
+    margin: 0;
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology dl > div {
+    display: flex;
+    gap: var(--space-1);
+    color: var(--text-soft);
+    font-size: var(--font-size-2xs);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__methodology dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* =====================================================================
+   * Cartao de resultado em dois paineis
+   *
+   * O cartao passou de uma tira de cinco medidas + blocos de texto empilhados
+   * para tres regioes claras: cabecalho (identidade + situacao), corpo em dois
+   * paineis com fronteira real -- "Meta do PNE" (resultado-heroi, referencia e
+   * distancia) e "Como se compara" (RS, semelhantes e posicao juntos) -- e um
+   * rodape de leitura. Ritmos longos vao para a divulgacao recolhida.
+   * ===================================================================== */
+  .dashboard-shell .content-area .pne-diagnostic-result__head {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border-width) solid var(--border-faint);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__id {
+    min-width: 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__name {
+    margin: 2px 0 0;
+    color: var(--text-strong);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.3;
+    text-wrap: pretty;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+  }
+
+  /* So divide em dois quando ha painel de comparacao; indicadores sem
+   * comparacao (desempenho, etc.) ocupam a largura toda. */
+  .dashboard-shell .content-area
+    .pne-diagnostic-result__panels:has(.pne-diagnostic-result__panel--compare) {
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panel {
+    min-width: 0;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panel--compare {
+    background: var(--surface-raised);
+    border-left: var(--border-width) solid var(--border-line);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panel-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    color: var(--text-muted);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.01em;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panel-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-faint);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__hero {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__hero strong {
+    color: var(--green-deep);
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.018em;
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__hero span {
+    color: var(--text-muted);
+    font-size: var(--font-size-2xs);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__target {
+    margin: var(--space-2) 0 0;
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__target b {
+    color: var(--text-strong);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__gap {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding: var(--space-1) var(--space-3);
+    border: var(--border-width) solid var(--border-card);
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__gap svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare {
+    display: grid;
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+  }
+
+  .dashboard-shell .content-area
+    .pne-diagnostic-result__compare-row + .pne-diagnostic-result__compare-row {
+    border-top: var(--border-width) solid var(--border-faint);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare dt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-icon {
+    width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 16px;
+    color: var(--green-deep);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-icon svg {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-values {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-value {
+    color: var(--text-strong);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-diff {
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result--maintain
+    .pne-diagnostic-result__compare-diff {
+    color: var(--status-ok-ink);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result--advance
+    .pne-diagnostic-result__compare-diff {
+    color: var(--status-warn-ink);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__compare-note {
+    color: var(--text-body);
+    font-size: var(--font-size-2xs);
+    text-align: right;
+    line-height: 1.35;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__evo-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 14px;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__evo-icon svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Rodape: tendencia recente + leitura em prosa do indicador. */
+  .dashboard-shell .content-area .pne-diagnostic-result__foot {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-top: var(--border-width) solid var(--border-faint);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__evo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--green-deep);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__evo--attention {
+    color: var(--status-warn-ink);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__reading {
+    margin: 0;
+    color: var(--text-body);
+    font-size: var(--font-size-xs);
+    line-height: 1.45;
+  }
+
+  /* Texto legal da meta (Lei do PNE), sempre visivel sob o cabecalho: uma
+   * citacao editorial em serifa, o registro documental do dossie municipal. */
+  .dashboard-shell .content-area .pne-diagnostic-result__legal {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: var(--border-width) solid var(--border-faint);
+    background: var(--surface-raised);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__legal-label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__legal-text {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: var(--font-size-sm);
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+}
+
+@media screen and (max-width: 900px) {
+  .dashboard-shell .content-area .pne-diagnostic-result__panels,
+  .dashboard-shell .content-area
+    .pne-diagnostic-result__panels:has(.pne-diagnostic-result__panel--compare) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .content-area .pne-diagnostic-result__panel--compare {
+    border-left: 0;
+    border-top: var(--border-width) solid var(--border-line);
+  }
 }
 
 @media screen and (max-width: 1080px) {
   .dashboard-shell .content-area .pne-diagnostic-theme__header {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__main-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures {
-    grid-template-columns:
-      minmax(0, 1.1fr)
-      minmax(0, 0.9fr)
-      minmax(0, 0.9fr)
-      minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures--count-2 {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  }
-
-  /* Abaixo de 1080px a trilha estreita; o auto-fit ja reflui sozinho, sem
-     precisar de excecao por contagem de blocos. */
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) {
-    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__closing-row
-    .pne-diagnostic-result__analytic-block + .pne-diagnostic-result__analytic-block {
-    margin-top: 0;
-    padding: var(--space-2) var(--space-3);
-    border-top: var(--border-width) solid var(--diagnostic-card-divider);
-    border-left: 0;
   }
 }
 
@@ -5074,16 +5452,6 @@
     padding: 0;
   }
 
-  .dashboard-shell .content-area .pne-diagnostic-result__main-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__identity {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
   .dashboard-shell .content-area .pne-diagnostic-result__icon {
     width: 32px;
     height: 32px;
@@ -5092,52 +5460,6 @@
   .dashboard-shell .content-area .pne-diagnostic-result__icon svg {
     width: var(--icon-md);
     height: var(--icon-md);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures > div {
-    padding: var(--space-2) var(--space-2);
-    border-left: 0;
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__measures > div:nth-child(n + 3) {
-    border-top: var(--border-width) solid var(--diagnostic-card-divider);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-shell .content-area .pne-diagnostic-result__comparison-row
-    .pne-diagnostic-result__analytic-block {
-    grid-column: 1;
-  }
-
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) {
-    padding: 0;
-  }
-
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) .pne-diagnostic-result__analytic-block {
-    padding: var(--space-2) var(--space-2);
-  }
-
-  .dashboard-shell .content-area :is(
-    .pne-diagnostic-result__comparison-row,
-    .pne-diagnostic-result__closing-row
-  ) .pne-diagnostic-result__analytic-block + .pne-diagnostic-result__analytic-block {
-    margin-top: 0;
-    padding: var(--space-2) var(--space-2);
-    border-top: var(--border-width) solid var(--diagnostic-card-divider);
-    border-left: 0;
   }
 
 }
@@ -5856,5 +6178,18 @@
   .pne-page-header {
     margin-bottom: var(--space-5);
     print-color-adjust: exact;
+  }
+
+  .cycle-page .cycle-filter-panel,
+  .cycle-page .meta-card,
+  .cycle-page .pne-page-header,
+  .cycle-page .cycle-source-line,
+  .cycle-page .cycle-complementary-note {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .cycle-page .meta-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -7,7 +7,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PIPELINE_DIR = REPO_ROOT / "data_pipeline"
-PUBLIC_DATA = REPO_ROOT / "public" / "data"
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
@@ -19,6 +18,9 @@ from src.pne2026_public_diagnostic_v2 import (  # noqa: E402
     audit_pne2026_public_diagnostic_v2,
     build_pne2026_public_diagnostic_v2,
     load_pne2026_diagnostic_presentation_catalog,
+)
+from data_pipeline.tests.test_pne2026_diagnostic_snapshot_parity import (  # noqa: E402
+    _GitBlobSnapshot,
 )
 
 
@@ -116,7 +118,6 @@ class Pne2026PublicDiagnosticV2CatalogTest(unittest.TestCase):
         self.assertEqual(
             proxies,
             {
-                ("4.a", "basico_15_17"),
                 ("11.b", "fundamental_concluido_18_mais"),
             },
         )
@@ -136,10 +137,10 @@ class Pne2026PublicDiagnosticV2CatalogTest(unittest.TestCase):
             numeric_goal_order,
         )
 
-    def test_basico_15_17_separates_indicator_reference_from_legal_deadline(self):
+    def test_basico_15_17_is_complementary_without_reference(self):
         item = self.by_id["basico_15_17"]
-        self.assertEqual(item["indicatorReference"], {"value": 85, "year": 2036, "label": "Referência do indicador"})
-        self.assertEqual(item["legalGoal"], {"target": 100, "deadline": 2029})
+        self.assertNotIn("indicatorReference", item)
+        self.assertNotIn("legalGoal", item)
         self.assertEqual(item["classificationPolicy"], "informative_only")
 
     def test_six_saeb_results_are_partial_official_and_not_comparable_or_projected(self):
@@ -237,7 +238,7 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
         self.assertEqual(contract["version"], PUBLIC_VERSION)
         self.assertEqual(contract["schemaVersion"], PUBLIC_SCHEMA_VERSION)
         self.assertEqual(contract["presentationCatalogVersion"], CATALOG_VERSION)
-        self.assertEqual(len(contract["scope"]["resultPairs"]), 34)
+        self.assertEqual(len(contract["scope"]["resultPairs"]), 31)
         self.assertEqual(diagnostic["pne2026PublicDiagnostic"], original_v1)
         self.assertTrue(contract["publicationReady"])
 
@@ -250,7 +251,7 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
         self.assertEqual([result["indicatorId"] for result in results], ["escolas_integral"])
         self.assertEqual(contract["summary"]["essentialAvailableCount"], 0)
         self.assertEqual(contract["scope"]["essentialIndicatorIds"], EXPECTED_ESSENTIALS)
-        self.assertEqual(len(contract["presentation"]["resultDefinitions"]), 34)
+        self.assertEqual(len(contract["presentation"]["resultDefinitions"]), 31)
 
     def test_contextual_proxy_is_numeric_but_never_classified(self):
         contract = build_pne2026_public_diagnostic_v2(
@@ -263,7 +264,7 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
         self.assertIsNone(result["remainingGap"])
         self.assertIsNone(result["favorableDifference"])
 
-    def test_integrated_technical_component_allows_maintain_but_not_advance(self):
+    def test_integrated_technical_component_is_complementary_without_classification(self):
         below = build_pne2026_public_diagnostic_v2(
             _diagnostic(),
             {"indicadores": {"medio_tecnico_articulado_percentual": _pne_result(20)}},
@@ -279,17 +280,18 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
             },
         )
         self.assertIsNone(_flatten(below)[0]["classification"])
-        self.assertEqual(_flatten(at_target)[0]["classification"], "maintain")
+        self.assertIsNone(_flatten(at_target)[0]["classification"])
+        self.assertIsNone(_flatten(at_target)[0]["indicatorReference"])
+        self.assertIsNone(_flatten(at_target)[0]["distance"])
 
-    def test_subsequente_growth_preserves_negative_and_above_100_values(self):
+    def test_subsequente_growth_is_hidden_until_the_2025_baseline_is_fixed(self):
         for value in (-100.1, -100, 240.5):
             with self.subTest(value=value):
                 contract = build_pne2026_public_diagnostic_v2(
                     _diagnostic(),
                     {"indicadores": {"subsequente_expansao": _pne_result(value)}},
                 )
-                [result] = _flatten(contract)
-                self.assertEqual(result["current"]["value"], value)
+                self.assertEqual(_flatten(contract), [])
 
     def test_any_finite_result_already_public_in_pne_is_preserved(self):
         contract = build_pne2026_public_diagnostic_v2(
@@ -428,9 +430,8 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
         self.assertIn("valueReading", result["stateComparison"])
         self.assertIn("reading", result["statewidePosition"])
         self.assertNotIn("members", result["similarMunicipalities"])
-        self.assertNotIn("sourceCodes", result["trajectory"])
-        self.assertEqual(result["trajectory"]["estimatedAchievementYear"], 2030)
-        self.assertEqual(contract["summary"]["estimatedAchievementYearCount"], 1)
+        self.assertNotIn("trajectory", result)
+        self.assertEqual(contract["summary"]["estimatedAchievementYearCount"], 0)
         self.assertEqual(contract["summary"]["stateAboveOrNearCount"], 1)
         self.assertEqual(contract["summary"]["stateBelowCount"], 0)
 
@@ -457,33 +458,29 @@ class Pne2026PublicDiagnosticV2BuilderTest(unittest.TestCase):
 class Pne2026PublicDiagnosticV2AuditTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        registry = json.loads(
-            (PUBLIC_DATA / "municipios_index.json").read_text(encoding="utf-8")
-        )
-
-        def payloads():
+        with _GitBlobSnapshot() as snapshot:
+            registry = snapshot.json("public/data/municipios_index.json")
+            payloads = []
             for municipality in registry["municipios"]:
-                directory = (
-                    PUBLIC_DATA / "municipios" / municipality["id_municipio"]
+                municipality_id = municipality["id_municipio"]
+                diagnostic = snapshot.json(
+                    f"public/data/municipios/{municipality_id}/diagnostico.json"
                 )
-                diagnostic = json.loads(
-                    (directory / "diagnostico.json").read_text(encoding="utf-8")
-                )
-                pne_cycle = json.loads(
-                    (directory / "index.json").read_text(encoding="utf-8")
+                pne_cycle = snapshot.json(
+                    f"public/data/municipios/{municipality_id}/index.json"
                 )["pne_2026_2036"]
-                yield diagnostic, pne_cycle
-
-        cls.audit = audit_pne2026_public_diagnostic_v2(payloads())
+                payloads.append((diagnostic, pne_cycle))
+        cls.audit = audit_pne2026_public_diagnostic_v2(payloads)
 
     def test_all_497_municipalities_have_integral_pne_v2_parity(self):
         self.assertEqual(self.audit["municipalityCount"], 497)
         self.assertEqual(self.audit["authorizedPairCount"], 34)
-        self.assertEqual(self.audit["goalCount"], 24)
-        self.assertEqual(self.audit["pneAvailableOccurrences"], 15896)
-        self.assertEqual(self.audit["v2AvailableOccurrences"], 15896)
+        self.assertEqual(self.audit["goalCount"], 22)
+        self.assertEqual(self.audit["indicatorCount"], 31)
+        self.assertEqual(self.audit["pneAvailableOccurrences"], 15114)
+        self.assertEqual(self.audit["v2AvailableOccurrences"], 15114)
         self.assertTrue(self.audit["publicationReady"])
-        self.assertEqual(self.audit["pneAbsentOccurrences"], 1002)
+        self.assertEqual(self.audit["pneAbsentOccurrences"], 293)
         self.assertEqual(self.audit["duplicateResultCount"], 0)
         self.assertEqual(self.audit["outOfCatalogResultCount"], 0)
         self.assertEqual(self.audit["sourceBlockedIndicatorIds"], [])
@@ -514,7 +511,7 @@ class Pne2026PublicDiagnosticV2AuditTest(unittest.TestCase):
         ):
             self.assertEqual(self.audit["pneV2Divergences"][key], {})
 
-    def test_five_previously_blocked_indicators_are_inherited_without_recalculation(self):
+    def test_visible_results_are_inherited_without_recalculation(self):
         self.assertEqual(
             {
                 indicator_id: self.audit["occurrencesByIndicator"][indicator_id]
@@ -523,7 +520,6 @@ class Pne2026PublicDiagnosticV2AuditTest(unittest.TestCase):
                     "pre_escola",
                     "basico_6_17",
                     "basico_15_17",
-                    "rendimento_magisterio",
                 )
             },
             {
@@ -531,10 +527,9 @@ class Pne2026PublicDiagnosticV2AuditTest(unittest.TestCase):
                 "pre_escola": 497,
                 "basico_6_17": 497,
                 "basico_15_17": 497,
-                "rendimento_magisterio": 464,
             },
         )
-        self.assertEqual(self.audit["pneNegativeValuesByIndicator"], {"subsequente_expansao": 127})
+        self.assertEqual(self.audit["pneNegativeValuesByIndicator"], {})
         self.assertEqual(
             self.audit["v2NegativeValuesByIndicator"],
             self.audit["pneNegativeValuesByIndicator"],
@@ -544,15 +539,15 @@ class Pne2026PublicDiagnosticV2AuditTest(unittest.TestCase):
             self.audit["pneValuesAbove100ByIndicator"],
         )
 
-    def test_subsequente_rule_explains_148_pne_vs_14_v1_and_preserves_above_100(self):
+    def test_hidden_subsequente_is_not_part_of_the_visible_audit(self):
         self.assertEqual(
             self.audit["subsequenteExpansao"],
             {
-                "pneAvailable": 148,
+                "pneAvailable": 0,
                 "currentV1Available": 14,
-                "v2Available": 148,
-                "pneAbove100": 7,
-                "v2Above100": 7,
+                "v2Available": 0,
+                "pneAbove100": 0,
+                "v2Above100": 0,
             },
         )
 

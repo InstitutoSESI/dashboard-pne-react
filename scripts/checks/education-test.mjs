@@ -546,6 +546,16 @@ test('workbook municipal usa rótulos humanos, preserva estados e gera XLSX vál
   })
   fullTimeResult.publicName = 'Alunos em jornada integral na rede pública'
   fullTimeResult.publicDescription = 'Participação dos alunos em jornada integral na rede pública.'
+  const complementaryResult = pmeResult({
+    goalId: '8.b',
+    indicatorId: 'salas_climatizadas',
+    mode: 'complementary',
+    order: 3,
+    themeId: 'sustentabilidade',
+    currentValue: 72.5,
+  })
+  complementaryResult.publicName = 'Salas de aula climatizadas'
+  complementaryResult.publicDescription = 'Informação descritiva sobre climatização.'
   const diagnostic = {
     sources: [{
       id: 'inep_censo_escolar',
@@ -562,7 +572,7 @@ test('workbook municipal usa rótulos humanos, preserva estados e gera XLSX vál
       goalId: '6.a',
       title: 'Meta 6',
       order: 1,
-      results: [environmentalEducationResult, fullTimeResult],
+      results: [environmentalEducationResult, fullTimeResult, complementaryResult],
     }],
   }
   const input = {
@@ -673,6 +683,11 @@ test('workbook municipal usa rótulos humanos, preserva estados e gera XLSX vál
   const numeratorUnitIndex = pneHeaders.indexOf('Unidade do numerador')
   const denominatorIndex = pneHeaders.indexOf('Denominador')
   const denominatorUnitIndex = pneHeaders.indexOf('Unidade do denominador')
+  const referenceIndex = pneHeaders.indexOf('Referência')
+  const referenceYearIndex = pneHeaders.indexOf('Ano da referência')
+  const directionIndex = pneHeaders.indexOf('Direção desejável')
+  const situationIndex = pneHeaders.indexOf('Situação')
+  const distanceIndex = pneHeaders.indexOf('Distância restante')
   const fullTimeReference = pneSheet.data.slice(3).find(
     (row) => cellValue(row[2]) === 'Alunos do público-alvo da Educação em Tempo Integral em jornada integral na rede pública',
   )
@@ -688,6 +703,15 @@ test('workbook municipal usa rótulos humanos, preserva estados e gera XLSX vál
   assert.ok(environmentalReference)
   assert.equal(environmentalReference[numeratorIndex], null)
   assert.equal(environmentalReference[denominatorIndex], null)
+  const complementaryReference = pneSheet.data.slice(3).find(
+    (row) => cellValue(row[directionIndex]) === 'Acompanhamento descritivo',
+  )
+  assert.ok(complementaryReference)
+  assert.equal(complementaryReference[referenceIndex], null)
+  assert.equal(complementaryReference[referenceYearIndex], null)
+  assert.equal(cellValue(complementaryReference[directionIndex]), 'Acompanhamento descritivo')
+  assert.equal(cellValue(complementaryReference[situationIndex]), '')
+  assert.equal(complementaryReference[distanceIndex], null)
 
   const visibleText = workbook.sheets
     .flatMap((sheet) => sheet.data)
@@ -1665,8 +1689,8 @@ test('regra de publicação usa valores brutos e exclui manutenção, constânci
       { year: 2025, numerator: 120, denominator: 100, rawValue: 120 },
     ],
     scenario: {
-      type: 'trend_scenario',
-      method: 'municipal_base_times_rs_age_factor',
+      type: 'conditional_projection',
+      method: 'last_observed_numerator_with_state_age_denominator',
       status: 'available',
       projected: [
         { year: 2026, numerator: 121, denominator: 100, rawValue: 121 },
@@ -1680,6 +1704,7 @@ test('regra de publicação usa valores brutos e exclui manutenção, constânci
   assert.equal(attendancePresentation.isDisplayableProjection(indicator), true)
   assert.deepEqual(attendancePresentation.toProjectionView(indicator).projected_percent, [100, 100])
   assert.deepEqual(attendancePresentation.toProjectionView(indicator).raw_projected_percent, [121, 130])
+  assert.equal(attendancePresentation.toProjectionView(indicator).displayWasCapped, true)
 
   const constant = {
     ...indicator,
@@ -1704,6 +1729,13 @@ test('regra de publicação usa valores brutos e exclui manutenção, constânci
     ...indicator,
     scenario: { ...indicator.scenario, projected: [] },
   }), false)
+  assert.equal(attendancePresentation.isDisplayableProjection({
+    ...indicator,
+    scenario: {
+      ...indicator.scenario,
+      method: 'Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas',
+    },
+  }), false)
 })
 
 test('adaptador preserva projeção, meta explícita e diferença na unidade percentual', () => {
@@ -1725,9 +1757,49 @@ test('adaptador preserva projeção, meta explícita e diferença na unidade per
   assert.equal(view.target_percent, 90)
   assert.equal(view.target_year, 2036)
   assert.equal(view.distance_to_target_2036, -5)
+  assert.equal(view.status_2036, 'nao_tende_a_atingir')
 })
 
-test('percentual de apresentação trata limite, piso, ausência e valor regular', () => {
+test('adaptador resolve referências e premissas de projeção pelo contrato canônico', () => {
+  const viewFor = (indicatorKey) => attendancePresentation.toProjectionView({
+    indicatorKey,
+    kind: 'age_coverage',
+    observed: { year: 2025, rawValue: 70 },
+    historical: [{ year: 2024, rawValue: 65 }, { year: 2025, rawValue: 70 }],
+    scenario: {
+      type: 'trend_scenario',
+      method: 'fixture',
+      status: 'available',
+      projected: [{ year: 2026, rawValue: 72 }, { year: 2036, rawValue: 85 }],
+      trend: { selectedBasis: 'long_term', diverges: false },
+      denominatorModel: { method: 'state_age_factor' },
+      uncertainty: { status: 'not_estimated', interval: null },
+    },
+    reference: { value: 1, year: 2036 },
+    diagnostics: { warnings: [] },
+  })
+
+  const preSchool = viewFor('pre_escola')
+  assert.equal(preSchool.target_year, 2028)
+  assert.equal(preSchool.distance_to_target_2036, -15)
+  assert.equal(preSchool.status_2036, 'nao_tende_a_atingir')
+  const basicEducation = viewFor('basico_6_17')
+  assert.equal(basicEducation.target_year, 2029)
+  assert.equal(basicEducation.distance_to_target_2036, -15)
+  assert.equal(basicEducation.status_2036, 'nao_tende_a_atingir')
+  const monitoring = viewFor('basico_15_17')
+  assert.equal(monitoring.target_kind, 'monitoring')
+  assert.equal(monitoring.target_label, 'Referência de acompanhamento')
+  assert.equal(monitoring.target_percent, 100)
+  assert.equal(monitoring.target_year, null)
+  assert.equal(monitoring.distance_to_target_2036, -15)
+  assert.equal(monitoring.status_2036, 'nao_tende_a_atingir')
+  assert.equal(monitoring.trend.selectedBasis, 'long_term')
+  assert.equal(monitoring.denominator_model.method, 'state_age_factor')
+  assert.equal(monitoring.uncertainty.status, 'not_estimated')
+})
+
+test('percentual de apresentação limita a 100 e preserva o valor bruto', () => {
   assert.deepEqual(attendancePresentation.toDisplayPercentage(102), {
     displayValue: 100,
     displayWasCapped: true,
@@ -1739,7 +1811,7 @@ test('percentual de apresentação trata limite, piso, ausência e valor regular
     rawValue: 130.5,
   })
   assert.deepEqual(attendancePresentation.toDisplayPercentage(-4), {
-    displayValue: 0,
+    displayValue: -4,
     displayWasCapped: false,
     rawValue: -4,
   })
@@ -1753,6 +1825,29 @@ test('percentual de apresentação trata limite, piso, ausência e valor regular
     displayWasCapped: false,
     rawValue: 68.4,
   })
+})
+
+test('premissa pública distingue persistência, Holt estadual e tendência municipal mais estadual', () => {
+  assert.match(
+    attendancePresentation.projectionAssumptionText(
+      'age_coverage',
+      'last_observation_persistence',
+    ),
+    /número mais recente de matrículas/,
+  )
+  assert.match(
+    attendancePresentation.projectionAssumptionText(
+      'age_coverage',
+      'state_aggregate_damped_holt',
+    ),
+    /evolução das matrículas no Rio Grande do Sul/,
+  )
+  const municipalState = attendancePresentation.projectionAssumptionText(
+    'age_coverage',
+    'municipal_state_shrunk_theil_sen_log',
+  )
+  assert.match(municipalState, /histórico de matrículas do município/)
+  assert.doesNotMatch(municipalState, /Holt|número mais recente/)
 })
 
 function projectedAttendanceIndicator(indicatorKey, overrides = {}) {
@@ -1880,40 +1975,41 @@ test('rótulos finais combinam somente pontos brutos coincidentes e afastam os d
   assert.ok(withoutTarget.projected.x <= base.chartWidth - base.padding.right)
 })
 
-test('comparação do PME exige valor, referência e direção válidos', () => {
-  const base = {
-    kind: 'percentage',
-    direction: 'at_least',
+test('comparação do PME exige distância, classificação e direção materializadas', () => {
+  const base = pmeResult({
+    goalId: '1.a',
+    indicatorId: 'creche',
+    order: 1,
+    themeId: 'tema',
     currentValue: 40,
-    targetValue: 60,
-    numerator: 40,
-    denominator: 100,
-    effortUnit: 'matrículas',
-  }
+  })
 
   assert.equal(
-    pmeReferenceTable.calculatePmeEffort({ ...base, targetValue: null }).text,
+    pmeReferenceTable.formatMaterializedPmeEffort({ ...base, distance: null }).text,
     pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
   )
   assert.equal(
-    pmeReferenceTable.calculatePmeEffort({ ...base, currentValue: null }).text,
+    pmeReferenceTable.formatMaterializedPmeEffort({ ...base, classification: null }).text,
     pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
   )
   assert.equal(
-    pmeReferenceTable.calculatePmeEffort({ ...base, direction: null }).text,
+    pmeReferenceTable.formatMaterializedPmeEffort({ ...base, direction: null }).text,
     pmeReferenceTable.PME_COMPARISON_UNAVAILABLE,
   )
 })
 
 test('comparação percentual informa diferença em pontos percentuais', () => {
-  const effort = pmeReferenceTable.calculatePmeEffort({
-    kind: 'percentage',
+  const effort = pmeReferenceTable.formatMaterializedPmeEffort({
+    ...pmeResult({
+      goalId: '1.a',
+      indicatorId: 'creche',
+      order: 1,
+      themeId: 'tema',
+      currentValue: 0,
+    }),
     direction: 'at_least',
-    currentValue: 0,
-    targetValue: 33.4,
-    numerator: 0,
-    denominator: 10,
-    effortUnit: 'matrículas',
+    distance: -33.4,
+    classification: 'advance',
   })
 
   assert.equal(effort.text, 'Abaixo da referência — 33,4 pontos percentuais abaixo do valor de referência.')
@@ -1921,14 +2017,17 @@ test('comparação percentual informa diferença em pontos percentuais', () => {
 })
 
 test('comparação com direção de redução nomeia o limite máximo', () => {
-  const effort = pmeReferenceTable.calculatePmeEffort({
-    kind: 'percentage',
+  const effort = pmeReferenceTable.formatMaterializedPmeEffort({
+    ...pmeResult({
+      goalId: '17.d',
+      indicatorId: 'temporarios',
+      order: 1,
+      themeId: 'tema',
+      currentValue: 40,
+    }),
     direction: 'at_most',
-    currentValue: 40,
-    targetValue: 30,
-    numerator: 41,
-    denominator: 100,
-    effortUnit: 'docentes',
+    distance: -10,
+    classification: 'advance',
   })
 
   assert.equal(effort.text, 'Acima da referência — 10 pontos percentuais acima do limite de referência.')
@@ -1936,13 +2035,16 @@ test('comparação com direção de redução nomeia o limite máximo', () => {
 })
 
 test('valor igual é distinguido de comparação indisponível sem encerrar o ciclo', () => {
-  const effort = pmeReferenceTable.calculatePmeEffort({
-    kind: 'percentage',
-    direction: 'at_least',
-    currentValue: 60,
-    targetValue: 60,
-    numerator: null,
-    denominator: null,
+  const effort = pmeReferenceTable.formatMaterializedPmeEffort({
+    ...pmeResult({
+      goalId: '1.a',
+      indicatorId: 'creche',
+      order: 1,
+      themeId: 'tema',
+      currentValue: 60,
+    }),
+    distance: 0,
+    classification: 'maintain',
   })
 
   assert.equal(effort.text, pmeReferenceTable.PME_REFERENCE_EQUAL)
@@ -1951,24 +2053,15 @@ test('valor igual é distinguido de comparação indisponível sem encerrar o ci
 })
 
 test('indicadores qualitativos usam acompanhamento descritivo', () => {
+  const complementary = pmeResult({
+    goalId: '8.b',
+    indicatorId: 'salas_climatizadas',
+    mode: 'complementary',
+    order: 1,
+    themeId: 'tema',
+  })
   assert.equal(
-    pmeReferenceTable.calculatePmeEffort({
-      kind: 'qualitative',
-      direction: null,
-      currentValue: null,
-      targetValue: null,
-      qualitativeAchieved: true,
-    }).text,
-    pmeReferenceTable.PME_DESCRIPTIVE_MONITORING,
-  )
-  assert.equal(
-    pmeReferenceTable.calculatePmeEffort({
-      kind: 'qualitative',
-      direction: null,
-      currentValue: null,
-      targetValue: null,
-      qualitativeAchieved: false,
-    }).text,
+    pmeReferenceTable.formatMaterializedPmeEffort(complementary).text,
     pmeReferenceTable.PME_DESCRIPTIVE_MONITORING,
   )
 })
@@ -1976,23 +2069,32 @@ test('indicadores qualitativos usam acompanhamento descritivo', () => {
 function pmeResult({
   goalId,
   indicatorId,
+  mode = 'progress',
   order,
   relationshipType = 'direct',
   themeId,
   currentValue = 0,
 }) {
-  return {
-    resultOrder: order,
+  const common = {
+    relationId: `relation.${goalId}.${indicatorId}`,
+    mode,
     goalId,
+    goalTitle: `Meta ${goalId}`,
     indicatorId,
     themeId,
-    tier: 'essential',
-    priorityOrder: null,
+    displayOrder: order,
+    summaryPriority: 'essential',
+    displayGroup: `summary-${order}`,
     publicName: `Descrição ${indicatorId}`,
     publicDescription: `Descrição pública ${indicatorId}`,
-    relationshipType,
-    relationshipReading: '',
-    direction: 'at_least',
+    relationshipLabel: mode === 'complementary'
+      ? 'Indicador complementar'
+      : relationshipType === 'partial_component'
+      ? 'Componente parcial da meta'
+      : relationshipType === 'contextual_proxy'
+        ? 'Indicador contextual'
+        : null,
+    relationshipNote: '',
     current: {
       value: currentValue,
       displayValue: currentValue,
@@ -2000,17 +2102,34 @@ function pmeResult({
       year: 2025,
       unit: 'percent',
     },
+    rawValue: currentValue,
+    year: 2025,
+    unit: 'percent',
+    numerator: null,
+    denominator: null,
+    sourceIds: ['inep_censo_escolar'],
+    territoriality: 'school_location',
+    dataStatus: 'available',
+    publicReading: '',
+  }
+  if (mode === 'complementary') return common
+  return {
+    ...common,
+    direction: 'at_least',
     indicatorReference: {
       value: 60,
       year: 2036,
       direction: 'at_least',
     },
-    legalGoal: { deadline: 2036 },
     classification: 'advance',
-    remainingGap: 60 - currentValue,
+    status: 'Meta não atingida',
+    remainingGap: Math.max(60 - currentValue, 0),
     favorableDifference: currentValue - 60,
-    distance: 60 - currentValue,
-    sourceIds: ['inep_censo_escolar'],
+    distance: currentValue - 60,
+    stateComparison: null,
+    statewidePosition: null,
+    similarMunicipalities: null,
+    trajectory: null,
   }
 }
 
@@ -2064,7 +2183,7 @@ test('tabela do PME agrupa na ordem oficial sem exibir identificadores internos'
   assert.equal(model.groups[0].rows[0].relationshipLabel, 'Componente parcial da meta')
 })
 
-test('relações contextuais são sinalizadas sem renomear metas do PNE', () => {
+test('relações complementares são neutras sem renomear metas do PNE', () => {
   const diagnostic = {
     sources: [],
     presentation: {
@@ -2079,8 +2198,8 @@ test('relações contextuais são sinalizadas sem renomear metas do PNE', () => 
         pmeResult({
           goalId: '4.a',
           indicatorId: 'contexto',
+          mode: 'complementary',
           order: 1,
-          relationshipType: 'contextual_proxy',
           themeId: 'tema',
         }),
       ],
@@ -2088,6 +2207,6 @@ test('relações contextuais são sinalizadas sem renomear metas do PNE', () => 
   }
 
   const row = pmeReferenceTable.buildPmeReferenceTableModel(diagnostic).groups[0].rows[0]
-  assert.equal(row.relationshipLabel, 'Indicador contextual')
+  assert.equal(row.relationshipLabel, 'Indicador complementar')
   assert.equal(row.effort.text, pmeReferenceTable.PME_DESCRIPTIVE_MONITORING)
 })

@@ -5,21 +5,42 @@ import { MethodNote } from './MethodNote'
 export function PneSourceNotes({ compact = false, context, includeMethodology = true }) {
   const { methodology, source } = getDataSourceParts(context)
 
+  if (!source && !(includeMethodology && methodology)) return null
+
   return (
     <>
+      <details className={`platform-support-disclosure chart-methodology-disclosure${compact ? ' chart-methodology-disclosure--compact' : ''}`}>
+        <summary className="platform-support-disclosure__summary">
+          <span>Fonte e cálculo</span>
+        </summary>
+        <SourceNotesBody
+          includeMethodology={includeMethodology}
+          methodology={methodology}
+          source={source}
+        />
+      </details>
+      <section
+        aria-hidden="true"
+        className="pne-source-notes-print"
+      >
+        <h3>Fonte e cálculo</h3>
+        <SourceNotesBody
+          includeMethodology={includeMethodology}
+          methodology={methodology}
+          source={source}
+        />
+      </section>
+    </>
+  )
+}
+
+function SourceNotesBody({ includeMethodology, methodology, source }) {
+  return (
+    <div className="platform-support-disclosure__body">
       {source ? <DataSourceNote source={source} /> : null}
-      {includeMethodology && methodology && compact ? (
-        <details className="platform-support-disclosure chart-methodology-disclosure">
-          <summary className="platform-support-disclosure__summary">
-            <span>Metodologia do indicador</span>
-          </summary>
-          <div className="platform-support-disclosure__body">
-            <MethodNote className="data-source-note">Nota metodológica: {methodology}</MethodNote>
-          </div>
-        </details>
-      ) : includeMethodology && methodology ? (
+      {includeMethodology && methodology ? (
         <MethodNote className="data-source-note">Nota metodológica: {methodology}</MethodNote>
       ) : null}
-    </>
+    </div>
   )
 }

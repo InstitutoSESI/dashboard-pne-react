@@ -178,6 +178,11 @@ DATASET_SPECS: dict[str, DatasetSpec] = {
         base_table="censo_populacao_ensino_fundamental_concluido_15_29",
         local_query_file="censo_populacao_ensino_fundamental_concluido_15_29.sql",
     ),
+    "censo_populacao_ensino_fundamental_concluido_15_mais_data": DatasetSpec(
+        name="censo_populacao_ensino_fundamental_concluido_15_mais_data",
+        base_table="censo_populacao_ensino_fundamental_concluido_15_mais",
+        local_query_file="censo_populacao_ensino_fundamental_concluido_15_mais.sql",
+    ),
     "censo_populacao_ensino_medio_concluido_18_mais_data": DatasetSpec(
         name="censo_populacao_ensino_medio_concluido_18_mais_data",
         base_table="censo_populacao_ensino_medio_concluido_18_mais",
@@ -310,6 +315,7 @@ LOCAL_QUERY_FILES_BY_TABLE: dict[str, str] = {
     "censo_populacao_ensino_fundamental_concluido_18_mais": "censo_populacao_ensino_fundamental_concluido_18_mais.sql",
     "censo_populacao_ensino_fundamental_concluido_18_29": "censo_populacao_ensino_fundamental_concluido_18_29.sql",
     "censo_populacao_ensino_fundamental_concluido_15_29": "censo_populacao_ensino_fundamental_concluido_15_29.sql",
+    "censo_populacao_ensino_fundamental_concluido_15_mais": "censo_populacao_ensino_fundamental_concluido_15_mais.sql",
     "censo_populacao_ensino_medio_concluido_18_mais": "censo_populacao_ensino_medio_concluido_18_mais.sql",
     "censo_populacao_ensino_medio_concluido_18_29": "censo_populacao_ensino_medio_concluido_18_29.sql",
     "pne_taxa_alfabetizacao": "taxa_alfabetizacao.sql",

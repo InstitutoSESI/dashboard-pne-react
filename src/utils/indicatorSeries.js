@@ -2,6 +2,7 @@ const CENSUS_INDICATOR_KEYS = new Set([
   'alfabetizacao_pop_15_mais',
   'fundamental_concluido_18_mais',
   'fundamental_concluido_15_29',
+  'fundamental_concluido_15_mais',
   'medio_concluido_18_mais',
   'medio_concluido_18_29',
   'escolaridade_media_18_29',

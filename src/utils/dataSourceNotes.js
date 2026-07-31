@@ -1,3 +1,9 @@
+import {
+  PNE_2026_GOAL_INDICATOR_CONTRACT,
+  getPne2026RelationContext,
+} from '../data/pne2026GoalIndicatorContract.js'
+import { getPneLegalRelationPresentation } from './pneLegalGoalsPresentation.js'
+
 const SOURCE_CENSO_ESCOLAR = 'Censo Escolar / Sinopse Estatística da Educação Básica — INEP'
 const SOURCE_ATU = 'INEP - Média de Alunos por Turma (ATU)'
 const SOURCE_POPULATION_ATTENDANCE = 'Censo Escolar — INEP; Estimativas Populacionais — IBGE'
@@ -8,6 +14,10 @@ const SOURCE_PNATE = 'PNATE / FNDE'
 const SOURCE_CENSO_DEMOGRAFICO = 'Censo Demográfico — IBGE'
 const SOURCE_EJA_INTEGRADA = 'INEP — Sinopse Estatística da Educação Básica.'
 const SOURCE_MEDIO_TECNICO_ARTICULADO = 'INEP — Sinopse Estatística da Educação Básica.'
+const SOURCE_CHILD_LITERACY = 'INEP — Avaliação da Alfabetização / Indicador Criança Alfabetizada.'
+const METHODOLOGY_CHILD_LITERACY = 'Percentual de estudantes da rede municipal considerados alfabetizados ao final do 2º ano do ensino fundamental. O indicador utiliza o padrão nacional da Avaliação da Alfabetização e não corresponde exatamente ao critério da Meta 5 do PNE 2014–2024, que previa alfabetização até o final do 3º ano.'
+const METHODOLOGY_POPULATION_ATTENDANCE = 'Cobertura estimada; valores acima de 100% podem ocorrer por estimativas populacionais, mobilidade escolar e oferta localizada no município.'
+const TECHNICAL_METHOD_IDENTIFIER = /\b(?:(?:[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9]*_)+[A-Za-zÀ-ÿ0-9]+|PC_[A-Z0-9_]+|TP_[A-Z0-9_]+|MEDU\d+)\b/u
 
 const EDUCATION_THEME_SOURCES = {
   aprendizagem: SOURCE_IDEB_SAEB,
@@ -63,10 +73,10 @@ const CENSO_ESCOLAR_KEYS = new Set([
 ])
 
 const METHODOLOGY_NOTES_BY_KEY = {
-  aee: 'Contagem municipal de escolas que oferecem Atendimento Educacional Especializado, conforme o Censo Escolar.',
+  aee: 'Indicador de contexto/proxy; a base aberta atual não oferece denominador municipal seguro para medir diretamente o público-alvo do AEE.',
   eja_integrada_educacao_profissional: 'Indicador de contexto; mostra volume absoluto e não calcula a proporção legal da meta.',
   eja_integrada_educacao_profissional_percentual: 'indicador calculado a partir das matrículas da EJA articuladas à educação profissional, considerando curso técnico integrado à EJA, FIC integrado à EJA de nível fundamental, FIC integrado à EJA de nível médio e o total de matrículas da EJA.',
-  medio_tecnico_articulado_percentual: 'Indicador calculado pela relação entre as matrículas em cursos técnicos integrados ao ensino médio e o total de matrículas do ensino médio. As matrículas concomitantes permanecem apresentadas no aprofundamento como informação complementar.',
+  medio_tecnico_articulado_percentual: 'Indicador calculado pela soma das matrículas em cursos técnicos integrados e concomitantes, dividida pelo total de matrículas do ensino médio. A fonte não identifica estudantes únicos, por isso a relação permanece complementar.',
   internet: 'Indicador de contexto; não gera distância de meta legal por não medir velocidade, qualidade ou uso pedagógico.',
   internet_alunos: 'Indicador de contexto; não gera distância de meta legal por não medir velocidade, qualidade ou uso pedagógico.',
   internet_aprendizagem: 'Indicador de contexto; não gera distância de meta legal por não medir velocidade, qualidade ou uso pedagógico.',
@@ -82,7 +92,6 @@ const METHODOLOGY_NOTES_BY_KEY = {
   tablet_aluno: 'Indicador de contexto; não mede suficiência de equipamentos por estudante.',
   salas_climatizadas: 'Proxy parcial de conforto térmico; não mede todo o padrão físico do estabelecimento.',
   salas_acessiveis: 'Proxy parcial de acessibilidade; não mede toda a acessibilidade escolar, como circulação, atendimento, materiais, transporte e demais ambientes.',
-  pos_graduacao: 'Dado bruto preservado; há pontos históricos acima de 100% em poucos municípios, exigindo revisão humana de fonte/denominador.',
 }
 
 export function getDataSourceParts(context = {}) {
@@ -112,7 +121,14 @@ export function getDataSourceParts(context = {}) {
     context.fonte,
     detailType,
   ].filter(Boolean).join(' '))
-  const methodologyNote = getMethodologyNote(indicatorKey, text, context)
+  const contractParts = getPne2026ContractSourceParts(context, indicatorKey)
+  const isClosedCycleChildLiteracy =
+    context.cycle === 'pne_2014_2024' && indicatorKey === 'alfabetizacao'
+  const methodologyNote = [
+    contractParts.methodology,
+    getPne2026DetailContextNote(context, indicatorKey),
+    getMethodologyNote(indicatorKey, text, context),
+  ].filter(Boolean).join(' ')
 
   let source = ''
 
@@ -120,6 +136,10 @@ export function getDataSourceParts(context = {}) {
     source = SOURCE_FUNDEB
   } else if (block === 'pnate' || theme === 'pnate') {
     source = SOURCE_PNATE
+  } else if (isClosedCycleChildLiteracy) {
+    source = SOURCE_CHILD_LITERACY
+  } else if (contractParts.source) {
+    source = contractParts.source
   } else if (POPULATION_ATTENDANCE_KEYS.has(indicatorKey)) {
     source = SOURCE_POPULATION_ATTENDANCE
   } else if (indicatorKey === 'eja_integrada_educacao_profissional_percentual') {
@@ -150,6 +170,96 @@ export function getDataSourceParts(context = {}) {
   return { source, methodology: methodologyNote }
 }
 
+function getPne2026DetailContextNote(context, indicatorKey) {
+  if (context.cycle !== 'pne_2026_2036' || !indicatorKey) return ''
+
+  const relationContext = getPne2026RelationContext(
+    context.item?.metaRef ?? context.result?.goalId,
+    indicatorKey,
+    context.result?.end_year,
+  )
+  if (!relationContext?.relation) return ''
+
+  const presentation = getPneLegalRelationPresentation({
+    item: context.item,
+    relation: relationContext.relation,
+  })
+  return [
+    presentation.territorialityLabel
+      ? `Territorialidade: ${presentation.territorialityLabel}.`
+      : '',
+    presentation.limitation
+      ? `Limitação: ${presentation.limitation}`
+      : '',
+  ].filter(Boolean).join(' ')
+}
+
+function getPne2026ContractSourceParts(context, indicatorKey) {
+  if (context.cycle !== 'pne_2026_2036' || !indicatorKey) {
+    return { methodology: '', source: '' }
+  }
+
+  const indicator = PNE_2026_GOAL_INDICATOR_CONTRACT.indicators?.[indicatorKey]
+  if (!indicator) return { methodology: '', source: '' }
+
+  const sourceIds = context.presentation?.sourceIds?.length
+    ? context.presentation.sourceIds
+    : indicator.sourceIds ?? []
+  const resultYear = finiteYear(
+    context.result?.end_year
+      ?? context.result?.current?.year
+      ?? context.details?.end_year,
+  )
+  const source = sourceIds
+    .map((sourceId) => formatContractSource(sourceId, resultYear))
+    .filter(Boolean)
+    .join('; ')
+  const formulaDescription = getPne2026PublicFormulaDescription(
+    indicator.formulaId,
+    indicator.publicDescription,
+  )
+  const methodology = [
+    resultYear ? `Período do resultado: ${resultYear}.` : '',
+    formulaDescription ? `Cálculo: ${formulaDescription}` : '',
+    toPublicMethodologyText(indicator.methodologyNote),
+  ].filter(Boolean).join(' ')
+
+  return { methodology, source }
+}
+
+export function getPne2026PublicFormulaDescription(formulaId, fallback = '') {
+  const description = PNE_2026_GOAL_INDICATOR_CONTRACT.formulas?.[formulaId]?.description
+  const publicDescription = toPublicMethodologyText(description)
+  return publicDescription || toPublicMethodologyText(fallback)
+}
+
+function formatContractSource(sourceId, resultYear) {
+  const source = PNE_2026_GOAL_INDICATOR_CONTRACT.sources?.[sourceId]
+  if (!source) return ''
+
+  if (sourceId === 'inep_censo_escolar') {
+    return `INEP — Censo Escolar${resultYear ? ` ${resultYear}` : ''}`
+  }
+  if (sourceId === 'ibge_censo_demografico_2022_indigena_9970') {
+    return 'IBGE — Censo Demográfico 2022, população indígena de 4 a 17 anos'
+  }
+  if (sourceId === 'ibge_munic_2021') {
+    return 'IBGE — MUNIC, Educação 2021'
+  }
+
+  const organization = source.organization?.includes('IBGE')
+    ? 'IBGE'
+    : source.organization?.includes('INEP')
+      ? 'INEP'
+      : source.organization
+  return [organization, source.publicTitle].filter(Boolean).join(' — ')
+}
+
+function finiteYear(value) {
+  const numeric = Number(value)
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null
+}
+
 export function getDataSourceNote(context = {}) {
   const { source, methodology } = getDataSourceParts(context)
   return withMethodology(source, methodology)
@@ -165,9 +275,25 @@ function getMethodologyNote(indicatorKey, text, context) {
       context.methodology,
   ].find(Boolean)
 
+  if (
+    context.cycle === 'pne_2014_2024'
+    && indicatorKey === 'alfabetizacao'
+  ) {
+    notes.push(METHODOLOGY_CHILD_LITERACY)
+  }
   if (POPULATION_ATTENDANCE_KEYS.has(indicatorKey)) {
+    notes.push(METHODOLOGY_POPULATION_ATTENDANCE)
+  }
+  if (POPULATION_ATTENDANCE_KEYS.has(indicatorKey) && hasValueAbove100(context)) {
+    const rawValue = getRawValueAbove100(context)
     notes.push(
-      'Cobertura estimada; valores acima de 100% podem ocorrer por estimativas populacionais, mobilidade escolar e oferta localizada no município.',
+      `Para facilitar a visualização e a comparação entre indicadores, os resumos exibem no máximo 100%. O valor calculado foi ${formatPercent(rawValue)}; resultados acima de 100% podem ocorrer por estimativas populacionais, mobilidade escolar e oferta localizada no município.`,
+    )
+  }
+  if (!POPULATION_ATTENDANCE_KEYS.has(indicatorKey) && hasValueAbove100(context)) {
+    const rawValue = getRawValueAbove100(context)
+    notes.push(
+      `Para facilitar a visualização e a comparação entre indicadores, os resumos exibem no máximo 100%. O valor calculado foi ${formatPercent(rawValue)} e requer leitura conjunta do universo e do denominador declarados.`,
     )
   }
   if (isCensoDemografico(indicatorKey, text)) {
@@ -184,10 +310,55 @@ function getMethodologyNote(indicatorKey, text, context) {
     notes.push(METHODOLOGY_NOTES_BY_KEY[indicatorKey])
   }
   if (declaredNote) {
-    notes.push(declaredNote)
+    const publicDeclaredNote = toPublicMethodologyText(declaredNote)
+    if (publicDeclaredNote) notes.push(publicDeclaredNote)
   }
 
   return [...new Set(notes)].join(' ')
+}
+
+function hasValueAbove100(context) {
+  return getRawValueAbove100(context) !== null
+}
+
+function getRawValueAbove100(context) {
+  const candidates = [
+    context.result?.end_value,
+    context.result?.current?.value,
+    context.result?.current?.rawValue,
+    context.result?.start_value,
+    context.result?.current?.displayValue,
+    ...(context.result?.series ?? []).map((point) => point?.valor ?? point?.value),
+    ...(context.details?.series ?? []).map((point) => point?.valor ?? point?.value),
+  ]
+
+  const rawValue = candidates
+    .map(Number)
+    .find((value) => Number.isFinite(value) && value > 100)
+
+  return rawValue ?? null
+}
+
+function formatPercent(value) {
+  return `${Number(value).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+  })}%`
+}
+
+function toPublicMethodologyText(value) {
+  if (typeof value !== 'string' || !value.trim()) return ''
+
+  return value
+    .trim()
+    .split(/(?<=[.!?])\s+/u)
+    .filter((sentence) => {
+      const normalized = sentence.trim()
+      return normalized
+        && !/^(?:Numerador|Denominador)\s*:/iu.test(normalized)
+        && !TECHNICAL_METHOD_IDENTIFIER.test(normalized)
+    })
+    .join(' ')
+    .trim()
 }
 
 function withMethodology(source, note) {
@@ -296,6 +467,7 @@ function isCensoDemografico(indicatorKey, text) {
     'alfabetizacao_pop_15_mais',
     'fundamental_concluido_18_mais',
     'fundamental_concluido_15_29',
+    'fundamental_concluido_15_mais',
     'medio_concluido_18_mais',
     'medio_concluido_18_29',
     'escolaridade_media_18_29',

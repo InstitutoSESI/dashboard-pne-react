@@ -860,12 +860,108 @@ ETAPAS_FUNDAMENTAL_DETALHADAS = {
     "fundamental_anos_finais",
 }
 
+CENSO_DEPENDENCIAS = ("federal", "estadual", "municipal", "privada")
+CENSO_LOCALIZACOES = ("urbana", "rural")
 
-def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
+
+def _normalizar_matriculas_educacao_basica(df, id_mun):
+    """Agrega QT_MAT_BAS sem recompô-lo pela soma de etapas/modalidades."""
+    colunas = [
+        "ano",
+        "id_municipio",
+        "dependencia",
+        "localizacao",
+        "matriculas",
+        "matriculas_integral",
+    ]
+    if df is None or df.empty:
+        return pd.DataFrame(columns=colunas)
+
+    obrigatorias = {
+        "ano",
+        "id_municipio",
+        "dependencia",
+        "localizacao",
+        "mat_basico",
+    }
+    ausentes = obrigatorias - set(df.columns)
+    if ausentes:
+        raise ValueError(
+            "Fonte oficial da Educação Básica sem colunas obrigatórias: "
+            f"{sorted(ausentes)}"
+        )
+
+    base = df[
+        (df["id_municipio"] == id_mun)
+        & df["dependencia"].isin(CENSO_DEPENDENCIAS)
+        & df["localizacao"].isin(CENSO_LOCALIZACOES)
+    ][
+        ["ano", "id_municipio", "dependencia", "localizacao", "mat_basico"]
+    ].copy()
+    if base.empty:
+        return pd.DataFrame(columns=colunas)
+
+    base = (
+        base.groupby(
+            ["ano", "id_municipio", "dependencia", "localizacao"],
+            as_index=False,
+        )["mat_basico"]
+        .sum(min_count=1)
+        .rename(columns={"mat_basico": "matriculas"})
+    )
+    publica = (
+        base[base["dependencia"].isin(("federal", "estadual", "municipal"))]
+        .groupby(["ano", "id_municipio", "localizacao"], as_index=False)[
+            "matriculas"
+        ]
+        .sum(min_count=1)
+    )
+    publica["dependencia"] = "publica"
+    total = (
+        base.groupby(["ano", "id_municipio", "localizacao"], as_index=False)[
+            "matriculas"
+        ]
+        .sum(min_count=1)
+    )
+    total["dependencia"] = "total"
+
+    por_dependencia = pd.concat([base, publica, total], ignore_index=True)
+    por_localizacao_total = (
+        por_dependencia.groupby(
+            ["ano", "id_municipio", "dependencia"],
+            as_index=False,
+        )["matriculas"]
+        .sum(min_count=1)
+    )
+    por_localizacao_total["localizacao"] = "total"
+
+    normalizada = pd.concat(
+        [por_dependencia, por_localizacao_total],
+        ignore_index=True,
+    )
+    normalizada["matriculas_integral"] = pd.NA
+    return normalizada[colunas]
+
+
+def montar_bloco_matriculas(
+    df,
+    id_mun,
+    df_educacao_basica,
+    df_faixa_etaria=None,
+    df_cor_raca=None,
+):
     """Constroi o bloco de matriculas para um municipio."""
     d = df[df["id_municipio"] == id_mun].copy()
     if d.empty:
         return _bloco_vazio("matriculas", ["etapa_ensino", "dependencia", "localizacao"])
+    educacao_basica = _normalizar_matriculas_educacao_basica(
+        df_educacao_basica,
+        id_mun,
+    )
+    if educacao_basica.empty:
+        raise ValueError(
+            f"{id_mun}: total oficial de matrículas da Educação Básica indisponível."
+        )
 
     # Os anos iniciais e finais sao recortes do total do ensino fundamental.
     # Mantemos esses recortes nas series por etapa, mas os excluimos de qualquer
@@ -874,15 +970,14 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
         ~d["etapa_ensino"].isin(ETAPAS_FUNDAMENTAL_DETALHADAS)
     ]
 
-    # Serie total (dependencia=total, localizacao=total, sem recortes sobrepostos)
+    # Serie total oficial do Censo Escolar (QT_MAT_BAS). Etapas e modalidades
+    # permanecem como recortes de leitura e não são somadas para recompor o total.
     total = (
-        d_sem_sobreposicao[
-            (d_sem_sobreposicao["dependencia"] == "total")
-            & (d_sem_sobreposicao["localizacao"] == "total")
+        educacao_basica[
+            (educacao_basica["dependencia"] == "total")
+            & (educacao_basica["localizacao"] == "total")
         ]
-        .groupby("ano")["matriculas"]
-        .sum(min_count=1)
-        .reset_index()
+        .sort_values("ano")
     )
     serie_total = [
         {"ano": int(r["ano"]), "valor": ri(r["matriculas"])}
@@ -907,15 +1002,10 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
     # Serie por dependencia (total loc, todas as etapas)
     por_dep = {}
     for dep in ["publica", "privada", "estadual", "municipal", "federal"]:
-        sub = (
-            d_sem_sobreposicao[
-                (d_sem_sobreposicao["dependencia"] == dep)
-                & (d_sem_sobreposicao["localizacao"] == "total")
-            ]
-            .groupby("ano")["matriculas"]
-            .sum(min_count=1)
-            .reset_index()
-        )
+        sub = educacao_basica[
+            (educacao_basica["dependencia"] == dep)
+            & (educacao_basica["localizacao"] == "total")
+        ].sort_values("ano")
         serie = [
             {"ano": int(r["ano"]), "valor": ri(r["matriculas"])}
             for _, r in sub.iterrows() if limpar_null(r["matriculas"]) is not None
@@ -926,15 +1016,10 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
     # Serie por localizacao (total dep)
     por_loc = {}
     for loc in ["urbana", "rural"]:
-        sub = (
-            d_sem_sobreposicao[
-                (d_sem_sobreposicao["dependencia"] == "total")
-                & (d_sem_sobreposicao["localizacao"] == loc)
-            ]
-            .groupby("ano")["matriculas"]
-            .sum(min_count=1)
-            .reset_index()
-        )
+        sub = educacao_basica[
+            (educacao_basica["dependencia"] == "total")
+            & (educacao_basica["localizacao"] == loc)
+        ].sort_values("ano")
         serie = [
             {"ano": int(r["ano"]), "valor": ri(r["matriculas"])}
             for _, r in sub.iterrows() if limpar_null(r["matriculas"]) is not None
@@ -970,12 +1055,12 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
             {"dependencia": "total", "localizacao": "total"},
         ),
         "por_rede": detalhamento_matriculas(
-            d_sem_sobreposicao,
+            educacao_basica,
             ["dependencia"],
             {"dependencia": deps_rede, "localizacao": "total"},
         ),
         "por_localizacao": detalhamento_matriculas(
-            d_sem_sobreposicao,
+            educacao_basica,
             ["localizacao"],
             {"dependencia": "total", "localizacao": locs},
         ),
@@ -990,7 +1075,7 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
             {"dependencia": "total", "localizacao": locs},
         ),
         "por_rede_localizacao": detalhamento_matriculas(
-            d_sem_sobreposicao,
+            educacao_basica,
             ["dependencia", "localizacao"],
             {"dependencia": deps_rede, "localizacao": locs},
         ),
@@ -1056,7 +1141,7 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
                 )
     # Ultimo ano
     ultimo_ano = int(total["ano"].max()) if not total.empty else None
-    resumo = _resumo_matriculas(d, ultimo_ano)
+    resumo = _resumo_matriculas(d, educacao_basica, ultimo_ano)
 
     return {
         "series": {
@@ -1076,17 +1161,22 @@ def montar_bloco_matriculas(df, id_mun, df_faixa_etaria=None, df_cor_raca=None):
     }
 
 
-def _resumo_matriculas(d, ano):
+def _resumo_matriculas(d, educacao_basica, ano):
     if ano is None:
         return {}
     d_ano = d[d["ano"] == ano]
     d_ano_sem_sobreposicao = d_ano[
         ~d_ano["etapa_ensino"].isin(ETAPAS_FUNDAMENTAL_DETALHADAS)
     ]
-    total = d_ano_sem_sobreposicao[
+    total_categorias = d_ano_sem_sobreposicao[
         (d_ano_sem_sobreposicao["dependencia"] == "total")
         & (d_ano_sem_sobreposicao["localizacao"] == "total")
     ]["matriculas"].sum()
+    basica_ano = educacao_basica[educacao_basica["ano"] == ano]
+    total = basica_ano[
+        (basica_ano["dependencia"] == "total")
+        & (basica_ano["localizacao"] == "total")
+    ]["matriculas"].sum(min_count=1)
 
     por_etapa = {}
     for etapa in d_ano["etapa_ensino"].unique():
@@ -1099,24 +1189,30 @@ def _resumo_matriculas(d, ano):
         if v is not None:
             por_etapa[etapa] = ri(v)
 
-    publica = d_ano_sem_sobreposicao[(d_ano_sem_sobreposicao["dependencia"] == "publica") & (d_ano_sem_sobreposicao["localizacao"] == "total")][
+    publica = basica_ano[(basica_ano["dependencia"] == "publica") & (basica_ano["localizacao"] == "total")][
         "matriculas"
-    ].sum()
-    privada = d_ano_sem_sobreposicao[(d_ano_sem_sobreposicao["dependencia"] == "privada") & (d_ano_sem_sobreposicao["localizacao"] == "total")][
+    ].sum(min_count=1)
+    privada = basica_ano[(basica_ano["dependencia"] == "privada") & (basica_ano["localizacao"] == "total")][
         "matriculas"
-    ].sum()
-    urbana = d_ano_sem_sobreposicao[(d_ano_sem_sobreposicao["dependencia"] == "total") & (d_ano_sem_sobreposicao["localizacao"] == "urbana")][
+    ].sum(min_count=1)
+    urbana = basica_ano[(basica_ano["dependencia"] == "total") & (basica_ano["localizacao"] == "urbana")][
         "matriculas"
-    ].sum()
-    rural = d_ano_sem_sobreposicao[(d_ano_sem_sobreposicao["dependencia"] == "total") & (d_ano_sem_sobreposicao["localizacao"] == "rural")][
+    ].sum(min_count=1)
+    rural = basica_ano[(basica_ano["dependencia"] == "total") & (basica_ano["localizacao"] == "rural")][
         "matriculas"
-    ].sum()
+    ].sum(min_count=1)
 
     inte = d_ano_sem_sobreposicao[
         (d_ano_sem_sobreposicao["dependencia"] == "total")
         & (d_ano_sem_sobreposicao["localizacao"] == "total")
     ]["matriculas_integral"].sum()
-    perc_integral = r1(inte / total * 100) if limpar_null(total) and total > 0 and limpar_null(inte) else None
+    perc_integral = (
+        r1(inte / total_categorias * 100)
+        if limpar_null(total_categorias)
+        and total_categorias > 0
+        and limpar_null(inte)
+        else None
+    )
 
     return {
         "total_matriculas": ri(limpar_null(total)),
@@ -2366,6 +2462,7 @@ def exportar_municipios(
                 "matriculas": montar_bloco_matriculas(
                     view_df("matriculas", id_mun),
                     id_mun,
+                    view_df("matriculas_educacao_basica", id_mun),
                     view_df("matriculas_faixa_etaria", id_mun),
                     view_df("matriculas_cor_raca", id_mun),
                 ),
@@ -2458,7 +2555,11 @@ def exportar_regioes(mun_rs, dfs_views):
         slug = slugify(regiao)
 
         # Agregar matriculas
-        mat_regional = _agregar_matriculas_regional(dfs_views["matriculas"], ids_regiao)
+        mat_regional = _agregar_matriculas_regional(
+            dfs_views["matriculas"],
+            dfs_views["matriculas_educacao_basica"],
+            ids_regiao,
+        )
         rede_regional = _agregar_rede_regional(dfs_views["rede_escolar"], ids_regiao)
         turmas_regional = _agregar_turmas_regional(dfs_views["turmas"], ids_regiao)
         fluxo_regional = _agregar_fluxo_regional(dfs_views["fluxo"], ids_regiao)
@@ -2496,7 +2597,7 @@ def exportar_regioes(mun_rs, dfs_views):
     return gerados
 
 
-def _agregar_matriculas_regional(df, ids):
+def _agregar_matriculas_regional(df, df_educacao_basica, ids):
     """Agrega matriculas somando municipios da regiao."""
     d = df[df["id_municipio"].isin(ids)].copy()
     if d.empty:
@@ -2509,7 +2610,15 @@ def _agregar_matriculas_regional(df, ids):
     )
     # Reaproveita a funcao municipal com id_municipio dummy
     agg["id_municipio"] = "REGIONAL"
-    return montar_bloco_matriculas(agg, "REGIONAL")
+    basica = (
+        df_educacao_basica[df_educacao_basica["id_municipio"].isin(ids)]
+        .groupby(["ano", "dependencia", "localizacao"], as_index=False)[
+            "mat_basico"
+        ]
+        .sum(min_count=1)
+    )
+    basica["id_municipio"] = "REGIONAL"
+    return montar_bloco_matriculas(agg, "REGIONAL", basica)
 
 
 def _agregar_rede_regional(df, ids):
@@ -2897,6 +3006,10 @@ def main():
     log("Carregando views...")
     views = [
         ("vw_educacao_matriculas", "matriculas"),
+        (
+            "vw_educacao_visao_geral_municipal",
+            "matriculas_educacao_basica",
+        ),
         ("vw_educacao_matriculas_faixa_etaria", "matriculas_faixa_etaria"),
         ("vw_educacao_matriculas_cor_raca", "matriculas_cor_raca"),
         ("vw_educacao_rede_escolar", "rede_escolar"),
@@ -2927,6 +3040,8 @@ def main():
     # 3. Anos por bloco
     anos_por_bloco = {}
     for nome, df in dfs.items():
+        if nome == "matriculas_educacao_basica":
+            continue
         if not df.empty and "ano" in df.columns:
             anos_por_bloco[nome] = sorted(df["ano"].unique().tolist())
         elif not df.empty and "ano_fundeb" in df.columns:

@@ -9,8 +9,7 @@ import {
   type SchoolInfrastructureContract,
 } from '../../data/schoolInfrastructureContract.js'
 import type {
-  Pne2026PublicDiagnosticV2,
-  Pne2026PublicResultV2,
+  Pne2026DiagnosticViewModel,
 } from '../diagnostic/diagnosticTypes'
 import type { HigherEducationViewModel } from './higherEducationTypes'
 import {
@@ -33,7 +32,10 @@ import type {
   SpecialEducationPoint,
   SpecialEducationYearCut,
 } from './specialEducationTypes'
-import type { PmeReferenceDataSources } from './pmeReferenceTableViewModel'
+import {
+  buildPmeReferenceTableModel,
+  type PmeReferenceDataSources,
+} from './pmeReferenceTableViewModel.js'
 
 export interface MunicipalTechnicalReportExportIndicator {
   key: string
@@ -54,7 +56,7 @@ export interface MunicipalTechnicalReportWorkbookInput {
   municipalityPopulation?: unknown
   municipalitySlug?: string | null
   overview: MunicipalEducationOverviewV1 | null
-  pmeDiagnostic: Pne2026PublicDiagnosticV2 | null
+  pmeDiagnostic: Pne2026DiagnosticViewModel | null
   pmeReferenceData?: PmeReferenceDataSources
   schoolInfrastructure: SchoolInfrastructureContract | null
   specialEducation: SpecialEducationMunicipalDocument | null
@@ -80,13 +82,6 @@ interface TrackingRow {
   situation: string
   availability: string
   methodology: string
-}
-
-interface PmeReferenceRawComponents {
-  numerator: number
-  denominator: number
-  numeratorUnit: string
-  denominatorUnit: string
 }
 
 const COLORS = {
@@ -149,11 +144,23 @@ const DIAGNOSTIC_SECTIONS: Record<string, number> = {
   creche: 2,
   pre_escola: 2,
   basico_6_17: 3,
+  alfabetizacao: 3,
   basico_15_17: 4,
   basico_integral: 5,
   escolas_integral: 5,
   educacao_ambiental: 6,
   eja_integrada_educacao_profissional_percentual: 8,
+  eja_atendimento_18_mais: 8,
+  aee_oferta_escolas_elegiveis: 9,
+  superior_concluintes_oferta_local: 10,
+  superior_docentes_mestres_doutores_sede: 10,
+  graduacao_frequencia_18_24: 10,
+  superior_completo_25_34: 10,
+  taxa_bruta_graduacao: 10,
+  docentes_tempo_integral_ies: 10,
+  docentes_tempo_integral_universidades: 10,
+  docentes_tempo_integral_centros_universitarios: 10,
+  docentes_tempo_integral_faculdades: 10,
   adequacao_ai: 12,
   adequacao_af: 12,
   adequacao_em: 12,
@@ -162,28 +169,7 @@ const DIAGNOSTIC_SECTIONS: Record<string, number> = {
   conselho_escolar: 13,
   salas_climatizadas: 14,
   salas_acessiveis: 14,
-}
-
-const PME_PLANNING_COMPONENT_UNITS: Record<
-  string,
-  Pick<PmeReferenceRawComponents, 'numeratorUnit' | 'denominatorUnit'>
-> = {
-  basico_integral: {
-    numeratorUnit: 'matrículas',
-    denominatorUnit: 'matrículas',
-  },
-  escolas_integral: {
-    numeratorUnit: 'escolas',
-    denominatorUnit: 'escolas',
-  },
-  pos_graduacao: {
-    numeratorUnit: 'docentes',
-    denominatorUnit: 'docentes',
-  },
-  temporarios: {
-    numeratorUnit: 'docentes',
-    denominatorUnit: 'docentes',
-  },
+  educacao_indigena_cobertura_estimada_4_17: 7,
 }
 
 const borderStyle = {
@@ -377,7 +363,7 @@ function snapshotRow(
 }
 
 function sourceForDiagnostic(
-  diagnostic: Pne2026PublicDiagnosticV2,
+  diagnostic: Pne2026DiagnosticViewModel,
   sourceIds: string[],
 ) {
   const sourcesById = new Map(diagnostic.sources.map((source) => [source.id, source]))
@@ -396,12 +382,6 @@ function directionLabel(direction: string | null | undefined) {
   return 'Leitura contextual'
 }
 
-function relationshipLabel(relationship: string) {
-  if (relationship === 'direct') return 'Indicador diretamente relacionado à referência'
-  if (relationship === 'partial_component') return 'Componente parcial da referência'
-  return 'Indicador contextual; não representa sozinho o cumprimento da meta'
-}
-
 function classificationLabel(classification: string | null) {
   if (classification === 'maintain') return 'Manter o resultado observado'
   if (classification === 'advance') return 'Requer avanço em direção à referência'
@@ -412,72 +392,6 @@ function parseYear(value: unknown): number | string | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   const text = cleanText(value)
   return text || null
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value != null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : []
-}
-
-function asFiniteNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  if (typeof value !== 'string' || !value.trim()) return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function extractProjectionComponents(
-  result: Pne2026PublicResultV2,
-  projections: Record<string, unknown> | null | undefined,
-): PmeReferenceRawComponents | null {
-  const projection = asRecord(projections?.[result.indicatorId])
-  if (!projection) return null
-
-  const years = asArray(projection.historical_years)
-  const numerators = asArray(projection.historical_numerator)
-  const denominators = asArray(projection.historical_population)
-  const index = years.findIndex((year) => Number(year) === result.current.year)
-  const numerator = asFiniteNumber(numerators[index])
-  const denominator = asFiniteNumber(denominators[index])
-  if (numerator == null || denominator == null) return null
-
-  return {
-    numerator,
-    denominator,
-    numeratorUnit: 'matrículas',
-    denominatorUnit: 'pessoas',
-  }
-}
-
-function extractPlanningComponents(
-  result: Pne2026PublicResultV2,
-  scenarios: Record<string, unknown> | null | undefined,
-): PmeReferenceRawComponents | null {
-  const scenario = asRecord(scenarios?.[result.indicatorId])
-  const units = PME_PLANNING_COMPONENT_UNITS[result.indicatorId]
-  if (!scenario || !units || scenario.indicatorKey !== result.indicatorId) return null
-
-  const point = asArray(scenario.historical)
-    .map(asRecord)
-    .find((item) => Number(item?.year) === result.current.year)
-  const numerator = asFiniteNumber(point?.numerator)
-  const denominator = asFiniteNumber(point?.denominator)
-  if (numerator == null || denominator == null) return null
-
-  return { numerator, denominator, ...units }
-}
-
-function extractPmeReferenceComponents(
-  result: Pne2026PublicResultV2,
-  sources: PmeReferenceDataSources | undefined,
-) {
-  return extractProjectionComponents(result, sources?.projections)
-    ?? extractPlanningComponents(result, sources?.planningScenarios)
 }
 
 function parseIndicatorValue(item: MunicipalTechnicalReportExportIndicator) {
@@ -558,29 +472,43 @@ function educationItemTrackingRows(items: MunicipalTechnicalReportExportIndicato
   })
 }
 
-function diagnosticTrackingRows(diagnostic: Pne2026PublicDiagnosticV2 | null) {
+function diagnosticTrackingRows(diagnostic: Pne2026DiagnosticViewModel | null) {
   if (!diagnostic) return []
   return diagnostic.goals.flatMap((goal) => goal.results).map((result): TrackingRow => {
+    const isComplementary = result.mode === 'complementary'
+    const isAvailable = result.dataStatus === 'available'
     const section = DIAGNOSTIC_SECTIONS[result.indicatorId] ?? 17
     const definition = MUNICIPAL_REPORT_PUBLIC_LABELS[result.indicatorId]
     return {
       section,
       indicator: definition?.publicTitle ?? result.publicName,
-      value: result.current.displayValue,
+      value: isAvailable
+        ? result.current.displayValue
+        : result.dataStatusLabel ?? 'Não disponível para o período',
       percent: result.current.unit === 'percent',
       unit: definition?.unitLabel
         ?? (result.current.unit === 'percent' ? 'percentual' : result.current.unit === 'years' ? 'anos' : result.current.unit === 'count' ? 'quantidade' : 'índice'),
       year: result.current.year,
       source: sourceForDiagnostic(diagnostic, result.sourceIds),
-      reference: result.indicatorReference.value,
-      referencePercent: result.current.unit === 'percent',
-      referenceYear: result.indicatorReference.year,
-      direction: directionLabel(result.indicatorReference.direction ?? result.direction),
-      situation: classificationLabel(result.classification),
-      availability: 'Disponível',
+      reference: isComplementary || !isAvailable ? null : result.indicatorReference?.value ?? null,
+      referencePercent: !isComplementary && isAvailable && result.current.unit === 'percent',
+      referenceYear: isComplementary || !isAvailable ? null : result.indicatorReference?.year ?? null,
+      direction: isComplementary
+        ? 'Acompanhamento descritivo'
+        : directionLabel(result.indicatorReference?.direction ?? result.direction),
+      situation: isComplementary || !isAvailable
+        ? ''
+        : result.mode === 'tracking'
+          ? result.status ?? ''
+          : classificationLabel(result.classification),
+      availability: isAvailable
+        ? 'Disponível'
+        : result.dataStatusLabel ?? 'Não disponível para o período',
       methodology: [
         definition?.interpretationNote ?? result.publicDescription,
-        relationshipLabel(result.relationshipType),
+        isComplementary
+          ? 'Indicador complementar; não mede sozinho o cumprimento da meta.'
+          : result.relationshipLabel,
       ].filter(Boolean).join(' '),
     }
   })
@@ -1021,19 +949,21 @@ function buildPneReferenceSheet(input: MunicipalTechnicalReportWorkbookInput) {
   const diagnostic = input.pmeDiagnostic
   const rows: Row[] = []
   if (diagnostic) {
-    const themesById = new Map(diagnostic.presentation.themes.map((theme) => [theme.id, theme.label]))
-    diagnostic.goals
-      .flatMap((goal) => goal.results)
-      .sort((left, right) => left.resultOrder - right.resultOrder)
-      .forEach((result) => {
+    const model = buildPmeReferenceTableModel(diagnostic, input.pmeReferenceData)
+    model.groups.forEach((group) => {
+      group.rows.forEach((viewRow) => {
+        const result = viewRow.result
+        const isComplementary = result.mode === 'complementary'
         const definition = MUNICIPAL_REPORT_PUBLIC_LABELS[result.indicatorId]
-        const rawComponents = extractPmeReferenceComponents(result, input.pmeReferenceData)
+        const rawComponents = viewRow.rawComponents
         rows.push([
           textCell(`Meta ${result.goalId}`, borderStyle),
-          textCell(themesById.get(result.themeId) ?? 'Tema educacional', borderStyle),
+          textCell(group.label, borderStyle),
           textCell(definition?.publicTitle ?? result.publicName, borderStyle),
           textCell(result.publicDescription, borderStyle),
-          result.current.unit === 'percent'
+          result.dataStatus !== 'available'
+            ? textCell(result.dataStatusLabel ?? 'Não disponível para o período', borderStyle)
+            : result.current.unit === 'percent'
             ? percentageCell(result.current.displayValue, borderStyle)
             : numberCell(result.current.displayValue, borderStyle),
           textCell(definition?.unitLabel ?? result.current.unit, borderStyle),
@@ -1042,18 +972,44 @@ function buildPneReferenceSheet(input: MunicipalTechnicalReportWorkbookInput) {
           textCell(rawComponents?.numeratorUnit ?? '', borderStyle),
           numberCell(rawComponents?.denominator, borderStyle),
           textCell(rawComponents?.denominatorUnit ?? '', borderStyle),
-          result.current.unit === 'percent'
-            ? percentageCell(result.indicatorReference.value, borderStyle)
-            : numberCell(result.indicatorReference.value, borderStyle),
-          integerCell(result.indicatorReference.year, borderStyle),
-          textCell(directionLabel(result.indicatorReference.direction ?? result.direction), borderStyle),
-          textCell(relationshipLabel(result.relationshipType), borderStyle),
-          textCell(classificationLabel(result.classification), borderStyle),
-          numberCell(result.remainingGap, borderStyle),
+          isComplementary || result.dataStatus !== 'available'
+            ? null
+            : result.current.unit === 'percent'
+              ? percentageCell(result.indicatorReference?.value, borderStyle)
+              : numberCell(result.indicatorReference?.value, borderStyle),
+          isComplementary || result.dataStatus !== 'available'
+            ? null
+            : integerCell(result.indicatorReference?.year, borderStyle),
+          textCell(
+            isComplementary
+              ? 'Acompanhamento descritivo'
+              : result.dataStatus !== 'available'
+                ? ''
+              : directionLabel(result.indicatorReference?.direction ?? result.direction),
+            borderStyle,
+          ),
+          textCell(
+            isComplementary
+              ? 'Indicador complementar; não mede sozinho o cumprimento da meta'
+              : result.relationshipLabel ?? '',
+            borderStyle,
+          ),
+          textCell(
+            isComplementary
+              ? ''
+              : result.dataStatus !== 'available'
+                ? result.dataStatusLabel ?? 'Não disponível para o período'
+              : result.mode === 'tracking'
+                ? result.status ?? ''
+              : classificationLabel(result.classification),
+            borderStyle,
+          ),
+          numberCell(isComplementary ? null : result.remainingGap, borderStyle),
           textCell(sourceForDiagnostic(diagnostic, result.sourceIds), borderStyle),
-          textCell(definition?.interpretationNote ?? result.publicReading ?? result.relationshipReading, borderStyle),
+          textCell(definition?.interpretationNote ?? result.publicReading ?? result.relationshipNote, borderStyle),
         ])
       })
+    })
   }
   return tableSheet(
     'Referências PNE',

@@ -11,6 +11,8 @@ import pandas as pd
 from src.data_loader import load_adequacao_docente_data, load_atendimento_educacional_especializado_data, load_basico_15_17_data, load_basico_6_17_data, load_basico_integral_data, load_censo_populacao_alfabetizacao_data, load_censo_populacao_ensino_fundamental_6_14_data, load_censo_populacao_ensino_medio_15_17_data, load_censo_populacao_escolaridade_media_18_29_data, load_censo_populacao_escolaridade_media_18_29_racial_data, load_docentes_pos_graduacao_data, load_rendimento_professores_data, load_eja_integrada_educacao_profissional_data, load_ept_nivel_medio_data, load_escolas_integral_data, get_data_cache_ttl_seconds, load_pne_2014_2024_metricas_data, load_pne_data, load_pre_escola_data, load_saeb_ideb_data, load_taxa_alfabetizacao_data
 
 from src.pne.common import GOAL_AT_LEAST, _build_eja_integrada_percentual_result, _build_ratio_result, _build_result, _build_value_result, _empty_result, _prepare_yearly_series, _safe_load, _select_reference_rows
+from src.pne_2014_child_literacy import SOURCE_ID as ALFABETIZACAO_SOURCE_ID
+from src.pne_2014_child_literacy import SOURCE_LABEL as ALFABETIZACAO_SOURCE_LABEL
 
 TARGET_START_YEAR = 2014
 
@@ -535,25 +537,78 @@ def _calc_aee(municipio):
     )
 
 def _calc_alfabetizacao(municipio):
-    precomputed = _build_precomputed_result(
-        municipio,
-        "alfabetizacao",
-        meta=META_ALFABETIZACAO,
-        meta_label="Meta PNE 2024",
+    empty = _empty_result(
+        None,
+        meta_label="Resultado observado",
+        tracks_goal=False,
     )
-    if precomputed is not None:
-        return precomputed
+    empty["atingida"] = None
+    df = _safe_load(
+        lambda: load_taxa_alfabetizacao_data(cycle="pne_2014_2024")
+    )
+    required = {"ano", "municipio", "rede", "taxa_alfabetizacao"}
+    if df.empty or not required.issubset(df.columns):
+        return empty
 
-    return _build_value_result(
-        load_taxa_alfabetizacao_data,
-        municipio,
-        value_column="taxa_alfabetizacao",
-        meta=META_ALFABETIZACAO,
-        meta_label="Meta PNE 2024",
-        filters={"dependencia": "publica"},
+    dff = df[
+        (df["municipio"] == municipio)
+        & (df["rede"] == "municipal")
+    ].copy()
+    dff["ano"] = pd.to_numeric(dff["ano"], errors="coerce")
+    dff = dff[
+        (dff["ano"] >= TARGET_START_YEAR)
+        & (dff["ano"] <= TARGET_END_YEAR)
+    ]
+    if dff.duplicated(subset=["ano", "rede"], keep=False).any():
+        print(
+            "Erro de validação do indicador alfabetizacao: "
+            f"chave ano × rede duplicada para {municipio}."
+        )
+        return empty
+
+    dff["valor"] = pd.to_numeric(
+        dff["taxa_alfabetizacao"],
+        errors="coerce",
+    )
+    yearly = dff.dropna(subset=["ano", "valor"])[["ano", "valor"]]
+    if yearly.empty:
+        return empty
+
+    result = _build_result(
+        yearly,
+        None,
+        meta_label="Resultado observado",
         target_start_year=TARGET_START_YEAR,
         target_end_year=TARGET_END_YEAR,
+        tracks_goal=False,
     )
+    result.update(
+        {
+            "source": ALFABETIZACAO_SOURCE_LABEL,
+            "source_id": ALFABETIZACAO_SOURCE_ID,
+            "network": "municipal",
+            "origin_files": sorted(
+                {
+                    str(value)
+                    for value in dff.get("arquivo_origem", pd.Series(dtype="object"))
+                    if pd.notna(value)
+                }
+            ),
+            "updated_at": next(
+                (
+                    str(value)
+                    for value in reversed(
+                        dff.get(
+                            "data_atualizacao",
+                            pd.Series(dtype="object"),
+                        ).dropna().tolist()
+                    )
+                ),
+                None,
+            ),
+        }
+    )
+    return result
 
 def _calc_alfabetizacao_pop_15_mais(municipio):
     precomputed = _build_precomputed_result(
@@ -858,11 +913,12 @@ INDICADORES = {
         "items": [
             {
                 "key": "alfabetizacao",
-                "label": "Estudantes alfabetizados na rede pública",
+                "label": "Crianças alfabetizadas na rede municipal",
                 "sub": "",
-                "desc": "Percentual de estudantes alfabetizados na rede pública do município.",
-                "meta_label": "Meta PNE 2024",
+                "desc": "Percentual de estudantes da rede municipal considerados alfabetizados ao final do 2º ano do ensino fundamental. O indicador utiliza o padrão nacional da Avaliação da Alfabetização e não corresponde exatamente ao critério da Meta 5 do PNE 2014–2024, que previa alfabetização até o final do 3º ano.",
+                "meta_label": "Resultado observado",
                 "compute": _calc_alfabetizacao,
+                "tracks_goal": False,
             },
             {
                 "key": "ideb_anos_iniciais",

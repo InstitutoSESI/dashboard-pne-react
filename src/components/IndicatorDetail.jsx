@@ -16,7 +16,7 @@ import {
   getStableVisualDomain,
   projectValueToPercent,
 } from '../utils/visualDomain'
-import { CalculationComponentsTable, IndicatorComplementaryData } from './IndicatorComplementaryData'
+import { IndicatorComplementaryData } from './IndicatorComplementaryData'
 import { IndicatorHistoryChart } from './IndicatorHistoryChart'
 import { ChartEmptyState } from './ChartPrimitives'
 import { isDemographicCensusIndicator, buildDisplayIndicatorSeries } from '../utils/indicatorSeries'
@@ -27,6 +27,7 @@ import { QuickReadingHeading } from './QuickReadingHeading'
 import { PNE_2026_GOAL_TEXTS } from '../data/pne2026GoalTexts'
 import { PNE_2014_GOAL_TEXTS } from '../data/pne2014GoalTexts'
 import { getPneCycleCopy, isClosedPneCycle } from '../utils/pneCycleCopy'
+import { formatPpDifference } from '../utils/stateReference'
 import { buildPne2026AccumulativePresentationModel } from '../utils/pneAccumulativeCycle'
 import { buildPnePercentScale } from '../utils/pneChartSystem'
 import {
@@ -41,31 +42,98 @@ import {
 } from './SubsequentExpansionTargetDetail'
 import { RatioDualMilestoneDetail } from './RatioDualMilestoneDetail'
 import { InequalityPilotSection } from './InequalityPilotSection'
+import {
+  PNE_2026_GOAL_INDICATOR_CONTRACT,
+  PNE_2026_RELATIONSHIP_MODES,
+  reconcilePne2026MunicipalResult,
+} from '../data/pne2026GoalIndicatorContract'
+import {
+  PNE_CYCLE_PRESENTATION_STATES,
+  isPneComparableIndicator,
+} from '../utils/pneDisplayRules'
+import {
+  buildPneSingleYearDataModel,
+  getPneIndicatorPresentation,
+  toPnePercentDisplay,
+} from '../utils/pneIndicatorPresentation'
+
+const PNE_2026_CYCLE = 'pne_2026_2036'
 
 export const IndicatorDetail = forwardRef(function IndicatorDetail(
-  { cycle, inequalityPilot, inequalityPilotLoading, item, municipioData, result },
+  {
+    cycle,
+    inequalityPilot,
+    inequalityPilotLoading,
+    item,
+    municipioData,
+    result: municipalResult,
+  },
   ref,
 ) {
+  const reconciliation = cycle === PNE_2026_CYCLE
+    ? reconcilePne2026MunicipalResult({
+        goalId: item?.metaRef,
+        indicatorId: item?.key,
+        result: municipalResult,
+      })
+    : { context: null, result: municipalResult }
+  const result = reconciliation.result
+  const displayPolicy = item?.cycleDisplayPolicy ?? null
   const cycleCopy = getPneCycleCopy(cycle)
   const isOrganizedPneDetail = cycle === 'pne_2014_2024' || cycle === 'pne_2026_2036'
   const [loadedDetails, setLoadedDetails] = useState(null)
+  const [detailLoadState, setDetailLoadState] = useState({
+    key: '',
+    status: 'idle',
+  })
   const fallbackDetails = municipioData?.indicator_details?.[item?.key] ?? null
   const details = loadedDetails ?? fallbackDetails
-  const accumulativePresentationModel = buildPne2026AccumulativePresentationModel({
-    cycle,
-    indicatorKey: item?.key,
-    details,
-    presentationMode: item?.presentationMode,
-  })
+  const detailRequestKey = `${municipioData?.id_municipio ?? ''}:${item?.key ?? ''}`
+  const detailsStatus = details
+    ? 'ready'
+    : detailLoadState.key === detailRequestKey
+      ? detailLoadState.status
+      : 'loading'
+  const canonicalRelation = reconciliation.context?.relation
+  const relationshipMode = canonicalRelation?.mode
+  const presentation = cycle === PNE_2026_CYCLE
+    ? getPneIndicatorPresentation({
+        cycle,
+        item,
+        relationContext: reconciliation.context,
+        result,
+      })
+    : null
+  const isComplementaryRelationship =
+    relationshipMode === PNE_2026_RELATIONSHIP_MODES.COMPLEMENTARY
+  const isProgressRelationship = cycle !== PNE_2026_CYCLE
+    || [
+      PNE_2026_RELATIONSHIP_MODES.PROGRESS,
+      PNE_2026_RELATIONSHIP_MODES.TRACKING,
+    ].includes(relationshipMode)
+  const canProject = cycle !== PNE_2026_CYCLE
+    ? isProgressRelationship
+    : canonicalRelation?.canProjection === true
+  const accumulativePresentationModel = isProgressRelationship
+    ? buildPne2026AccumulativePresentationModel({
+        cycle,
+        indicatorKey: item?.key,
+        details,
+        presentationMode: item?.presentationMode,
+      })
+    : null
 
   useEffect(() => {
     let isMounted = true
     const idMunicipio = municipioData?.id_municipio
     const indicatorKey = item?.key
+    const requestKey = `${idMunicipio ?? ''}:${indicatorKey ?? ''}`
 
     setLoadedDetails(null)
+    setDetailLoadState({ key: requestKey, status: 'loading' })
 
     if (!idMunicipio || !indicatorKey) {
+      setDetailLoadState({ key: requestKey, status: fallbackDetails ? 'ready' : 'empty' })
       return () => {
         isMounted = false
       }
@@ -75,24 +143,42 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
       .then((data) => {
         if (isMounted) {
           setLoadedDetails(data)
+          setDetailLoadState({
+            key: requestKey,
+            status: data || fallbackDetails ? 'ready' : 'empty',
+          })
         }
       })
       .catch(() => {
         if (isMounted) {
           setLoadedDetails(null)
+          setDetailLoadState({
+            key: requestKey,
+            status: fallbackDetails ? 'ready' : 'error',
+          })
         }
       })
 
     return () => {
       isMounted = false
     }
-  }, [municipioData?.id_municipio, item?.key])
+  }, [fallbackDetails, municipioData?.id_municipio, item?.key])
 
   if (!item) {
     return (
       <section className="detail-panel detail-panel--empty empty-panel" ref={ref}>
         <p>Selecione um indicador para ver os detalhes.</p>
       </section>
+    )
+  }
+
+  if (displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE) {
+    return (
+      <ClosedCycleUnavailableDetail
+        item={item}
+        panelRef={ref}
+        statusLabel={displayPolicy.statusLabel}
+      />
     )
   }
 
@@ -110,8 +196,11 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         cycle={cycle}
         details={details}
         item={item}
+        legalReference={reconciliation.context?.legalReference}
+        presentation={presentation}
         ref={ref}
         result={result}
+        detailsStatus={detailsStatus}
       />
     )
   }
@@ -122,9 +211,6 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
   const currentDetailModel = buildPneCurrentDetailModel({
     accumulativePresentationModel,
     cycle,
-    displaySeries,
-    presentationMode: item?.presentationMode,
-    result,
   })
   const isExpansionShareBaseline = item?.presentationMode === 'expansion-share-baseline'
   const isAbsoluteExpansionTarget = item?.presentationMode === 'absolute-expansion-target'
@@ -140,14 +226,19 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
   const normalizedStatus = String(status).toLocaleLowerCase('pt-BR')
   const isInformative =
     normalizedStatus.includes('visualiza') || normalizedStatus.includes('informativo')
-  const isApproximate = isApproximateIndicator(item, result)
+  const isApproximate = !displayPolicy && isApproximateIndicator(item, result)
+  const isObserved = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.OBSERVED
   const isDangerStatus =
     normalizedStatus.includes('distante') ||
     normalizedStatus.includes('crítico') ||
     normalizedStatus.includes('critico') ||
     normalizedStatus.includes('não atingida') ||
     normalizedStatus.includes('nao atingida')
-  const tone = currentDetailModel
+  const tone = isObserved
+    ? 'muted'
+    : isComplementaryRelationship
+    ? 'muted'
+    : currentDetailModel
     ? currentDetailModel.tone
     : isApproximate || isInformative
     ? 'muted'
@@ -158,13 +249,27 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         : result.available
         ? 'warning'
         : 'muted'
-  const isComparable = isComparableIndicator(result)
+  const isComparable = displayPolicy
+    ? displayPolicy.state === PNE_CYCLE_PRESENTATION_STATES.CONCLUSIVE
+    : cycle === PNE_2026_CYCLE
+    ? isPneComparableIndicator({
+        cycleId: cycle,
+        indicatorKey: item?.key,
+        item,
+        result,
+      })
+    : isComparableIndicator(result)
   const rawStartYear = getBoundaryYear(result, 'start')
   const rawEndYear = getBoundaryYear(result, 'end')
   const startYear = filteredStartYear ?? rawStartYear
   const endYear = filteredEndYear ?? rawEndYear
   const distanceTone = getDistanceTone(result, isComparable)
   const unit = resolveIndicatorUnit(item, result)
+  const discretePresentation = ['binaryDeclaration', 'countOfTotal'].includes(
+    presentation?.valueKind,
+  )
+    ? presentation
+    : null
   const isIdeb = isIdebIndicator(item, result)
   const isAccExpansion = isAccumulativeExpansionIndicator(item, result)
   const ppOptions = { keepOneDecimal: isIdeb }
@@ -189,14 +294,18 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
           ...flooredResult.display,
           distance: `${flooredResult.distance > 0 ? '+' : ''}${Math.round(flooredResult.distance).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} p.p.`,
         },
-      }
+    }
     : flooredResult
+  const summaryStartValue = getPneSummaryDisplayValue(goalResult.start_value, unit)
+  const summaryEndValue = getPneSummaryDisplayValue(goalResult.end_value, unit)
+  const summaryGoalResult = buildPneSummaryResult(goalResult, unit)
   const formattedStart = isApproximate
-    ? formatApproximatePercent(goalResult.start_value)
-    : formatIndicatorValue(goalResult.start_value, unit)
-  const formattedEnd = isApproximate
-    ? formatApproximatePercent(goalResult.end_value)
-    : formatIndicatorValue(goalResult.end_value, unit)
+    ? formatApproximatePercent(summaryStartValue)
+    : formatIndicatorValue(summaryStartValue, unit)
+  const formattedEnd = presentation?.currentText
+    ?? (isApproximate
+      ? formatApproximatePercent(summaryEndValue)
+      : formatIndicatorValue(summaryEndValue, unit))
   const variation = roundPpString(getDisplayValue(result.display, 'variation'), ppOptions)
   const compactVariation = formatCompactVariation(variation)
   const hasStartYear = typeof startYear === 'number' && startYear > 0
@@ -213,18 +322,31 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
   const hasRenderableHistory = isOrganizedPneDetail ? hasHistory : hasSeries
   const usesSingleYearComposition = isOrganizedPneDetail && !hasHistory
   const availableYear = validYears[0] ?? (hasEndYear ? endYear : startYear)
-  const cycleTargetYear = isClosedPneCycle(cycle) ? 2024 : 2036
+  const cycleTargetYear = isClosedPneCycle(cycle)
+    ? 2024
+    : reconciliation.context?.legalReference?.targetYear
+      ?? PNE_2026_GOAL_INDICATOR_CONTRACT.cycle.endYear
 
-  const metaValue = isApproximate
-    ? formatApproximatePercent(result.reference_value)
-    : formatMetaValue(goalResult, unit)
-  const distanceValue = roundPpString(getDisplayValue(goalResult.display, 'distance'), ppOptions)
+  const metaValue = presentation?.referenceText
+    ?? (isApproximate
+      ? formatApproximatePercent(result.reference_value)
+      : formatMetaValue(goalResult, unit))
+  const distanceValue = presentation?.distanceText
+    ?? (unit === 'percent'
+      && Number.isFinite(Number(summaryEndValue))
+      && Number.isFinite(Number(goalResult.meta))
+      ? formatPpDifference(Number(summaryEndValue) - Number(goalResult.meta))
+      : roundPpString(getDisplayValue(goalResult.display, 'distance'), ppOptions))
+  const distanceLabel = presentation?.distanceLabel
+    ?? (cycle === PNE_2026_CYCLE ? 'Distância da referência' : 'Distância da meta')
   const referenceDifferenceValue = formatApproximateDifference(result.reference_difference)
   const showGoalProgress = isComparable && Number.isFinite(Number(goalResult?.meta)) && Number.isFinite(Number(goalResult?.end_value))
   const historyReferenceValue = isApproximate ? result.reference_value : goalResult.meta
   const showHistoryReference =
-    (isComparable || isApproximate) && Number.isFinite(Number(historyReferenceValue))
+    ((!displayPolicy && isApproximate) || isComparable)
+    && Number.isFinite(Number(historyReferenceValue))
   const sharedPnePercentDomain = buildSharedPnePercentDomain({
+    allowProjection: canProject,
     cycle,
     displaySeries,
     indicatorKey: item?.key,
@@ -247,11 +369,14 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
     direction: goalResult.direction,
     endYear,
     formattedEnd,
-    hasAbove100: Boolean(result.acima_de_100),
+    isComplementary: isComplementaryRelationship,
     isComparable,
-    isApproximate,
+    isApproximate: displayPolicy ? false : isApproximate,
     metaValue,
     startYear,
+    targetYear: cycle === PNE_2026_CYCLE
+      ? cycleTargetYear
+      : PNE_2026_GOAL_INDICATOR_CONTRACT.cycle.endYear,
     variation: item?.key === 'medio_tecnico_articulado_percentual'
       ? compactVariation
       : variation,
@@ -264,10 +389,12 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         endYear,
         formattedEnd,
         isComparable,
-        isApproximate,
+        isApproximate: displayPolicy ? false : isApproximate,
         metaValue,
         quickReading,
+        showGoalComparison: displayPolicy?.showGoalComparison ?? true,
         startYear,
+        targetYear: cycleTargetYear,
         variation: item?.key === 'medio_tecnico_articulado_percentual'
           ? compactVariation
           : variation,
@@ -302,31 +429,68 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         </div>
       </div>
 
-      {usesSingleYearComposition ? (
-        <div className="metric-grid metric-grid--four metric-grid--single-year">
+      {usesSingleYearComposition && isComplementaryRelationship ? (
+        <div className="metric-grid metric-grid--two metric-grid--single-year">
           <MetricCard
             icon="current"
             label={`Valor disponível${hasReadableYear(availableYear) ? ` (${availableYear})` : ''}`}
             value={formattedEnd}
           />
-          <MetricCard icon="target" label={result.meta_label ?? `Meta PNE ${cycleTargetYear}`} value={metaValue} />
+          <MetricCard icon="type" label="Uso" value="Apoio à leitura da meta" tone="muted" />
+        </div>
+      ) : usesSingleYearComposition && isObserved ? (
+        <ClosedCycleObservedMetrics
+          endYear={availableYear}
+          formattedEnd={formattedEnd}
+          formattedStart={formattedStart}
+          goalContextLabel={displayPolicy.goalContextLabel}
+          hasEndYear={hasReadableYear(availableYear)}
+          hasStartYear={hasStartYear}
+          startYear={startYear}
+          variation={compactVariation}
+        />
+      ) : usesSingleYearComposition ? (
+        <div className={`metric-grid ${presentation?.showDistance === false ? 'metric-grid--three' : 'metric-grid--four'} metric-grid--single-year${discretePresentation ? ' metric-grid--discrete' : ''}`}>
           <MetricCard
-            icon="distance"
-            label="Distância da meta"
-            value={distanceValue}
-            tone={distanceTone}
+            icon="current"
+            label={`${presentation?.currentLabel ?? 'Valor disponível'}${hasReadableYear(availableYear) ? ` (${availableYear})` : ''}`}
+            value={formattedEnd}
           />
+          <MetricCard
+            icon="target"
+            label={presentation?.referenceLabel ?? result.meta_label ?? `Meta PNE ${cycleTargetYear}`}
+            value={metaValue}
+          />
+          {presentation?.showDistance !== false ? (
+            <MetricCard
+              icon="distance"
+              label={distanceLabel}
+              value={distanceValue}
+              tone={distanceTone}
+            />
+          ) : null}
           <MetricCard
             icon="status"
             label="Situação"
-            value={status || (result.atingida ? cycleCopy.status.achieved : cycleCopy.status.below)}
+            value={presentation?.statusText || status || (result.atingida ? cycleCopy.status.achieved : cycleCopy.status.below)}
             tone={distanceTone}
           />
         </div>
       ) : currentDetailModel ? (
         <PneCurrentMetrics model={currentDetailModel} />
       ) : isSingleYear ? (
-        isApproximate ? (
+        isObserved ? (
+          <ClosedCycleObservedMetrics
+            endYear={endYear}
+            formattedEnd={formattedEnd}
+            formattedStart={formattedStart}
+            goalContextLabel={displayPolicy.goalContextLabel}
+            hasEndYear={hasEndYear}
+            hasStartYear={hasStartYear}
+            startYear={startYear}
+            variation={compactVariation}
+          />
+        ) : isApproximate ? (
           <div className="metric-grid metric-grid--three">
             {hasStartYear && (
               <MetricCard icon="start" label={`Valor inicial (${startYear})`} value={formattedStart} />
@@ -335,22 +499,43 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
             <MetricCard icon="type" label="Tipo" value="Indicador aproximado" tone="muted" />
           </div>
         ) : isComparable ? (
-          <div className="metric-grid metric-grid--four">
+          <div className={`metric-grid ${presentation?.showDistance === false ? 'metric-grid--three' : 'metric-grid--four'}${discretePresentation ? ' metric-grid--discrete' : ''}`}>
             {hasStartYear && (
               <MetricCard icon="start" label={`Valor inicial (${startYear})`} value={formattedStart} />
             )}
-            <MetricCard icon="target" label={result.meta_label ?? 'Meta'} value={metaValue} />
             <MetricCard
-              icon="distance"
-              label="Distância da meta"
-              value={distanceValue}
-              tone={distanceTone}
+              icon="target"
+              label={presentation?.referenceLabel ?? result.meta_label ?? 'Meta'}
+              value={metaValue}
             />
+            {presentation?.showDistance !== false ? (
+              <MetricCard
+                icon="distance"
+                label={distanceLabel}
+                value={distanceValue}
+                tone={distanceTone}
+              />
+            ) : null}
             <MetricCard
               icon="status"
               label="Situação"
-              value={result.atingida ? cycleCopy.status.achieved : cycleCopy.status.below}
+              value={presentation?.statusText || (result.atingida ? cycleCopy.status.achieved : cycleCopy.status.below)}
               tone={distanceTone}
+            />
+          </div>
+        ) : isComplementaryRelationship ? (
+          <div className="metric-grid">
+            {hasStartYear && (
+              <MetricCard icon="start" label={`Valor inicial (${startYear})`} value={formattedStart} />
+            )}
+            {hasEndYear && (
+              <MetricCard icon="current" label={cycleCopy.valueLabel(endYear)} value={formattedEnd} size="large" />
+            )}
+            <MetricCard
+              icon={getPneMetricIcon('Variação', compactVariation, getVariationDetail(variation, startYear))}
+              detail={getVariationDetail(variation, startYear)}
+              label="Variação"
+              value={compactVariation}
             />
           </div>
         ) : (
@@ -362,7 +547,18 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
           </div>
         )
       ) : (
-        isApproximate ? (
+        isObserved ? (
+          <ClosedCycleObservedMetrics
+            endYear={endYear}
+            formattedEnd={formattedEnd}
+            formattedStart={formattedStart}
+            goalContextLabel={displayPolicy.goalContextLabel}
+            hasEndYear={hasEndYear}
+            hasStartYear={hasStartYear}
+            startYear={startYear}
+            variation={compactVariation}
+          />
+        ) : isApproximate ? (
           <div className="metric-grid">
             {hasStartYear && (
               <MetricCard icon="start" label={`Valor inicial (${startYear})`} value={formattedStart} />
@@ -402,7 +598,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
             <MetricCard icon="target" label={result.meta_label ?? 'Meta'} value={metaValue} />
             <MetricCard
               icon="distance"
-              label="Distância da meta"
+              label={cycle === PNE_2026_CYCLE ? 'Distância da referência' : 'Distância da meta'}
               value={distanceValue}
               tone={distanceTone}
             />
@@ -430,19 +626,34 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         <SubsequentExpansionTracking model={currentDetailModel} />
       ) : currentDetailModel?.composition ? (
         null
+      ) : showGoalProgress && discretePresentation ? (
+        <DiscreteGoalProgress
+          label={presentation?.mode === 'tracking'
+            ? 'Acompanhamento do indicador'
+            : cycleCopy.progressLabel}
+          presentation={discretePresentation}
+          status={presentation?.statusText || status || (result.atingida ? cycleCopy.status.achieved : cycleCopy.status.below)}
+          tone={distanceTone}
+        />
       ) : !currentDetailModel && showGoalProgress ? (
         <div className="indicator-goal-tracking">
           <GoalProgress
-            label={cycleCopy.progressLabel}
-            result={goalResult}
+            label={presentation?.mode === 'tracking'
+              ? 'Acompanhamento do indicador'
+              : cycleCopy.progressLabel}
+            presentation={presentation}
+            result={summaryGoalResult}
             unit={unit}
           />
         </div>
       ) : currentDetailModel && showGoalProgress ? (
         <div className="indicator-goal-tracking">
           <GoalProgress
-            label={cycleCopy.progressLabel}
-            result={goalResult}
+            label={presentation?.mode === 'tracking'
+              ? 'Acompanhamento do indicador'
+              : cycleCopy.progressLabel}
+            presentation={presentation}
+            result={summaryGoalResult}
             unit={unit}
           />
         </div>
@@ -452,7 +663,16 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
 
       <div className={`indicator-primary-analysis${usesSingleYearComposition ? ' indicator-primary-analysis--single-year' : ''}${isExpansionShareBaseline ? ' indicator-primary-analysis--expansion-share' : ''}${isAbsoluteExpansionTarget ? ' indicator-primary-analysis--absolute-expansion' : ''}`}>
         {usesSingleYearComposition ? (
-          <PneSingleYearDataCard availableYear={availableYear} cycle={cycle} details={details} />
+          <PneSingleYearDataCard
+            availableYear={availableYear}
+            cycle={cycle}
+            details={details}
+            indicatorKey={item?.key}
+            item={item}
+            presentation={presentation}
+            result={result}
+            unit={unit}
+          />
         ) : isExpansionShareBaseline && currentDetailModel?.composition ? (
           <ExpansionShareBaselineAnalysis model={currentDetailModel} />
         ) : isAbsoluteExpansionTarget && currentDetailModel?.composition ? (
@@ -506,6 +726,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
                 details,
                 indicatorKey: item?.key,
                 item,
+                presentation,
                 result,
               }}
             />
@@ -523,6 +744,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
                 details,
                 indicatorKey: item?.key,
                 item,
+                presentation,
                 result,
               }}
             />
@@ -537,10 +759,23 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
 
         {usesSingleYearComposition ? (
           <PneQuickReading
-            insights={buildSingleYearQuickReadingInsights({ availableYear, distanceValue, status })}
+            goalContextLabel={displayPolicy?.goalContextLabel}
+            insights={isObserved
+              ? quickReadingInsights
+              : isComplementaryRelationship
+              ? buildComplementarySingleYearInsights({ availableYear, formattedEnd })
+              : buildSingleYearQuickReadingInsights({
+                availableYear,
+                cycle,
+                distanceValue,
+                metaValue,
+                presentation,
+                status,
+              })}
             isSingleYear={false}
             legalGoal={legalGoal}
             metaRef={item.metaRef}
+            presentation={presentation}
             quickReading=""
             tone={tone}
           />
@@ -548,20 +783,24 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
           <ExpansionShareQuickReading
             legalGoal={legalGoal}
             metaRef={item.metaRef}
+            presentation={presentation}
             model={currentDetailModel}
           />
         ) : isAbsoluteExpansionTarget && currentDetailModel?.composition ? (
           <SubsequentExpansionQuickReading
             legalGoal={legalGoal}
             metaRef={item.metaRef}
+            presentation={presentation}
             model={currentDetailModel}
           />
         ) : quickReading ? (
           <PneQuickReading
+            goalContextLabel={displayPolicy?.goalContextLabel}
             insights={quickReadingInsights}
             isSingleYear={isSingleYear}
             legalGoal={legalGoal}
             metaRef={item.metaRef}
+            presentation={presentation}
             quickReading={quickReading}
             tone={tone}
           />
@@ -571,6 +810,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
       {usesSingleYearComposition ? null : currentDetailModel ? (
         <>
           <PneHistoricalContext
+            allowProjection={canProject}
             cycle={cycle}
             domainOverride={sharedPnePercentDomain}
             indicatorKey={item?.key}
@@ -583,6 +823,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
         </>
       ) : (
         <IndicatorComplementaryData
+          allowProjection={canProject}
           cycle={cycle}
           domainOverride={sharedPnePercentDomain}
           indicatorKey={item?.key}
@@ -606,6 +847,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
             details,
             indicatorKey: item?.key,
             item,
+            presentation,
             result,
             title: item?.label,
           }}
@@ -619,29 +861,132 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
   )
 })
 
+function ClosedCycleUnavailableDetail({ item, panelRef, statusLabel }) {
+  return (
+    <section
+      className="detail-panel detail-panel--muted detail-panel--organized"
+      ref={panelRef}
+    >
+      <div className="detail-heading">
+        <div className="detail-heading__copy">
+          <span className="eyebrow">Indicador selecionado · ciclo encerrado</span>
+          <h2 data-detail-title tabIndex={-1}>{getIndicatorTitle(item)}</h2>
+        </div>
+      </div>
+      <div className="detail-empty-state indicator-chart-card--empty">
+        <p><strong>{statusLabel}</strong></p>
+        <p>O indicador permanece disponível para consulta, sem converter a ausência de resultado em zero.</p>
+      </div>
+    </section>
+  )
+}
+
+function ClosedCycleObservedMetrics({
+  endYear,
+  formattedEnd,
+  formattedStart,
+  goalContextLabel,
+  hasEndYear,
+  hasStartYear,
+  startYear,
+  variation,
+}) {
+  return (
+    <div className="metric-grid metric-grid--four">
+      {hasStartYear ? (
+        <MetricCard icon="start" label={`Valor inicial (${startYear})`} value={formattedStart} />
+      ) : null}
+      <MetricCard
+        icon="current"
+        label={`Resultado final${hasEndYear ? ` (${endYear})` : ''}`}
+        value={formattedEnd}
+        size="large"
+      />
+      <MetricCard
+        icon={getPneMetricIcon('Evolução', variation, getVariationDetail(variation, startYear))}
+        detail={getVariationDetail(variation, startYear)}
+        label="Evolução"
+        value={hasReadableValue(variation) ? variation : '—'}
+      />
+      <MetricCard
+        icon="type"
+        label="Classificação"
+        value={goalContextLabel ?? 'Resultado observado'}
+        tone="muted"
+      />
+    </div>
+  )
+}
+
 function PneCurrentTracking({ model }) {
   return (
-    <section className={`indicator-goal-tracking indicator-goal-tracking--${model.tone}`} aria-label="Acompanhamento atual da meta">
-      <span>Acompanhamento atual da meta</span>
+    <section className={`indicator-goal-tracking indicator-goal-tracking--${model.tone}`} aria-label="Acompanhamento do indicador">
+      <span>Acompanhamento do indicador</span>
       <strong>{model.statusLabel}</strong>
     </section>
   )
 }
 
-function PneSingleYearDataCard({ availableYear, cycle, details }) {
-  const componentRows = details?.series_components_by_cycle?.[cycle] ?? details?.series_components
-  const rows = (Array.isArray(componentRows) ? componentRows : [])
-    .filter((row) => Number.isFinite(Number(row?.ano)))
-    .slice()
-    .sort((a, b) => Number(b.ano) - Number(a.ano))
-  const numeratorLabel = details?.calculation?.numerator_label || 'Numerador'
-  const denominatorLabel = details?.calculation?.denominator_label || 'Denominador'
+function DiscreteGoalProgress({ label, presentation, status, tone }) {
+  const kind = presentation.valueKind === 'binaryDeclaration'
+    ? 'binary'
+    : 'requirements'
+
+  return (
+    <section
+      className={`discrete-goal-progress discrete-goal-progress--${kind} discrete-goal-progress--${tone}`}
+      aria-label={`${label}. ${presentation.currentText}. ${status}.`}
+    >
+      <header className="discrete-goal-progress__heading">
+        <span>{label}</span>
+        <strong>{status}</strong>
+      </header>
+      <div className="discrete-goal-progress__segments" aria-hidden="true">
+        {Array.from({ length: presentation.segmentCount }, (_value, index) => (
+          <span
+            className={index < presentation.filledSegments ? 'is-filled' : ''}
+            key={index}
+          />
+        ))}
+      </div>
+      <div className="discrete-goal-progress__labels">
+        <span>{presentation.scaleStartLabel}</span>
+        <strong>{presentation.currentText}</strong>
+        <span>{presentation.scaleEndLabel}</span>
+      </div>
+    </section>
+  )
+}
+
+function PneSingleYearDataCard({
+  availableYear,
+  cycle,
+  details,
+  indicatorKey,
+  item,
+  presentation,
+  result,
+  unit,
+}) {
+  const model = buildPneSingleYearDataModel({
+    availableYear,
+    cycle,
+    details,
+    indicatorKey,
+    item,
+    presentation,
+    result,
+    unit,
+  })
   const availabilityReference = hasReadableYear(availableYear)
     ? `referente a ${availableYear}`
     : 'referente ao ano de referência'
 
   return (
-    <section className="indicator-data-card" aria-labelledby="single-year-indicator-data-title">
+    <section
+      className={`indicator-data-card indicator-data-card--${model.kind}`}
+      aria-labelledby="single-year-indicator-data-title"
+    >
       <header className="indicator-data-card__heading">
         <h3 id="single-year-indicator-data-title">Dados do indicador</h3>
         <p>Valores disponíveis para o município no ano de referência</p>
@@ -659,39 +1004,126 @@ function PneSingleYearDataCard({ availableYear, cycle, details }) {
           </p>
         </div>
       </div>
-      <CalculationComponentsTable
-        denominatorLabel={denominatorLabel}
-        numeratorLabel={numeratorLabel}
-        rows={rows}
-        showHeading={false}
-        singleYearLayout
-      />
+      {model.kind === 'table' ? (
+        <PnePresentationDataTable columns={model.columns} rows={model.rows} />
+      ) : (
+        <dl className="indicator-data-summary">
+          {model.fields.map((field) => (
+            <div
+              className={`indicator-data-summary__item indicator-data-summary__item--${field.key}`}
+              key={field.key}
+            >
+              <dt>{field.label}</dt>
+              <dd>{field.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </section>
   )
 }
 
-function buildSingleYearQuickReadingInsights({ availableYear, distanceValue, status }) {
-  const year = hasReadableYear(availableYear) ? availableYear : 'de referência'
+function PnePresentationDataTable({ columns, rows }) {
+  return (
+    <div className="pne-presentation-table-wrap">
+      <table className="pne-presentation-table">
+        <caption className="u-sr-only">Dados do indicador no ano de referência</caption>
+        <thead>
+          <tr>
+            {columns.map((column) => <th key={column.key} scope="col">{column.label}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={`${row.year ?? 'row'}-${rowIndex}`}>
+              {columns.map((column) => (
+                <td data-label={column.label} key={column.key}>
+                  {formatPresentationTableValue(row[column.key])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
-  return [
+function formatPresentationTableValue(value) {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'number') {
+    return value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+  }
+  return value
+}
+
+function buildSingleYearQuickReadingInsights({
+  availableYear,
+  cycle,
+  distanceValue,
+  metaValue,
+  presentation,
+  status,
+}) {
+  const year = hasReadableYear(availableYear) ? availableYear : 'de referência'
+  const referenceLabel = presentation?.referenceLabel
+    ?? (cycle === PNE_2026_CYCLE ? 'Referência prevista na meta' : 'Meta')
+  const insights = [
     {
       detail: `Valor municipal disponível em ${year}.`,
       icon: 'current',
       key: 'current',
-      label: 'Situação atual',
-      value: status || 'Dado disponível',
+      label: presentation?.quickReadingLabels?.status ?? 'Situação atual',
+      value: presentation?.statusText || status || 'Dado disponível',
     },
     {
-      detail: 'Diferença entre o valor disponível e a referência final do PNE.',
-      icon: 'distance',
-      key: 'distance',
-      label: 'Distância da meta',
-      value: hasReadableValue(distanceValue) ? distanceValue : '—',
+      detail: presentation?.mode === 'tracking'
+        ? 'Parâmetro usado para acompanhar este indicador, sem representar sozinho o cumprimento integral da meta.'
+        : 'Valor previsto na meta para a comparação deste indicador.',
+      icon: 'reference',
+      key: 'reference',
+      label: referenceLabel,
+      value: metaValue,
     },
   ]
+
+  if (presentation?.showDistance !== false) {
+    insights.push({
+      detail: presentation?.mode === 'tracking'
+        ? 'Diferença entre o valor disponível e a referência de acompanhamento.'
+        : 'Diferença entre o valor disponível e a referência prevista na meta.',
+      icon: 'distance',
+      key: 'distance',
+      label: presentation?.distanceLabel
+        ?? (cycle === PNE_2026_CYCLE ? 'Distância da referência' : 'Distância da meta'),
+      value: hasReadableValue(distanceValue) ? distanceValue : '—',
+    })
+  }
+
+  return insights
 }
 
-function PneQuickReading({ insights, isSingleYear, legalGoal, metaRef, quickReading, tone }) {
+function buildComplementarySingleYearInsights({ availableYear, formattedEnd }) {
+  const year = hasReadableYear(availableYear) ? availableYear : 'de referência'
+  return [{
+    detail: 'A medida apoia a leitura da meta, sem aferir seu cumprimento.',
+    icon: 'current',
+    key: 'current',
+    label: 'Valor disponível',
+    value: `${formattedEnd} em ${year}`,
+  }]
+}
+
+function PneQuickReading({
+  goalContextLabel,
+  insights,
+  isSingleYear,
+  legalGoal,
+  metaRef,
+  presentation,
+  quickReading,
+  tone,
+}) {
   const hasInsights = Array.isArray(insights) && insights.length > 0
   const goalSummary = getPneGoalSummary(legalGoal)
   const hasGoalReference = Boolean(legalGoal && goalSummary)
@@ -705,8 +1137,14 @@ function PneQuickReading({ insights, isSingleYear, legalGoal, metaRef, quickRead
             <li className="indicator-quick-reading__reference">
               <PneInsightIcon name="reference" />
               <div>
-                <span>Referência do PNE</span>
-                <p><strong>Meta {metaRef} —</strong> {goalSummary}</p>
+                <span>{presentation?.quickReadingLabels?.goal ?? 'Meta do PNE'}</span>
+                <p>
+                  {goalContextLabel
+                    ? <><strong>{goalContextLabel}.</strong> {goalSummary}</>
+                    : presentation?.mode === 'tracking'
+                    ? <>Este indicador apoia o acompanhamento da Meta {metaRef}. {goalSummary}</>
+                    : <><strong>Meta {metaRef} —</strong> {goalSummary}</>}
+                </p>
               </div>
             </li>
           ) : null}
@@ -806,11 +1244,12 @@ function buildPneQuickReadingInsights({
   isApproximate,
   metaValue,
   quickReading,
+  showGoalComparison = true,
   startYear,
+  targetYear,
   variation,
 }) {
   const isClosedCycle = isClosedPneCycle(cycle)
-  const targetYear = isClosedCycle ? 2024 : 2036
   const hasCurrentValue = hasReadableYear(endYear) && hasReadableValue(formattedEnd)
   const hasVariation = hasReadableYear(startYear) && hasReadableValue(variation)
   const hasDistance = isComparable && hasReadableValue(distanceValue) && hasReadableValue(metaValue)
@@ -823,12 +1262,12 @@ function buildPneQuickReadingInsights({
       : atingida
         ? isClosedCycle
           ? `No resultado de ${endYear}, atingiu a meta do ciclo.`
-          : `Em ${endYear}, atinge a meta no momento.`
+          : `Em ${endYear}, está na referência.`
         : isClosedCycle
           ? `No resultado de ${endYear}, não atingiu a meta do ciclo.`
-          : `Em ${endYear}, ainda não atinge a meta.`
+          : `Em ${endYear}, está abaixo da referência.`
 
-  return [
+  const insights = [
     {
       detail: currentDetail,
       icon: 'current',
@@ -847,18 +1286,27 @@ function buildPneQuickReadingInsights({
       label: isClosedCycle ? 'Evolução no ciclo' : 'Evolução desde o início',
       value: hasVariation ? variation : '—',
     },
-    {
+  ]
+
+  if (showGoalComparison) {
+    insights.push({
       detail: hasDistance
-        ? atingida ? `Acima da meta de ${metaValue}.` : `Para alcançar a meta de ${metaValue}.`
+        ? isClosedCycle
+          ? atingida ? `Acima da meta de ${metaValue}.` : `Para alcançar a meta de ${metaValue}.`
+          : atingida
+            ? `Referência de ${metaValue} alcançada.`
+            : `Para alcançar a referência de ${metaValue}.`
         : isApproximate && hasReadableValue(metaValue)
           ? `Referência legal final em ${targetYear}: ${metaValue}.`
           : hasReadableValue(quickReading) ? quickReading : 'Distância não disponível para comparação.',
       icon: 'distance',
       key: 'distance',
-      label: 'Distância da meta',
+      label: isClosedCycle ? 'Distância da meta' : 'Distância da referência',
       value: hasDistance ? distanceValue : isApproximate && hasReadableValue(metaValue) ? metaValue : '—',
-    },
-  ]
+    })
+  }
+
+  return insights
 }
 
 function PneRecentIndicatorChart({ cycle, details, domainOverride, item, model, result }) {
@@ -924,7 +1372,16 @@ function PneMethodologyDisclosure({ model }) {
   )
 }
 
-function PneHistoricalContext({ cycle, domainOverride, indicatorKey, item, municipioData, presentationMode, result }) {
+function PneHistoricalContext({
+  allowProjection,
+  cycle,
+  domainOverride,
+  indicatorKey,
+  item,
+  municipioData,
+  presentationMode,
+  result,
+}) {
   const isExpansionShareBaseline = presentationMode === 'expansion-share-baseline'
   const isAbsoluteExpansionTarget = presentationMode === 'absolute-expansion-target'
   return (
@@ -937,6 +1394,7 @@ function PneHistoricalContext({ cycle, domainOverride, indicatorKey, item, munic
           : 'Os dados históricos abaixo oferecem contexto para a leitura e não representam avanço da meta de 2036.'}
       </p>
       <IndicatorComplementaryData
+        allowProjection={allowProjection}
         cycle={cycle}
         domainOverride={domainOverride}
         indicatorKey={indicatorKey}
@@ -950,6 +1408,7 @@ function PneHistoricalContext({ cycle, domainOverride, indicatorKey, item, munic
 }
 
 function buildSharedPnePercentDomain({
+  allowProjection = true,
   cycle,
   displaySeries,
   indicatorKey,
@@ -958,7 +1417,9 @@ function buildSharedPnePercentDomain({
   unit,
 }) {
   if (!['pne_2014_2024', 'pne_2026_2036'].includes(cycle) || unit !== 'percent') return null
-  const projection = municipioData?.[cycle]?.projecoes?.[indicatorKey]
+  const projection = allowProjection
+    ? municipioData?.[cycle]?.projecoes?.[indicatorKey]
+    : null
   const values = [
     ...(displaySeries ?? []).map((point) => point?.valor),
     ...(projection?.historical_percent ?? []),
@@ -972,121 +1433,39 @@ function buildSharedPnePercentDomain({
 function buildPneCurrentDetailModel({
   accumulativePresentationModel,
   cycle,
-  displaySeries,
-  presentationMode,
-  result,
 }) {
   if (cycle !== 'pne_2026_2036') return null
 
-  if (accumulativePresentationModel) {
-    return accumulativePresentationModel.detail
-  }
-
-  if (presentationMode === 'ratio-dual-milestone') {
-    return buildEjaRecentDetailModel(displaySeries, result)
-  }
-
-  return null
+  return accumulativePresentationModel?.detail ?? null
 }
 
-function buildEjaRecentDetailModel(displaySeries, result) {
-  const recentSeries = takeRecentSeries(displaySeries)
-  const latest = recentSeries.at(-1) ?? null
-  const finalReference = result?.meta_references?.find((reference) => Number(reference?.year) === 2036)
-  const targetValue = Number(finalReference?.value ?? result?.meta)
-  const currentValue = Number(latest?.valor)
-  const hasValues = latest && Number.isFinite(currentValue) && Number.isFinite(targetValue)
-  const achieved = hasValues ? currentValue >= targetValue : null
-  const tone = achieved === true ? 'success' : achieved === false ? 'warning' : 'muted'
-  const statusLabel = achieved === true
-    ? 'Atinge a referência no momento'
-    : achieved === false
-      ? 'Ainda não atinge a referência'
-      : 'Sem dados suficientes'
-  const distance = hasValues
-    ? formatCycleReferenceDifference(currentValue, targetValue, 'percent')
-    : 'Não calculável'
+function getPneSummaryDisplayValue(value, unit) {
+  return unit === 'percent' ? toPnePercentDisplay(value).displayValue : value
+}
+
+function buildPneSummaryResult(result, unit) {
+  if (unit !== 'percent') return result
 
   return {
-    chart: {
-      endYear: latest?.ano ?? null,
-      meta: hasValues ? targetValue : null,
-      note: null,
-      referenceLabel: 'Meta',
-      series: recentSeries,
-      showMetaLine: hasValues,
-      showMissingPoints: false,
-      startYear: recentSeries[0]?.ano ?? null,
-      subtitle: 'Percentual dos cinco anos mais recentes, comparado à meta final de 2036.',
-      title: 'EJA articulada à educação profissional',
-      unit: 'percent',
-    },
-    description: 'Percentual das matrículas da EJA articuladas à educação profissional, comparado à meta final do PNE para 2036.',
-    loading: false,
-    methodSummary: 'Recorte recente e referências do ciclo',
-    methodology: [
-      `O valor mais recente disponível é de ${hasValues ? formatCyclePercent(currentValue) : '—'} em ${latest?.ano ?? 'ano não disponível'}. A comparação principal usa a meta final de ${Number.isFinite(targetValue) ? formatCyclePercent(targetValue) : '—'} para 2036.`,
-      'As referências intermediárias e os componentes usados no cálculo permanecem disponíveis no aprofundamento histórico, sem alterar a metodologia validada.',
-    ],
-    metrics: [
-      { detail: latest ? `Ano ${latest.ano}` : 'Ano não disponível', label: 'Valor mais recente', size: 'large', value: hasValues ? formatCyclePercent(currentValue) : '—' },
-      { detail: 'Referência final', label: 'Meta PNE 2036', value: Number.isFinite(targetValue) ? formatCyclePercent(targetValue) : '—' },
-      { label: 'Distância da meta', tone, value: distance },
-      { label: 'Situação atual', tone, value: statusLabel },
-    ],
-    reading: hasValues
-      ? `Em ${latest.ano}, o município registra ${formatCyclePercent(currentValue)} das matrículas da EJA articuladas à educação profissional. O valor mais recente permanece ${achieved ? 'no patamar ou acima' : 'abaixo'} da referência de ${formatCyclePercent(targetValue)} do PNE 2036. ${distance}`
-      : 'Não há dados suficientes para comparar o recorte mais recente com a meta de 2036.',
-    statusLabel,
-    tone,
+    ...result,
+    end_value: getPneSummaryDisplayValue(result.end_value, unit),
+    start_value: getPneSummaryDisplayValue(result.start_value, unit),
+    series: (result.series ?? []).map((point) => ({
+      ...point,
+      valor: getPneSummaryDisplayValue(point?.valor, unit),
+    })),
   }
-}
-
-function takeRecentSeries(series, maxPoints = 5) {
-  if (!Array.isArray(series)) return []
-
-  return series
-    .map((point) => ({
-      ano: Number(point?.ano),
-      valor: point?.valor === null || point?.valor === undefined || point?.valor === ''
-        ? null
-        : Number(point.valor),
-    }))
-    .filter((point) => Number.isFinite(point.ano) && Number.isFinite(point.valor))
-    .sort((a, b) => a.ano - b.ano)
-    .slice(-maxPoints)
 }
 
 function hasFiniteSeriesValue(point) {
   return point?.valor !== null && point?.valor !== undefined && point?.valor !== '' && Number.isFinite(Number(point.valor))
 }
 
-function formatCycleReferenceDifference(currentValue, targetValue, unit) {
-  const difference = Number(currentValue) - Number(targetValue)
-  if (!Number.isFinite(difference)) return 'Não calculável'
-  if (Math.abs(difference) < 1e-9) return 'No patamar da referência'
-
-  const formatted = unit === 'count'
-    ? `${formatCycleCount(Math.abs(difference))} matrículas`
-    : formatCyclePp(Math.abs(difference))
-
-  return difference < 0 ? `Faltam ${formatted}` : `Excede em ${formatted}`
-}
-
-function formatCycleCount(value) {
-  return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 })
-}
-
-function formatCyclePercent(value) {
-  return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
-}
-
-function formatCyclePp(value) {
-  return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} p.p.`
-}
-
-function GoalProgress({ label, result, unit }) {
-  const endValue = formatIndicatorValue(result.end_value, unit)
+function GoalProgress({ label, presentation, result, unit }) {
+  const endValue = formatIndicatorValue(
+    getPneSummaryDisplayValue(result.end_value, unit),
+    unit,
+  )
   const metaMarkerLabel = formatMetaValue(result, unit)
   const progress = calculateGoalProgress(result, unit)
   const end = Number(result.end_value)
@@ -1151,7 +1530,7 @@ function GoalProgress({ label, result, unit }) {
           className="goal-progress__target-label"
           style={{ left: `${metaLabelOffsetPct}%` }}
         >
-          Meta {metaMarkerLabel}
+          {presentation?.referenceLabel ?? 'Meta'} {metaMarkerLabel}
         </span>
         <span
           className={`goal-progress__marker goal-progress__marker--${currentTone}${markerEdgeClass}`}
@@ -1346,11 +1725,12 @@ function buildQuickReading({
   direction,
   endYear,
   formattedEnd,
-  hasAbove100,
+  isComplementary,
   isApproximate,
   isComparable,
   metaValue,
   startYear,
+  targetYear,
   variation,
 }) {
   if (!hasReadableValue(formattedEnd) || !hasReadableYear(endYear)) return ''
@@ -1365,11 +1745,12 @@ function buildQuickReading({
   const variationNumber = parseDisplayNumber(variation)
   const isStable = Number.isFinite(variationNumber) && Math.abs(variationNumber) < 0.5
 
+  if (isComplementary) {
+    return `Em ${endYear}, o município registra ${formattedEnd}. A medida apoia a leitura da meta, sem distância, situação de cumprimento ou projeção.`
+  }
+
   if (isApproximate) {
-    const warning = hasAbove100
-      ? ' Valores acima de 100% são preservados porque a medida usa matrículas e não estudantes únicos.'
-      : ''
-    return `Em ${endYear}, o município registra ${formattedEnd}. A referência legal final é ${metaValue} em 2036; este proxy não representa cumprimento da meta.${warning}`
+    return `Em ${endYear}, o município registra ${formattedEnd}. A referência legal final é ${metaValue} em ${targetYear}; este proxy não representa cumprimento da meta.`
   }
 
   if (!isComparable || !hasMeta) {

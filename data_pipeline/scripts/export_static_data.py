@@ -292,6 +292,11 @@ def _serialize_result(
         "series",
         "trend",
         "meta_references",
+        "source",
+        "source_id",
+        "network",
+        "origin_files",
+        "updated_at",
     )
     payload = {field: result.get(field) for field in fields if field in result}
     if item is not None and not shared._tracks_goal(item, result):
@@ -808,6 +813,7 @@ def _export_diagnostics(
                 planning_scenarios=(
                     planning_scenarios_payload.get("municipios", {}) or {}
                 ).get(municipio, {}),
+                cycle_id="pne_2026_2036",
             )
             municipio_payloads[municipio] = {
                 "diagnostico": _build_legacy_diagnostic_compatibility(
@@ -969,7 +975,7 @@ def _export_projections(
 ) -> dict[str, Any]:
     from src.pne_2026_projections import build_all_projections
 
-    print("\nProcessando projeções tendenciais...")
+    print("\nProcessando linhas de base de persistência...")
     try:
         projections = build_all_projections(municipios)
     except Exception as exc:
@@ -1029,7 +1035,7 @@ def _export_state_reference(
     else:
         from src.pne_state_reference import build_state_reference
 
-        methodology_version = "pne2026-rs-reference-v1"
+        methodology_version = "pne2026-rs-reference-v3"
 
     try:
         payload = build_state_reference()

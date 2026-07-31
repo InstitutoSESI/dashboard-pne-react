@@ -1,11 +1,15 @@
+import copy
 import importlib.util
 import json
+import sys
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PIPELINE_ROOT = REPO_ROOT / "data_pipeline"
+if str(PIPELINE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PIPELINE_ROOT))
 
 PLANNING_SPEC = importlib.util.spec_from_file_location(
     "planning_scenarios",
@@ -41,10 +45,24 @@ class PlanningScenarioTests(unittest.TestCase):
         self.assertEqual(set(payload["indicatorKeys"]), set(planning.INDICATOR_KEYS))
         for contracts in payload["municipios"].values():
             self.assertEqual(set(contracts), set(planning.INDICATOR_KEYS))
-            for contract in contracts.values():
+            for indicator_key, contract in contracts.items():
                 self.assertEqual(contract["model"], "last_components")
+                if indicator_key in {"basico_integral", "escolas_integral"}:
+                    self.assertEqual(contract["referenceKind"], "legal")
+                    self.assertEqual(
+                        contract["targetValidationStatus"],
+                        "official_law",
+                    )
+                    self.assertTrue(contract["referenceId"].startswith("reference.6.a."))
+                else:
+                    self.assertEqual(contract["referenceKind"], "configured")
+                    self.assertEqual(
+                        contract["targetValidationStatus"],
+                        "configured_unvalidated",
+                    )
                 self.assertEqual(
-                    contract["targetValidationStatus"], "configured_unvalidated"
+                    contract["formulaId"],
+                    f"formula.{indicator_key}",
                 )
                 self.assertNotIn("mode", contract)
                 self.assertNotIn("productionDecision", contract)
@@ -52,6 +70,36 @@ class PlanningScenarioTests(unittest.TestCase):
                 self.assertTrue(
                     all("requiredAnnualPacePp" in target for target in contract["targets"])
                 )
+
+    def test_contract_validation_rejects_non_persistent_or_incomplete_points(self):
+        artifact = json.loads(
+            (
+                PIPELINE_ROOT
+                / "data"
+                / "planning_scenarios"
+                / "shadow-projections"
+                / "basico_integral.json"
+            ).read_text(encoding="utf-8")
+        )
+        original = artifact["projections"][0]
+
+        changed_component = copy.deepcopy(original)
+        changed_component["projected"][0]["rawNumerator"] += 1
+        with self.assertRaisesRegex(ValueError, "last-components persistence"):
+            planning._validate_contract(
+                changed_component,
+                "basico_integral",
+                changed_component["municipality"],
+            )
+
+        incomplete_horizon = copy.deepcopy(original)
+        del incomplete_horizon["projected"][3]
+        with self.assertRaisesRegex(ValueError, "complete and consecutive"):
+            planning._validate_contract(
+                incomplete_horizon,
+                "basico_integral",
+                incomplete_horizon["municipality"],
+            )
 
     def test_required_pace_respects_both_directions(self):
         at_least = {

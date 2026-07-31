@@ -32,8 +32,8 @@ PROPERTY_NAME = "pne2026PublicDiagnosticV2"
 V1_PROPERTY_NAME = "pne2026PublicDiagnostic"
 EXPECTED_MUNICIPALITIES = 497
 EXPECTED_PHYSICAL_FILES = 497
-EXPECTED_V2_OCCURRENCES = 15_896
-EXPECTED_V2_ABSENCES = 1_002
+EXPECTED_V2_OCCURRENCES = 15_114
+EXPECTED_V2_ABSENCES = 293
 EXPECTED_V1_OCCURRENCES = 9_119
 
 
@@ -216,10 +216,10 @@ def _assert_v2_audit(audit: Mapping[str, Any]) -> None:
     expected_scalars = {
         "municipalityCount": 497,
         "authorizedPairCount": 34,
-        "goalCount": 24,
-        "indicatorCount": 34,
-        "essentialCount": 9,
-        "complementaryCount": 25,
+        "goalCount": 22,
+        "indicatorCount": 31,
+        "essentialCount": 7,
+        "complementaryCount": 10,
         "pneAvailableOccurrences": EXPECTED_V2_OCCURRENCES,
         "v2AvailableOccurrences": EXPECTED_V2_OCCURRENCES,
         "pneAbsentOccurrences": EXPECTED_V2_ABSENCES,
@@ -235,23 +235,23 @@ def _assert_v2_audit(audit: Mapping[str, Any]) -> None:
     if any(divergences.values()):
         raise RuntimeError(f"Divergências PNE × v2: {divergences}")
     if audit.get("classificationCounts") != {
-        "advance": 11_972,
-        "maintain": 2_447,
-        "unclassified": 1_477,
+        "advance": 8_166,
+        "maintain": 1_492,
+        "unclassified": 5_456,
     }:
         raise RuntimeError("Contagens de classificação v2 divergentes.")
-    if audit.get("directionCounts") != {"at_least": 15_399, "at_most": 497}:
+    if audit.get("directionCounts") != {"at_least": 14_617, "at_most": 497}:
         raise RuntimeError("Contagens de direção v2 divergentes.")
     if audit.get("relationshipCounts") != {
-        "contextual_proxy": 994,
-        "direct": 6_789,
-        "partial_component": 8_113,
+        "contextual_proxy": 497,
+        "direct": 5_308,
+        "partial_component": 9_309,
     }:
         raise RuntimeError("Contagens de vínculo v2 divergentes.")
-    if sum((audit.get("v2NegativeValuesByIndicator") or {}).values()) != 127:
-        raise RuntimeError("A auditoria v2 não preservou os 127 valores negativos.")
-    if sum((audit.get("v2ValuesAbove100ByIndicator") or {}).values()) != 494:
-        raise RuntimeError("A auditoria v2 não preservou os 494 valores acima de 100%.")
+    if sum((audit.get("v2NegativeValuesByIndicator") or {}).values()) != 0:
+        raise RuntimeError("A auditoria v2 publicou valor negativo inesperado.")
+    if sum((audit.get("v2ValuesAbove100ByIndicator") or {}).values()) != 412:
+        raise RuntimeError("A auditoria v2 não preservou os 412 valores acima de 100%.")
 
 
 def _validate_materialized_contract(
@@ -269,11 +269,11 @@ def _validate_materialized_contract(
     if public_v2.get("presentationCatalogVersion") != CATALOG_VERSION:
         raise RuntimeError(f"{municipality_id}: catálogo v2 inesperado.")
     scope = public_v2.get("scope") or {}
-    if len(scope.get("resultPairs") or []) != 34:
+    if len(scope.get("resultPairs") or []) != 31:
         raise RuntimeError(f"{municipality_id}: catálogo v2 incompleto.")
     if len(scope.get("essentialIndicatorIds") or []) != 9:
         raise RuntimeError(f"{municipality_id}: metadata dos essenciais incompleta.")
-    if len(scope.get("complementaryIndicatorIds") or []) != 25:
+    if len(scope.get("complementaryIndicatorIds") or []) != 22:
         raise RuntimeError(f"{municipality_id}: metadata dos complementares incompleta.")
     results = _flatten(public_v2)
     if len(results) != len({result["indicatorId"] for result in results}):

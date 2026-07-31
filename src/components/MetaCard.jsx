@@ -11,13 +11,21 @@ import { formatPpDifference, getStateReferenceComparison } from '../utils/stateR
 import { getPneCycleCopy } from '../utils/pneCycleCopy'
 import { InteractionChevron } from './InteractionChevron'
 import { buildPne2026AccumulativePresentationModel } from '../utils/pneAccumulativeCycle'
+import {
+  PNE_2026_RELATIONSHIP_MODES,
+  reconcilePne2026MunicipalResult,
+} from '../data/pne2026GoalIndicatorContract'
+import {
+  PNE_CYCLE_PRESENTATION_STATES,
+  isPneComparableIndicator,
+} from '../utils/pneDisplayRules'
+import {
+  getPneIndicatorPresentation,
+  toPnePercentDisplay,
+} from '../utils/pneIndicatorPresentation'
 
 const STATE_REFERENCE_EPSILON = 0.05
-const TREND_PRESENTATIONS = Object.freeze({
-  up: Object.freeze({ icon: '↗', label: 'Alta', ariaDirection: 'alta' }),
-  stable: Object.freeze({ icon: '→', label: 'Estável', ariaDirection: 'estável' }),
-  down: Object.freeze({ icon: '↘', label: 'Queda', ariaDirection: 'queda' }),
-})
+const PNE_2026_CYCLE = 'pne_2026_2036'
 
 export function MetaCard({
   buttonRef,
@@ -26,51 +34,150 @@ export function MetaCard({
   isSelected = false,
   item,
   onSelect,
-  result,
+  result: municipalResult,
   stateReference,
   stageLabel,
 }) {
+  const reconciliation = cycle === PNE_2026_CYCLE
+    ? reconcilePne2026MunicipalResult({
+        goalId: item?.metaRef,
+        indicatorId: item?.key,
+        result: municipalResult,
+      })
+    : { context: null, result: municipalResult }
+  const result = reconciliation.result
+  const displayPolicy = item?.cycleDisplayPolicy ?? null
+  const presentation = cycle === PNE_2026_CYCLE
+    ? getPneIndicatorPresentation({
+        cycle,
+        item,
+        relationContext: reconciliation.context,
+        result,
+      })
+    : null
   const cycleCopy = getPneCycleCopy(cycle)
   const unit = resolveIndicatorUnit(item, result)
-  const isApproximate = isApproximateIndicator(item, result)
-  const comparable = isComparableIndicator(result)
-  const accumulativePresentation = buildPne2026AccumulativePresentationModel({
-    cycle,
-    indicatorKey: item?.key,
-    details,
-    presentationMode: item?.presentationMode,
-  })
-  const status = accumulativePresentation
-    ? getAccumulativeMetaCardStatus(accumulativePresentation)
-    : getMetaCardStatus(result, comparable, cycleCopy, isApproximate)
+  const isApproximate = !displayPolicy && isApproximateIndicator(item, result)
+  const canonicalRelation = reconciliation.context?.relation
+  const relationshipMode = canonicalRelation?.mode
+  const isComplementary = relationshipMode === PNE_2026_RELATIONSHIP_MODES.COMPLEMENTARY
+  const isProgressRelationship = cycle !== PNE_2026_CYCLE
+    || [
+      PNE_2026_RELATIONSHIP_MODES.PROGRESS,
+      PNE_2026_RELATIONSHIP_MODES.TRACKING,
+    ].includes(relationshipMode)
+  const comparable = displayPolicy
+    ? displayPolicy.state === PNE_CYCLE_PRESENTATION_STATES.CONCLUSIVE
+    : cycle === PNE_2026_CYCLE
+    ? isPneComparableIndicator({
+        cycleId: cycle,
+        indicatorKey: item?.key,
+        item,
+        result,
+      })
+    : isComparableIndicator(result)
+  const accumulativePresentation = isProgressRelationship
+    ? buildPne2026AccumulativePresentationModel({
+        cycle,
+        indicatorKey: item?.key,
+        details,
+        presentationMode: item?.presentationMode,
+      })
+    : null
+  const baseStatus = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.OBSERVED
+    ? {
+        label: displayPolicy.statusLabel,
+        rawStatus: result?.display?.status ?? '',
+        state: 'no-goal',
+        tone: 'muted',
+      }
+    : displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE
+      ? {
+          label: displayPolicy.statusLabel,
+          rawStatus: result?.display?.status ?? '',
+          state: 'missing',
+          tone: 'muted',
+        }
+    : displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.CONCLUSIVE
+      ? getMetaCardStatus(result, true, cycleCopy, false)
+    : isComplementary
+    ? {
+        label: 'Indicador complementar',
+        rawStatus: '',
+        state: 'muted',
+      }
+    : accumulativePresentation
+      ? getAccumulativeMetaCardStatus(accumulativePresentation)
+      : getMetaCardStatus(result, comparable, cycleCopy, isApproximate)
+  const status = presentation && !isComplementary
+    ? {
+        ...baseStatus,
+        label: presentation.statusText,
+        state: presentation.statusState ?? baseStatus.state,
+        tone: presentation.statusTone ?? baseStatus.tone,
+      }
+    : baseStatus
   const isNextCycle = cycle === 'pne_2026_2036'
-  const currentValue = accumulativePresentation
+  const isDiscrete = ['binaryDeclaration', 'countOfTotal'].includes(
+    presentation?.valueKind,
+  )
+  const summaryCurrentValue = unit === 'percent'
+    ? toPnePercentDisplay(result?.end_value).displayValue
+    : result?.end_value
+  const summaryDistance = unit === 'percent'
+    && Number.isFinite(Number(summaryCurrentValue))
+    && Number.isFinite(Number(result?.meta))
+    ? Number(summaryCurrentValue) - Number(result.meta)
+    : null
+  const currentValue = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE
+    ? '—'
+    : accumulativePresentation
     ? accumulativePresentation.currentDisplay
+    : presentation
+    ? presentation.currentText
     : result
     ? isApproximate
-      ? formatApproximatePercent(result.end_value)
-      : formatIndicatorValue(result.end_value, unit)
+      ? formatApproximatePercent(summaryCurrentValue)
+      : formatIndicatorValue(summaryCurrentValue, unit)
     : '—'
   const referenceValue = result?.reference_value ?? item?.reference_value
-  const metaValue = accumulativePresentation
+  const metaValue = displayPolicy && !displayPolicy.showGoalComparison
+    ? '—'
+    : accumulativePresentation
     ? accumulativePresentation.referenceDisplay
+    : presentation
+    ? presentation.referenceText
     : comparable
     ? formatMetaValue(result, unit)
     : isApproximate
       ? formatIndicatorValue(referenceValue, unit)
       : 'Sem meta'
-  const progress = accumulativePresentation
+  const progress = displayPolicy && !displayPolicy.showGoalComparison
+    ? null
+    : accumulativePresentation
     ? accumulativePresentation.progress
     : comparable ? getProgressPercent(result) : null
-  const supportValue = accumulativePresentation
+  const supportValue = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.OBSERVED
+    ? roundPpString(result?.display?.variation ?? '—')
+    : displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE
+      ? '—'
+    : accumulativePresentation
     ? accumulativePresentation.distanceDisplay
+    : presentation
+    ? presentation.distanceText
     : comparable
-    ? roundPpString(result?.display?.distance ?? '—')
+    ? summaryDistance != null
+      ? formatPpDifference(summaryDistance)
+      : roundPpString(result?.display?.distance ?? '—')
     : isApproximate
       ? formatApproximateDifference(result?.reference_difference)
       : roundPpString(result?.display?.variation ?? '—')
-  const supportLabel = accumulativePresentation
+  const supportLabel = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.OBSERVED
+    ? 'Evolução'
+    : accumulativePresentation
     ? accumulativePresentation.distanceLabel
+    : presentation
+    ? presentation.distanceLabel
     : comparable
     ? 'Distância'
     : isApproximate
@@ -78,22 +185,43 @@ export function MetaCard({
       : 'Variação'
   const identifier = item?.metaRef ? `Meta ${item.metaRef}` : 'Indicador'
   const title = getIndicatorTitle(item, result)
-  const stateComparison = accumulativePresentation
+  const rawStateComparison = accumulativePresentation
+    || isComplementary
+    || (
+      displayPolicy
+      && !displayPolicy.showGoalComparison
+      && !displayPolicy.showStateComparison
+    )
     ? null
     : getStateReferenceComparison(stateReference, item?.key, result, unit)
+  const stateComparison = getPneStateComparisonDisplay(
+    rawStateComparison,
+    summaryCurrentValue,
+    unit,
+  )
   const stateComparisonTone = stateComparison
     ? getStateComparisonTone(stateComparison.difference)
     : null
-  const trendPresentation = isNextCycle && !accumulativePresentation
-    ? getTrendPresentation(result?.trend)
-    : null
-  const cardAriaLabel = trendPresentation
-    ? `Abrir detalhe do indicador ${title}. Tendência: ${trendPresentation.ariaDirection}, de ${trendPresentation.startYear} a ${trendPresentation.endYear}.`
-    : `Abrir detalhe do indicador ${title}`
+  const cardAriaLabel = `Abrir detalhe do indicador ${title}`
+  const showTargetMetric = displayPolicy
+    ? displayPolicy.showGoalComparison
+    : !isComplementary
+  const showStatusBadge = displayPolicy ? true : !isComplementary
+  const showSupportMetric = displayPolicy
+    ? displayPolicy.state !== PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE
+    : presentation?.showDistance !== false
+  const progressMessage = displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.OBSERVED
+    ? displayPolicy.goalContextLabel ?? 'Resultado de acompanhamento'
+    : displayPolicy?.state === PNE_CYCLE_PRESENTATION_STATES.UNAVAILABLE
+      ? displayPolicy.statusLabel
+      : isComplementary
+        ? 'Apoia a leitura da meta; não mede seu cumprimento.'
+        : accumulativePresentation?.comparisonTitle
+          ?? (isApproximate ? 'Referência legal final: 50% em 2036' : 'Sem meta comparável')
 
   return (
     <button
-      className={`meta-card meta-card--cycle interaction-card--explorable meta-card--${status.state}${isNextCycle ? ' meta-card--next-cycle' : ' meta-card--closed-cycle'}${trendPresentation ? ' meta-card--has-trend' : ''}${accumulativePresentation ? ` meta-card--${accumulativePresentation.kind}` : ''}${isSelected ? ' is-selected' : ''}`}
+      className={`meta-card meta-card--cycle interaction-card--explorable meta-card--${status.state}${isNextCycle ? ' meta-card--next-cycle' : ' meta-card--closed-cycle'}${accumulativePresentation ? ` meta-card--${accumulativePresentation.kind}` : ''}${isDiscrete ? ` meta-card--discrete meta-card--discrete-${presentation.valueKind}` : ''}${isSelected ? ' is-selected' : ''}`}
       ref={buttonRef}
       type="button"
       onClick={onSelect}
@@ -103,56 +231,73 @@ export function MetaCard({
     >
       <span className="meta-card__topline">
         <span className="meta-card__identifier">{identifier}</span>
-        <StatusBadge
-          displayStatus={status.label}
-          status={status.rawStatus}
-          title={status.label}
-          tone={status.tone}
-        />
+        {showStatusBadge ? (
+          <StatusBadge
+            displayStatus={status.label}
+            status={status.rawStatus}
+            title={status.label}
+            tone={status.tone}
+          />
+        ) : null}
       </span>
 
       <span className="meta-card__title">{title}</span>
 
       <span className="meta-card__value-row">
         <span className="meta-card__metric meta-card__metric--current">
-          <span>{accumulativePresentation?.currentLabel ?? 'Município'}</span>
+          <span>
+            {accumulativePresentation?.currentLabel
+              ?? presentation?.listValueLabel
+              ?? displayPolicy?.currentLabel
+              ?? 'Município'}
+          </span>
           <strong>{currentValue}</strong>
         </span>
-        <span className="meta-card__metric meta-card__metric--target">
-          <span>{accumulativePresentation?.referenceLabel ?? (isApproximate ? 'Ref.' : 'Meta PNE')}</span>
-          <strong>{metaValue}</strong>
-        </span>
-        <span className="meta-card__metric meta-card__metric--distance">
-          <span>{supportLabel}</span>
-          <strong>{supportValue}</strong>
-        </span>
-        {trendPresentation ? (
-          <span className="meta-card__metric meta-card__metric--trend">
-            <span>Tendência</span>
-            <strong className="meta-card__trend-value">
-              <span aria-hidden="true" className="meta-card__trend-icon">
-                {trendPresentation.icon}
-              </span>
-              <span>{trendPresentation.label}</span>
-            </strong>
+        {showTargetMetric ? (
+          <span className="meta-card__metric meta-card__metric--target">
+            <span>
+              {presentation?.cardReferenceLabel
+                ?? accumulativePresentation?.referenceLabel
+                ?? presentation?.referenceLabel
+                ?? (isApproximate ? 'Ref.' : isNextCycle ? 'Referência' : 'Meta PNE')}
+            </span>
+            <strong>{metaValue}</strong>
+          </span>
+        ) : null}
+        {showSupportMetric ? (
+          <span className="meta-card__metric meta-card__metric--distance">
+            <span>{presentation?.cardDistanceLabel ?? supportLabel}</span>
+            <strong>{supportValue}</strong>
           </span>
         ) : null}
       </span>
 
       {accumulativePresentation?.kind === 'public-share' ? null : (
         <span className="meta-card__progress-group">
-          {progress !== null ? (
+          {isDiscrete ? (
+            <span
+              className="meta-card__progress meta-card__progress--discrete"
+              aria-label={`${presentation.currentText}; ${presentation.referenceLabel}: ${presentation.referenceText}`}
+            >
+              {Array.from({ length: presentation.segmentCount }, (_value, index) => (
+                <span
+                  className={index < presentation.filledSegments ? 'is-filled' : ''}
+                  key={index}
+                />
+              ))}
+            </span>
+          ) : progress !== null ? (
             <span
               className="meta-card__progress"
               aria-label={accumulativePresentation
                 ? accumulativePresentation.comparisonAriaLabel
-                : `Comparação do resultado municipal ${currentValue} com a meta ${metaValue}`}
+                : `Comparação do resultado municipal ${currentValue} com a referência ${metaValue}`}
             >
               <span style={{ width: `${progress}%` }} />
             </span>
           ) : (
             <span className="meta-card__no-progress">
-              {accumulativePresentation?.comparisonTitle ?? (isApproximate ? 'Referência legal final: 50% em 2036' : 'Sem meta comparável')}
+              {progressMessage}
             </span>
           )}
           {accumulativePresentation?.comparisonTitle ? (
@@ -204,18 +349,6 @@ function getAccumulativeMetaCardStatus(model) {
   }
 }
 
-function getTrendPresentation(trend) {
-  const presentation = TREND_PRESENTATIONS[trend?.status]
-  const startYear = Number(trend?.start_year)
-  const endYear = Number(trend?.end_year)
-
-  if (!presentation || !Number.isInteger(startYear) || !Number.isInteger(endYear)) {
-    return null
-  }
-
-  return { ...presentation, startYear, endYear }
-}
-
 function getStateComparisonTone(difference) {
   const numeric = Number(difference)
   if (!Number.isFinite(numeric) || Math.abs(numeric) <= STATE_REFERENCE_EPSILON) {
@@ -257,6 +390,14 @@ function getMetaCardStatus(result, comparable, cycleCopy, isApproximate) {
     normalized.includes('nao atingida')
 
   if (result.atingida === false) {
+    if (result.direction === 'at_most') {
+      return {
+        label: cycleCopy.status.aboveLimit ?? cycleCopy.status.below,
+        rawStatus,
+        state: 'warning',
+        tone: 'warning',
+      }
+    }
     return {
       label: cycleCopy.status.below,
       rawStatus,
@@ -305,4 +446,18 @@ function getProgressPercent(result) {
     return Math.max(0, Math.min(100, (meta / current) * 100))
   }
   return Math.max(0, Math.min(100, (current / meta) * 100))
+}
+
+function getPneStateComparisonDisplay(comparison, municipalityValue, unit) {
+  if (!comparison || unit !== 'percent') return comparison
+  const municipalityDisplay = toPnePercentDisplay(municipalityValue).displayValue
+  const stateDisplay = toPnePercentDisplay(comparison.stateValue).displayValue
+  if (municipalityDisplay == null || stateDisplay == null) return comparison
+
+  return {
+    ...comparison,
+    difference: municipalityDisplay - stateDisplay,
+    municipalityValue: municipalityDisplay,
+    stateValue: stateDisplay,
+  }
 }

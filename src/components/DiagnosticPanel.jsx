@@ -3,69 +3,109 @@ import { CategoryTabs } from './CategoryTabs'
 import { ContentState } from './ContentState'
 import { DiagnosticPrintReport } from './DiagnosticPrintReport'
 import { PnePageHeader } from './PnePageHeader'
+import { PNE_2026_GOAL_TEXTS } from '../data/pne2026GoalTexts'
 import {
   buildPublicDiagnosticCopy,
   buildPublicSummaryText,
+  DIAGNOSTIC_RESULT_VIEWS,
+  DIAGNOSTIC_VIEW_MODEL_VERSION,
+  formatPublicDistance,
   formatPublicValue,
+  getDiagnosticSituationKey,
   getPublicCurrentValue,
-  getPublicOfficialSources,
   getPublicResultReading,
   getPublicResultStatus,
   getPublicStateComparison,
   getPublicSupportingReadings,
-  SUPPORTED_PUBLIC_VERSION,
+  selectDiagnosticResults,
+  selectDiagnosticOfficialSources,
+  selectDiagnosticThemeGroups,
+  selectLegalDiagnosticSummary,
 } from '../features/diagnostic/diagnosticPresentation'
 
-const SITUATION_OPTIONS = [
-  { key: 'all', label: 'Todos' },
-  { key: 'advance', label: 'Pontos para avançar' },
-  { key: 'maintain', label: 'Resultados a manter' },
-  { key: 'unclassified', label: 'Resultados para acompanhamento' },
+const SITUATION_OPTIONS = Object.freeze({
+  [DIAGNOSTIC_RESULT_VIEWS.LEGAL]: [
+    { key: 'all', label: 'Todos' },
+    { key: 'advance', label: 'Abaixo da referência' },
+    { key: 'maintain', label: 'Referência alcançada' },
+  ],
+  [DIAGNOSTIC_RESULT_VIEWS.TRACKING]: [
+    { key: 'all', label: 'Todos' },
+    { key: 'advance', label: 'Abaixo da referência de acompanhamento' },
+    { key: 'maintain', label: 'Na referência de acompanhamento' },
+  ],
+})
+
+const VIEW_OPTIONS = [
+  {
+    key: DIAGNOSTIC_RESULT_VIEWS.LEGAL,
+    label: 'Referências previstas nas metas',
+  },
+  {
+    key: DIAGNOSTIC_RESULT_VIEWS.TRACKING,
+    label: 'Indicadores de acompanhamento',
+  },
 ]
 
 const DIAGNOSTIC_DESCRIPTION = 'Veja os resultados do município em relação às metas do PNE e ao contexto dos municípios do Rio Grande do Sul.'
+const ACCELERATED_PACKAGE_RELATIONS = new Set([
+  'relation.9.d.educacao_indigena_cobertura_estimada_4_17',
+  'relation.10.b.aee_oferta_escolas_elegiveis',
+  'relation.14.c.superior_concluintes_oferta_local',
+  'relation.15.c.superior_docentes_mestres_doutores_sede',
+  'relation.17.c.munic_planos_carreira_declarados',
+  'relation.18.c.munic_forum_educacao_declarado',
+  'relation.16.a.capes_titulados_oferta_local',
+  'relation.15.a.cpc_cursos_oferta_local',
+  'relation.17.e.enade_licenciaturas_oferta_local',
+])
 
-export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
-  const publicDiagnostic = data?.pne2026PublicDiagnosticV2
+export function DiagnosticPanel({
+  contractStatus = 'ready',
+  data,
+  initialView = DIAGNOSTIC_RESULT_VIEWS.LEGAL,
+  municipio,
+}) {
+  const publicDiagnostic = data?.pne2026PublicDiagnostic
+  const [selectedView, setSelectedView] = useState(initialView)
   const [selectedSituation, setSelectedSituation] = useState('all')
   const [activeThemeId, setActiveThemeId] = useState('')
   const [copyStatus, setCopyStatus] = useState('idle')
 
   useEffect(() => {
+    setSelectedView(initialView)
     setSelectedSituation('all')
     setActiveThemeId('')
     setCopyStatus('idle')
-  }, [publicDiagnostic])
+  }, [initialView, publicDiagnostic])
 
-  const themes = useMemo(
-    () => publicDiagnostic?.presentation?.themes ?? [],
+  const legalSummary = useMemo(
+    () => selectLegalDiagnosticSummary(publicDiagnostic),
     [publicDiagnostic],
   )
-  const allResults = useMemo(
-    () => (publicDiagnostic?.goals ?? []).flatMap((goal) => (
-      goal.results.map((result) => ({ goal, result }))
+  const viewResults = useMemo(
+    () => selectDiagnosticResults(publicDiagnostic, selectedView),
+    [publicDiagnostic, selectedView],
+  )
+  const hasAbove100 = useMemo(
+    () => viewResults.some(({ result }) => (
+      result.current?.unit === 'percent' && Number(result.current?.value) > 100
     )),
-    [publicDiagnostic],
+    [viewResults],
   )
   const availableSituations = useMemo(
-    () => SITUATION_OPTIONS.filter((option) => (
+    () => SITUATION_OPTIONS[selectedView].filter((option) => (
       option.key === 'all'
-      || allResults.some(({ result }) => matchesSituation(result, option.key))
+      || viewResults.some(({ result }) => getDiagnosticSituationKey(result) === option.key)
     )),
-    [allResults],
+    [selectedView, viewResults],
   )
   const visibleThemeGroups = useMemo(
-    () => themes
-      .map((theme) => {
-        const themeResults = allResults.filter(({ result }) => result.themeId === theme.id)
-        return {
-          theme,
-          summary: summarizeThemeResults(themeResults),
-          results: themeResults.filter(({ result }) => matchesSituation(result, selectedSituation)),
-        }
-      })
-      .filter(({ results }) => results.length),
-    [allResults, selectedSituation, themes],
+    () => selectDiagnosticThemeGroups(publicDiagnostic, {
+      situation: selectedSituation,
+      view: selectedView,
+    }),
+    [publicDiagnostic, selectedSituation, selectedView],
   )
   const themeNavigationItems = useMemo(
     () => visibleThemeGroups.map(({ results, theme }) => ({
@@ -84,6 +124,12 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
         : themeNavigationItems[0].key
     ))
   }, [themeNavigationItems])
+
+  function handleViewSelect(view) {
+    setSelectedView(view)
+    setSelectedSituation('all')
+    setActiveThemeId('')
+  }
 
   async function handleCopySummary() {
     try {
@@ -106,7 +152,7 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
 
   if (
     contractStatus !== 'ready'
-    || publicDiagnostic?.version !== SUPPORTED_PUBLIC_VERSION
+    || publicDiagnostic?.viewModelVersion !== DIAGNOSTIC_VIEW_MODEL_VERSION
   ) {
     return (
       <ContentState kind="error" className="pne-diagnostic-error">
@@ -137,7 +183,7 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
           </span>
         </>}
         asideLabel="Resumo do diagnóstico municipal"
-        asideContent={<DiagnosticHeaderSummary summary={publicDiagnostic.summary} />}
+        asideContent={<DiagnosticHeaderSummary summary={legalSummary} />}
         description={DIAGNOSTIC_DESCRIPTION}
         eyebrow="DIAGNÓSTICO MUNICIPAL · PNE 2026–2036"
         title={`Diagnóstico educacional de ${municipio}`}
@@ -149,10 +195,28 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
           <h2 id="pne-diagnostic-summary-title">Resumo do diagnóstico</h2>
         </div>
         <p className="pne-diagnostic-summary__reading">
-          {buildPublicSummaryText(publicDiagnostic.summary)}
+          {buildPublicSummaryText(legalSummary)}
         </p>
-        <SummaryCards summary={publicDiagnostic.summary} />
+        <SummaryCards summary={legalSummary} />
+        <p className="pne-diagnostic-summary__availability">
+          {legalSummary.comparableIndicatorCount} de {legalSummary.totalIndicatorCount} indicadores possuem comparação disponível para este município.
+        </p>
       </section>
+
+      <div
+        className="pne-diagnostic-view-switcher"
+        aria-label="Tipo de resultado do diagnóstico"
+        role="group"
+      >
+        {VIEW_OPTIONS.map((option) => (
+          <FilterButton
+            active={selectedView === option.key}
+            key={option.key}
+            label={option.label}
+            onClick={() => handleViewSelect(option.key)}
+          />
+        ))}
+      </div>
 
       <section className="pne-diagnostic-filters platform-filter-panel" aria-labelledby="pne-diagnostic-filters-title">
         <div className="pne-diagnostic-section-heading">
@@ -183,9 +247,15 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
         />
       </nav>
 
+      <DiagnosticLegend />
+
       <section className="pne-diagnostic-results" aria-labelledby="pne-diagnostic-results-title">
         <div className="pne-diagnostic-section-heading pne-diagnostic-section-heading--results">
-          <p>Plano Nacional de Educação</p>
+          <p>
+            {selectedView === DIAGNOSTIC_RESULT_VIEWS.LEGAL
+              ? 'Referências previstas nas metas'
+              : 'Indicadores de acompanhamento'}
+          </p>
           <h2 id="pne-diagnostic-results-title">Resultados por tema</h2>
         </div>
         <div className="pne-diagnostic-themes">
@@ -193,14 +263,23 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
             <ThemeBlock
               key={theme.id}
               results={results}
+              sources={publicDiagnostic.sources}
               summary={summary}
               theme={theme}
+              view={selectedView}
             />
           ))}
         </div>
       </section>
 
-      <SourcesSection sources={getPublicOfficialSources(publicDiagnostic.sources)} />
+      <SourcesSection
+        hasAbove100={hasAbove100}
+        sources={selectDiagnosticOfficialSources(publicDiagnostic, selectedView)}
+      />
+
+      <p className="pne-diagnostic-complementary-note">
+        Outras informações educacionais sem referência municipal estão disponíveis nas páginas de Indicadores educacionais e no Relatório Técnico.
+      </p>
 
       <DiagnosticPrintReport
         description={DIAGNOSTIC_DESCRIPTION}
@@ -212,20 +291,18 @@ export function DiagnosticPanel({ contractStatus = 'ready', data, municipio }) {
 }
 
 function DiagnosticHeaderSummary({ summary }) {
-  const analyzedCount = summary.advanceCount + summary.maintainCount + summary.unclassifiedCount
-
   return (
     <dl className="pne-page-header__metrics">
       <div className="pne-page-header__metric pne-page-header__metric--info">
-        <dt>Metas analisadas</dt>
-        <dd>{analyzedCount}</dd>
+        <dt>Indicadores com comparação disponível</dt>
+        <dd>{summary.comparableIndicatorCount}</dd>
       </div>
       <div className="pne-page-header__metric pne-page-header__metric--attention">
-        <dt>Pontos a trabalhar</dt>
+        <dt>Abaixo da referência</dt>
         <dd>{summary.advanceCount}</dd>
       </div>
       <div className="pne-page-header__metric pne-page-header__metric--success">
-        <dt>Pontos a continuar</dt>
+        <dt>Referências alcançadas</dt>
         <dd>{summary.maintainCount}</dd>
       </div>
     </dl>
@@ -234,11 +311,10 @@ function DiagnosticHeaderSummary({ summary }) {
 
 function SummaryCards({ summary }) {
   const cards = [
-    ['Pontos para avançar', summary.advanceCount, 'advance'],
-    ['Resultados a manter', summary.maintainCount, 'maintain'],
-    ['Resultados para acompanhamento', summary.unclassifiedCount, 'neutral'],
-    ['Acima ou próximos do RS', summary.stateAboveOrNearCount, 'maintain'],
-    ['Abaixo do RS', summary.stateBelowCount, 'advance'],
+    ['Indicadores com comparação disponível', summary.comparableIndicatorCount, 'neutral'],
+    ['Referências alcançadas', summary.maintainCount, 'maintain'],
+    ['Abaixo da referência', summary.advanceCount, 'advance'],
+    ['Sem comparação no período', summary.unavailableComparisonCount, 'neutral'],
   ]
 
   return (
@@ -253,6 +329,79 @@ function SummaryCards({ summary }) {
         </div>
       ))}
     </dl>
+  )
+}
+
+function DiagnosticLegend() {
+  return (
+    <section className="pne-diagnostic-legend" aria-labelledby="pne-diagnostic-legend-title">
+      <div className="pne-diagnostic-section-heading">
+        <p>Guia de leitura</p>
+        <h2 id="pne-diagnostic-legend-title">Como ler os quadros de comparação</h2>
+      </div>
+      <p className="pne-diagnostic-legend__intro">
+        Em cada indicador, além da meta do PNE, o município aparece ao lado do Rio Grande do Sul — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
+      </p>
+      <div className="pne-diagnostic-legend__grid">
+        <LegendCard
+          desc="Onde o município está entre todos os do RS neste indicador."
+          icon="position"
+          items={[
+            ['positive', 'Faixa superior', 'entre os de resultado mais favorável'],
+            ['neutral', 'Faixa intermediária', 'no meio da distribuição estadual'],
+            ['attention', 'Faixa prioritária', 'entre os com maior espaço para avançar'],
+          ]}
+          title="Posição no RS"
+        />
+        <LegendCard
+          desc="Comparação com municípios de porte educacional parecido."
+          icon="similar"
+          items={[
+            ['positive', 'Acima da mediana', 'resultado acima do grupo semelhante'],
+            ['attention', 'Abaixo da mediana', 'resultado abaixo do grupo semelhante'],
+          ]}
+          title="Municípios semelhantes"
+        />
+        <LegendCard
+          desc="Como o indicador variou nos últimos anos disponíveis."
+          icon="reading"
+          items={[
+            ['positive', 'Melhorou nos últimos anos', 'avançou no período'],
+            ['neutral', 'Permaneceu estável', 'sem variação relevante'],
+            ['attention', 'Recuou nos últimos anos', 'perdeu terreno no período'],
+          ]}
+          title="Evolução recente"
+        />
+      </div>
+    </section>
+  )
+}
+
+function LegendCard({ desc, icon, items, title }) {
+  return (
+    <article className="pne-diagnostic-legend__card">
+      <header className="pne-diagnostic-legend__card-head">
+        <span className="pne-diagnostic-legend__card-icon" aria-hidden="true">
+          <DiagnosticSupportIcon name={icon} />
+        </span>
+        <h3>{title}</h3>
+      </header>
+      <p className="pne-diagnostic-legend__card-desc">{desc}</p>
+      {items ? (
+        <dl className="pne-diagnostic-legend__items">
+          {items.map(([tone, label, meaning]) => (
+            <div className="pne-diagnostic-legend__item" key={label}>
+              <dt>
+                <span className={`pne-diagnostic-support-reading__badge pne-diagnostic-support-reading__badge--${tone}`}>
+                  {label}
+                </span>
+              </dt>
+              <dd>{meaning}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </article>
   )
 }
 
@@ -278,7 +427,13 @@ function FilterButton({ active, label, onClick }) {
   )
 }
 
-function ThemeBlock({ results, summary, theme }) {
+function ThemeBlock({
+  results,
+  sources,
+  summary,
+  theme,
+  view,
+}) {
   const titleId = `pne-diagnostic-theme-${theme.id}`
 
   return (
@@ -289,19 +444,20 @@ function ThemeBlock({ results, summary, theme }) {
             <DiagnosticIcon name={theme.id} />
           </span>
           <div>
-            <p>Tema {theme.order}</p>
+            <p>Tema {theme.visibleOrder}</p>
             <h3 id={titleId}>{theme.label}</h3>
           </div>
         </div>
-        <ThemeSummary summary={summary} />
+        <ThemeSummary summary={summary} view={view} />
       </header>
       <div className="pne-diagnostic-theme__results">
         {results.map(({ goal, result }) => (
           <ResultCard
             goal={goal}
             headingLevel={4}
-            key={result.indicatorId}
+            key={result.relationId}
             result={result}
+            sources={sources}
             standalone
           />
         ))}
@@ -310,13 +466,18 @@ function ThemeBlock({ results, summary, theme }) {
   )
 }
 
-function ThemeSummary({ summary }) {
-  const items = [
-    ['Total de resultados', summary.total],
-    ['Pontos para avançar', summary.advance],
-    ['Resultados a manter', summary.maintain],
-    ['Resultados para acompanhamento', summary.unclassified],
-  ]
+function ThemeSummary({ summary, view }) {
+  const items = view === DIAGNOSTIC_RESULT_VIEWS.TRACKING
+    ? [
+        ['Indicadores', summary.total],
+        ['Na referência de acompanhamento', summary.maintain],
+        ['Abaixo da referência de acompanhamento', summary.advance],
+      ]
+    : [
+        ['Indicadores', summary.total],
+        ['Referências alcançadas', summary.maintain],
+        ['Abaixo da referência', summary.advance],
+      ]
 
   return (
     <dl className="pne-diagnostic-theme-summary">
@@ -330,7 +491,17 @@ function ThemeSummary({ summary }) {
   )
 }
 
-function ResultCard({ goal, headingLevel, result, standalone = false }) {
+function ResultCard({
+  goal,
+  headingLevel,
+  result,
+  sources,
+  standalone = false,
+}) {
+  const isComplementary = result.mode === 'complementary'
+  const isAvailable = result.dataStatus === 'available'
+  const hasReference = isAvailable && Number.isFinite(result.indicatorReference?.value)
+  const distanceAvailable = Number.isFinite(result.distance)
   const stateComparison = getPublicStateComparison(result)
   const supportingReadings = getPublicSupportingReadings(result)
   const status = getPublicResultStatus(result)
@@ -338,152 +509,227 @@ function ResultCard({ goal, headingLevel, result, standalone = false }) {
   const Heading = `h${headingLevel}`
   const currentValue = getPublicCurrentValue(result)
   const publicReading = getPublicResultReading(result)
-  const contextReadings = supportingReadings.filter(({ kind }) => kind !== 'trajectory')
+  const legalText = PNE_2026_GOAL_TEXTS[goal.goalId]?.displayText
+  const positionReading = supportingReadings.find(({ kind }) => kind === 'position')
+  const similarReading = supportingReadings.find(({ kind }) => kind === 'similar')
   const trajectoryReading = supportingReadings.find(({ kind }) => kind === 'trajectory')
-  const comparisonItemCount = Number(Boolean(stateComparison?.reading)) + contextReadings.length
-  const closingItemCount = Number(Boolean(trajectoryReading)) + Number(Boolean(publicReading))
+  const trajectoryBadge = trajectoryReading ? getSupportingReadingBadge(trajectoryReading) : ''
+  const hasCompare = Boolean(stateComparison || positionReading || similarReading)
+  const hasFooter = Boolean(trajectoryReading || publicReading)
+  // Distância como frase: "faltam X" quando abaixo da referência, "+X além da
+  // meta" quando alcançada. A palavra segue a situação, não o sinal cru.
+  const distanceSigned = distanceAvailable
+    ? formatPublicDistance(result.distance, result.current.unit)
+    : ''
+  const reachedReference = status.key === 'maintain'
+  const gapText = reachedReference
+    ? `${distanceSigned} além da meta`
+    : `faltam ${distanceSigned.replace(/^[+−-]/, '')}`
+  // A primeira linha da trajetória é a síntese ("melhorou/recuou"), já no rodapé.
+  // Só as ressalvas de cenário (linha de base, denominador, incerteza) descem
+  // para a divulgação recolhida — nada some, e o cartão não estica sem ressalva.
+  const trajectoryNotes = trajectoryReading ? trajectoryReading.lines.slice(1) : []
+  const isAccelerated = ACCELERATED_PACKAGE_RELATIONS.has(result.relationId)
+  const showDisclosure = trajectoryNotes.length > 0 || isAccelerated
 
   return (
     <article
       className={`pne-diagnostic-result pne-diagnostic-result--${status.key}${standalone ? ' pne-diagnostic-result--standalone' : ''}`}
       aria-labelledby={titleId}
     >
-      <div className="pne-diagnostic-result__primary">
-        <div className="pne-diagnostic-result__main-row">
-          <div className="pne-diagnostic-result__identity">
-            <span className="pne-diagnostic-result__icon" aria-hidden="true">
-              <DiagnosticIcon name={result.themeId} />
-            </span>
-            <header className="pne-diagnostic-result__header">
-              <p className="pne-diagnostic-result__goal-context">Meta {goal.goalId} — {goal.title}</p>
-              <div>
-                <Heading id={titleId}>{result.publicName}</Heading>
-                <span className={`pne-diagnostic-result__status pne-diagnostic-result__status--${status.key}`}>
-                  {status.label}
-                </span>
-              </div>
-            </header>
-          </div>
-
-          <dl className={`pne-diagnostic-result__measures pne-diagnostic-result__measures--count-${stateComparison ? 4 : 2}`}>
-            <Measure className="pne-diagnostic-result__measure--current" label="Resultado do município">
-              <strong>{currentValue}</strong>
-              <span>Ano {result.current.year}</span>
-            </Measure>
-            <Measure className="pne-diagnostic-result__measure--target" label="Valor previsto">
-              <strong>{formatPublicValue(result.indicatorReference.value, result.current.unit)}</strong>
-              <span>Prazo {result.indicatorReference.year}</span>
-            </Measure>
-            {stateComparison ? (
-              <>
-                <Measure className="pne-diagnostic-result__measure--state" label="Referência RS">
-                  <strong>{stateComparison.stateValue}</strong>
-                  <span>Ano {stateComparison.year}</span>
-                </Measure>
-                <Measure className="pne-diagnostic-result__measure--difference" label="Diferença para o RS">
-                  <strong>{stateComparison.difference}</strong>
-                </Measure>
-              </>
-            ) : null}
-          </dl>
+      <header className="pne-diagnostic-result__head">
+        <span className="pne-diagnostic-result__icon" aria-hidden="true">
+          <DiagnosticIcon name={result.themeId} />
+        </span>
+        <div className="pne-diagnostic-result__id">
+          <p className="pne-diagnostic-result__goal-context">Meta {goal.goalId} — {goal.title}</p>
+          <Heading className="pne-diagnostic-result__name" id={titleId}>{result.publicName}</Heading>
         </div>
-
-        {comparisonItemCount ? (
-          <section
-            className={`pne-diagnostic-result__comparison-row pne-diagnostic-result__comparison-row--count-${comparisonItemCount}`}
-            aria-label="Contexto comparativo do indicador"
-          >
-            {stateComparison?.reading ? (
-              <AnalyticBlock icon="comparison" title="Comparação com o RS">
-                <p>{stateComparison.reading}</p>
-              </AnalyticBlock>
-            ) : null}
-
-            {contextReadings.map((reading) => (
-              <SupportingReading
-                badge={getSupportingReadingBadge(reading)}
-                key={reading.title}
-                kind={reading.kind}
-                title={reading.title}
-              >
-                {reading.lines.map((line) => <p key={line}>{line}</p>)}
-              </SupportingReading>
-            ))}
-          </section>
+        {!isComplementary && isAvailable ? (
+          <span className={`pne-diagnostic-result__status pne-diagnostic-result__status--${status.key}`}>
+            {status.label}
+          </span>
         ) : null}
+      </header>
 
-        {closingItemCount ? (
-          <section
-            className={`pne-diagnostic-result__closing-row pne-diagnostic-result__closing-row--count-${closingItemCount}`}
-            aria-label="Evolução e leitura do indicador"
-          >
-            {trajectoryReading ? (
-              <SupportingReading
-                badge={getSupportingReadingBadge(trajectoryReading)}
-                kind={trajectoryReading.kind}
-                title={trajectoryReading.title}
-              >
-                {trajectoryReading.lines.map((line) => <p key={line}>{line}</p>)}
-              </SupportingReading>
-            ) : null}
-            {publicReading ? (
-              <AnalyticBlock icon="reading" title="Leitura do indicador">
-                <p>{publicReading}</p>
-              </AnalyticBlock>
-            ) : null}
+      {legalText ? (
+        <div className="pne-diagnostic-result__legal">
+          <p className="pne-diagnostic-result__legal-label">O que diz a meta no PNE</p>
+          <p className="pne-diagnostic-result__legal-text">{legalText}</p>
+        </div>
+      ) : null}
+
+      <div className="pne-diagnostic-result__panels">
+        <section className="pne-diagnostic-result__panel pne-diagnostic-result__panel--meta" aria-label="Resultado em relação à meta do PNE">
+          <p className="pne-diagnostic-result__panel-label">Meta do PNE</p>
+          <p className="pne-diagnostic-result__hero">
+            <strong>{currentValue}</strong>
+            {Number.isFinite(result.current?.year)
+              ? <span>resultado {result.current.year}</span>
+              : null}
+          </p>
+          {hasReference ? (
+            <p className="pne-diagnostic-result__target">
+              {result.mode === 'tracking' ? 'Referência de acompanhamento: ' : 'Referência: '}
+              <b>{formatPublicValue(result.indicatorReference?.value, result.current.unit)}</b>
+              {Number.isFinite(result.indicatorReference?.year)
+                ? <> até <b>{result.indicatorReference.year}</b></>
+                : null}
+            </p>
+          ) : null}
+          {distanceAvailable ? (
+            <span
+              className="pne-diagnostic-result__gap"
+              title={result.mode === 'tracking'
+                ? 'Distância para a referência de acompanhamento'
+                : 'Distância para a referência'}
+            >
+              <DistanceIcon value={result.distance} />
+              {gapText}
+            </span>
+          ) : null}
+        </section>
+
+        {hasCompare ? (
+          <section className="pne-diagnostic-result__panel pne-diagnostic-result__panel--compare" aria-label="Comparação com o Rio Grande do Sul e municípios semelhantes">
+            <p className="pne-diagnostic-result__panel-label">Como se compara</p>
+            <dl className="pne-diagnostic-result__compare">
+              {stateComparison ? (
+                <div className="pne-diagnostic-result__compare-row">
+                  <dt>
+                    <span className="pne-diagnostic-result__compare-icon" aria-hidden="true">
+                      <DiagnosticSupportIcon name="comparison" />
+                    </span>
+                    Rio Grande do Sul
+                  </dt>
+                  <dd className="pne-diagnostic-result__compare-values">
+                    <span className="pne-diagnostic-result__compare-value">{stateComparison.stateValue}</span>
+                    <span className="pne-diagnostic-result__compare-diff">{stateComparison.difference}</span>
+                  </dd>
+                </div>
+              ) : null}
+              {similarReading ? (
+                <CompareBadgeRow icon="similar" label="Municípios semelhantes" reading={similarReading} />
+              ) : null}
+              {positionReading ? (
+                <CompareBadgeRow icon="position" label="Posição no RS" reading={positionReading} />
+              ) : null}
+            </dl>
           </section>
         ) : null}
       </div>
+
+      {hasFooter ? (
+        <footer className="pne-diagnostic-result__foot">
+          {trajectoryReading ? (
+            <span className={`pne-diagnostic-result__evo pne-diagnostic-result__evo--${getSupportingBadgeTone(trajectoryBadge)}`}>
+              <span className="pne-diagnostic-result__evo-icon" aria-hidden="true">
+                <DiagnosticSupportIcon name="trajectory" />
+              </span>
+              {trajectoryBadge || 'Evolução recente'}
+            </span>
+          ) : null}
+          {publicReading ? (
+            <p className="pne-diagnostic-result__reading">{publicReading}</p>
+          ) : null}
+        </footer>
+      ) : null}
+
+      {showDisclosure ? (
+        <MethodologyDisclosure
+          isAccelerated={isAccelerated}
+          notes={trajectoryNotes}
+          result={result}
+          sources={sources}
+        />
+      ) : null}
     </article>
   )
 }
 
-function Measure({ children, className = '', label }) {
+function CompareBadgeRow({ icon, label, reading }) {
+  const badge = getSupportingReadingBadge(reading)
+  const tone = getSupportingBadgeTone(badge)
+
   return (
-    <div className={className}>
-      <dt>{label}</dt>
-      <dd>{children}</dd>
+    <div className="pne-diagnostic-result__compare-row">
+      <dt>
+        <span className="pne-diagnostic-result__compare-icon" aria-hidden="true">
+          <DiagnosticSupportIcon name={icon} />
+        </span>
+        {label}
+      </dt>
+      <dd className="pne-diagnostic-result__compare-values">
+        {badge ? (
+          <span className={`pne-diagnostic-support-reading__badge pne-diagnostic-support-reading__badge--${tone}`}>
+            {badge}
+          </span>
+        ) : (
+          <span className="pne-diagnostic-result__compare-note">{reading.lines[0]}</span>
+        )}
+      </dd>
     </div>
   )
 }
 
-function SupportingReading({ badge, children, kind, title }) {
-  const compactTitle = kind === 'position'
-    ? 'Posição no RS'
-    : kind === 'similar'
-      ? 'Municípios semelhantes'
-      : title
-
+function DistanceIcon({ value }) {
+  const down = Number(value) < 0
   return (
-    <AnalyticBlock
-      badge={badge}
-      className={`pne-diagnostic-support-reading pne-diagnostic-support-reading--${kind}`}
-      icon={kind}
-      title={compactTitle}
-    >
-      {children}
-    </AnalyticBlock>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {down
+        ? <path d="M12 5v14M6 13l6 6 6-6" />
+        : <path d="M12 19V5M6 11l6-6 6 6" />}
+    </svg>
   )
 }
 
-function AnalyticBlock({ badge, children, className = '', icon, title }) {
-  const badgeTone = getSupportingBadgeTone(badge)
+function MethodologyDisclosure({ isAccelerated = false, notes = [], result, sources = [] }) {
+  const selectedSources = result.sourceIds
+    .map((sourceId) => sources.find((source) => source.id === sourceId))
+    .filter(Boolean)
+  const numerator = Number.isFinite(result.numerator)
+    ? result.numerator.toLocaleString('pt-BR')
+    : null
+  const denominator = Number.isFinite(result.denominator)
+    ? result.denominator.toLocaleString('pt-BR')
+    : null
+  const hasCalc = isAccelerated
+    && (selectedSources.length || result.methodology || numerator !== null || denominator !== null)
+  const summary = notes.length && hasCalc
+    ? 'Evolução recente e cálculo'
+    : notes.length
+      ? 'Evolução recente e cenário'
+      : 'Fonte e cálculo'
 
   return (
-    <section className={`pne-diagnostic-result__analytic-block${className ? ` ${className}` : ''}`}>
-      <header className="pne-diagnostic-result__analytic-heading">
-        <span className="pne-diagnostic-result__analytic-icon" aria-hidden="true">
-          <DiagnosticSupportIcon name={icon} />
-        </span>
-        <h5>{title}</h5>
-      </header>
-      {badge ? (
-        <span className={`pne-diagnostic-support-reading__badge pne-diagnostic-support-reading__badge--${badgeTone}`}>
-          {badge}
-        </span>
-      ) : null}
-      <div className="pne-diagnostic-result__analytic-copy">{children}</div>
-    </section>
+    <details className="pne-diagnostic-result__methodology">
+      <summary>{summary}</summary>
+      <div>
+        {notes.map((note) => <p key={note}>{note}</p>)}
+        {hasCalc && selectedSources.length ? (
+          <p>
+            <strong>Fonte:</strong>{' '}
+            {selectedSources.map((source) => source.publicTitle).join('; ')}.
+          </p>
+        ) : null}
+        {hasCalc && result.methodology ? (
+          <p>
+            <strong>Cálculo:</strong>{' '}
+            {result.methodology.description}
+          </p>
+        ) : null}
+        {hasCalc && (numerator !== null || denominator !== null) ? (
+          <dl>
+            {numerator !== null ? (
+              <div><dt>Numerador</dt><dd>{numerator}</dd></div>
+            ) : null}
+            {denominator !== null ? (
+              <div><dt>Denominador</dt><dd>{denominator}</dd></div>
+            ) : null}
+          </dl>
+        ) : null}
+      </div>
+    </details>
   )
 }
 
@@ -575,7 +821,7 @@ function DiagnosticSupportIcon({ name }) {
 }
 
 
-function SourcesSection({ sources }) {
+function SourcesSection({ hasAbove100, sources }) {
   return (
     <section className="pne-diagnostic-sources" aria-labelledby="pne-diagnostic-sources-title">
       <div className="pne-diagnostic-section-heading">
@@ -600,9 +846,11 @@ function SourcesSection({ sources }) {
           </li>
         ))}
       </ul>
-      <p className="pne-diagnostic-sources__method-note">
-        Valores percentuais superiores a 100% são apresentados como 100%.
-      </p>
+      {hasAbove100 ? (
+        <p className="pne-diagnostic-sources__method-note">
+          Há resultado percentual acima de 100% neste município. O valor bruto foi preservado; esse comportamento pode decorrer da combinação entre matrículas por local de oferta e estimativas da população residente.
+        </p>
+      ) : null}
     </section>
   )
 }
@@ -707,24 +955,4 @@ function DiagnosticIcon({ name }) {
       <path d="M8 8.5h.01" />
     </svg>
   )
-}
-
-function matchesSituation(result, situation) {
-  if (situation === 'all') return true
-  if (situation === 'unclassified') return result.classification == null
-  return result.classification === situation
-}
-
-function summarizeThemeResults(results) {
-  return results.reduce((summary, { result }) => ({
-    total: summary.total + 1,
-    advance: summary.advance + Number(result.classification === 'advance'),
-    maintain: summary.maintain + Number(result.classification === 'maintain'),
-    unclassified: summary.unclassified + Number(result.classification == null),
-  }), {
-    total: 0,
-    advance: 0,
-    maintain: 0,
-    unclassified: 0,
-  })
 }

@@ -66,6 +66,34 @@ EXPECTED_PUBLISHED_GOAL_IDS = [
     "19.c",
 ]
 
+EXPECTED_CURRENT_PAGE_GOAL_IDS = [
+    "1.a",
+    "1.c",
+    "4.a",
+    "6.a",
+    "12.c",
+    "12.a",
+    "12.b",
+    "3.a",
+    "5.a",
+    "5.b",
+    "5.d",
+    "4.b",
+    "4.c",
+    "4.d",
+    "17.a",
+    "17.f",
+    "17.b",
+    "17.d",
+    "8.c",
+    "18.b",
+    "8.b",
+    "19.c",
+    "11.a",
+    "11.b",
+    "11.c",
+]
+
 
 def goal_sort_key(goal_id):
     number, letter = goal_id.split(".", maxsplit=1)
@@ -173,9 +201,19 @@ class PublicDiagnosticConfigurationTest(unittest.TestCase):
         refs_text = (REPO_ROOT / "src/data/pne2026IndicatorGoalRefs.js").read_text(
             encoding="utf-8"
         )
-        refs = dict(
-            re.findall(r"^\s{2}([a-z0-9_]+): '([^']+)'", refs_text, re.MULTILINE)
+        contract = json.loads(
+            (
+                REPO_ROOT
+                / "contracts"
+                / "pne2026-goal-indicator-contract.json"
+            ).read_text(encoding="utf-8")
         )
+        refs = {
+            relation["indicatorId"]: relation["goalId"]
+            for relation in contract["relations"]
+            if relation["includeInCycleGoalRefs"]
+        }
+        self.assertIn("PNE_2026_GOAL_INDICATOR_CONTRACT", refs_text)
         page = json.loads(
             (REPO_ROOT / "public/data/indicadores.json").read_text(encoding="utf-8")
         )["cycles"]["pne_2026_2036"]
@@ -185,7 +223,7 @@ class PublicDiagnosticConfigurationTest(unittest.TestCase):
                 goal_id = refs.get(item["key"])
                 if goal_id and goal_id not in first_occurrences:
                     first_occurrences.append(goal_id)
-        self.assertEqual(first_occurrences, EXPECTED_GOAL_IDS)
+        self.assertEqual(first_occurrences, EXPECTED_CURRENT_PAGE_GOAL_IDS)
 
         configured_pairs = {
             (goal["goalId"], relationship["indicatorId"])
@@ -460,18 +498,18 @@ class PublicDiagnosticBuilderTest(unittest.TestCase):
         )
         self.assertEqual(contract["schemaVersion"], "municipal-diagnostic-v2")
         self.assertIn("pne2026PublicDiagnostic", contract)
-        self.assertEqual(len(contract["indicators"]), 49)
+        self.assertEqual(len(contract["indicators"]), 54)
         self.assertEqual(contract["pne2026PublicDiagnostic"]["goals"], [])
 
-    def test_types_keep_new_property_optional_and_versioned(self):
+    def test_types_keep_the_exclusive_v3_contract_versioned(self):
         types = (
             REPO_ROOT / "src/features/diagnostic/diagnosticTypes.ts"
         ).read_text(encoding="utf-8")
-        self.assertIn(
-            "pne2026PublicDiagnostic?: Pne2026PublicDiagnosticV1", types
-        )
-        self.assertIn("version: 'pne2026-public-diagnostic-v1'", types)
-        self.assertIn("schemaVersion: 'municipal-diagnostic-v2'", types)
+        self.assertIn("interface Pne2026PublicDiagnosticV3", types)
+        self.assertIn("schemaVersion: 'pne2026-public-diagnostic-v4'", types)
+        self.assertIn("contractVersion: '1.9.0'", types)
+        self.assertIn("diagnosticSource: 'v3'", types)
+        self.assertNotIn("Pne2026PublicDiagnosticV1", types)
 
 
 class PublicDiagnosticPayloadAuditTest(unittest.TestCase):

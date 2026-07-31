@@ -404,17 +404,12 @@ function buildPublicExpansionModel(details) {
     return buildLoadingModel(PUBLIC_EXPANSION_KEY)
   }
 
-  let publicExpansion = 0
-  let privateExpansion = 0
-
-  for (let index = 1; index < cycleSeries.length; index += 1) {
-    const previous = cycleSeries[index - 1]
-    const current = cycleSeries[index]
-    publicExpansion += Math.max(0, publicEnrollment(current) - publicEnrollment(previous))
-    privateExpansion += Math.max(0, numericValue(current.privada) - numericValue(previous.privada))
-  }
-
-  const totalExpansion = publicExpansion + privateExpansion
+  const baselinePublic = publicEnrollment(baseline)
+  const latestPublic = publicEnrollment(latest)
+  const baselineTotal = baselinePublic + numericValue(baseline.privada)
+  const latestTotal = latestPublic + numericValue(latest.privada)
+  const publicExpansion = latestPublic - baselinePublic
+  const totalExpansion = latestTotal - baselineTotal
   const hasPostBaselineYear = latest.ano > BASELINE_YEAR
   const hasExpansion = hasPostBaselineYear && totalExpansion > 0
   const currentValue = hasExpansion ? (publicExpansion / totalExpansion) * 100 : null
@@ -456,7 +451,7 @@ function buildPublicExpansionModel(details) {
     reading: hasExpansion
       ? `Desde a linha de base de 2025, a rede pública responde por ${formatPercent(currentValue)} da expansão acumulada de matrículas no ciclo.`
       : hasPostBaselineYear
-        ? 'Ainda não houve expansão positiva de matrículas após 2025. O indicador permanece sem classificação de alcance da meta.'
+        ? 'Ainda não houve expansão líquida positiva de matrículas após 2025. O indicador permanece sem classificação de alcance da meta.'
         : 'A linha de base do novo ciclo foi definida em 2025. O resultado estará disponível a partir de 2026, quando houver expansão de matrículas.',
   }
 }

@@ -1,9 +1,9 @@
 import type {
-  DiagnosticDirection,
-  Pne2026PublicDiagnosticV2,
-  Pne2026PublicRelationshipV2,
-  Pne2026PublicResultV2,
-  Pne2026PublicSourceV2,
+  Pne2026DiagnosticResultViewModel,
+  Pne2026DiagnosticViewModel,
+  Pne2026ProgressResultViewModel,
+  Pne2026TrackingResultViewModel,
+  Pne2026DiagnosticSource,
 } from '../diagnostic/diagnosticTypes'
 import { getPmePublicIndicatorLabel } from './municipalTechnicalReportCatalog.js'
 
@@ -11,22 +11,9 @@ export const PME_COMPARISON_UNAVAILABLE = 'Sem medida municipal comparável — 
 export const PME_REFERENCE_EQUAL = 'No valor da referência'
 export const PME_DESCRIPTIVE_MONITORING = 'Acompanhamento descritivo — O indicador é apresentado como informação de contexto, sem comparação direta com uma meta municipal.'
 
-type EffortKind = 'percentage' | 'absolute' | 'index' | 'qualitative'
-
 export interface PmeReferenceDataSources {
   projections?: Record<string, unknown> | null
   planningScenarios?: Record<string, unknown> | null
-}
-
-export interface PmeEffortInput {
-  kind: EffortKind
-  direction: DiagnosticDirection | null
-  currentValue: number | null
-  targetValue: number | null
-  numerator?: number | null
-  denominator?: number | null
-  effortUnit?: string | null
-  qualitativeAchieved?: boolean | null
 }
 
 export interface PmeEffortResult {
@@ -56,6 +43,8 @@ export interface PmeReferenceRow {
   target: string
   effort: PmeEffortResult
   source: string
+  result: Pne2026DiagnosticResultViewModel
+  rawComponents: RawComponents | null
 }
 
 export interface PmeReferenceThemeGroup {
@@ -112,6 +101,64 @@ const PLANNING_COMPONENT_UNITS: Record<string, Pick<RawComponents, 'numeratorUni
   },
 }
 
+const MATERIALIZED_COMPONENT_UNITS: Record<string, Pick<RawComponents, 'numeratorUnit' | 'denominatorUnit' | 'effortUnit'>> = {
+  eja_atendimento_18_mais: {
+    numeratorUnit: 'matrículas',
+    denominatorUnit: 'pessoas',
+    effortUnit: 'matrículas',
+  },
+  graduacao_frequencia_18_24: {
+    numeratorUnit: 'pessoas',
+    denominatorUnit: 'pessoas',
+    effortUnit: 'pessoas',
+  },
+  superior_completo_25_34: {
+    numeratorUnit: 'pessoas',
+    denominatorUnit: 'pessoas',
+    effortUnit: 'pessoas',
+  },
+  taxa_bruta_graduacao: {
+    numeratorUnit: 'pessoas',
+    denominatorUnit: 'pessoas',
+    effortUnit: 'pessoas',
+  },
+  docentes_tempo_integral_ies: {
+    numeratorUnit: 'docentes',
+    denominatorUnit: 'docentes',
+    effortUnit: 'docentes',
+  },
+  docentes_tempo_integral_universidades: {
+    numeratorUnit: 'docentes contabilizados',
+    denominatorUnit: 'docentes contabilizados',
+    effortUnit: 'docentes contabilizados',
+  },
+  docentes_tempo_integral_centros_universitarios: {
+    numeratorUnit: 'docentes contabilizados',
+    denominatorUnit: 'docentes contabilizados',
+    effortUnit: 'docentes contabilizados',
+  },
+  docentes_tempo_integral_faculdades: {
+    numeratorUnit: 'docentes contabilizados',
+    denominatorUnit: 'docentes contabilizados',
+    effortUnit: 'docentes contabilizados',
+  },
+  educacao_indigena_cobertura_estimada_4_17: {
+    numeratorUnit: 'matrículas',
+    denominatorUnit: 'pessoas',
+    effortUnit: 'matrículas',
+  },
+  aee_oferta_escolas_elegiveis: {
+    numeratorUnit: 'escolas',
+    denominatorUnit: 'escolas',
+    effortUnit: 'escolas',
+  },
+  superior_docentes_mestres_doutores_sede: {
+    numeratorUnit: 'docentes',
+    denominatorUnit: 'docentes',
+    effortUnit: 'docentes',
+  },
+}
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
@@ -130,72 +177,15 @@ function formatNumber(value: number) {
   return numberFormatter.format(value)
 }
 
-function isAtOrBeyondReference(
-  direction: DiagnosticDirection | null,
-  currentValue: number | null,
-  targetValue: number | null,
-) {
-  if (!direction || !isFiniteNumber(currentValue) || !isFiniteNumber(targetValue)) return false
-  return direction === 'at_least'
-    ? currentValue >= targetValue
-    : currentValue <= targetValue
-}
-
-export function calculatePmeEffort(input: PmeEffortInput): PmeEffortResult {
-  if (input.kind === 'qualitative') {
-    return {
-      text: PME_DESCRIPTIVE_MONITORING,
-      quantitativeCalculable: false,
-      atOrBeyondReference: input.qualitativeAchieved === true,
-    }
-  }
-
-  if (
-    !input.direction
-    || !isFiniteNumber(input.currentValue)
-    || !isFiniteNumber(input.targetValue)
-  ) {
-    return {
-      text: PME_COMPARISON_UNAVAILABLE,
-      quantitativeCalculable: false,
-      atOrBeyondReference: false,
-    }
-  }
-
-  const delta = input.currentValue - input.targetValue
-  const atOrBeyondReference = isAtOrBeyondReference(
-    input.direction,
-    input.currentValue,
-    input.targetValue,
-  )
-  if (delta === 0) {
-    return {
-      text: PME_REFERENCE_EQUAL,
-      quantitativeCalculable: true,
-      atOrBeyondReference,
-    }
-  }
-
-  const position = delta > 0 ? 'Acima da referência' : 'Abaixo da referência'
-  const amount = formatNumber(Math.abs(delta))
-  const comparison = delta > 0 ? 'acima' : 'abaixo'
-  const referenceName = input.direction === 'at_most' ? 'limite de referência' : 'valor de referência'
-  const unit = input.kind === 'percentage'
-    ? `${Math.abs(delta) === 1 ? 'ponto percentual' : 'pontos percentuais'}`
-    : input.effortUnit || (input.kind === 'index' ? 'pontos' : '')
-  return {
-    text: `${position} — ${amount} ${unit} ${comparison} do ${referenceName}.`.replace('  ', ' '),
-    quantitativeCalculable: true,
-    atOrBeyondReference,
-  }
-}
-
 function formatRawComponent(value: number | null, unit: string | null) {
   if (!isFiniteNumber(value) || !unit) return '—'
   return `${integerFormatter.format(value)} ${unit}`
 }
 
-function formatMetricValue(value: number | null, unit: Pne2026PublicResultV2['current']['unit']) {
+function formatMetricValue(
+  value: number | null,
+  unit: Pne2026DiagnosticResultViewModel['current']['unit'],
+) {
   if (!isFiniteNumber(value)) return '—'
   if (unit === 'percent') return `${formatNumber(value)}%`
   if (unit === 'years') return `${formatNumber(value)} anos`
@@ -203,8 +193,13 @@ function formatMetricValue(value: number | null, unit: Pne2026PublicResultV2['cu
   return formatNumber(value)
 }
 
-function formatCurrentResult(result: Pne2026PublicResultV2) {
-  if (!isFiniteNumber(result.current.value)) return '—'
+function formatCurrentResult(result: Pne2026DiagnosticResultViewModel) {
+  if (!isFiniteNumber(result.current.value)) {
+    return result.dataStatusLabel ?? 'Não disponível para o período'
+  }
+  if (result.current.unit === 'percent') {
+    return formatMetricValue(result.current.value, result.current.unit)
+  }
   const displayText = result.current.displayText?.trim()
   if (
     displayText
@@ -214,20 +209,14 @@ function formatCurrentResult(result: Pne2026PublicResultV2) {
   return formatMetricValue(result.current.displayValue, result.current.unit)
 }
 
-function formatTarget(result: Pne2026PublicResultV2) {
+function formatTarget(result: Pne2026ProgressResultViewModel | Pne2026TrackingResultViewModel) {
   const reference = result.indicatorReference
   if (!isFiniteNumber(reference?.value) || !isFiniteNumber(reference?.year)) return '—'
   return `${formatMetricValue(reference.value, result.current.unit)} · até ${reference.year}`
 }
 
-function relationshipLabel(relationship: Pne2026PublicRelationshipV2) {
-  if (relationship === 'partial_component') return 'Componente parcial da meta'
-  if (relationship === 'contextual_proxy') return 'Indicador contextual'
-  return null
-}
-
 function extractProjectionComponents(
-  result: Pne2026PublicResultV2,
+  result: Pne2026DiagnosticResultViewModel,
   projections: Record<string, unknown> | null | undefined,
 ): RawComponents | null {
   const projection = asRecord(projections?.[result.indicatorId])
@@ -251,7 +240,7 @@ function extractProjectionComponents(
 }
 
 function extractPlanningComponents(
-  result: Pne2026PublicResultV2,
+  result: Pne2026DiagnosticResultViewModel,
   scenarios: Record<string, unknown> | null | undefined,
 ): RawComponents | null {
   const scenario = asRecord(scenarios?.[result.indicatorId])
@@ -268,17 +257,36 @@ function extractPlanningComponents(
   return { numerator, denominator, ...units }
 }
 
+function extractMaterializedComponents(
+  result: Pne2026DiagnosticResultViewModel,
+): RawComponents | null {
+  const units = MATERIALIZED_COMPONENT_UNITS[result.indicatorId]
+  if (
+    !units
+    || !isFiniteNumber(result.numerator)
+    || !isFiniteNumber(result.denominator)
+  ) return null
+
+  return {
+    numerator: result.numerator,
+    denominator: result.denominator,
+    ...units,
+  }
+}
+
 function extractRawComponents(
-  result: Pne2026PublicResultV2,
+  result: Pne2026DiagnosticResultViewModel,
   sources: PmeReferenceDataSources,
 ) {
-  return extractProjectionComponents(result, sources.projections)
+  return extractMaterializedComponents(result)
+    ?? extractProjectionComponents(result, sources.projections)
     ?? extractPlanningComponents(result, sources.planningScenarios)
 }
 
-function sourceOrganization(sourceId: string, sourcesById: Map<string, Pne2026PublicSourceV2>) {
+function sourceOrganization(sourceId: string, sourcesById: Map<string, Pne2026DiagnosticSource>) {
   if (sourceId.startsWith('inep_')) return 'INEP'
-  if (sourceId.startsWith('ibge_') || sourceId === 'municipal_age_population_panel') return 'IBGE'
+  if (sourceId.startsWith('ibge_')) return 'IBGE'
+  if (sourceId === 'municipal_age_population_panel') return 'MS/DATASUS'
 
   const source = sourcesById.get(sourceId)
   const acronym = source?.organization?.match(/\(([^)]+)\)/)?.[1]
@@ -295,8 +303,8 @@ function publicSourceTitle(title: string) {
 }
 
 function formatSource(
-  result: Pne2026PublicResultV2,
-  sourcesById: Map<string, Pne2026PublicSourceV2>,
+  result: Pne2026DiagnosticResultViewModel,
+  sourcesById: Map<string, Pne2026DiagnosticSource>,
 ) {
   const organizations = [...new Set(
     result.sourceIds.map((sourceId) => sourceOrganization(sourceId, sourcesById)),
@@ -305,53 +313,102 @@ function formatSource(
   return `${label} · ${result.current.year}`
 }
 
-function effortKind(result: Pne2026PublicResultV2): EffortKind {
-  if (result.current.unit === 'percent') return 'percentage'
-  if (result.current.unit === 'count') return 'absolute'
-  return 'index'
+export function formatMaterializedPmeEffort(
+  result: Pne2026DiagnosticResultViewModel,
+  raw: RawComponents | null = null,
+): PmeEffortResult {
+  if (result.dataStatus !== 'available') {
+    return {
+      text: result.dataStatusLabel ?? PME_COMPARISON_UNAVAILABLE,
+      quantitativeCalculable: false,
+      atOrBeyondReference: false,
+    }
+  }
+  if (result.mode === 'complementary') {
+    return {
+      text: PME_DESCRIPTIVE_MONITORING,
+      quantitativeCalculable: false,
+      atOrBeyondReference: false,
+    }
+  }
+  if (
+    !result.direction
+    || !isFiniteNumber(result.distance)
+    || (result.mode === 'progress' && !result.classification)
+  ) {
+    return {
+      text: PME_COMPARISON_UNAVAILABLE,
+      quantitativeCalculable: false,
+      atOrBeyondReference: false,
+    }
+  }
+  if (result.distance === 0) {
+    return {
+      text: PME_REFERENCE_EQUAL,
+      quantitativeCalculable: true,
+      atOrBeyondReference: result.mode === 'tracking'
+        ? result.distance >= 0
+        : result.classification === 'maintain',
+    }
+  }
+
+  const isAboveReference = result.mode === 'tracking'
+    ? result.distance >= 0
+    : result.direction === 'at_least'
+      ? result.classification === 'maintain'
+      : result.classification === 'advance'
+  const position = isAboveReference ? 'Acima da referência' : 'Abaixo da referência'
+  const comparison = isAboveReference ? 'acima' : 'abaixo'
+  const amount = formatNumber(Math.abs(result.distance))
+  const referenceName = result.direction === 'at_most'
+    ? 'limite de referência'
+    : 'valor de referência'
+  const unit = result.current.unit === 'percent'
+    ? `${Math.abs(result.distance) === 1 ? 'ponto percentual' : 'pontos percentuais'}`
+    : raw?.effortUnit ?? (result.current.unit === 'index' ? 'pontos' : '')
+  return {
+    text: `${position} — ${amount} ${unit} ${comparison} do ${referenceName}.`.replace('  ', ' '),
+    quantitativeCalculable: true,
+    atOrBeyondReference: result.mode === 'tracking'
+      ? result.distance >= 0
+      : result.classification === 'maintain',
+  }
 }
 
 function buildRow(
-  result: Pne2026PublicResultV2,
+  result: Pne2026DiagnosticResultViewModel,
   sources: PmeReferenceDataSources,
-  sourcesById: Map<string, Pne2026PublicSourceV2>,
+  sourcesById: Map<string, Pne2026DiagnosticSource>,
 ): PmeReferenceRow {
   const raw = extractRawComponents(result, sources)
-  const direction = result.indicatorReference.direction ?? result.direction ?? null
-  const effort = calculatePmeEffort({
-    kind: result.relationshipType === 'contextual_proxy' ? 'qualitative' : effortKind(result),
-    direction,
-    currentValue: result.current.value,
-    targetValue: result.indicatorReference.value,
-    numerator: raw?.numerator,
-    denominator: raw?.denominator,
-    effortUnit: raw?.effortUnit ?? (result.current.unit === 'years' ? 'anos' : result.current.unit === 'index' ? 'pontos' : null),
-  })
+  const effort = formatMaterializedPmeEffort(result, raw)
 
   return {
     key: `${result.goalId}:${result.indicatorId}`,
     goalLabel: `Meta ${result.goalId}`,
     indicatorLabel: getPmePublicIndicatorLabel(result.indicatorId, result.publicName),
     description: result.publicName,
-    relationshipLabel: relationshipLabel(result.relationshipType),
-    year: String(result.current.year),
+    relationshipLabel: result.relationshipLabel,
+    year: isFiniteNumber(result.current.year) ? String(result.current.year) : '—',
     numerator: formatRawComponent(raw?.numerator ?? null, raw?.numeratorUnit ?? null),
     denominator: formatRawComponent(raw?.denominator ?? null, raw?.denominatorUnit ?? null),
     currentResult: formatCurrentResult(result),
-    target: formatTarget(result),
+    target: result.mode === 'complementary' ? '—' : formatTarget(result),
     effort,
     source: formatSource(result, sourcesById),
+    result,
+    rawComponents: raw,
   }
 }
 
 export function buildPmeReferenceTableModel(
-  diagnostic: Pne2026PublicDiagnosticV2,
+  diagnostic: Pne2026DiagnosticViewModel,
   dataSources: PmeReferenceDataSources = {},
 ): PmeReferenceTableModel {
   const sourcesById = new Map(diagnostic.sources.map((source) => [source.id, source]))
   const results = diagnostic.goals
     .flatMap((goal) => goal.results)
-    .sort((left, right) => left.resultOrder - right.resultOrder)
+    .sort((left, right) => left.displayOrder - right.displayOrder)
 
   const groups = [...diagnostic.presentation.themes]
     .sort((left, right) => left.order - right.order)

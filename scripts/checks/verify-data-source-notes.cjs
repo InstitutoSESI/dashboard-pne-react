@@ -3,13 +3,14 @@ const assert = require('node:assert/strict')
 function legacyConcatenatedOutput(source, methodology) {
   if (!methodology) return source
   if (!source) return `Nota metodológica: ${methodology}`
-  return `${source}. Nota metodológica: ${methodology}`
+  return `${source.replace(/[.]\s*$/, '')}. Nota metodológica: ${methodology}`
 }
 
 const POPULATION_METHODOLOGY = 'Cobertura estimada; valores acima de 100% podem ocorrer por estimativas populacionais, mobilidade escolar e oferta localizada no município.'
 const DEMOGRAPHIC_METHODOLOGY = 'Censo Demográfico e linha censitária, não série anual municipal.'
 const IDEB_METHODOLOGY = 'SAEB/IDEB não é indicador anual; resultados por disciplina e etapa são leitura parcial da meta legal, não cumprimento integral.'
 const AEE_METHODOLOGY = 'Indicador de contexto/proxy; a base aberta atual não oferece denominador municipal seguro para medir diretamente o público-alvo do AEE.'
+const CHILD_LITERACY_METHODOLOGY = 'Percentual de estudantes da rede municipal considerados alfabetizados ao final do 2º ano do ensino fundamental. O indicador utiliza o padrão nacional da Avaliação da Alfabetização e não corresponde exatamente ao critério da Meta 5 do PNE 2014–2024, que previa alfabetização até o final do 3º ano.'
 
 const cases = [
   {
@@ -36,6 +37,17 @@ const cases = [
     expected: {
       source: 'Censo Demográfico — IBGE',
       methodology: DEMOGRAPHIC_METHODOLOGY,
+    },
+  },
+  {
+    name: 'Criança Alfabetizada no ciclo encerrado',
+    context: {
+      cycle: 'pne_2014_2024',
+      indicatorKey: 'alfabetizacao',
+    },
+    expected: {
+      source: 'INEP — Avaliação da Alfabetização / Indicador Criança Alfabetizada.',
+      methodology: CHILD_LITERACY_METHODOLOGY,
     },
   },
   {

@@ -1,15 +1,17 @@
-import { loadMunicipioDiagnostic } from '../data/staticData'
-import type { MunicipalDiagnosticContractV2 } from '../features/diagnostic/diagnosticTypes'
+import { createPne2026DiagnosticLoader } from '../features/diagnostic/pne2026DiagnosticLoader'
+import type { Pne2026DiagnosticLoaderResult } from '../features/diagnostic/diagnosticTypes'
 import type { AsyncDataState } from '../types/async'
 import { useAsyncData } from '../utils/useAsyncData'
 
+const diagnosticLoader = createPne2026DiagnosticLoader()
+
 export function useMunicipioDiagnostic(
   idMunicipio: string | null | undefined,
-): AsyncDataState<MunicipalDiagnosticContractV2 | null> {
+): AsyncDataState<Pne2026DiagnosticLoaderResult | null> {
   return useAsyncData(
     async () => {
       if (!idMunicipio) return null
-      return loadMunicipioDiagnostic(idMunicipio)
+      return diagnosticLoader.load(idMunicipio) as Promise<Pne2026DiagnosticLoaderResult>
     },
     [idMunicipio],
   )

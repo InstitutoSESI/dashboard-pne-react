@@ -48,8 +48,9 @@ export function niceStep(value) {
 /**
  * @param {number[]} values valores da serie (e da meta, quando houver)
  * @param {'percent'|'ideb'|'inse'} scaleType
+ * @param {{allowPercentOverflow?: boolean}} options
  */
-export function getBoundedDomain(values, scaleType) {
+export function getBoundedDomain(values, scaleType, options = {}) {
   const usable = values.filter((value) => Number.isFinite(value))
   if (!usable.length) return { max: SCALE_HARD_MAX[scaleType] ?? 100, min: 0 }
 
@@ -57,6 +58,14 @@ export function getBoundedDomain(values, scaleType) {
   const minSpan = MIN_VISIBLE_SPAN[scaleType] ?? hardMax / 5
   const minVal = Math.min(...usable)
   const maxVal = Math.max(...usable)
+  const allowPercentOverflow = options.allowPercentOverflow ?? true
+  const upperBound = (
+    scaleType === 'percent'
+    && allowPercentOverflow
+    && maxVal > hardMax
+  )
+    ? Number.POSITIVE_INFINITY
+    : hardMax
 
   const padding = Math.max((maxVal - minVal) * 0.25, minSpan * 0.2)
   let low = minVal - padding
@@ -71,12 +80,12 @@ export function getBoundedDomain(values, scaleType) {
   // Zero permanece visivel quando a serie se aproxima dele: uma cobertura de
   // 3% precisa mostrar que esta perto do chao, nao flutuando no meio do eixo.
   low = minVal <= minSpan * 0.5 ? 0 : Math.max(0, low)
-  high = Math.min(hardMax, high)
+  high = Math.min(upperBound, high)
   if (high - low < minSpan) low = Math.max(0, high - minSpan)
 
   const step = niceStep((high - low) / 4)
   return {
-    max: Math.min(hardMax, Math.ceil(high / step) * step),
+    max: Math.min(upperBound, Math.ceil(high / step) * step),
     min: Math.max(0, Math.floor(low / step) * step),
   }
 }

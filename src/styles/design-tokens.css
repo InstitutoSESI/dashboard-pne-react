@@ -324,6 +324,22 @@
    * Ver docs/DESIGN.md, secao Components.
    */
   /*
+   * Barra lateral: tres estados, nao seis cores.
+   *
+   * Havia #c7dbce, #bad0c2, #a8c7b2, #9db3a8, #f7fbf8 e #ffffff no texto, e
+   * tres tintas verdes distintas (0.09, 0.16 e 0.18 de opacidade) no fundo,
+   * para o que sao apenas repouso, hover e ativo. Todos os valores abaixo
+   * atingem 7:1 ou mais sobre --green-brand-dark.
+   */
+  --nav-label: #a8c7b2;
+  --nav-text: #bad0c2;
+  --nav-text-hover: #d7e9de;
+  --nav-text-active: var(--text-inverted);
+  --nav-bg-hover: rgba(143, 187, 161, 0.1);
+  --nav-bg-active: rgba(143, 187, 161, 0.18);
+  --nav-divider: rgba(143, 187, 161, 0.24);
+
+  /*
    * Escala de icone.
    *
    * Todo icone de UI usa viewBox 0 0 24 24 e traco de 1.7. O que variava era o
@@ -346,6 +362,25 @@
   --icon-box-md: 32px;
   --icon-box-lg: 44px;
   --icon-box-xl: 48px;
+
+  /*
+   * Linhas estruturais do cartao de indicador.
+   *
+   * Rotulo, titulo e descricao precisam de altura FIXA para que o valor em
+   * destaque nasca no mesmo ponto em todos os cartoes de uma fileira. Com
+   * altura automatica, cada cartao resolvia a propria e havia ate 23px de
+   * desalinho entre vizinhos. Os valores sao os maximos medidos na base, entao
+   * nada e cortado.
+   *
+   * Existem 25 declaracoes de grid-template-rows para esta familia de cartao
+   * espalhadas por institutional-refresh.css, platform-ui.css e
+   * education-pages.css, com anatomias diferentes (de 2 a 8 trilhas). Estes
+   * tokens sao a fonte unica das tres primeiras; ao mexer em qualquer
+   * declaracao, use-os em vez de repetir o numero.
+   */
+  --indicator-row-topline: 30px;
+  --indicator-row-title: 38px;
+  --indicator-row-description: 32px;
 
   --card-pad-base: var(--space-5);
   --card-pad-dense: var(--space-4);

@@ -19,8 +19,10 @@ STATE_NAME = "Rio Grande do Sul"
 EXPECTED_RS_MUNICIPALITIES = 497
 REFERENCE_START_YEAR = 2015
 REFERENCE_END_YEAR = 2025
+CYCLE_BASELINE_YEAR = 2025
 CENSUS_YEARS = (2010, 2022)
-METHODOLOGY_VERSION = "pne2026-rs-reference-v1"
+METHODOLOGY_VERSION = "pne2026-rs-reference-v3"
+STATE_PROJECTION_MINIMUM_OBSERVATIONS = 5
 
 COMPARABLE = "comparable"
 UNAVAILABLE = "unavailable"
@@ -185,15 +187,16 @@ RATIO_CONFIGS: dict[str, dict[str, Any]] = {
     "medio_tecnico_articulado_percentual": _ratio_config(
         "medio_tecnico_articulado_percentual",
         loader_key="medio_tecnico_articulado",
-        numerator_column="mat_integrado_total",
+        numerator_column="mat_articulado_total",
         denominator_column="mat_medio",
-        numerator_definition="Matrículas em cursos técnicos integrados ao ensino médio.",
+        numerator_definition=(
+            "Matrículas em cursos técnicos integrados ou concomitantes ao ensino médio."
+        ),
         denominator_definition="Matrículas totais do ensino médio.",
         source="INEP — Sinopse Estatística da Educação Básica.",
         notes=(
-            "Indicador principal da Meta 12.a calculado somente com matrículas "
-            "integradas. Matrículas concomitantes e o total articulado permanecem "
-            "restritos aos dados complementares."
+            "Soma integrada + concomitante antes da razão. O agregado não identifica "
+            "estudantes únicos; a referência de 50% é apenas de acompanhamento."
         ),
         allowed_years=tuple(range(2015, 2026)),
         coverage="aproximada",
@@ -300,6 +303,13 @@ CENSUS_CONFIGS: dict[str, dict[str, Any]] = {
         "denominator_column": "populacao_15_29_total",
         "numerator_definition": "População de 15 a 29 anos com ensino fundamental concluído.",
         "denominator_definition": "População total de 15 a 29 anos.",
+    },
+    "fundamental_concluido_15_mais": {
+        "loader_key": "censo_fundamental_15_mais",
+        "numerator_column": "populacao_15_mais_ensino_fundamental_concluido",
+        "denominator_column": "populacao_15_mais_total",
+        "numerator_definition": "População de 15 anos ou mais com ensino fundamental concluído.",
+        "denominator_definition": "População total de 15 anos ou mais.",
     },
     "medio_concluido_18_mais": {
         "loader_key": "censo_medio_18",
@@ -439,27 +449,36 @@ def build_registry() -> dict[str, dict[str, Any]]:
 
     registry["medio_tecnico_participacao_publica"] = _metadata(
         "medio_tecnico_participacao_publica",
-        aggregation_method="state_aggregate_positive_expansions_from_2015",
-        numerator_definition="Expansão positiva acumulada das matrículas públicas de EPT de nível médio.",
-        denominator_definition="Expansão positiva acumulada pública + privada de EPT de nível médio.",
-        filters={"ano_base": REFERENCE_START_YEAR, "segmentos": ["publica", "privada"]},
+        aggregation_method="state_net_expansion_from_2025",
+        numerator_definition=(
+            "Total estadual público atual menos total estadual público em 2025."
+        ),
+        denominator_definition=(
+            "Total estadual de EPT atual menos total estadual de EPT em 2025."
+        ),
+        filters={
+            "ano_base": CYCLE_BASELINE_YEAR,
+            "dependencias_publicas": list(PUBLIC_DEPENDENCIES),
+        },
         source="INEP Censo Escolar — EPT de nível médio",
         source_type="state_series_growth",
         notes=(
-            "Agrega primeiro os totais estaduais de EPT e só então calcula as expansões; "
-            "quedas não são contabilizadas como expansão."
+            "Agrega primeiro os totais estaduais de EPT e calcula diferenças líquidas "
+            "contra a base fixa de 2025."
         ),
     )
     registry["subsequente_expansao"] = _metadata(
         "subsequente_expansao",
-        aggregation_method="state_total_growth_from_2015",
-        numerator_definition="Total estadual atual de matrículas técnicas subsequentes.",
-        denominator_definition="Total estadual de matrículas técnicas subsequentes em 2015.",
-        filters={"ano_base": REFERENCE_START_YEAR},
+        aggregation_method="state_total_growth_from_2025",
+        numerator_definition=(
+            "Total estadual atual de matrículas técnicas subsequentes menos o total de 2025."
+        ),
+        denominator_definition="Total estadual de matrículas técnicas subsequentes em 2025.",
+        filters={"ano_base": CYCLE_BASELINE_YEAR},
         source="INEP Censo Escolar — EPT de nível médio",
         source_type="state_series_growth",
         notes=(
-            "Base estadual fixa em 2015; base zero gera valor nulo. A cobertura da base "
+            "Base estadual fixa em 2025; base zero gera valor nulo. A cobertura da base "
             "e do ano corrente é registrada para validar comparabilidade."
         ),
     )
@@ -858,7 +877,7 @@ def _build_medio_tecnico_participacao_records(
     frame: pd.DataFrame,
     *,
     municipalities_expected: int,
-    reference_start_year: int = REFERENCE_START_YEAR,
+    reference_start_year: int = CYCLE_BASELINE_YEAR,
     reference_end_year: int | None = None,
 ) -> list[dict[str, Any]]:
     state = _prepare_ept_state(frame)
@@ -870,14 +889,73 @@ def _build_medio_tecnico_participacao_records(
             for year, record in state.items()
             if year <= reference_end_year
         }
+    if reference_start_year != CYCLE_BASELINE_YEAR:
+        cumulative_public = 0.0
+        cumulative_total = 0.0
+        previous = None
+        legacy_records: list[dict[str, Any]] = []
+        for year in sorted(
+            year for year in state if year >= reference_start_year
+        ):
+            current = state[year]
+            if (
+                previous is not None
+                and year - 1 in state
+                and current["public"] is not None
+                and current["private"] is not None
+                and previous["public"] is not None
+                and previous["private"] is not None
+            ):
+                public_delta = current["public"] - previous["public"]
+                private_delta = current["private"] - previous["private"]
+                cumulative_public += max(public_delta, 0.0)
+                cumulative_total += max(public_delta, 0.0) + max(
+                    private_delta, 0.0
+                )
+            value = (
+                100.0 * cumulative_public / cumulative_total
+                if cumulative_total > 0
+                else None
+            )
+            legacy_records.append(
+                {
+                    "indicator_id": "medio_tecnico_participacao_publica",
+                    "year": year,
+                    "value": value,
+                    "numerator": cumulative_public,
+                    "denominator": cumulative_total,
+                    "aggregation_method": (
+                        "state_aggregate_positive_expansions_from_"
+                        f"{reference_start_year}"
+                    ),
+                    "municipalities_valid": current[
+                        "municipalities_valid"
+                    ],
+                    "municipalities_expected": int(
+                        municipalities_expected
+                    ),
+                    "municipal_coverage_percent": (
+                        100.0
+                        * current["municipalities_valid"]
+                        / municipalities_expected
+                    ),
+                    "denominator_coverage_percent": _coverage_percent(
+                        current["total"], current["denominator_universe"]
+                    ),
+                    "comparison_status": (
+                        COMPARABLE if value is not None else UNAVAILABLE
+                    ),
+                    "notes": (
+                        "Método histórico do ciclo encerrado: soma somente "
+                        "expansões anuais positivas da série estadual."
+                    ),
+                }
+            )
+            previous = current
+        return legacy_records
     base = state.get(reference_start_year)
     records: list[dict[str, Any]] = []
-    cumulative_public = 0.0
-    cumulative_total = 0.0
-    previous = None
-    aggregation_method = (
-        f"state_aggregate_positive_expansions_from_{reference_start_year}"
-    )
+    aggregation_method = f"state_net_expansion_from_{reference_start_year}"
     for year in sorted(year for year in state if year >= reference_start_year):
         current = state[year]
         extra: list[str] = []
@@ -887,8 +965,8 @@ def _build_medio_tecnico_participacao_records(
                     "indicator_id": "medio_tecnico_participacao_publica",
                     "year": year,
                     "value": None,
-                    "numerator": 0.0,
-                    "denominator": 0.0,
+                    "numerator": None,
+                    "denominator": None,
                     "aggregation_method": aggregation_method,
                     "municipalities_valid": current["municipalities_valid"],
                     "municipalities_expected": int(municipalities_expected),
@@ -905,15 +983,12 @@ def _build_medio_tecnico_participacao_records(
                     ),
                 }
             )
-            previous = current
             continue
 
         if base is None:
             extra.append(
                 f"Ano-base {reference_start_year} ausente; série estadual indisponível."
             )
-        if previous is None or year - 1 not in state:
-            extra.append("Ano anterior não disponível; expansão anual não calculada.")
         if current["municipalities_valid"] < municipalities_expected:
             extra.append(
                 f"Cobertura corrente em {current['municipalities_valid']} de "
@@ -924,32 +999,34 @@ def _build_medio_tecnico_participacao_records(
 
         if (
             base is not None
-            and previous is not None
-            and year - 1 in state
             and current["public"] is not None
-            and current["private"] is not None
-            and previous["public"] is not None
-            and previous["private"] is not None
+            and current["total"] is not None
+            and base["public"] is not None
+            and base["total"] is not None
         ):
-            public_delta = current["public"] - previous["public"]
-            private_delta = current["private"] - previous["private"]
-            if public_delta < 0 or private_delta < 0:
-                extra.append("Quedas anuais foram excluídas do cálculo da expansão positiva.")
-            cumulative_public += max(public_delta, 0.0)
-            cumulative_total += max(public_delta, 0.0) + max(private_delta, 0.0)
+            public_expansion = current["public"] - base["public"]
+            total_expansion = current["total"] - base["total"]
         else:
-            extra.append("Par estadual incompleto para calcular a expansão do ano.")
+            public_expansion = None
+            total_expansion = None
+            extra.append("Par estadual base/atual incompleto para calcular a expansão.")
 
-        value = 100.0 * cumulative_public / cumulative_total if cumulative_total > 0 else None
-        if value is None:
-            extra.append("Expansão total acumulada não positiva; valor nulo.")
+        value = (
+            100.0 * public_expansion / total_expansion
+            if public_expansion is not None
+            and total_expansion is not None
+            and total_expansion > 0
+            else None
+        )
+        if total_expansion is not None and total_expansion <= 0:
+            extra.append("Expansão total líquida nula ou negativa; razão não aplicável.")
         records.append(
             {
                 "indicator_id": "medio_tecnico_participacao_publica",
                 "year": year,
                 "value": value,
-                "numerator": cumulative_public if base is not None else None,
-                "denominator": cumulative_total if base is not None else None,
+                "numerator": public_expansion,
+                "denominator": total_expansion,
                 "aggregation_method": aggregation_method,
                 "municipalities_valid": current["municipalities_valid"],
                 "municipalities_expected": int(municipalities_expected),
@@ -961,13 +1038,12 @@ def _build_medio_tecnico_participacao_records(
                 ),
                 "comparison_status": COMPARABLE if value is not None else UNAVAILABLE,
                 "notes": _record_notes(
-                    "A expansão foi calculada sobre a série estadual agregada; "
-                    "não houve soma de expansões municipais.",
+                    "A expansão líquida foi calculada entre os totais estaduais de "
+                    f"{reference_start_year} e {year}; não houve média municipal.",
                     extra,
                 ),
             }
         )
-        previous = current
     return records
 
 
@@ -991,7 +1067,7 @@ def _build_subsequente_records(
     dff = dff.dropna(subset=["ano", "municipio"]).copy()
     dff["ano"] = dff["ano"].astype(int)
     dff["municipio"] = dff["municipio"].astype(str)
-    dff = dff[dff["ano"] >= REFERENCE_START_YEAR]
+    dff = dff[dff["ano"] >= CYCLE_BASELINE_YEAR]
     if dff.empty:
         return []
     state: dict[int, dict[str, Any]] = {}
@@ -1005,25 +1081,35 @@ def _build_subsequente_records(
             "municipalities": set(valid_frame["municipio"].unique()),
             "universe": _number_or_none(universe),
         }
-    base = state.get(REFERENCE_START_YEAR)
+    base = state.get(CYCLE_BASELINE_YEAR)
     records: list[dict[str, Any]] = []
     for year, current in sorted(state.items()):
         base_total = base["total"] if base else None
         current_total = current["total"]
-        numerator = current_total if base_total is not None else None
+        numerator = (
+            current_total - base_total
+            if current_total is not None and base_total is not None
+            else None
+        )
         denominator = base_total
         value = (
             None
             if numerator is None or denominator is None or denominator <= 0
-            else 100.0 * (numerator / denominator - 1.0)
+            else 100.0 * numerator / denominator
         )
         extra: list[str] = []
         if base is None:
-            extra.append("Ano-base 2015 ausente; expansão estadual indisponível.")
+            extra.append("Ano-base 2025 ausente; expansão estadual indisponível.")
         elif denominator <= 0:
-            extra.append("Total estadual da base 2015 zero; valor nulo.")
+            extra.append("Total estadual da base 2025 zero; valor nulo.")
         if current["municipalities"] != base["municipalities"] if base else False:
-            extra.append("Cobertura de municípios mudou entre 2015 e o ano corrente.")
+            extra.append("Cobertura de municípios mudou entre 2025 e o ano corrente.")
+        if year == CYCLE_BASELINE_YEAR:
+            value = None
+            numerator = None
+            extra.append(
+                "2025 é o ano-base; não há expansão no próprio ano."
+            )
         records.append(
             {
                 "indicator_id": "subsequente_expansao",
@@ -1031,7 +1117,7 @@ def _build_subsequente_records(
                 "value": value,
                 "numerator": numerator,
                 "denominator": denominator,
-                "aggregation_method": "state_total_growth_from_2015",
+                "aggregation_method": "state_total_growth_from_2025",
                 "municipalities_valid": current["municipalities_valid"],
                 "municipalities_expected": int(municipalities_expected),
                 "municipal_coverage_percent": 100.0
@@ -1042,7 +1128,7 @@ def _build_subsequente_records(
                 ),
                 "comparison_status": COMPARABLE if value is not None else UNAVAILABLE,
                 "notes": _record_notes(
-                    "Total estadual atual e total estadual de 2015 foram usados; "
+                    "Total estadual atual e total estadual de 2025 foram usados; "
                     "não foram somadas expansões municipais.",
                     extra,
                 ),
@@ -1066,6 +1152,7 @@ def _load_reference_frames() -> tuple[dict[str, pd.DataFrame], dict[str, str]]:
         load_basico_integral_data,
         load_censo_populacao_alfabetizacao_data,
         load_censo_populacao_ensino_fundamental_concluido_15_29_data,
+        load_censo_populacao_ensino_fundamental_concluido_15_mais_data,
         load_censo_populacao_ensino_fundamental_concluido_18_mais_data,
         load_censo_populacao_ensino_medio_concluido_18_29_data,
         load_censo_populacao_ensino_medio_concluido_18_mais_data,
@@ -1096,6 +1183,7 @@ def _load_reference_frames() -> tuple[dict[str, pd.DataFrame], dict[str, str]]:
         "censo_alfabetizacao": load_censo_populacao_alfabetizacao_data,
         "censo_fundamental_18": load_censo_populacao_ensino_fundamental_concluido_18_mais_data,
         "censo_fundamental_15_29": load_censo_populacao_ensino_fundamental_concluido_15_29_data,
+        "censo_fundamental_15_mais": load_censo_populacao_ensino_fundamental_concluido_15_mais_data,
         "censo_medio_18": load_censo_populacao_ensino_medio_concluido_18_mais_data,
         "censo_medio_18_29": load_censo_populacao_ensino_medio_concluido_18_29_data,
     }
@@ -1187,20 +1275,60 @@ def _build_totals_audit(frames: Mapping[str, pd.DataFrame]) -> list[dict[str, An
     return audit
 
 
-def _linear_forecast(points: list[tuple[int, float]], target_year: int) -> float | None:
-    if not points:
-        return None
-    recent = points[-5:]
-    if len(recent) == 1:
-        return max(0.0, recent[0][1])
-    xs = [float(year) for year, _ in recent]
-    ys = [float(value) for _, value in recent]
-    x_mean = sum(xs) / len(xs)
-    y_mean = sum(ys) / len(ys)
-    denominator = sum((x - x_mean) ** 2 for x in xs)
-    slope = 0.0 if denominator == 0 else sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys)) / denominator
-    intercept = y_mean - slope * x_mean
-    return max(0.0, intercept + slope * target_year)
+def _state_persistence_components(
+    series: list[Mapping[str, Any]],
+    *,
+    start_year: int,
+) -> tuple[float | None, float | None, int, str | None]:
+    """Validate a recent annual window and return its last paired components."""
+
+    if any(
+        record.get("methodology_break")
+        or record.get("methodological_break")
+        or record.get("quebra_metodologica")
+        for record in series
+    ):
+        return None, None, 0, "methodology_break"
+
+    records: list[tuple[int, float, float]] = []
+    for record in series:
+        if not (
+            _is_finite(record.get("year"))
+            and _is_finite(record.get("numerator"))
+            and _is_finite(record.get("denominator"))
+        ):
+            continue
+        numeric_year = float(record["year"])
+        if not numeric_year.is_integer():
+            continue
+        records.append(
+            (
+                int(numeric_year),
+                float(record["numerator"]),
+                float(record["denominator"]),
+            )
+        )
+
+    years = [year for year, _, _ in records]
+    if len(years) != len(set(years)):
+        return None, None, len(records), "duplicate_years"
+
+    by_year = {year: (numerator, denominator) for year, numerator, denominator in records}
+    required_years = list(
+        range(
+            start_year - STATE_PROJECTION_MINIMUM_OBSERVATIONS,
+            start_year,
+        )
+    )
+    if any(year not in by_year for year in required_years):
+        return None, None, len(records), "insufficient_or_stale_annual_history"
+
+    recent = [by_year[year] for year in required_years]
+    if any(numerator < 0 or denominator <= 0 for numerator, denominator in recent):
+        return None, None, len(records), "invalid_components"
+
+    numerator, denominator = recent[-1]
+    return numerator, denominator, len(records), None
 
 
 def build_state_projections(
@@ -1209,12 +1337,17 @@ def build_state_projections(
     start_year: int = 2026,
     end_year: int = 2036,
 ) -> dict[str, dict[str, Any]]:
-    """Projeta numerador e denominador da série estadual agregada.
+    """Constrói uma linha de base de persistência para a série estadual.
 
     A função recebe a série estadual pronta e não recebe resultados municipais;
-    isso torna impossível calcular a projeção por média municipal por acidente.
-    Snapshots censitários permanecem sem projeção.
+    isso torna impossível calcular o cenário por média municipal por acidente.
+    O último par agregado é mantido porque essa regra superou a extrapolação
+    linear no backtesting rolling-origin. Snapshots censitários permanecem sem
+    cenário.
     """
+
+    if end_year < start_year:
+        raise ValueError("end_year must be greater than or equal to start_year")
 
     projections: dict[str, dict[str, Any]] = {}
     for indicator_id, payload in indicators.items():
@@ -1239,50 +1372,70 @@ def build_state_projections(
             }
             continue
         series = payload.get("series", [])
-        points_num = [
-            (int(record["year"]), float(record["numerator"]))
-            for record in series
-            if _is_finite(record.get("year")) and _is_finite(record.get("numerator"))
-        ]
-        points_den = [
-            (int(record["year"]), float(record["denominator"]))
-            for record in series
-            if _is_finite(record.get("year")) and _is_finite(record.get("denominator"))
-        ]
-        if not points_num or not points_den:
+        numerator, denominator, observation_count, validation_error = (
+            _state_persistence_components(series, start_year=start_year)
+        )
+        if validation_error is not None:
             projections[indicator_id] = {
                 "available": False,
                 "projection_status": "unavailable",
-                "method": "aggregate_state_series_forecast",
-                "source": "Série estadual agregada; sem média municipal",
+                "method": "aggregate_state_persistence_baseline",
+                "source": (
+                    "Série estadual agregada; último par observado mantido; "
+                    "sem média municipal"
+                ),
                 "methodology_version": METHODOLOGY_VERSION,
+                "reason": validation_error,
+                "validation": {
+                    "minimumComparableObservations": (
+                        STATE_PROJECTION_MINIMUM_OBSERVATIONS
+                    ),
+                    "requiredObservationIntervalYears": 1,
+                    "requireLatestYear": start_year - 1,
+                    "observationCount": observation_count,
+                },
                 "series": [],
             }
             continue
-        projected_series = []
-        for year in range(start_year, end_year + 1):
-            numerator = _linear_forecast(points_num, year)
-            denominator = _linear_forecast(points_den, year)
-            value = (
-                None
-                if numerator is None or denominator is None or denominator <= 0
-                else 100.0 * numerator / denominator
-            )
-            projected_series.append(
-                {
-                    "year": year,
-                    "value": value,
-                    "numerator": numerator,
-                    "denominator": denominator,
-                    "comparison_status": COMPARABLE if value is not None else UNAVAILABLE,
-                }
-            )
+        value = 100.0 * numerator / denominator
+        projected_series = [
+            {
+                "year": year,
+                "value": value,
+                "numerator": numerator,
+                "denominator": denominator,
+                "comparison_status": COMPARABLE,
+            }
+            for year in range(start_year, end_year + 1)
+        ]
         projections[indicator_id] = {
-            "available": any(item["value"] is not None for item in projected_series),
+            "available": True,
             "projection_status": "available",
-            "method": "aggregate_state_series_forecast",
-            "source": "Série estadual agregada; sem média municipal",
+            "method": "aggregate_state_persistence_baseline",
+            "source": (
+                "Série estadual agregada; último par observado mantido; "
+                "sem média municipal"
+            ),
             "methodology_version": METHODOLOGY_VERSION,
+            "validation": {
+                "minimumComparableObservations": (
+                    STATE_PROJECTION_MINIMUM_OBSERVATIONS
+                ),
+                "requiredObservationIntervalYears": 1,
+                "requireLatestYear": start_year - 1,
+                "observationCount": observation_count,
+            },
+            "uncertainty": {
+                "status": "not_estimated",
+                "interval": None,
+                "reason": (
+                    "Linha de base determinística de persistência; não foi "
+                    "estimado intervalo probabilístico."
+                ),
+                "interpretation": (
+                    "O resultado é um cenário condicional, não uma previsão oficial."
+                ),
+            },
             "series": projected_series,
         }
     return projections

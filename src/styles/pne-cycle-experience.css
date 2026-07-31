@@ -265,6 +265,21 @@
   margin-top: var(--space-1);
 }
 
+.cycle-page--detail .detail-navigation--single-item .cycle-detail-nav__sequence {
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  justify-content: center;
+}
+
+.cycle-page--detail .detail-navigation--single-item .cycle-detail-nav__position {
+  color: var(--text-body);
+  white-space: normal;
+  text-align: center;
+}
+
 .cycle-page--detail .cycle-workspace,
 .cycle-page--detail .cycle-detail-view {
   gap: var(--space-3);
@@ -434,6 +449,15 @@
   grid-area: detail;
 }
 
+.cycle-page--detail .detail-panel--organized .metric-grid--discrete {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cycle-page--detail .detail-panel--organized .metric-grid--discrete .metric-card__value {
+  font-size: var(--font-size-lg);
+  overflow-wrap: anywhere;
+}
+
 .cycle-page--detail .indicator-goal-tracking {
   min-width: 0;
   padding: var(--space-3) var(--space-4);
@@ -490,6 +514,70 @@
   text-align: right;
 }
 
+.cycle-page--detail .discrete-goal-progress {
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cycle-page--detail .discrete-goal-progress__heading,
+.cycle-page--detail .discrete-goal-progress__labels {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cycle-page--detail .discrete-goal-progress__heading span,
+.cycle-page--detail .discrete-goal-progress__labels span {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page--detail .discrete-goal-progress__heading strong,
+.cycle-page--detail .discrete-goal-progress__labels strong {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cycle-page--detail .discrete-goal-progress__segments {
+  min-width: 0;
+  height: var(--space-3);
+  padding: var(--space-1);
+  border: var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.cycle-page--detail .discrete-goal-progress__segments > span {
+  min-width: 0;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  flex: 1 1 0;
+}
+
+.cycle-page--detail .discrete-goal-progress__segments > .is-filled {
+  background: var(--green-primary);
+}
+
+.cycle-page--detail .discrete-goal-progress--warning .discrete-goal-progress__segments > .is-filled {
+  background: var(--status-warn-line);
+}
+
 .cycle-page--detail .indicator-primary-analysis {
   min-width: 0;
   display: grid;
@@ -506,6 +594,19 @@
 
 .cycle-page--detail .detail-panel--organized .indicator-primary-analysis--single-year {
   grid-template-columns: minmax(0, 7fr) minmax(248px, 3fr);
+  align-items: start;
+}
+
+.cycle-page--detail .detail-panel--organized .indicator-primary-analysis--single-year > :is(
+  .indicator-data-card,
+  .indicator-quick-reading
+) {
+  height: auto;
+}
+
+.cycle-page--detail .detail-panel--organized .indicator-primary-analysis--single-year .indicator-quick-reading__list li {
+  min-height: 64px;
+  flex: 0 0 auto;
 }
 
 .cycle-page--detail .indicator-data-card {
@@ -625,6 +726,109 @@
 
 .cycle-page--detail .indicator-data-card .complementary-components__table--single-year tbody td {
   font-variant-numeric: tabular-nums;
+}
+
+.cycle-page--detail .pne-presentation-table-wrap {
+  min-width: 0;
+  width: 100%;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.cycle-page--detail .pne-presentation-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cycle-page--detail .pne-presentation-table :is(th, td) {
+  min-width: 0;
+  padding: var(--space-3);
+  border-bottom: var(--border-divider);
+  overflow-wrap: break-word;
+  text-align: center;
+  vertical-align: middle;
+  word-break: normal;
+}
+
+.cycle-page--detail .pne-presentation-table th {
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page--detail .pne-presentation-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pne-source-notes-print {
+  display: none;
+}
+
+.cycle-page--detail .indicator-data-card--summary {
+  gap: var(--space-3);
+}
+
+.cycle-page--detail .indicator-data-card--summary .indicator-data-card__notice {
+  padding: var(--space-3);
+}
+
+.cycle-page--detail .indicator-data-summary {
+  min-width: 0;
+  margin: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  display: grid;
+  grid-template-columns: minmax(88px, 0.55fr) minmax(120px, 1fr) minmax(140px, 1fr);
+  overflow: hidden;
+}
+
+.cycle-page--detail .indicator-data-summary__item {
+  min-width: 0;
+  padding: var(--space-3);
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+
+.cycle-page--detail .indicator-data-summary__item + .indicator-data-summary__item {
+  border-left: var(--border-divider);
+}
+
+.cycle-page--detail .indicator-data-summary__item--note {
+  grid-column: 1 / -1;
+  border-top: var(--border-divider);
+  border-left: 0;
+  background: var(--surface-soft);
+}
+
+.cycle-page--detail .indicator-data-summary dt,
+.cycle-page--detail .indicator-data-summary dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.cycle-page--detail .indicator-data-summary dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page--detail .indicator-data-summary dd {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-normal);
+  overflow-wrap: anywhere;
 }
 
 .cycle-page--detail .indicator-primary-analysis > :only-child {
@@ -1555,6 +1759,124 @@
 }
 
 @media screen and (max-width: 620px) {
+  .dashboard-shell:has(.cycle-page) .context-bar {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+
+  .cycle-page .cycle-filter-panel {
+    overflow: visible;
+  }
+
+  .cycle-page .cycle-filter-panel__heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cycle-page .cycle-filter-panel .cycle-search {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-filter-panel .platform-category-tabs {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    overflow: visible;
+    scrollbar-width: none;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-filter-panel .platform-category-tabs .category-tab {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: left;
+    white-space: normal;
+  }
+
+  .cycle-page .cycle-filter-panel .category-tab > span:first-child {
+    min-width: 0;
+    line-height: var(--line-height-snug);
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .cycle-page .cycle-filter-panel .category-tab__count {
+    justify-self: end;
+  }
+
+  .cycle-page .cycle-filter-panel .basic-education-filter {
+    width: 100%;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    overflow: visible;
+  }
+
+  .cycle-page .cycle-filter-panel .basic-education-filter__chip {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-target-min);
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .cycle-page .meta-card-grid {
+    padding: 3px;
+  }
+
+  .cycle-page--detail .pne-presentation-table-wrap {
+    border: 0;
+    overflow: visible;
+  }
+
+  .cycle-page--detail .pne-presentation-table,
+  .cycle-page--detail .pne-presentation-table :is(tbody, tr, td) {
+    width: 100%;
+    display: block;
+  }
+
+  .cycle-page--detail .pne-presentation-table thead {
+    display: none;
+  }
+
+  .cycle-page--detail .pne-presentation-table tbody tr {
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
+    overflow: hidden;
+  }
+
+  .cycle-page--detail .pne-presentation-table td {
+    padding: var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+    border-bottom: var(--border-divider);
+    text-align: left;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .cycle-page--detail .pne-presentation-table td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
   .cycle-page--detail .detail-panel--organized .indicator-chart-card .history-chart__canvas,
   .cycle-page--detail .detail-panel--organized .indicator-chart-card .history-chart svg {
     min-height: 280px;
@@ -1629,6 +1951,7 @@
   flex-direction: column;
   gap: var(--space-2);
   grid-template-rows: none;
+  container: pne-meta-card / inline-size;
 }
 
 .cycle-page .meta-card--cycle .meta-card__topline {
@@ -1670,17 +1993,14 @@
 /*
  * Linha de metricas do cartao de meta.
  *
- * Quatro colunas SEMPRE, mesmo quando o indicador nao tem tendencia: a quarta
- * fica vazia. Antes eram tres colunas sem tendencia e quatro com, entao numa
- * mesma fileira "Meta PNE" e "Distancia" caiam em posicoes diferentes de um
- * cartao para o outro. A coluna vazia custa nada e alinha a fileira inteira.
+ * Tres colunas, como no ciclo 2014-2024: municipio, referencia e distancia.
  *
  * A primeira coluna usa min-content para que o valor do municipio, que e a
  * evidencia principal, nunca seja truncado para caber.
  */
 .cycle-page .meta-card--cycle .meta-card__value-row {
   display: grid;
-  grid-template-columns: minmax(min-content, 1.2fr) repeat(3, minmax(0, 0.9fr));
+  grid-template-columns: minmax(min-content, 1.2fr) repeat(2, minmax(0, 1fr));
   align-items: end;
   gap: var(--space-1);
   min-height: 50px;
@@ -1707,8 +2027,7 @@
 }
 
 .cycle-page .meta-card--cycle .meta-card__metric--target,
-.cycle-page .meta-card--cycle .meta-card__metric--distance,
-.cycle-page .meta-card--cycle .meta-card__metric--trend {
+.cycle-page .meta-card--cycle .meta-card__metric--distance {
   text-align: right;
 }
 
@@ -1741,29 +2060,6 @@
   color: var(--meta-status-color);
 }
 
-.cycle-page .meta-card--cycle .meta-card__metric--trend strong {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-1);
-  color: var(--text-soft);
-  font-size: var(--font-size-md);
-}
-
-.cycle-page .meta-card--cycle .meta-card__trend-icon {
-  flex: 0 0 auto;
-  color: inherit;
-  font-size: 1.1em;
-  line-height: 1;
-}
-
-.cycle-page .meta-card--cycle .meta-card__trend-value > span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .cycle-page .meta-card--cycle .meta-card__progress-group {
   min-width: 0;
   display: grid;
@@ -1787,6 +2083,65 @@
   border-radius: inherit;
   background: var(--meta-status-color);
   opacity: 0.86;
+}
+
+.cycle-page .meta-card--cycle.meta-card--discrete .meta-card__value-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  min-height: 94px;
+  row-gap: var(--space-2);
+}
+
+.cycle-page .meta-card--cycle.meta-card--discrete .meta-card__metric--current {
+  grid-column: 1 / -1;
+  text-align: left;
+}
+
+.cycle-page .meta-card--cycle.meta-card--discrete .meta-card__metric--current strong {
+  overflow: visible;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-snug);
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cycle-page .meta-card--cycle.meta-card--discrete .meta-card__metric--target {
+  text-align: left;
+}
+
+.cycle-page .meta-card--cycle.meta-card--discrete :is(
+  .meta-card__metric--target,
+  .meta-card__metric--distance
+) strong {
+  overflow: visible;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cycle-page .meta-card--cycle .meta-card__progress--discrete {
+  height: var(--space-3);
+  padding: var(--space-1);
+  display: flex;
+  gap: var(--space-1);
+  overflow: visible;
+}
+
+.cycle-page .meta-card--cycle .meta-card__progress--discrete > span {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  flex: 1 1 0;
+  opacity: 1;
+}
+
+.cycle-page .meta-card--cycle .meta-card__progress--discrete > .is-filled {
+  background: var(--meta-status-color);
 }
 
 .cycle-page .meta-card--cycle .meta-card__no-progress {
@@ -2998,4 +3353,268 @@
   .cycle-page--detail .absolute-expansion-equation__term { padding: var(--space-3); }
   .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .absolute-expansion-calculation__table { min-width: 360px; }
   .cycle-page--detail .absolute-expansion-calculation__milestones dd { align-items: flex-start; flex-direction: column; gap: var(--space-1); }
+}
+
+@media screen and (max-width: 680px) {
+  .cycle-page--detail .indicator-data-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cycle-page--detail .indicator-data-summary__item + .indicator-data-summary__item {
+    border-top: var(--border-divider);
+    border-left: 0;
+  }
+
+  .cycle-page--detail .indicator-data-summary__item--note {
+    grid-column: auto;
+  }
+
+  .cycle-page--detail .discrete-goal-progress__labels {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .cycle-page--detail .detail-navigation--single-item .cycle-detail-nav__sequence {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .cycle-page--detail .detail-panel--organized :is(
+    .metric-grid,
+    .metric-grid--four,
+    .metric-grid--three,
+    .metric-grid--two
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cycle-page--detail .indicator-goal-tracking .goal-progress__track {
+    margin-top: var(--space-10);
+  }
+}
+
+.cycle-page .cycle-status-legend {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.cycle-page .cycle-status-legend > strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cycle-page .cycle-status-legend > div {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 620px;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.cycle-page .cycle-status-legend > div > span {
+  min-width: 0;
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page .cycle-status-legend__dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--status-muted-line);
+  flex: 0 0 auto;
+}
+
+.cycle-page .cycle-status-legend__dot--success {
+  background: var(--status-ok-line);
+}
+
+.cycle-page .cycle-status-legend__dot--danger {
+  background: var(--status-far-line);
+}
+
+.cycle-page .cycle-status-legend__dot--warning {
+  background: var(--status-warn-line);
+}
+
+.cycle-page .meta-card--cycle {
+  padding-inline: var(--space-4);
+}
+
+.cycle-page .meta-card--cycle::before {
+  display: none;
+}
+
+.cycle-page .meta-card--cycle .meta-card__metric > span,
+.cycle-page .meta-card--cycle .meta-card__metric strong,
+.cycle-page .meta-card--cycle .meta-card__trend-value > span:last-child {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.cycle-page .meta-card--cycle .meta-card__metric > span {
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page .meta-card--cycle .meta-card__metric--target > span {
+  overflow-wrap: normal;
+}
+
+.cycle-page .meta-card--cycle .meta-card__value-row {
+  align-items: start;
+  min-height: 66px;
+}
+
+@container pne-meta-card (max-width: 336px) {
+  .cycle-page .meta-card--cycle .meta-card__value-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-3);
+  }
+
+  .cycle-page .meta-card--cycle .meta-card__metric--current {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+@media screen and (max-width: 620px) {
+  .cycle-page .cycle-status-legend,
+  .cycle-page .cycle-status-legend > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cycle-page .cycle-status-legend > div {
+    flex-basis: auto;
+  }
+
+  .cycle-page .meta-card--cycle .meta-card__value-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-3);
+  }
+
+  .cycle-page .meta-card--cycle .meta-card__metric--current {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  .cycle-page--detail .cycle-detail-nav {
+    display: none !important;
+  }
+
+  .cycle-page--detail .cycle-workspace,
+  .cycle-page--detail .cycle-detail-view {
+    display: block;
+  }
+
+  .cycle-page--detail .detail-panel,
+  .cycle-page--detail .detail-panel--organized {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    gap: var(--space-3);
+  }
+
+  .cycle-page--detail .detail-panel--organized :is(
+    .metric-grid,
+    .metric-grid--four,
+    .metric-grid--three,
+    .metric-grid--two
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cycle-page--detail .indicator-primary-analysis,
+  .cycle-page--detail .detail-panel--organized .indicator-primary-analysis,
+  .cycle-page--detail .detail-panel--organized .indicator-primary-analysis--single-year {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .cycle-page--detail :is(
+    .metric-card,
+    .indicator-data-card,
+    .indicator-quick-reading,
+    .indicator-goal-tracking,
+    .discrete-goal-progress,
+    .pne-detail-footer
+  ) {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .cycle-page--detail .indicator-data-card,
+  .cycle-page--detail .indicator-quick-reading {
+    height: auto;
+  }
+
+  .cycle-page--detail .indicator-data-card .complementary-components__table-wrap--single-year {
+    overflow: visible;
+  }
+
+  .cycle-page--detail .indicator-data-card .complementary-components__table--single-year :where(th, td) {
+    padding: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .cycle-page .chart-methodology-disclosure {
+    display: none !important;
+  }
+
+  .cycle-page .pne-source-notes-print {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: var(--border-divider);
+    display: block !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .cycle-page .pne-source-notes-print h3 {
+    margin: 0 0 var(--space-2);
+    color: var(--text-strong);
+    font-size: 11pt;
+  }
+
+  .cycle-page .pne-source-notes-print .platform-support-disclosure__body {
+    padding: 0;
+    border: 0;
+    display: grid !important;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .pne-presentation-table-wrap {
+    overflow: visible;
+  }
+
+  .cycle-page--detail .pne-presentation-table :is(th, td) {
+    padding: var(--space-2);
+    font-size: 8.5pt;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
 }

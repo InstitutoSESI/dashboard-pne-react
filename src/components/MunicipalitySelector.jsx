@@ -139,6 +139,7 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
           ref={inputRef}
           type="text"
           role="combobox"
+          aria-label="Município"
           aria-expanded={isOpen}
           aria-autocomplete="list"
           aria-controls={listboxId}

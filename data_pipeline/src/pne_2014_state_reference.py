@@ -11,6 +11,10 @@ from typing import Any, Mapping
 
 import pandas as pd
 
+from src.pne_2014_child_literacy import (
+    SOURCE_LABEL as CHILD_LITERACY_SOURCE_LABEL,
+    load_snapshot as load_child_literacy_snapshot,
+)
 from .pne_state_reference import (
     COMPARABLE,
     EXPECTED_RS_MUNICIPALITIES,
@@ -226,10 +230,6 @@ CENSUS_CONFIGS: dict[str, dict[str, Any]] = {
 
 
 BLOCKED_REASONS: dict[str, str] = {
-    "alfabetizacao": (
-        "Bloqueado: a fonte municipal disponível fornece somente taxa, sem "
-        "numerador e denominador brutos compatíveis."
-    ),
     "ideb_anos_iniciais": "Bloqueado: IDEB é índice, sem numerador e denominador agregáveis.",
     "ideb_anos_finais": "Bloqueado: IDEB é índice, sem numerador e denominador agregáveis.",
     "ideb_ensino_medio": "Bloqueado: IDEB é índice, sem numerador e denominador agregáveis.",
@@ -297,6 +297,23 @@ def _blocked_metadata(indicator_id: str, reason: str, *, unit: str = "percent") 
 def build_registry() -> dict[str, dict[str, Any]]:
     registry: dict[str, dict[str, Any]] = {
         key: dict(value) for key, value in RATIO_CONFIGS.items()
+    }
+
+    registry["alfabetizacao"] = {
+        **_metadata(
+            "alfabetizacao",
+            aggregation_method="official_state_municipal_network_result",
+            numerator_definition="Não publicado na fonte agregada oficial.",
+            denominator_definition="Não publicado na fonte agregada oficial.",
+            filters={"rede": "municipal", "anos": [2023, 2024]},
+            source=CHILD_LITERACY_SOURCE_LABEL,
+            source_type="official_state_published_percentage",
+            notes=(
+                "Resultado estadual oficial da rede municipal. Não é média de "
+                "percentuais municipais e não representa conclusão da Meta 5."
+            ),
+        ),
+        "null_policy": "Ausência de resultado oficial permanece nula; nulo não é zero.",
     }
 
     registry["escolas_integral"] = _metadata(
@@ -371,6 +388,55 @@ def _status_for_records(records: list[dict[str, Any]]) -> str:
     return COMPARABLE if any(record.get("comparison_status") == COMPARABLE for record in records) else UNAVAILABLE
 
 
+def _build_alfabetizacao_state_records() -> list[dict[str, Any]]:
+    _municipal, state_rows, _manifest = load_child_literacy_snapshot()
+    records = []
+    for row in state_rows:
+        year = int(row["ano"])
+        value = row.get("taxa_alfabetizacao")
+        if year > REFERENCE_END_YEAR or value is None:
+            continue
+        records.append(
+            {
+                "indicator_id": "alfabetizacao",
+                "year": year,
+                "value": float(value),
+                "numerator": None,
+                "denominator": None,
+                "aggregation_method": "official_state_municipal_network_result",
+                "municipalities_valid": None,
+                "municipalities_expected": EXPECTED_RS_MUNICIPALITIES,
+                "municipal_coverage_percent": None,
+                "denominator_coverage_percent": None,
+                "comparison_status": COMPARABLE,
+                "notes": (
+                    "Resultado estadual oficial da rede municipal; não calculado "
+                    "por média de percentuais municipais."
+                ),
+            }
+        )
+    return records
+
+
+def build_alfabetizacao_state_reference_entry() -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+]:
+    metadata = build_registry()["alfabetizacao"]
+    records = _add_common_series_fields(
+        _build_alfabetizacao_state_records(),
+        metadata,
+        methodology_version=METHODOLOGY_VERSION,
+    )
+    status = _status_for_records(records)
+    updated_metadata = {**metadata, "comparison_status": status}
+    return updated_metadata, {
+        **updated_metadata,
+        "available": any(record.get("value") is not None for record in records),
+        "series": records,
+    }
+
+
 def build_state_reference() -> dict[str, Any]:
     """Calcula o artefato estadual completo do ciclo encerrado."""
 
@@ -379,6 +445,11 @@ def build_state_reference() -> dict[str, Any]:
     indicators: dict[str, dict[str, Any]] = {}
 
     for indicator_id, metadata in registry.items():
+        if indicator_id == "alfabetizacao":
+            metadata, indicator = build_alfabetizacao_state_reference_entry()
+            registry[indicator_id] = metadata
+            indicators[indicator_id] = indicator
+            continue
         if indicator_id in BLOCKED_REASONS:
             indicators[indicator_id] = {
                 **metadata,
@@ -494,6 +565,7 @@ __all__ = [
     "METHODOLOGY_VERSION",
     "RATIO_CONFIGS",
     "UNAVAILABLE_REASONS",
+    "build_alfabetizacao_state_reference_entry",
     "build_registry",
     "build_state_reference",
 ]

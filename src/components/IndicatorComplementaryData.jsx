@@ -17,7 +17,13 @@ const percentFormatter = new Intl.NumberFormat('pt-BR', {
 
 const EJA_PERCENTUAL_INDICATOR_KEY = 'eja_integrada_educacao_profissional_percentual'
 const MEDIO_TECNICO_ARTICULADO_INDICATOR_KEY = 'medio_tecnico_articulado_percentual'
+const ATTENDANCE_PROJECTION_METHODS = new Set([
+  'last_observed_numerator_with_state_age_denominator',
+  'municipal_state_shrunk_theil_sen_log_enrollment_with_state_age_denominator',
+  'state_aggregate_damped_holt_enrollment_with_state_age_denominator',
+])
 const TABLE_ONLY_SUPPORT_INDICATORS = new Set(['alfabetizacao_pop_15_mais'])
+const TECHNICAL_CALCULATION_LABEL = /\b(?:(?:[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9]*_)+[A-Za-zÀ-ÿ0-9]+|PC_[A-Z0-9_]+|TP_[A-Z0-9_]+|MEDU\d+)\b/u
 const PNE_2014_TABLE_ONLY_SUPPORT_INDICATORS = new Set([
   'eja_integrada_educacao_profissional_percentual',
   'ensino_fundamental_ou_completo_pop_6_14',
@@ -52,7 +58,16 @@ const EJA_AUXILIARY_HISTORY_FORMATTER = (value) => {
   return value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
 }
 
-export function IndicatorComplementaryData({ cycle, domainOverride, indicatorKey, item, municipioData, presentationMode, result }) {
+export function IndicatorComplementaryData({
+  allowProjection = true,
+  cycle,
+  domainOverride,
+  indicatorKey,
+  item,
+  municipioData,
+  presentationMode,
+  result,
+}) {
   const idMunicipio = municipioData?.id_municipio
   const fallbackDetails = municipioData?.indicator_details?.[indicatorKey] ?? null
   const [details, setDetails] = useState(null)
@@ -207,8 +222,14 @@ export function IndicatorComplementaryData({ cycle, domainOverride, indicatorKey
     (teacherComponentConfig && hasComponents) ||
     (adequateTeacherConfig && teacherStageTotalSeries.length > 0),
   )
-  const numeratorLabel = details?.calculation?.numerator_label || 'Numerador'
-  const denominatorLabel = details?.calculation?.denominator_label || 'Denominador'
+  const numeratorLabel = getPublicCalculationLabel(
+    details?.calculation?.numerator_label,
+    'Numerador',
+  )
+  const denominatorLabel = getPublicCalculationLabel(
+    details?.calculation?.denominator_label,
+    'Denominador',
+  )
   const historyLabel = resolveHistoryLabel({
     cycle,
     details,
@@ -220,7 +241,13 @@ export function IndicatorComplementaryData({ cycle, domainOverride, indicatorKey
   })
 
   const projection = municipioData?.[cycle]?.projecoes?.[indicatorKey]
-  const hasProjection = cycle === 'pne_2026_2036' && !isExpansionShareBaseline && !isAbsoluteExpansionTarget && projection?.available === true
+  const hasProjection =
+    allowProjection &&
+    cycle === 'pne_2026_2036' &&
+    !isExpansionShareBaseline &&
+    !isAbsoluteExpansionTarget &&
+    projection?.available === true &&
+    ATTENDANCE_PROJECTION_METHODS.has(projection?.method)
 
   const options = useMemo(() => {
     const availableOptions = []
@@ -306,7 +333,7 @@ export function IndicatorComplementaryData({ cycle, domainOverride, indicatorKey
             key: `supporting-${key}`,
             label,
             description: key === 'articulado'
-              ? 'Soma das matrículas integradas e concomitantes, apresentada somente como informação complementar.'
+              ? 'Soma das matrículas integradas e concomitantes usada no numerador do indicador.'
               : 'Evolução anual desta modalidade no aprofundamento do indicador.',
             content: (
               <ComplementaryEnrollmentChart
@@ -545,6 +572,11 @@ export function IndicatorComplementaryData({ cycle, domainOverride, indicatorKey
       </div>
     </section>
   )
+}
+
+function getPublicCalculationLabel(value, fallback) {
+  if (typeof value !== 'string' || !value.trim()) return fallback
+  return TECHNICAL_CALCULATION_LABEL.test(value) ? fallback : value.trim()
 }
 
 function resolveHistoryLabel({
@@ -797,6 +829,7 @@ const INDICATOR_TO_SECAO = {
   ensino_fundamental_ou_completo_pop_6_14: 'ensino_fundamental',
   fundamental_concluido_18_mais: 'ensino_fundamental',
   fundamental_concluido_15_29: 'ensino_fundamental',
+  fundamental_concluido_15_mais: 'ensino_fundamental',
   idade_regular_quinto: 'anos_iniciais',
   idade_regular_nono: 'anos_finais',
   basico_15_17: 'ensino_medio',
@@ -1024,11 +1057,11 @@ export function CalculationComponentsTable({
               )}</th>
               <th scope="col">{renderHeader(
                 showArticulatedBreakdown
-                  ? 'Percentual principal (integrado / ensino médio)'
+                  ? 'Percentual integrado (componente)'
                   : 'Percentual',
               )}</th>
               {showArticulatedBreakdown ? (
-                <th scope="col">{renderHeader('Percentual articulado total')}</th>
+                <th scope="col">{renderHeader('Percentual integrado ou concomitante')}</th>
               ) : null}
             </tr>
           </thead>

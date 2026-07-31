@@ -601,6 +601,15 @@ function getAdaptiveHistoryDomain({ values, meta, isPercent = false, isIndex = f
     }
   }
 
+  if (isPercent && dataMin >= 0) {
+    return {
+      adaptive: true,
+      isPercent: true,
+      max: roundUpAdaptive(dataMax * 1.08),
+      min: 0,
+    }
+  }
+
   if (dataMin >= 0) {
     return {
       adaptive: true,

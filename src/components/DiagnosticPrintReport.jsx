@@ -1,33 +1,38 @@
 import {
   buildPublicSummaryText,
+  DIAGNOSTIC_RESULT_VIEWS,
   formatPublicDistance,
   formatPublicValue,
   getPublicCurrentValue,
-  getPublicOfficialSources,
   getPublicResultReading,
   getPublicResultStatus,
   getPublicStateComparison,
   getPublicSupportingReadings,
+  selectDiagnosticResults,
+  selectDiagnosticOfficialSources,
+  selectDiagnosticThemeGroups,
+  selectLegalDiagnosticSummary,
 } from '../features/diagnostic/diagnosticPresentation'
 
 export function DiagnosticPrintReport({ description, municipio, publicDiagnostic }) {
-  const allResults = publicDiagnostic.goals.flatMap((goal) => (
-    goal.results.map((result) => ({ goal, result }))
+  const allResults = selectDiagnosticResults(
+    publicDiagnostic,
+    DIAGNOSTIC_RESULT_VIEWS.LEGAL,
+  )
+  const themeGroups = selectDiagnosticThemeGroups(publicDiagnostic)
+  const legalSummary = selectLegalDiagnosticSummary(publicDiagnostic)
+  const sources = selectDiagnosticOfficialSources(
+    publicDiagnostic,
+    DIAGNOSTIC_RESULT_VIEWS.LEGAL,
+  )
+  const hasAbove100 = allResults.some(({ result }) => (
+    result.current?.unit === 'percent' && Number(result.current?.value) > 100
   ))
-  const themeGroups = publicDiagnostic.presentation.themes
-    .map((theme) => ({
-      theme,
-      results: allResults.filter(({ result }) => result.themeId === theme.id),
-    }))
-    .filter(({ results }) => results.length)
-  const sources = getPublicOfficialSources(publicDiagnostic.sources)
   const summaryItems = [
-    ['Resultados analisados', publicDiagnostic.summary.availableResultCount],
-    ['Pontos para avançar', publicDiagnostic.summary.advanceCount],
-    ['Resultados a manter', publicDiagnostic.summary.maintainCount],
-    ['Para acompanhamento', publicDiagnostic.summary.unclassifiedCount],
-    ['Acima ou próximos do RS', publicDiagnostic.summary.stateAboveOrNearCount],
-    ['Abaixo do RS', publicDiagnostic.summary.stateBelowCount],
+    ['Indicadores com comparação disponível', legalSummary.comparableIndicatorCount],
+    ['Referências alcançadas', legalSummary.maintainCount],
+    ['Abaixo da referência', legalSummary.advanceCount],
+    ['Sem comparação no período', legalSummary.unavailableComparisonCount],
   ]
 
   return (
@@ -43,7 +48,7 @@ export function DiagnosticPrintReport({ description, municipio, publicDiagnostic
         </div>
         <p className="diagnostic-print-report__description">{description}</p>
         <p className="diagnostic-print-report__summary-reading">
-          {buildPublicSummaryText(publicDiagnostic.summary)}
+          {buildPublicSummaryText(legalSummary)}
         </p>
         <dl className="diagnostic-print-report__summary">
           {summaryItems.map(([label, value]) => (
@@ -62,7 +67,7 @@ export function DiagnosticPrintReport({ description, municipio, publicDiagnostic
               <div className="diagnostic-print-theme__opening">
                 <header className="diagnostic-print-theme__header">
                   <div>
-                    <p>Tema {theme.order}</p>
+                    <p>Tema {theme.visibleOrder}</p>
                     <h2>{theme.label}</h2>
                   </div>
                   <p>{results.length} {results.length === 1 ? 'indicador' : 'indicadores'}</p>
@@ -95,7 +100,9 @@ export function DiagnosticPrintReport({ description, municipio, publicDiagnostic
               </li>
             ))}
           </ul>
-          <p>Valores percentuais superiores a 100% são apresentados como 100%.</p>
+          {hasAbove100 ? (
+            <p>Há resultado percentual acima de 100% neste município. O valor bruto foi preservado; esse comportamento pode decorrer da combinação entre matrículas por local de oferta e estimativas da população residente.</p>
+          ) : null}
         </section>
       ) : null}
 
@@ -108,6 +115,8 @@ export function DiagnosticPrintReport({ description, municipio, publicDiagnostic
 }
 
 function DiagnosticPrintIndicator({ goal, result }) {
+  const isComplementary = result.mode === 'complementary'
+  const isAvailable = result.dataStatus === 'available'
   const stateComparison = getPublicStateComparison(result)
   const supportingReadings = getPublicSupportingReadings(result)
   const publicReading = getPublicResultReading(result)
@@ -122,17 +131,21 @@ function DiagnosticPrintIndicator({ goal, result }) {
       value: getPublicCurrentValue(result),
       detail: Number.isFinite(result.current?.year) ? `Ano ${result.current.year}` : '',
     },
-    {
-      label: 'Meta PNE',
-      value: formatPublicValue(result.indicatorReference?.value, result.current?.unit),
-      detail: Number.isFinite(result.indicatorReference?.year)
-        ? `Prazo ${result.indicatorReference.year}`
-        : '',
-    },
-    {
-      label: 'Distância até a meta',
-      value: formatPublicDistance(result.distance, result.current?.unit),
-    },
+    ...(!isComplementary && isAvailable ? [
+      {
+        label: result.mode === 'tracking'
+          ? 'Referência de acompanhamento'
+          : 'Referência prevista na meta',
+        value: formatPublicValue(result.indicatorReference?.value, result.current?.unit),
+        detail: Number.isFinite(result.indicatorReference?.year)
+          ? `Prazo ${result.indicatorReference.year}`
+          : '',
+      },
+      {
+        label: 'Distância',
+        value: formatPublicDistance(result.distance, result.current?.unit),
+      },
+    ] : []),
     {
       label: 'Referência RS',
       value: stateComparison?.stateValue,
@@ -150,7 +163,7 @@ function DiagnosticPrintIndicator({ goal, result }) {
         <header className="diagnostic-print-indicator__header">
           <p>Meta {goal.goalId} — {goal.title}</p>
           <h3>{result.publicName}</h3>
-          <span>{status.label}</span>
+          {!isComplementary && isAvailable ? <span>{status.label}</span> : null}
         </header>
 
         {measures.length ? (

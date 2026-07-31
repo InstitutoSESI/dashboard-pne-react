@@ -11,8 +11,11 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
 
 from src.pne_state_reference import (  # noqa: E402
     COMPARABLE,
+    RATIO_CONFIGS,
     _build_census_records,
     _build_escolas_integral_records,
+    _build_medio_tecnico_participacao_records,
+    _build_subsequente_records,
     aggregate_ratio_of_sums,
     build_state_projections,
 )
@@ -162,24 +165,91 @@ class StateReferenceTests(unittest.TestCase):
         )
         self.assertEqual([record["year"] for record in records], [2010, 2022])
 
-    def test_state_projection_declares_aggregate_series_source(self):
+    def test_state_projection_uses_validated_aggregate_persistence(self):
         projections = build_state_projections(
             {
                 "teste": {
                     "series": [
-                        {"year": 2024, "numerator": 10, "denominator": 100, "value": 10},
-                        {"year": 2025, "numerator": 20, "denominator": 100, "value": 20},
+                        {
+                            "year": year,
+                            "numerator": numerator,
+                            "denominator": 100,
+                            "value": numerator,
+                        }
+                        for year, numerator in (
+                            (2021, 5),
+                            (2022, 10),
+                            (2023, 12),
+                            (2024, 10),
+                            (2025, 20),
+                        )
                     ]
                 }
             },
             start_year=2026,
-            end_year=2026,
+            end_year=2036,
         )
         projection = projections["teste"]
-        self.assertEqual(projection["method"], "aggregate_state_series_forecast")
+        self.assertEqual(
+            projection["method"],
+            "aggregate_state_persistence_baseline",
+        )
         self.assertIn("sem média municipal", projection["source"])
         self.assertEqual(projection["series"][0]["year"], 2026)
-        self.assertEqual(projection["series"][0]["numerator"], 30)
+        self.assertEqual(projection["series"][-1]["year"], 2036)
+        self.assertEqual(
+            {point["numerator"] for point in projection["series"]},
+            {20.0},
+        )
+        self.assertEqual(
+            {point["denominator"] for point in projection["series"]},
+            {100.0},
+        )
+        self.assertEqual(
+            {point["value"] for point in projection["series"]},
+            {20.0},
+        )
+        self.assertEqual(projection["uncertainty"]["status"], "not_estimated")
+
+    def test_state_projection_rejects_short_gapped_or_stale_history(self):
+        short = build_state_projections(
+            {
+                "teste": {
+                    "series": [
+                        {"year": year, "numerator": 10, "denominator": 100}
+                        for year in range(2022, 2026)
+                    ]
+                }
+            }
+        )["teste"]
+        gapped = build_state_projections(
+            {
+                "teste": {
+                    "series": [
+                        {"year": year, "numerator": 10, "denominator": 100}
+                        for year in (2020, 2021, 2022, 2023, 2025)
+                    ]
+                }
+            }
+        )["teste"]
+        stale = build_state_projections(
+            {
+                "teste": {
+                    "series": [
+                        {"year": year, "numerator": 10, "denominator": 100}
+                        for year in range(2020, 2025)
+                    ]
+                }
+            }
+        )["teste"]
+
+        for projection in (short, gapped, stale):
+            self.assertFalse(projection["available"])
+            self.assertEqual(projection["projection_status"], "unavailable")
+            self.assertEqual(
+                projection["reason"],
+                "insufficient_or_stale_annual_history",
+            )
 
     def test_percentages_with_valid_count_pairs_are_bounded(self):
         frame = pd.DataFrame(
@@ -199,6 +269,91 @@ class StateReferenceTests(unittest.TestCase):
         self.assertLessEqual(record["value"], 100)
         self.assertLessEqual(record["numerator"], record["denominator"])
         self.assertEqual(record["comparison_status"], COMPARABLE)
+
+    def test_articulation_state_reference_uses_sum_of_both_components(self):
+        config = RATIO_CONFIGS["medio_tecnico_articulado_percentual"]
+        self.assertEqual(config["numerator_column"], "mat_articulado_total")
+        frame = pd.DataFrame(
+            [
+                {
+                    "ano": 2025,
+                    "municipio": "A",
+                    "mat_articulado_total": 10,
+                    "mat_medio": 20,
+                },
+                {
+                    "ano": 2025,
+                    "municipio": "B",
+                    "mat_articulado_total": 90,
+                    "mat_medio": 1000,
+                },
+            ]
+        )
+        record = aggregate_ratio_of_sums(
+            frame,
+            config["numerator_column"],
+            config["denominator_column"],
+            indicator_id="medio_tecnico_articulado_percentual",
+            municipalities_expected=2,
+        )[0]
+        self.assertAlmostEqual(record["value"], 100 * 100 / 1020)
+        self.assertNotAlmostEqual(record["value"], (50 + 9) / 2)
+
+    def test_public_expansion_state_reference_uses_net_state_totals(self):
+        frame = pd.DataFrame(
+            [
+                {
+                    "ano": 2025,
+                    "municipio": "A",
+                    "mat_ept_nivel_medio_total": 100,
+                    "mat_ept_nivel_medio_publica": 60,
+                    "mat_ept_nivel_medio_privada": 40,
+                },
+                {
+                    "ano": 2025,
+                    "municipio": "B",
+                    "mat_ept_nivel_medio_total": 1000,
+                    "mat_ept_nivel_medio_publica": 500,
+                    "mat_ept_nivel_medio_privada": 500,
+                },
+                {
+                    "ano": 2026,
+                    "municipio": "A",
+                    "mat_ept_nivel_medio_total": 120,
+                    "mat_ept_nivel_medio_publica": 80,
+                    "mat_ept_nivel_medio_privada": 40,
+                },
+                {
+                    "ano": 2026,
+                    "municipio": "B",
+                    "mat_ept_nivel_medio_total": 990,
+                    "mat_ept_nivel_medio_publica": 495,
+                    "mat_ept_nivel_medio_privada": 495,
+                },
+            ]
+        )
+        record = _build_medio_tecnico_participacao_records(
+            frame, municipalities_expected=2
+        )[1]
+        self.assertEqual(record["numerator"], 15)
+        self.assertEqual(record["denominator"], 10)
+        self.assertEqual(record["value"], 150)
+
+    def test_subsequent_state_reference_uses_growth_of_state_totals(self):
+        frame = pd.DataFrame(
+            [
+                {"ano": 2025, "municipio": "A", "mat_subsequente_total": 10},
+                {"ano": 2025, "municipio": "B", "mat_subsequente_total": 90},
+                {"ano": 2026, "municipio": "A", "mat_subsequente_total": 20},
+                {"ano": 2026, "municipio": "B", "mat_subsequente_total": 140},
+            ]
+        )
+        record = _build_subsequente_records(
+            frame, municipalities_expected=2
+        )[1]
+        self.assertEqual(record["numerator"], 60)
+        self.assertEqual(record["denominator"], 100)
+        self.assertEqual(record["value"], 60)
 
 
 if __name__ == "__main__":

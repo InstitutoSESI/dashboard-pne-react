@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { getBoundedDomain } from '../../src/utils/chartDomain.js'
 import {
   buildObservedPercentageScale,
   buildPneAbsoluteScale,
@@ -33,6 +34,17 @@ test('percentuais acima de 100 preservam o valor e recebem folga', () => {
   assert.equal(scale.domain.max % 10, 0)
   assert.ok(scale.domain.max >= 127 * 1.1)
   assert.equal(scale.ticks.length, 6)
+})
+
+test('domínio educacional também preserva percentuais acima de 100 por padrão', () => {
+  const domain = getBoundedDomain([88, 103.4, 121], 'percent')
+  assert.equal(domain.min >= 0, true)
+  assert.ok(domain.max > 121)
+
+  const bounded = getBoundedDomain([88, 103.4], 'percent', {
+    allowPercentOverflow: false,
+  })
+  assert.equal(bounded.max, 100)
 })
 
 test('séries absolutas partem de zero e geram de quatro a cinco marcas inteiras', () => {

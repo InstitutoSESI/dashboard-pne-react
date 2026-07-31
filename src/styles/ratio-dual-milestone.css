@@ -436,7 +436,87 @@
   margin-top: 0;
 }
 
+.ratio-dual-comparison-metrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.cycle-page--detail .detail-panel--ratio-dual .ratio-dual-comparison-metrics .metric-card {
+  min-width: 0;
+  min-height: 112px;
+}
+
+.ratio-dual-consolidated-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(250px, 3fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ratio-dual-consolidated-grid > * {
+  min-width: 0;
+}
+
+.ratio-dual-consolidated-data {
+  height: auto;
+}
+
+.cycle-page--detail .detail-panel--ratio-dual .ratio-dual-consolidated-data .ratio-dual-data-state {
+  padding: var(--space-3);
+  background: var(--surface-moss);
+}
+
+.ratio-dual-consolidated-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ratio-dual-consolidated-reading {
+  height: auto;
+}
+
+.ratio-dual-unavailable-metrics {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px);
+}
+
+.cycle-page--detail .detail-panel--ratio-dual .ratio-dual-data-state {
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  display: grid;
+  gap: var(--space-1);
+  place-items: start;
+  text-align: left;
+}
+
+.cycle-page--detail .detail-panel--ratio-dual .ratio-dual-data-state strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+}
+
+.cycle-page--detail .detail-panel--ratio-dual .ratio-dual-data-state p {
+  max-width: var(--content-reading-max);
+  margin: 0;
+  color: var(--text-body);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
 @media screen and (max-width: 900px) {
+  .ratio-dual-comparison-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ratio-dual-consolidated-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .ratio-dual-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -457,6 +537,14 @@
 }
 
 @media screen and (max-width: 620px) {
+  .ratio-dual-comparison-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ratio-dual-ruler-card--consolidated .ratio-dual-ruler__target-label {
+    max-width: 128px;
+  }
+
   .ratio-dual-ruler-card,
   .ratio-dual-support,
   .ratio-dual-equation-card,
@@ -505,6 +593,24 @@
     min-height: 280px;
     height: 280px;
     max-height: 280px;
+  }
+}
+
+@media print {
+  .ratio-dual-comparison-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ratio-dual-consolidated-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .ratio-dual-ruler-card,
+  .ratio-dual-consolidated-data,
+  .ratio-dual-consolidated-reading {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 

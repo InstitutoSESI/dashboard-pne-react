@@ -1,20 +1,39 @@
+import presentationPolicy from '../../contracts/pne2026-diagnostic-presentation-policy.json' with { type: 'json' }
+import {
+  PNE_2026_GOAL_INDICATOR_CONTRACT,
+  PNE_2026_RELATIONSHIP_MODES,
+  canPne2026RelationEnterCycleSummary,
+  resolvePne2026Relation,
+} from './pne2026GoalIndicatorContract.js'
+
+const PNE_2026_CYCLE = 'pne_2026_2036'
+const PNE_2026_COMPARABLE_MODES = new Set([
+  PNE_2026_RELATIONSHIP_MODES.PROGRESS,
+  PNE_2026_RELATIONSHIP_MODES.TRACKING,
+])
+const PNE_2026_RELATIONS_BY_ID = new Map(
+  PNE_2026_GOAL_INDICATOR_CONTRACT.relations.map((relation) => [
+    relation.relationId,
+    relation,
+  ]),
+)
+const PNE_2026_POLICY_BY_RELATION_ID = new Map(
+  presentationPolicy.relations.map((entry) => [entry.relationId, entry]),
+)
+const PNE_2026_THEMES_BY_ID = new Map(
+  presentationPolicy.themes.map((theme) => [theme.themeId, theme]),
+)
+
 const EDUCACAO_INFANTIL_KEYS = ['creche', 'pre_escola']
 
 const ENSINO_FUNDAMENTAL_KEYS = [
   'basico_6_17',
-  'idade_regular_quinto',
-  'idade_regular_nono',
   'ensino_fundamental_ou_completo_pop_6_14',
-  'fundamental_concluido_18_mais',
-  'fundamental_concluido_15_29',
 ]
 
 const ENSINO_MEDIO_KEYS = [
   'basico_15_17',
   'ensino_medio_ou_basica_completa_pop_15_17',
-  'idade_regular_medio',
-  'medio_concluido_18_mais',
-  'medio_concluido_18_29',
 ]
 
 function uniqueKeys(keys) {
@@ -29,6 +48,7 @@ const BASIC_EDUCATION_FILTERS = [
       ...EDUCACAO_INFANTIL_KEYS,
       ...ENSINO_FUNDAMENTAL_KEYS,
       ...ENSINO_MEDIO_KEYS,
+      'educacao_indigena_cobertura_estimada_4_17',
     ]),
   },
   {
@@ -88,7 +108,7 @@ const THEMATIC_GROUPS = [
     shortLabel: 'Educação Especial',
     icon: 'EE',
     accent: '#db2777',
-    indicatorKeys: ['salas_acessiveis'],
+    indicatorKeys: ['aee_oferta_escolas_elegiveis'],
   },
   {
     key: 'ideb_saeb_fluxo',
@@ -125,6 +145,7 @@ const THEMATIC_GROUPS = [
       'pos_graduacao',
       'rendimento_magisterio',
       'temporarios',
+      'munic_planos_carreira_declarados',
     ],
   },
   {
@@ -156,7 +177,12 @@ const THEMATIC_GROUPS = [
     shortLabel: 'Gestão Escolar e Educação Ambiental',
     icon: 'GA',
     accent: '#65a30d',
-    indicatorKeys: ['conselho_escolar', 'proposta_pedagogica', 'educacao_ambiental'],
+    indicatorKeys: [
+      'conselho_escolar',
+      'munic_forum_educacao_declarado',
+      'proposta_pedagogica',
+      'educacao_ambiental',
+    ],
   },
   {
     key: 'escolaridade_populacao',
@@ -166,19 +192,45 @@ const THEMATIC_GROUPS = [
     accent: '#0f766e',
     indicatorKeys: [
       'alfabetizacao_pop_15_mais',
-      'ensino_medio_ou_basica_completa_pop_15_17',
-      'ensino_fundamental_ou_completo_pop_6_14',
       'escolaridade_media_18_29',
       'razao_escolaridade_racial_18_29',
       'fundamental_concluido_18_mais',
       'fundamental_concluido_15_29',
+      'fundamental_concluido_15_mais',
       'medio_concluido_18_mais',
       'medio_concluido_18_29',
     ],
   },
 ]
 
-export function buildThematicGroups(categories) {
+export function getPne2026PresentationThemeForRelation(relationId) {
+  const editorial = PNE_2026_POLICY_BY_RELATION_ID.get(relationId)
+  const theme = editorial
+    ? PNE_2026_THEMES_BY_ID.get(editorial.themeId)
+    : null
+  if (!editorial || !theme) return null
+
+  return {
+    key: theme.themeId,
+    label: theme.label,
+    shortLabel: theme.label,
+    order: theme.displayOrder,
+    relationOrder: editorial.displayOrder,
+  }
+}
+
+export function getPne2026PresentationThemeForIndicator(indicatorId, goalId) {
+  const relation = resolvePne2026Relation(goalId, indicatorId)
+  return relation
+    ? getPne2026PresentationThemeForRelation(relation.relationId)
+    : null
+}
+
+export function buildThematicGroups(categories, cycleId) {
+  if (cycleId === PNE_2026_CYCLE) {
+    return buildPne2026ThematicGroups(categories)
+  }
+
   const indicatorByKey = new Map()
 
   categories.forEach((category) => {
@@ -191,6 +243,50 @@ export function buildThematicGroups(categories) {
 
   return THEMATIC_GROUPS.map((group) => materializeGroup(group, indicatorByKey))
     .filter((group) => group.items.length > 0)
+}
+
+function buildPne2026ThematicGroups(categories) {
+  const indicatorByKey = new Map()
+  categories.forEach((category) => {
+    ;(category.items ?? []).forEach((item) => {
+      if (!indicatorByKey.has(item.key)) {
+        indicatorByKey.set(item.key, item)
+      }
+    })
+  })
+
+  const editorialByTheme = new Map()
+  for (const editorial of presentationPolicy.relations) {
+    const relation = PNE_2026_RELATIONS_BY_ID.get(editorial.relationId)
+    if (
+      !relation
+      || !PNE_2026_COMPARABLE_MODES.has(relation.mode)
+      || !canPne2026RelationEnterCycleSummary(relation)
+    ) {
+      continue
+    }
+    const item = indicatorByKey.get(relation.indicatorId)
+    if (!item) continue
+    const current = editorialByTheme.get(editorial.themeId) ?? []
+    current.push({ editorial, item })
+    editorialByTheme.set(editorial.themeId, current)
+  }
+
+  return presentationPolicy.themes
+    .toSorted((left, right) => left.displayOrder - right.displayOrder)
+    .flatMap((theme) => {
+      const entries = editorialByTheme.get(theme.themeId)
+        ?.toSorted((left, right) => (
+          left.editorial.displayOrder - right.editorial.displayOrder
+        )) ?? []
+      if (!entries.length) return []
+      return [{
+        key: theme.themeId,
+        label: theme.label,
+        shortLabel: theme.label,
+        items: entries.map(({ item }) => item),
+      }]
+    })
 }
 
 function materializeGroup(group, indicatorByKey) {

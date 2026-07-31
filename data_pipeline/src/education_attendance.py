@@ -6,47 +6,26 @@ from math import isfinite
 from statistics import quantiles
 from typing import Any, Iterable
 
+from src.pne.goal_indicator_contract import (
+    CONTRACT,
+    get_formula_for_indicator,
+    get_indicator,
+    get_indicator_reference_profile,
+)
 
 CONTRACT_VERSION = "education-attendance-v2"
-AGE_INDICATORS = {
-    "creche": {
-        "title": "Atendimento em creche",
-        "ageRange": "0 a 3 anos",
-        "numeratorField": "mat_basico_0_3",
-        "denominatorField": "pop_0_3",
-        "reference": 60.0,
-        "ages": (0, 3),
-    },
-    "pre_escola": {
-        "title": "Atendimento na pré-escola",
-        "ageRange": "4 a 5 anos",
-        "numeratorField": "mat_infantil_pre",
-        "denominatorField": "pop_4_5",
-        "reference": 100.0,
-        "ages": (4, 5),
-    },
-    "basico_6_17": {
-        "title": "Atendimento na educação básica",
-        "ageRange": "6 a 17 anos",
-        "numeratorField": "mat_basico_6_17",
-        "denominatorField": "pop_6_17",
-        "reference": 100.0,
-        "ages": (6, 17),
-    },
-    "basico_15_17": {
-        "title": "Atendimento de adolescentes",
-        "ageRange": "15 a 17 anos",
-        "numeratorField": "mat_basico_15_17",
-        "denominatorField": "pop_15_17",
-        "reference": 85.0,
-        "ages": (15, 17),
-    },
+CANONICAL_AGE_INDICATORS = (
+    "creche",
+    "pre_escola",
+    "basico_6_17",
+    "basico_15_17",
+)
+SUPPLEMENTAL_AGE_INDICATORS = {
     "infantil_0_5": {
         "title": "Atendimento da educação infantil",
         "ageRange": "0 a 5 anos",
         "numeratorField": "mat_basico_0_5",
         "denominatorField": "pop_0_5",
-        "reference": None,
         "ages": (0, 5),
     },
     "obrigatoria_4_17": {
@@ -54,7 +33,6 @@ AGE_INDICATORS = {
         "ageRange": "4 a 17 anos",
         "numeratorField": "mat_basico_4_17",
         "denominatorField": "pop_4_17",
-        "reference": None,
         "ages": (4, 17),
     },
     "escolar_6_14": {
@@ -62,9 +40,33 @@ AGE_INDICATORS = {
         "ageRange": "6 a 14 anos",
         "numeratorField": "mat_basico_6_14",
         "denominatorField": "pop_6_14",
-        "reference": None,
         "ages": (6, 14),
     },
+}
+
+
+def _canonical_age_indicator(indicator_id: str) -> dict[str, Any]:
+    indicator = get_indicator(indicator_id) or {}
+    formula = get_formula_for_indicator(indicator_id) or {}
+    runtime = formula.get("runtime") or {}
+    age_range = runtime.get("ageRange") or {}
+    return {
+        "title": indicator.get("publicTitle", indicator_id),
+        "ageRange": age_range.get("label"),
+        "numeratorField": runtime.get("numeratorField"),
+        "denominatorField": runtime.get("denominatorField"),
+        "ages": (age_range.get("start"), age_range.get("end")),
+        "formulaId": indicator.get("formulaId"),
+        "sourceIds": list(indicator.get("sourceIds") or []),
+    }
+
+
+AGE_INDICATORS = {
+    **{
+        indicator_id: _canonical_age_indicator(indicator_id)
+        for indicator_id in CANONICAL_AGE_INDICATORS
+    },
+    **SUPPLEMENTAL_AGE_INDICATORS,
 }
 
 def build_education_attendance_payload(
@@ -119,12 +121,18 @@ def build_education_attendance_payload(
             "thresholds": {**thresholds, "basico_integral": overall_threshold},
         },
         "sources": {
-            "enrolment": "Censo Escolar da Educação Básica (INEP), por município da escola.",
-            "historicalPopulation": "Base populacional municipal por idade simples utilizada pelo painel.",
-            "populationModel": (
-                "População municipal do último ano disponível aplicada à variação da faixa etária "
-                "na projeção do Rio Grande do Sul, revisão 2024."
-            ),
+            "enrolment": {
+                "sourceId": "inep_censo_escolar",
+                "label": "Censo Escolar da Educação Básica (INEP), por município da escola.",
+            },
+            "historicalPopulation": {
+                "sourceId": "municipal_age_population_panel",
+                "label": CONTRACT["sources"]["municipal_age_population_panel"]["publicTitle"],
+            },
+            "populationProjection": {
+                "sourceId": "ibge_population_projection_2024",
+                "label": CONTRACT["sources"]["ibge_population_projection_2024"]["publicTitle"],
+            },
         },
         "municipios": municipality_payloads,
     }
@@ -137,32 +145,64 @@ def _age_contract(key: str, projection: dict[str, Any], threshold: float | None)
     numerators = projection.get("historical_numerator", [])
     denominators = projection.get("historical_population", [])
     raw_values = projection.get("historical_percent_raw", [])
+    display_values = projection.get("historical_percent", [])
     for index, year in enumerate(years):
         denominator = _number_at(denominators, index)
+        raw_value = (
+            _number_at(raw_values, index)
+            if denominator and denominator > 0
+            else None
+        )
         historical.append(
             {
                 "year": int(year),
                 "numerator": _number_at(numerators, index),
                 "denominator": denominator,
-                "rawValue": _number_at(raw_values, index) if denominator and denominator > 0 else None,
+                "rawValue": raw_value,
+                "displayValue": _display_percentage_at(
+                    display_values,
+                    raw_value,
+                    index,
+                ),
             }
         )
     observed = historical[-1] if historical else None
-    projected = [
-        {
-            "year": int(year),
-            "numerator": _number_at(projection.get("projected_numerator", []), index),
-            "denominator": _number_at(projection.get("projected_population", []), index),
-            "rawValue": _number_at(projection.get("projected_percent_raw", []), index),
-        }
-        for index, year in enumerate(projection.get("years", []))
-    ]
+    reference = get_indicator_reference_profile(
+        key,
+        int(observed["year"]) if observed else None,
+    )
+    projected = []
+    projected_raw_values = projection.get("projected_percent_raw", [])
+    projected_display_values = projection.get("projected_percent", [])
+    for index, year in enumerate(projection.get("years", [])):
+        raw_value = _number_at(projected_raw_values, index)
+        projected.append(
+            {
+                "year": int(year),
+                "numerator": _number_at(
+                    projection.get("projected_numerator", []), index
+                ),
+                "denominator": _number_at(
+                    projection.get("projected_population", []), index
+                ),
+                "rawValue": raw_value,
+                "displayValue": _display_percentage_at(
+                    projected_display_values,
+                    raw_value,
+                    index,
+                ),
+            }
+        )
     population_model = _population_model(projection)
     diagnostics = _diagnostics(observed, threshold, projection.get("warnings", []))
     return {
         "contractVersion": CONTRACT_VERSION,
         "indicatorKey": key,
-        "indicatorType": "mandatory_age_summary" if metadata["reference"] is None else "age_coverage_proxy",
+        "indicatorType": (
+            "age_coverage_proxy"
+            if key in CANONICAL_AGE_INDICATORS
+            else "mandatory_age_summary"
+        ),
         "kind": "age_coverage",
         "title": metadata["title"],
         "ageRange": metadata["ageRange"],
@@ -181,29 +221,24 @@ def _age_contract(key: str, projection: dict[str, Any], threshold: float | None)
             "numerator": metadata["numeratorField"],
             "denominator": metadata["denominatorField"],
         },
+        "formulaId": metadata.get("formulaId"),
+        "sourceIds": metadata.get("sourceIds", []),
         "observed": observed,
         "historical": historical,
-        "reference": (
-            {
-                "value": metadata["reference"],
-                "unit": "percent",
-                "validationStatus": "configured_unvalidated",
-                "year": 2036,
-                "direction": "at_least",
-            }
-            if metadata["reference"] is not None
-            else None
-        ),
+        "reference": reference,
         "populationModel": population_model,
         "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
             "method": projection.get("method"),
             "projected": projected,
             "status": "available" if projected else "unavailable",
             "historicalEndYear": observed.get("year") if observed else None,
-            "horizonYear": 2036,
+            "horizonYear": int(CONTRACT["cycle"]["endYear"]),
             "quality": _quality(projection.get("quality"), diagnostics),
+            "trend": projection.get("trend"),
+            "denominatorModel": projection.get("denominator_model"),
+            "uncertainty": projection.get("uncertainty"),
         },
         "historicalChangePercentagePoints": _historical_change(historical),
         "diagnostics": diagnostics,
@@ -222,6 +257,12 @@ def _overall_integral_contract(contract: dict[str, Any], threshold: float | None
         for point in contract.get("historical", [])
     ]
     observed = historical[-1] if historical else None
+    reference = get_indicator_reference_profile(
+        "basico_integral",
+        int(observed["year"]) if observed else None,
+    )
+    formula = get_formula_for_indicator("basico_integral") or {}
+    runtime = formula.get("runtime") or {}
     diagnostics = _diagnostics(observed, threshold, contract.get("diagnostics", {}).get("warnings", []))
     reference_trajectory = [
         {
@@ -247,12 +288,40 @@ def _overall_integral_contract(contract: dict[str, Any], threshold: float | None
             "numeratorCode": "municipality_of_school",
             "denominatorCode": "public_enrollments",
         },
-        "fields": {"numerator": "mat_basico_integral", "denominator": "mat_basico"},
+        "fields": {
+            "numerator": runtime.get("numeratorField"),
+            "denominator": runtime.get("denominatorField"),
+        },
+        "formulaId": "formula.basico_integral",
+        "sourceIds": list(
+            (get_indicator("basico_integral") or {}).get("sourceIds") or []
+        ),
         "observed": observed,
         "historical": historical,
         "reference": {
-            "targets": contract.get("targets", []),
-            "validationStatus": contract.get("targetValidationStatus", "configured_unvalidated"),
+            "kind": reference["kind"] if reference else "configured",
+            "label": reference["label"] if reference else "Referência configurada",
+            "referenceId": reference["referenceId"] if reference else None,
+            "targets": (
+                [
+                    {
+                        **milestone,
+                        "type": "official_law_reference",
+                        "referenceId": reference["referenceId"],
+                    }
+                    for milestone in reference["milestones"]
+                ]
+                if reference and reference["kind"] == "legal"
+                else contract.get("targets", [])
+            ),
+            "validationStatus": (
+                reference["validationStatus"]
+                if reference
+                else contract.get(
+                    "targetValidationStatus",
+                    "configured_unvalidated",
+                )
+            ),
         },
         "scenario": {
             "type": "pne_reference_trajectory",
@@ -284,6 +353,7 @@ def _population_model(projection: dict[str, Any]) -> dict[str, Any] | None:
     modeled_value = _number(populations[-1])
     change = modeled_value - base_value if modeled_value is not None and base_value is not None else None
     change_pct = change / base_value * 100 if change is not None and base_value and base_value > 0 else None
+    denominator_model = projection.get("denominator_model") or {}
     return {
         "status": "modeled",
         "modelStatus": "modeled_estimate",
@@ -295,8 +365,24 @@ def _population_model(projection: dict[str, Any]) -> dict[str, Any] | None:
         "changePercent": round(change_pct, 2) if change_pct is not None else None,
         "absoluteChange": round(change, 1) if change is not None else None,
         "percentageChange": round(change_pct, 2) if change_pct is not None else None,
-        "method": "municipal_base_scaled_by_rs_age_group_change",
-        "methodCode": "municipal_base_times_rs_age_factor",
+        "method": denominator_model.get(
+            "method",
+            "municipal_base_scaled_by_rs_age_group_change",
+        ),
+        "methodCode": denominator_model.get(
+            "methodCode",
+            "municipal_base_times_rs_age_factor",
+        ),
+        "historicalPopulationSourceId": denominator_model.get(
+            "historicalPopulationSourceId",
+            "municipal_age_population_panel",
+        ),
+        "projectionSourceId": denominator_model.get(
+            "projectionSourceId",
+            "ibge_population_projection_2024",
+        ),
+        "formula": denominator_model.get("formula"),
+        "uncertainty": projection.get("uncertainty"),
         "label": "População modelada para 2036",
     }
 
@@ -312,7 +398,7 @@ def _diagnostics(observed: dict[str, Any] | None, threshold: float | None, warni
     if small:
         messages.insert(0, "Denominador abaixo do primeiro quartil municipal do indicador; interprete oscilações com cautela.")
     if value is not None and value > 100:
-        messages.insert(0, "O valor acima de 100% é preservado: matrículas por município da escola e população residente têm bases territoriais distintas.")
+        messages.insert(0, "A razão bruta supera 100% porque matrículas e população têm bases territoriais distintas; a apresentação pública é limitada a 100%.")
     return {
         "invalidDenominator": invalid,
         "smallDenominator": small,
@@ -360,7 +446,7 @@ def _valid_ratio_value(point: dict[str, Any]) -> float | None:
 
 
 def _headline(observed: dict[str, Any] | None) -> str:
-    value = _number(observed.get("rawValue")) if observed else None
+    value = _number(observed.get("displayValue")) if observed else None
     return _format_percentage(value) if value is not None else "Não calculável"
 
 
@@ -372,7 +458,7 @@ def _status_label(diagnostics: dict[str, Any]) -> str:
     if diagnostics.get("invalidDenominator"):
         return "Dado não calculável"
     if diagnostics.get("above100"):
-        return "Acima de 100% — bases territoriais distintas"
+        return "Razão bruta acima de 100% — exibição limitada"
     if diagnostics.get("smallDenominator"):
         return "Base reduzida — interpretar com cautela"
     return "Dado disponível"
@@ -389,7 +475,7 @@ def _interpretation_status(diagnostics: dict[str, Any]) -> str:
 
 
 def _historical_change(points: list[dict[str, Any]]) -> float | None:
-    values = [_number(point.get("rawValue")) for point in points]
+    values = [_number(point.get("displayValue")) for point in points]
     valid = [value for value in values if value is not None]
     return round(valid[-1] - valid[0], 2) if len(valid) >= 2 else None
 
@@ -413,6 +499,17 @@ def _number(value: Any) -> float | None:
 
 def _number_at(values: list[Any], index: int) -> float | None:
     return _number(values[index]) if index < len(values) else None
+
+
+def _display_percentage_at(
+    display_values: list[Any],
+    raw_value: float | None,
+    index: int,
+) -> float | None:
+    if raw_value is None:
+        return None
+    configured = _number_at(display_values, index)
+    return min(100.0, configured if configured is not None else raw_value)
 
 
 def _last_valid(values: Iterable[Any]) -> float | None:

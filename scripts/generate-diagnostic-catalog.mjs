@@ -1,309 +1,813 @@
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
-import { PNE_2026_LEGAL_GOAL_INDICATOR_MAP as legalMap } from '../src/data/pne2026LegalGoalIndicatorMap.js'
+const contractPath = new URL('../contracts/pne2026-goal-indicator-contract.json', import.meta.url)
+const policyPath = new URL('../contracts/pne2026-diagnostic-presentation-policy.json', import.meta.url)
+const indicatorCatalogPath = new URL('../src/data/diagnostic/indicatorCatalog.json', import.meta.url)
+const publicIndicatorCatalogPath = new URL('../public/data/indicadores.json', import.meta.url)
+const generatedContractDocumentationPath = new URL(
+  '../docs/generated/PNE_2026_CONTRACT.md',
+  import.meta.url,
+)
+const presentationCatalogPath = new URL(
+  '../data_pipeline/src/data/pne2026_diagnostic_presentation_v2.json',
+  import.meta.url,
+)
 
-const outputPath = new URL('../src/data/diagnostic/indicatorCatalog.json', import.meta.url)
-const basePath = new URL('../public/data/indicadores.json', import.meta.url)
-const categories = JSON.parse(fs.readFileSync(basePath, 'utf8')).cycles.pne_2026_2036.categories
-
-const relationsByIndicator = new Map()
-for (const goal of legalMap) {
-  for (const relation of goal.relatedIndicators) {
-    const relations = relationsByIndicator.get(relation.indicatorId) ?? []
-    relations.push({ legalGoalRef: goal.legalGoalId, ...relation })
-    relationsByIndicator.set(relation.indicatorId, relations)
-  }
-}
-
-const target = (legalGoalRef, value, year, direction = 'at_least', dimension = 'overall') => ({
-  dimension,
-  direction,
-  legalGoalRef,
-  validationStatus: 'official_law',
-  value,
-  year,
-})
-
-const saebTargets = (legalGoalRef, intermediateAdequate, finalAdequate) => [
-  target(legalGoalRef, 100, 2031, 'at_least', 'basic_or_higher'),
-  target(legalGoalRef, intermediateAdequate, 2031, 'at_least', 'adequate_or_higher'),
-  target(legalGoalRef, 100, 2036, 'at_least', 'basic_or_higher'),
-  target(legalGoalRef, finalAdequate, 2036, 'at_least', 'adequate_or_higher'),
-]
-
-const targets = {
-  creche: [target('1.a', 60, 2036)],
-  pre_escola: [target('1.c', 100, 2028)],
-  alfabetizacao: [target('3.a', 80, 2031), target('3.a', 100, 2036)],
-  basico_6_17: [target('4.a', 100, 2029)],
-  basico_15_17: [target('4.a', 100, 2029)],
-  idade_regular_quinto: [target('4.b', 100, 2036)],
-  idade_regular_nono: [target('4.c', 95, 2036)],
-  idade_regular_medio: [target('4.d', 90, 2036)],
-  saeb_matematica_anos_iniciais: saebTargets('5.a', 70, 90),
-  saeb_portugues_anos_iniciais: saebTargets('5.a', 70, 90),
-  saeb_matematica_anos_finais: saebTargets('5.b', 60, 85),
-  saeb_portugues_anos_finais: saebTargets('5.b', 60, 85),
-  saeb_matematica_ensino_medio: saebTargets('5.d', 50, 80),
-  saeb_portugues_ensino_medio: saebTargets('5.d', 50, 80),
-  basico_integral: [target('6.a', 35, 2031), target('6.a', 50, 2036)],
-  escolas_integral: [target('6.a', 50, 2031), target('6.a', 65, 2036)],
-  educacao_ambiental: [target('8.c', 100, 2036)],
-  aee: [target('10.b', 80, 2031), target('10.b', 100, 2036)],
-  alfabetizacao_pop_15_mais: [target('11.a', 97, 2031), target('11.a', 100, 2036)],
-  fundamental_concluido_18_mais: [target('11.b', 85, 2036)],
-  fundamental_concluido_15_29: [target('11.b', 100, 2036)],
-  medio_concluido_18_mais: [target('11.c', 75, 2036)],
-  medio_concluido_18_29: [target('11.c', 100, 2036)],
-  medio_tecnico_articulado_percentual: [target('12.a', 50, 2036)],
-  medio_tecnico_participacao_publica: [target('12.a', 50, 2036)],
-  subsequente_expansao: [target('12.b', 60, 2036)],
-  eja_integrada_educacao_profissional_percentual: [target('12.c', 25, 2031), target('12.c', 50, 2036)],
-  adequacao_ai: [target('17.a', 100, 2031)],
-  adequacao_af: [target('17.a', 100, 2031)],
-  adequacao_em: [target('17.a', 100, 2031)],
-  rendimento_magisterio: [target('17.b', 100, 2036)],
-  temporarios: [target('17.d', 30, 2031, 'at_most')],
-  pos_graduacao: [target('17.f', 70, 2036)],
-  conselho_escolar: [target('18.b', 100, 2036)],
-  salas_acessiveis: [target('19.c', 100, 2029)],
-  salas_climatizadas: [target('8.b', 100, 2036)],
-}
-
-const ratio = (numerator, denominator, territorialCut) => ({
-  denominator,
-  formula: `100 * sum(${numerator}) / denominator_aggregate(${denominator})`,
-  numerator,
-  territorialCut,
-})
-
-const attendanceTerritory = {
-  denominator: 'população residente municipal',
-  numerator: 'município da escola',
-}
-
-const formulas = {
-  creche: ratio('mat_basico_0_3', 'pop_0_3', attendanceTerritory),
-  pre_escola: ratio('mat_infantil_pre', 'pop_4_5', attendanceTerritory),
-  basico_6_17: ratio('mat_basico_6_17', 'pop_6_17', attendanceTerritory),
-  basico_15_17: ratio('mat_basico_15_17', 'pop_15_17', attendanceTerritory),
-  basico_integral: ratio('mat_basico_integral', 'mat_basico'),
-  escolas_integral: ratio('escolas_publicas_com_integral', 'escolas_publicas_total'),
-  aee: ratio('quantidade_aee', 'total_turmas_educacao_especial'),
-  eja_integrada_educacao_profissional_percentual: ratio('matrículas EJA articuladas à educação profissional', 'matrículas EJA elegíveis'),
-  medio_tecnico_articulado_percentual: ratio('mat_integrado_total', 'mat_medio'),
-  medio_tecnico_participacao_publica: {
-    denominator: 'expansões anuais públicas e privadas positivas acumuladas',
-    formula: '100 * expansão_pública_positiva_acumulada / expansão_total_positiva_acumulada',
-    numerator: 'expansões anuais públicas positivas acumuladas',
-  },
-  subsequente_expansao: {
-    denominator: 'matrículas subsequentes em 2015',
-    formula: '100 * (matrículas_ano / matrículas_2015 - 1)',
-    numerator: 'matrículas subsequentes no ano - matrículas no ano-base 2015',
-  },
-  alfabetizacao: {
-    denominator: null,
-    formula: 'média municipal de taxa_alfabetizacao da rede pública',
-    numerator: null,
-  },
-  pos_graduacao: ratio('docentes_pos_graduacao', 'total_docentes'),
-  temporarios: ratio('docentes_temporarios', 'total_docentes'),
-  rendimento_magisterio: {
-    denominator: 'rendimento bruto médio mensal de outros assalariados com nível superior',
-    formula: '100 * rendimento_magistério / rendimento_outros',
-    numerator: 'rendimento bruto médio mensal do magistério com nível superior',
-  },
-  alfabetizacao_pop_15_mais: ratio('alfabetizadas_15_mais', 'total_15_mais'),
-  fundamental_concluido_18_mais: ratio('populacao_18_mais_ensino_fundamental_concluido', 'populacao_18_mais_total'),
-  fundamental_concluido_15_29: ratio('populacao_15_29_ensino_fundamental_concluido', 'populacao_15_29_total'),
-  medio_concluido_18_mais: ratio('populacao_18_mais_ensino_medio_concluido', 'populacao_18_mais_total'),
-  medio_concluido_18_29: ratio('populacao_18_29_ensino_medio_concluido', 'populacao_18_29_total'),
-}
-
-const stageIndicators = {
-  idade_regular_quinto: ['taxa_idade_regular', 'quinto_ano'],
-  idade_regular_nono: ['taxa_idade_regular', 'nono_ano'],
-  idade_regular_medio: ['taxa_idade_regular', 'ensino_medio'],
-  adequacao_ai: ['percentual_adequacao', 'anos_iniciais'],
-  adequacao_af: ['percentual_adequacao', 'anos_finais'],
-  adequacao_em: ['percentual_adequacao', 'ensino_medio'],
-}
-for (const [indicatorId, [field, stage]] of Object.entries(stageIndicators)) {
-  formulas[indicatorId] = { denominator: null, formula: `média municipal de ${field} para ${stage}`, numerator: null }
-}
-
-const saebIds = [
-  'saeb_matematica_anos_iniciais', 'saeb_matematica_anos_finais', 'saeb_matematica_ensino_medio',
-  'saeb_portugues_anos_iniciais', 'saeb_portugues_anos_finais', 'saeb_portugues_ensino_medio',
-]
-for (const indicatorId of saebIds) {
-  formulas[indicatorId] = {
-    denominator: 'estudantes participantes do SAEB no recorte',
-    formula: 'soma das parcelas de proficiência classificadas no nível adequado ou superior',
-    numerator: 'estudantes nos níveis adequado ou superior',
-  }
-}
-
-const infrastructureColumns = {
-  internet: ['escolas_com_internet', 'qntd_escolas'],
-  internet_alunos: ['escolas_com_internet_alunos', 'qntd_escolas'],
-  internet_aprendizagem: ['escolas_com_internet_aprendizagem', 'qntd_escolas'],
-  internet_comunidade: ['escolas_com_internet_comunidade', 'qntd_escolas'],
-  acesso_internet_computador: ['escolas_com_acesso_internet_computador', 'qntd_escolas'],
-  acesso_internet_disp_pessoais: ['escolas_com_acesso_internet_disp_pessoais', 'qntd_escolas'],
-  rede_local: ['escolas_com_rede_local', 'qntd_escolas'],
-  rede_wireless: ['escolas_com_rede_wireless', 'qntd_escolas'],
-  banda_larga: ['escolas_com_banda_larga', 'qntd_escolas'],
-  educacao_ambiental: ['escolas_com_educacao_ambiental', 'qntd_escolas'],
-  conselho_escolar: ['escolas_publicas_com_orgao_conselho_escolar', 'escolas_publicas_total'],
-  proposta_pedagogica: ['escolas_publicas_com_proposta_pedagogica', 'escolas_publicas_total'],
-  salas_climatizadas: ['qt_salas_utiliza_climatizadas', 'qt_salas_utilizadas'],
-  salas_acessiveis: ['qt_salas_utilizadas_acessiveis', 'qt_salas_utilizadas'],
-  desktop_aluno: ['escolas_com_desktop_aluno', 'qntd_escolas'],
-  comp_portatil_aluno: ['escolas_com_comp_portatil_aluno', 'qntd_escolas'],
-  tablet_aluno: ['escolas_com_tablet_aluno', 'qntd_escolas'],
-}
-for (const [indicatorId, [numerator, denominator]] of Object.entries(infrastructureColumns)) {
-  formulas[indicatorId] = ratio(numerator, denominator)
-}
-
-const censusIds = new Set([
-  'alfabetizacao_pop_15_mais', 'fundamental_concluido_18_mais', 'fundamental_concluido_15_29',
-  'medio_concluido_18_mais', 'medio_concluido_18_29',
+export const FORBIDDEN_PRESENTATION_FIELDS = new Set([
+  'goalId',
+  'indicatorId',
+  'mode',
+  'tracksGoal',
+  'tracks_goal',
+  'hasDistance',
+  'canDistance',
+  'canStatus',
+  'canProjection',
+  'includeInDiagnostic',
+  'includeInReferenceSummary',
+  'target',
+  'reference',
+  'deadline',
+  'direction',
+  'formulaId',
+  'sourceIds',
+  'territoriality',
+  'classificationPolicy',
+  'missingPolicy',
+  'valuePolicy',
 ])
-const informationalIds = new Set([
-  'aee', 'internet', 'internet_alunos', 'internet_aprendizagem', 'internet_comunidade',
-  'acesso_internet_computador', 'acesso_internet_disp_pessoais', 'rede_local', 'rede_wireless',
-  'banda_larga', 'proposta_pedagogica', 'desktop_aluno', 'comp_portatil_aluno', 'tablet_aluno',
+
+const ALLOWED_RELATION_FIELDS = new Set([
+  'relationId',
+  'themeId',
+  'displayOrder',
+  'summaryPriority',
+  'displayGroup',
+  'layoutHint',
+  'narrativeTemplateId',
 ])
-const publicIds = new Set(['basico_integral', 'escolas_integral', 'alfabetizacao', 'temporarios', 'conselho_escolar'])
-
-function correspondence(indicatorId, relations) {
-  if (indicatorId === 'medio_tecnico_articulado_percentual') return 'partial'
-  if (relations.some((item) => item.coverage === 'direta')) return 'direct'
-  if (relations.some((item) => item.coverage === 'parcial')) return 'partial'
-  if (relations.length) return 'proxy'
-  return 'informative'
+const SUMMARY_PRIORITIES = new Set(['essential', 'standard'])
+const VALUE_POLICY_COMPATIBILITY = {
+  raw_accumulated_growth: 'accumulated_growth_from_minus_100',
+  raw_bounded_expected: 'bounded_percentage_0_100',
+  raw_comparative_ratio: 'comparative_ratio_above_100',
+  raw_enrolment_ratio: 'enrolment_ratio_above_100',
+  raw_mixed_territorial_basis: 'mixed_territorial_basis_above_100',
+  raw_net_expansion_share: 'net_expansion_share_unbounded',
+  raw_nonnegative_count: 'nonnegative_count',
+  raw_source_rounding: 'saeb_percentage_with_source_rounding',
+}
+const FREQUENCY_COMPATIBILITY = {
+  annual: 'anual',
+  biennial: 'bienal',
+  decennial_irregular: 'decenal/irregular',
+  triennial_cycle: 'ciclo trienal',
 }
 
-function operationalizationStatus(indicatorId, legalCorrespondence) {
-  if (indicatorId === 'basico_15_17') return 'methodologically_incompatible'
-  if (indicatorId === 'alfabetizacao') return 'pending_official_definition'
-  if (indicatorId === 'medio_tecnico_articulado_percentual') return 'partial'
-  if (indicatorId === 'fundamental_concluido_18_mais' || indicatorId === 'aee') return 'proxy'
-  if (saebIds.includes(indicatorId)) return 'partial'
-  if (legalCorrespondence === 'informative') return 'informational'
-  return legalCorrespondence
-}
-
-function valueDomainPolicy(indicatorId) {
-  if (['creche', 'pre_escola', 'basico_6_17', 'basico_15_17'].includes(indicatorId)) {
-    return 'allow_above_max_known_mixed_territorial_basis'
+function firstJsonDocument(contents) {
+  let depth = 0
+  let started = false
+  let inString = false
+  let escaped = false
+  for (let index = 0; index < contents.length; index += 1) {
+    const character = contents[index]
+    if (!started) {
+      if (/\s/u.test(character)) continue
+      if (character !== '{' && character !== '[') return null
+      started = true
+      depth = 1
+      continue
+    }
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === '"') {
+        inString = false
+      }
+      continue
+    }
+    if (character === '"') {
+      inString = true
+    } else if (character === '{' || character === '[') {
+      depth += 1
+    } else if (character === '}' || character === ']') {
+      depth -= 1
+      if (depth === 0) return contents.slice(0, index + 1)
+    }
   }
-  if (indicatorId === 'pos_graduacao') return 'unverifiable_above_max'
-  return 'exclude_outside_declared_domain'
+  return null
 }
 
-function sourceIds(indicatorId) {
-  if (censusIds.has(indicatorId)) return ['ibge_censo_demografico_2010_2022']
-  if (saebIds.includes(indicatorId)) return ['inep_saeb']
-  if (indicatorId === 'rendimento_magisterio') return ['pipeline_rendimento_professores_provenance_pending']
-  if (indicatorId === 'alfabetizacao') return ['pipeline_alfabetizacao_provenance_pending']
-  if (['creche', 'pre_escola', 'basico_6_17', 'basico_15_17'].includes(indicatorId)) {
-    return ['inep_censo_escolar', 'municipal_age_population_panel']
+function readJson(path, { recoverTrailingOutput = false } = {}) {
+  const contents = fs.readFileSync(path, 'utf8')
+  try {
+    return JSON.parse(contents)
+  } catch (error) {
+    if (!recoverTrailingOutput) throw error
+    const recovered = firstJsonDocument(contents)
+    if (!recovered) throw error
+    return JSON.parse(recovered)
   }
-  return ['inep_censo_escolar']
 }
 
-function limits(indicatorId, relations) {
-  const values = relations.map((relation) => relation.relationNote).filter(Boolean)
-  if (['creche', 'pre_escola', 'basico_6_17', 'basico_15_17'].includes(indicatorId)) {
-    values.push('Indicador estimado com todas as matrículas localizadas no município e a população residente da faixa etária. Por mobilidade escolar e oferta regional, o resultado pode superar 100%.')
+function stableJson(value) {
+  return `${JSON.stringify(value, null, 2)}\n`
+}
+
+function writeGeneratedFile(path, contents) {
+  const target = fileURLToPath(path)
+  const suffix = `${process.pid}-${Date.now()}`
+  const temporary = `${target}.${suffix}.tmp`
+  const backup = `${target}.${suffix}.bak`
+  fs.writeFileSync(temporary, contents, 'utf8')
+  try {
+    if (!fs.existsSync(target)) {
+      fs.renameSync(temporary, target)
+      return
+    }
+    fs.renameSync(target, backup)
+    try {
+      fs.renameSync(temporary, target)
+    } catch (error) {
+      fs.renameSync(backup, target)
+      throw error
+    }
+    fs.rmSync(backup)
+  } catch (error) {
+    if (fs.existsSync(temporary)) fs.rmSync(temporary)
+    if (fs.existsSync(backup) && !fs.existsSync(target)) {
+      fs.renameSync(backup, target)
+    }
+    throw error
   }
-  if (indicatorId === 'creche') values.push('Não mede demanda manifesta por vaga em creche.')
-  if (indicatorId === 'basico_15_17') values.push('A implementação usa meta configurada de 85%, incompatível com a Meta 4.a vigente de universalização até o terceiro ano.')
-  if (indicatorId === 'alfabetizacao') values.push('A implementação compara diretamente com 100% e omite o marco legal de 80% no quinto ano.')
-  if (saebIds.includes(indicatorId)) values.push('A priorização usa apenas nível adequado e o marco intermediário; o nível básico e a meta final ficam fora do card principal.')
-  if (indicatorId === 'aee') values.push('O denominador é total de turmas de educação especial, não o público do AEE; distância à meta está desabilitada.')
-  if (indicatorId === 'medio_tecnico_articulado_percentual') values.push('O numerador principal contém somente matrículas integradas; concomitantes ficam como apoio, embora a Meta 12.a exija integrada ou concomitante.')
-  if (indicatorId === 'fundamental_concluido_18_mais') values.push('Usa população de 18 anos ou mais; a Meta 11.b exige população de 15 anos ou mais.')
-  if (Object.hasOwn(infrastructureColumns, indicatorId)) values.push('Resposta declaratória do Censo Escolar; não comprova qualidade, funcionamento ou suficiência.')
-  if (!relations.length) values.push('Sem correspondência municipal explícita no mapa legal vigente da aplicação.')
-  return [...new Set(values)]
 }
 
-const indicators = categories.flatMap((category) => category.items.map((item) => {
-  const indicatorId = item.key
-  const relations = relationsByIndicator.get(indicatorId) ?? []
-  const formula = formulas[indicatorId] ?? { denominator: null, formula: 'fórmula não localizada na auditoria', numerator: null }
-  const mappedCorrespondence = correspondence(indicatorId, relations)
-  const legalCorrespondence = mappedCorrespondence === 'informative'
-    ? 'informational'
-    : mappedCorrespondence
+function normalizeObject(value) {
+  if (Array.isArray(value)) return value.map(normalizeObject)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, normalizeObject(value[key])]),
+    )
+  }
+  return value
+}
+
+function normalizedHash(value) {
+  return createHash('sha256')
+    .update(JSON.stringify(normalizeObject(value)))
+    .digest('hex')
+}
+
+function projectionMetadata(contract, policy) {
   return {
-    administrativeDependence: [publicIds.has(indicatorId) ? 'public' : 'all'],
-    category: category.key,
-    correspondence: legalCorrespondence,
-    legalCorrespondence,
-    legalTextValidated: relations.length > 0,
-    legalValidation: {
-      validatedAt: '2026-07-19',
-      lawVersion: 'Lei nº 15.388/2026 — texto vigente em 2026-07-19',
-      source: 'https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm',
-      validationId: 'pne-law-15388-2026-validation-v1',
-    },
-    operationalizationStatus: operationalizationStatus(indicatorId, legalCorrespondence),
-    currentImplementation: {
-      legalTextCheckedAt: '2026-07-19',
-      officialInepPerEntityDefinitionStatus: 'pending_within_180_day_legal_window',
-      tracksGoal: Boolean(targets[indicatorId]?.length) && !informationalIds.has(indicatorId),
-    },
-    denominator: formula.denominator,
-    direction: targets[indicatorId]?.[0]?.direction ?? null,
-    finality: informationalIds.has(indicatorId) ? 'context' : 'goal_monitoring',
-    formula: formula.formula,
-    indicatorId,
-    legalGoalRefs: [...new Set(relations.map((relation) => relation.legalGoalRef))],
-    limits: limits(indicatorId, relations),
-    name: item.label,
-    numerator: formula.numerator,
-    periodicity: censusIds.has(indicatorId) ? 'decenal/irregular' : saebIds.includes(indicatorId) ? 'bienal' : 'anual',
-    sourceIds: sourceIds(indicatorId),
-    targets: targets[indicatorId] ?? [],
-    territorialCut: formula.territorialCut ?? {
-      denominator: censusIds.has(indicatorId) ? 'população residente' : 'mesmo recorte declarado, salvo indicadores de atendimento',
-      numerator: censusIds.has(indicatorId) ? 'população residente' : 'município da escola ou recorte municipal da fonte',
-    },
-    unit: 'percent',
-    validRange: { maximum: indicatorId === 'medio_tecnico_articulado_percentual' ? null : 100, minimum: 0 },
-    valueDomainPolicy: valueDomainPolicy(indicatorId),
-    displayPolicy: ['creche', 'pre_escola', 'basico_6_17', 'basico_15_17'].includes(indicatorId)
-      ? 'preserve_raw_value'
-      : 'cap_to_declared_range_for_display_only',
-    configuredReferenceRole: indicatorId === 'basico_15_17'
-      ? 'legacy_reference_not_legal_target'
-      : targets[indicatorId]?.length
-        ? 'quantitative_reference'
-        : 'not_applicable',
+    generator: 'scripts/generate-diagnostic-catalog.mjs',
+    contractVersion: contract.contractVersion,
+    contractNormalizedSha256: normalizedHash(contract),
+    presentationPolicyVersion: policy.policyVersion,
+    presentationPolicyNormalizedSha256: normalizedHash(policy),
   }
-}))
-
-const catalog = {
-  catalogVersion: 'municipal-diagnostic-indicators-v2',
-  caveat: 'Catálogo canônico P0/P1. Não substitui os indicadores e projeções por ente que o Inep deve estabelecer nos 180 dias da Lei 15.388/2026.',
-  generatedAt: '2026-07-19',
-  generatedFrom: 'public/data/indicadores.json + regras P0/P1 do pipeline + Lei 15.388/2026',
-  indicatorCount: indicators.length,
-  legalTextValidation: {
-    validatedGoalTexts: 73,
-    totalGoalTexts: 73,
-    validatedAt: '2026-07-19',
-    lawVersion: 'Lei nº 15.388/2026 — texto vigente em 2026-07-19',
-    source: 'https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm',
-    validationId: 'pne-law-15388-2026-validation-v1',
-  },
-  indicators,
 }
 
-fs.writeFileSync(outputPath, `${JSON.stringify(catalog, null, 2)}\n`, 'utf8')
+function requireCondition(condition, message) {
+  if (!condition) throw new Error(`Política visual do Diagnóstico PNE 2026 inválida: ${message}`)
+}
+
+function forbiddenPaths(value, path = '$') {
+  if (Array.isArray(value)) {
+    return value.flatMap((child, index) => forbiddenPaths(child, `${path}[${index}]`))
+  }
+  if (!value || typeof value !== 'object') return []
+  return Object.entries(value).flatMap(([key, child]) => {
+    const childPath = `${path}.${key}`
+    return [
+      ...(FORBIDDEN_PRESENTATION_FIELDS.has(key) ? [childPath] : []),
+      ...forbiddenPaths(child, childPath),
+    ]
+  })
+}
+
+export function validateDiagnosticPresentationPolicy(policy, contract) {
+  requireCondition(
+    policy?.schemaVersion === 'pne2026-diagnostic-presentation-policy-v1',
+    'schemaVersion não reconhecida',
+  )
+  requireCondition(policy?.policyVersion === '1.7.0', 'policyVersion inválida')
+  const policyForbiddenPaths = forbiddenPaths(policy)
+  requireCondition(
+    policyForbiddenPaths.length === 0,
+    `campos metodológicos proibidos: ${policyForbiddenPaths.join(', ')}`,
+  )
+
+  const themeIds = new Set()
+  const themeOrders = new Set()
+  for (const theme of policy.themes ?? []) {
+    requireCondition(
+      typeof theme.themeId === 'string' && !themeIds.has(theme.themeId),
+      `themeId inválido ou duplicado: ${theme.themeId}`,
+    )
+    requireCondition(
+      Number.isInteger(theme.displayOrder)
+        && theme.displayOrder > 0
+        && !themeOrders.has(theme.displayOrder),
+      `ordem de tema inválida ou duplicada: ${theme.displayOrder}`,
+    )
+    requireCondition(typeof theme.label === 'string', `${theme.themeId}.label ausente`)
+    themeIds.add(theme.themeId)
+    themeOrders.add(theme.displayOrder)
+  }
+
+  const contractRelations = new Map(
+    contract.relations.map((relation) => [relation.relationId, relation]),
+  )
+  const expected = new Set(
+    contract.relations
+      .filter((relation) => relation.includeInDiagnostic && relation.mode !== 'hidden')
+      .map((relation) => relation.relationId),
+  )
+  const seen = new Set()
+  const ordersByTheme = new Set()
+  for (const entry of policy.relations ?? []) {
+    const extraFields = Object.keys(entry).filter((key) => !ALLOWED_RELATION_FIELDS.has(key))
+    requireCondition(
+      extraFields.length === 0,
+      `relação visual contém campos não editoriais: ${extraFields.join(', ')}`,
+    )
+    const forbiddenFields = Object.keys(entry).filter((key) => FORBIDDEN_PRESENTATION_FIELDS.has(key))
+    requireCondition(
+      forbiddenFields.length === 0,
+      `relação visual contém campos metodológicos: ${forbiddenFields.join(', ')}`,
+    )
+    const relation = contractRelations.get(entry.relationId)
+    requireCondition(relation, `relationId inexistente: ${entry.relationId}`)
+    requireCondition(!seen.has(entry.relationId), `relationId duplicado: ${entry.relationId}`)
+    requireCondition(relation.includeInDiagnostic, `${entry.relationId} não é elegível`)
+    requireCondition(relation.mode !== 'hidden', `${entry.relationId} é hidden`)
+    requireCondition(themeIds.has(entry.themeId), `themeId inexistente: ${entry.themeId}`)
+    requireCondition(
+      Number.isInteger(entry.displayOrder) && entry.displayOrder > 0,
+      `${entry.relationId}.displayOrder inválido`,
+    )
+    const themeOrder = `${entry.themeId}:${entry.displayOrder}`
+    requireCondition(!ordersByTheme.has(themeOrder), `ordem duplicada no tema: ${themeOrder}`)
+    requireCondition(
+      SUMMARY_PRIORITIES.has(entry.summaryPriority),
+      `${entry.relationId}.summaryPriority inválida`,
+    )
+    seen.add(entry.relationId)
+    ordersByTheme.add(themeOrder)
+  }
+  assert.deepEqual([...seen].sort(), [...expected].sort())
+  return policy
+}
+
+function relationType(relation) {
+  if (relation.mode === 'progress' && !relation.canDistance && !relation.canStatus) {
+    return 'contextual_proxy'
+  }
+  return relation.legacyCoverage === 'direta' ? 'direct' : 'partial_component'
+}
+
+function legalMilestones(contract, relation, { filterDimension = true } = {}) {
+  const goal = contract.goals[relation.goalId]
+  const referenceId = relation.referenceId
+    ?? `reference.${relation.goalId}.${relation.indicatorId}`
+  const references = goal.legalReferences
+    .filter((reference) => reference.referenceId === referenceId)
+  return references.flatMap((reference) => reference.milestones)
+    .filter((milestone) => (
+      !filterDimension
+      || relation.referenceDimension == null
+      || milestone.dimension === relation.referenceDimension
+    ))
+    .sort((left, right) => left.year - right.year)
+}
+
+function projectedSources(contract, indicator) {
+  const sources = indicator.sourceIds.map((sourceId) => contract.sources[sourceId])
+  return sources.every((source) => ['official', 'official_snapshot'].includes(source?.status))
+    ? indicator.sourceIds
+    : []
+}
+
+function priorityOrder(entry) {
+  const match = /^summary-(\d{2})$/.exec(entry?.displayGroup ?? '')
+  return match ? Number(match[1]) : null
+}
+
+function projectPresentationCatalog(template, contract, policy) {
+  const relationsByPair = new Map(
+    contract.relations.map((relation) => [
+      `${relation.goalId}:${relation.indicatorId}`,
+      relation,
+    ]),
+  )
+  const policyByRelation = new Map(
+    policy.relations.map((entry) => [entry.relationId, entry]),
+  )
+  const projected = structuredClone(template)
+  projected.valuePolicies.net_expansion_share_unbounded = {
+    minimum: null,
+    maximum: null,
+    publicExplanation: 'A participação usa expansões líquidas desde 2025; pode ser negativa ou superar 100% e permanece sem truncamento quando a expansão total é positiva.',
+  }
+  projected.projectionMetadata = projectionMetadata(contract, policy)
+  projected.themes = policy.themes
+    .toSorted((left, right) => left.displayOrder - right.displayOrder)
+    .map(({ themeId, displayOrder, label }) => ({
+      id: themeId,
+      order: displayOrder,
+      label,
+    }))
+  projected.results = template.results.map((legacy) => {
+    const relation = relationsByPair.get(`${legacy.goalId}:${legacy.indicatorId}`)
+    if (!relation) throw new Error(`Resultado legado sem relação canônica: ${legacy.indicatorId}`)
+    const indicator = contract.indicators[relation.indicatorId]
+    const goal = contract.goals[relation.goalId]
+    const editorial = policyByRelation.get(relation.relationId)
+    if (relation.includeInDiagnostic && !editorial) {
+      throw new Error(`Relação elegível sem apresentação: ${relation.relationId}`)
+    }
+    const milestones = legalMilestones(contract, relation)
+    const firstMilestone = milestones[0]
+    const lastMilestone = milestones.at(-1)
+    const row = {
+      ...legacy,
+      goalId: relation.goalId,
+      indicatorId: relation.indicatorId,
+      publicName: relation.publicLabelOverride ?? indicator.publicTitle,
+      themeId: editorial?.themeId ?? legacy.themeId,
+      tier: editorial?.summaryPriority === 'essential' ? 'essential' : 'complementary',
+      priorityOrder: priorityOrder(editorial),
+      relationshipType: relationType(relation),
+      direction: firstMilestone ? goal.direction : null,
+      sourceIds: projectedSources(contract, indicator),
+      valuePolicy: VALUE_POLICY_COMPATIBILITY[indicator.valuePolicyId],
+    }
+    const projectedMode = relation.legacyV2Mode ?? relation.mode
+    if (projectedMode === 'progress') {
+      delete row.monitoringMode
+    } else {
+      row.monitoringMode = projectedMode
+    }
+    if (firstMilestone) {
+      row.indicatorReference = {
+        ...row.indicatorReference,
+        value: firstMilestone.value,
+        year: firstMilestone.year,
+      }
+      row.legalGoal = {
+        ...row.legalGoal,
+        deadline: lastMilestone.year,
+      }
+      if ('target' in row.legalGoal) row.legalGoal.target = lastMilestone.value
+      if (
+        milestones.length > 1
+        && lastMilestone.year !== firstMilestone.year
+      ) {
+        row.finalReference = {
+          value: lastMilestone.value,
+          year: lastMilestone.year,
+        }
+      }
+    }
+    return row
+  })
+  projected.methodologyOverrides = Object.fromEntries(
+    Object.entries(template.methodologyOverrides ?? {}).map(([indicatorId, override]) => {
+      const relation = projectionRelationForIndicator(contract, indicatorId)
+      const indicator = contract.indicators[indicatorId]
+      if (relation?.mode !== 'complementary' || !indicator?.publicDescription) {
+        return [indicatorId, override]
+      }
+      return [
+        indicatorId,
+        {
+          ...override,
+          publicReading: indicator.publicDescription,
+        },
+      ]
+    }),
+  )
+  return projected
+}
+
+function projectionRelationForIndicator(contract, indicatorId) {
+  const relations = contract.relations.filter(
+    (relation) => relation.indicatorId === indicatorId,
+  )
+  return relations.length === 1 ? relations[0] : null
+}
+
+const ACCELERATED_CATALOG_SEEDS = {
+  educacao_indigena_cobertura_estimada_4_17: {
+    category: 'territorios',
+    territorialCut: {
+      numerator: 'município da escola',
+      denominator: 'população indígena residente municipal em 2022',
+    },
+  },
+  aee_oferta_escolas_elegiveis: {
+    category: 'educacao_especial',
+    territorialCut: {
+      numerator: 'escolas localizadas no município',
+      denominator: 'escolas localizadas no município',
+    },
+  },
+  superior_concluintes_oferta_local: {
+    category: 'educacao_superior',
+    territorialCut: {
+      numerator: 'localização da oferta do curso',
+      denominator: 'não se aplica',
+    },
+  },
+  superior_docentes_mestres_doutores_sede: {
+    category: 'educacao_superior',
+    territorialCut: {
+      numerator: 'sede administrativa da IES',
+      denominator: 'sede administrativa da IES',
+    },
+  },
+}
+
+function acceleratedIndicatorSeed(template, contract, indicatorId) {
+  const indicator = contract.indicators[indicatorId]
+  const relation = projectionRelationForIndicator(contract, indicatorId)
+  const formula = contract.formulas[indicator?.formulaId]
+  const methodology = formula?.catalogProjection
+  const seed = ACCELERATED_CATALOG_SEEDS[indicatorId]
+  requireCondition(indicator, `indicador acelerado ausente: ${indicatorId}`)
+  requireCondition(relation, `relação acelerada ausente: ${indicatorId}`)
+  requireCondition(methodology, `projeção de catálogo ausente: ${indicatorId}`)
+  requireCondition(seed, `semente de catálogo ausente: ${indicatorId}`)
+  requireCondition(
+    ['complementary', 'tracking'].includes(relation.mode),
+    `indicador acelerado sem modo público: ${indicatorId}`,
+  )
+  const legalValidation = template.indicators.find(
+    (item) => item.legalValidation,
+  )?.legalValidation
+  requireCondition(legalValidation, 'validação legal do catálogo ausente')
+
+  return {
+    administrativeDependence: ['all'],
+    category: seed.category,
+    correspondence: 'partial',
+    legalCorrespondence: 'partial',
+    legalTextValidated: true,
+    legalValidation: structuredClone(legalValidation),
+    operationalizationStatus: 'informational',
+    currentImplementation: {
+      legalTextCheckedAt: legalValidation.validatedAt,
+      officialInepPerEntityDefinitionStatus: 'pending_within_180_day_legal_window',
+      tracksGoal: false,
+    },
+    denominator: methodology.denominator,
+    direction: null,
+    finality: 'context',
+    formula: methodology.formula,
+    indicatorId,
+    legalGoalRefs: [relation.goalId],
+    limits: methodology.limits,
+    name: indicator.publicTitle,
+    numerator: methodology.numerator,
+    periodicity: FREQUENCY_COMPATIBILITY[indicator.expectedFrequency]
+      ?? indicator.expectedFrequency,
+    sourceIds: indicator.sourceIds,
+    targets: [],
+    territorialCut: seed.territorialCut,
+    unit: indicator.unit,
+    validRange: methodology.validRange,
+    valueDomainPolicy: methodology.valueDomainPolicy,
+    displayPolicy: methodology.displayPolicy,
+  }
+}
+
+function projectIndicatorCatalog(template, contract, policy) {
+  const projected = structuredClone(template)
+  projected.projectionMetadata = projectionMetadata(contract, policy)
+  projected.generatedFrom = (
+    'contracts/pne2026-goal-indicator-contract.json + '
+    + 'contracts/pne2026-diagnostic-presentation-policy.json'
+  )
+  const indicatorSeeds = [...template.indicators]
+  const registeredIds = new Set(indicatorSeeds.map((item) => item.indicatorId))
+  if (!registeredIds.has('fundamental_concluido_15_mais')) {
+    const censusCompletionSeed = indicatorSeeds.find(
+      (item) => item.indicatorId === 'fundamental_concluido_15_29',
+    )
+    requireCondition(
+      censusCompletionSeed,
+      'template do indicador fundamental_concluido_15_29 ausente',
+    )
+    indicatorSeeds.push({
+      ...structuredClone(censusCompletionSeed),
+      indicatorId: 'fundamental_concluido_15_mais',
+    })
+  }
+  for (const indicatorId of Object.keys(ACCELERATED_CATALOG_SEEDS)) {
+    if (!registeredIds.has(indicatorId)) {
+      indicatorSeeds.push(
+        acceleratedIndicatorSeed(template, contract, indicatorId),
+      )
+    }
+  }
+  projected.indicators = indicatorSeeds.map((legacy) => {
+    const indicator = contract.indicators[legacy.indicatorId]
+    if (!indicator) {
+      // Oito indicadores informativos sem relação PNE 2026 ficam congelados para
+      // compatibilidade com o ciclo anterior até a migração dos consumidores em 2B2B.
+      return legacy
+    }
+    const relation = projectionRelationForIndicator(contract, indicator.indicatorId)
+    const goal = relation ? contract.goals[relation.goalId] : null
+    const milestones = relation
+      ? legalMilestones(contract, relation, { filterDimension: false })
+      : []
+    const formula = contract.formulas[indicator.formulaId]
+    const methodology = formula?.catalogProjection
+    return {
+      ...legacy,
+      currentImplementation: {
+        ...legacy.currentImplementation,
+        tracksGoal: Boolean(
+          ['progress', 'tracking'].includes(relation?.mode)
+          && relation.canStatus,
+        ),
+      },
+      direction: milestones.length ? goal?.direction ?? null : null,
+      ...(methodology
+        ? {
+            denominator: methodology.denominator,
+            displayPolicy: methodology.displayPolicy,
+            formula: methodology.formula,
+            limits: methodology.limits,
+            name: indicator.publicTitle,
+            numerator: methodology.numerator,
+            validRange: methodology.validRange,
+            valueDomainPolicy: methodology.valueDomainPolicy,
+          }
+        : {}),
+      indicatorId: indicator.indicatorId,
+      legalGoalRefs: relation ? [relation.goalId] : [],
+      periodicity: FREQUENCY_COMPATIBILITY[indicator.expectedFrequency]
+        ?? indicator.expectedFrequency,
+      sourceIds: indicator.sourceIds,
+      targets: milestones.map((milestone) => ({
+        dimension: milestone.dimension ?? 'overall',
+        direction: milestone.direction,
+        legalGoalRef: relation.goalId,
+        validationStatus: 'official_law',
+        value: milestone.value,
+        year: milestone.year,
+      })),
+      unit: indicator.unit,
+    }
+  })
+  projected.indicatorCount = projected.indicators.length
+  return projected
+}
+
+function relationReferenceDescriptor(contract, relation) {
+  if (!relation) return null
+  if (relation.referenceId) {
+    const goal = contract.goals[relation.goalId]
+    const reference = goal?.legalReferences?.find(
+      (candidate) => candidate.referenceId === relation.referenceId,
+    )
+    const milestones = legalMilestones(contract, relation)
+    if (reference && milestones.length) {
+      return {
+        kind: 'legal',
+        referenceId: reference.referenceId,
+        validationStatus: reference.validationStatus,
+        direction: goal.direction,
+        milestones,
+      }
+    }
+  }
+
+  const monitoring = contract.monitoringReferences?.[relation.comparisonReferenceId]
+  if (!monitoring) return null
+  return {
+    kind: 'monitoring',
+    referenceId: monitoring.referenceId,
+    validationStatus: monitoring.validationStatus,
+    direction: monitoring.direction,
+    value: monitoring.value,
+    unit: monitoring.unit,
+    milestones: [],
+  }
+}
+
+function publicReferenceLabel(reference) {
+  if (!reference) return null
+  if (reference.kind === 'monitoring') return 'Referência de acompanhamento'
+  const firstYear = reference.milestones[0]?.year
+  return Number.isFinite(firstYear) ? `Meta PNE ${firstYear}` : 'Meta do PNE'
+}
+
+export function projectPublicIndicatorCatalog(template, contract) {
+  const projected = structuredClone(template)
+  const cycle = projected.cycles?.[contract.cycle.cycleId]
+  requireCondition(cycle?.categories, 'ciclo PNE 2026 ausente do catálogo público')
+
+  cycle.categories = cycle.categories.map((category) => ({
+    ...category,
+    items: category.items.map((legacy) => {
+      const indicator = contract.indicators[legacy.key]
+      if (!indicator) return legacy
+
+      const relation = projectionRelationForIndicator(contract, indicator.indicatorId)
+      const formula = contract.formulas[indicator.formulaId]
+      const reference = relationReferenceDescriptor(contract, relation)
+      const methodology = formula?.catalogProjection
+      const projectedItem = {
+        ...legacy,
+        label: relation?.publicLabelOverride ?? indicator.publicTitle,
+        desc: relation?.publicDescriptionOverride
+          ?? indicator.publicDescription
+          ?? formula?.description
+          ?? legacy.desc,
+        formulaId: indicator.formulaId,
+        formula: methodology?.formula ?? formula?.description ?? formula?.implementationKey,
+        sourceIds: indicator.sourceIds,
+        contractVersion: contract.contractVersion,
+        valuePolicyId: indicator.valuePolicyId,
+        conceptuallyMayExceed100: indicator.conceptuallyMayExceed100 === true,
+      }
+      const referenceLabel = publicReferenceLabel(reference)
+      if (referenceLabel) {
+        projectedItem.meta_label = referenceLabel
+        projectedItem.reference = reference
+      } else {
+        delete projectedItem.meta_label
+        delete projectedItem.reference
+      }
+      return projectedItem
+    }),
+  }))
+  projected.contractProjection = {
+    generator: 'scripts/generate-diagnostic-catalog.mjs',
+    contractVersion: contract.contractVersion,
+    contractNormalizedSha256: normalizedHash(contract),
+  }
+  return projected
+}
+
+function markdownCell(value) {
+  if (value == null || value === '') return '—'
+  return String(value).replaceAll('|', '\\|').replaceAll(/\r?\n/g, ' ')
+}
+
+function renderReferenceValue(reference) {
+  if (!reference) return '—'
+  if (reference.kind === 'monitoring') {
+    return `${reference.value} ${reference.unit}`
+  }
+  return reference.milestones
+    .map((milestone) => `${milestone.value} ${milestone.unit} (${milestone.year})`)
+    .join('; ')
+}
+
+export function renderPneContractDocumentation(contract) {
+  const modes = Object.groupBy(contract.relations, (relation) => relation.mode)
+  const relationRows = contract.relations
+    .toSorted((left, right) => (
+      contract.goals[left.goalId].legalOrder - contract.goals[right.goalId].legalOrder
+      || left.indicatorId.localeCompare(right.indicatorId, 'pt-BR')
+    ))
+    .map((relation) => {
+      const indicator = contract.indicators[relation.indicatorId]
+      const formula = contract.formulas[indicator.formulaId]
+      const reference = relationReferenceDescriptor(contract, relation)
+      const deadline = reference?.kind === 'legal'
+        ? reference.milestones.map((milestone) => milestone.year).join(', ')
+        : reference?.kind === 'monitoring'
+          ? 'sem prazo legal'
+          : 'não se aplica'
+      return `| ${markdownCell(relation.goalId)} | ${markdownCell(indicator.indicatorId)} | ${markdownCell(relation.mode)} | ${markdownCell(reference?.kind)} | ${markdownCell(renderReferenceValue(reference))} | ${markdownCell(deadline)} | ${markdownCell(formula?.catalogProjection?.formula ?? formula?.description ?? formula?.implementationKey)} |`
+    })
+
+  const sourceRows = Object.values(contract.sources)
+    .toSorted((left, right) => left.sourceId.localeCompare(right.sourceId, 'pt-BR'))
+    .map((source) => {
+      const officialUrl = source.officialUrl
+        ? `[link oficial](${source.officialUrl})`
+        : '—'
+      return `| ${markdownCell(source.sourceId)} | ${markdownCell(source.organization)} | ${markdownCell(source.period)} | ${officialUrl} |`
+    })
+
+  const populationSources = [
+    contract.sources.municipal_age_population_panel,
+    contract.sources.ibge_population_projection_2024,
+  ].filter(Boolean)
+  const lineageRows = populationSources.map((source) => {
+    const lineage = source.lineage ?? {}
+    const artifact = lineage.latestSourceArtifact ?? lineage.sourceArtifact ?? '—'
+    const hash = lineage.latestSourceSha256 ?? lineage.sourceSha256 ?? '—'
+    const configuration = lineage.pathConfiguration ?? '—'
+    return `| ${markdownCell(source.sourceId)} | ${markdownCell(lineage.upstreamDataset ?? source.publicTitle)} | ${markdownCell(artifact)} | \`${markdownCell(hash)}\` | \`${markdownCell(configuration)}\` |`
+  })
+
+  return [
+    '# Contrato PNE 2026–2036',
+    '',
+    '> Arquivo gerado por `scripts/generate-diagnostic-catalog.mjs`. Não edite manualmente.',
+    '',
+    `- Fonte canônica: \`contracts/pne2026-goal-indicator-contract.json\``,
+    `- Versão do contrato: \`${contract.contractVersion}\``,
+    `- Hash normalizado SHA-256: \`${normalizedHash(contract)}\``,
+    `- Metas legais: ${Object.keys(contract.goals).length}`,
+    `- Indicadores e fórmulas: ${Object.keys(contract.indicators).length}`,
+    `- Relações: ${contract.relations.length} (${modes.progress?.length ?? 0} progresso, ${modes.tracking?.length ?? 0} acompanhamento, ${modes.complementary?.length ?? 0} complementares e ${modes.hidden?.length ?? 0} ocultas)`,
+    '',
+    '## Metas, prazos e fórmulas',
+    '',
+    '| Meta | Indicador | Modo | Tipo de referência | Valor de referência | Prazo | Fórmula |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...relationRows,
+    '',
+    '## Linhagem populacional',
+    '',
+    '| Fonte | Conjunto de origem | Artefato versionado | SHA-256 | Configuração reproduzível |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...lineageRows,
+    '',
+    '## Fontes declaradas',
+    '',
+    '| Identificador | Organização | Período | URL |',
+    '| --- | --- | --- | --- |',
+    ...sourceRows,
+    '',
+  ].join('\n')
+}
+
+export function projectDiagnosticCompatibilityArtifacts({
+  contract,
+  policy,
+  indicatorCatalog,
+  presentationCatalog,
+}) {
+  validateDiagnosticPresentationPolicy(policy, contract)
+  return {
+    indicatorCatalog: projectIndicatorCatalog(indicatorCatalog, contract, policy),
+    presentationCatalog: projectPresentationCatalog(
+      presentationCatalog,
+      contract,
+      policy,
+    ),
+  }
+}
+
+function run() {
+  const check = process.argv.includes('--check')
+  const contract = readJson(contractPath)
+  const policy = readJson(policyPath)
+  const indicatorCatalog = readJson(indicatorCatalogPath)
+  const publicIndicatorCatalog = readJson(publicIndicatorCatalogPath, {
+    recoverTrailingOutput: !check,
+  })
+  const presentationCatalog = readJson(presentationCatalogPath)
+  const projected = projectDiagnosticCompatibilityArtifacts({
+    contract,
+    policy,
+    indicatorCatalog,
+    presentationCatalog,
+  })
+  const outputs = [
+    [indicatorCatalogPath, stableJson(projected.indicatorCatalog)],
+    [
+      publicIndicatorCatalogPath,
+      stableJson(projectPublicIndicatorCatalog(publicIndicatorCatalog, contract)),
+    ],
+    [
+      generatedContractDocumentationPath,
+      `${renderPneContractDocumentation(contract)}\n`,
+    ],
+    // O catálogo V2 é um artefato congelado. A política ativa é projetada
+    // somente no contrato/catálogo V3 e não reescreve a saída V2.
+  ]
+  const stale = outputs.filter(([path, contents]) => (
+    !fs.existsSync(path) || fs.readFileSync(path, 'utf8') !== contents
+  ))
+  if (check) {
+    if (stale.length) {
+      const paths = stale.map(([path]) => fileURLToPath(path)).join('\n')
+      throw new Error(`Artefatos gerados do contrato PNE desatualizados:\n${paths}`)
+    }
+    return
+  }
+  for (const [path, contents] of stale) {
+    fs.mkdirSync(new URL('.', path), { recursive: true })
+    writeGeneratedFile(path, contents)
+  }
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) run()

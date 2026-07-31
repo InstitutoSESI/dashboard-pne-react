@@ -13,7 +13,10 @@ const percentFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits:
 export const RatioDualMilestoneDetail = forwardRef(function RatioDualMilestoneDetail({
   cycle,
   details,
+  detailsStatus = 'loading',
   item,
+  legalReference,
+  presentation,
   result,
 }, ref) {
   const rows = useMemo(
@@ -24,10 +27,12 @@ export const RatioDualMilestoneDetail = forwardRef(function RatioDualMilestoneDe
   )
   const latest = rows.at(-1) ?? null
   const recentRows = rows.slice(-5)
-  const references = resolveMilestoneReferences(result)
+  const references = resolveMilestoneReferences(cycle, legalReference, result)
   const milestone = references[0] ?? null
   const finalTarget = references.at(-1) ?? null
-  const currentValue = latest?.percentual ?? null
+  const consolidatedValue = toFiniteNumber(result?.end_value)
+  const consolidatedYear = toFiniteNumber(result?.end_year)
+  const currentValue = consolidatedValue ?? latest?.percentual ?? null
   const distanceToMilestone = Number.isFinite(currentValue) && Number.isFinite(milestone?.value)
     ? currentValue - milestone.value
     : null
@@ -42,21 +47,52 @@ export const RatioDualMilestoneDetail = forwardRef(function RatioDualMilestoneDe
     details,
     indicatorKey: item?.key,
     item,
+    presentation,
     result,
     title: item?.label,
   }
 
-  if (!details || !latest) {
+  if (!latest) {
+    const hasConsolidatedValue = consolidatedValue !== null
+    const viewState = hasConsolidatedValue
+      ? 'readyWithoutBreakdown'
+      : detailsStatus === 'error'
+        ? 'error'
+        : 'unavailable'
+
     return (
-      <section className="detail-panel detail-panel--organized detail-panel--ratio-dual" ref={ref}>
+      <section
+        className="detail-panel detail-panel--organized detail-panel--ratio-dual"
+        data-ratio-detail-state={viewState}
+        ref={ref}
+      >
         <div className="detail-heading">
           <div className="detail-heading__copy">
             <h2 data-detail-title tabIndex={-1}>{getIndicatorTitle(item, result)}</h2>
           </div>
         </div>
-        <div className="state-box state-box--loading" role="status">
-          <span className="state-box__loading-heading">Carregando dados do indicador…</span>
-        </div>
+        {hasConsolidatedValue ? (
+          <ConsolidatedRatioDetail
+            currentValue={consolidatedValue}
+            currentYear={consolidatedYear}
+            presentation={presentation}
+            result={result}
+          />
+        ) : (
+          <div className="state-box state-box--empty ratio-dual-data-state" role="status">
+            <strong>
+              {viewState === 'error'
+                ? 'Não foi possível carregar o resultado'
+                : 'Resultado indisponível'}
+            </strong>
+            <p>
+              Não há resultado consolidado suficiente para apresentar este indicador no município selecionado.
+            </p>
+          </div>
+        )}
+        <footer className="pne-detail-footer ratio-dual-footer">
+          <PneSourceNotes context={sourceContext} />
+        </footer>
       </section>
     )
   }
@@ -74,7 +110,11 @@ export const RatioDualMilestoneDetail = forwardRef(function RatioDualMilestoneDe
   ].join('; ')
 
   return (
-    <section className="detail-panel detail-panel--organized detail-panel--ratio-dual" ref={ref}>
+    <section
+      className="detail-panel detail-panel--organized detail-panel--ratio-dual"
+      data-ratio-detail-state="readyWithBreakdown"
+      ref={ref}
+    >
       <div className="detail-heading">
         <div className="detail-heading__copy">
           <h2 data-detail-title tabIndex={-1}>{getIndicatorTitle(item, result)}</h2>
@@ -178,6 +218,155 @@ export const RatioDualMilestoneDetail = forwardRef(function RatioDualMilestoneDe
     </section>
   )
 })
+
+function ConsolidatedRatioDetail({
+  currentValue,
+  currentYear,
+  presentation,
+  result,
+}) {
+  const referenceValue = toFiniteNumber(result?.meta)
+  const currentText = presentation?.currentText ?? formatPercent(currentValue)
+  const referenceText = presentation?.referenceText ?? formatPercent(referenceValue)
+  const distanceText = presentation?.distanceText
+    ?? formatSignedPp(currentValue - referenceValue)
+  const statusText = presentation?.statusText
+    ?? (currentValue >= referenceValue ? 'Referência alcançada' : 'Abaixo da referência')
+  const statusTone = currentValue >= referenceValue ? 'success' : 'warning'
+
+  return (
+    <>
+      <div
+        className="ratio-dual-comparison-metrics"
+        aria-label={`${currentText}; ${referenceText}; ${distanceText}; ${statusText}`}
+      >
+        <MetricCard
+          detail="Resultado consolidado disponível para o município."
+          icon="current"
+          label={Number.isFinite(currentYear)
+            ? `Resultado disponível — ${currentYear}`
+            : 'Resultado disponível'}
+          size="large"
+          value={currentText}
+        />
+        <MetricCard
+          icon="target"
+          label={presentation?.referenceLabel ?? 'Referência prevista na meta'}
+          value={referenceText}
+        />
+        <MetricCard
+          icon="distance"
+          label={presentation?.distanceLabel ?? 'Distância da referência'}
+          tone={statusTone}
+          value={distanceText}
+        />
+        <MetricCard
+          icon="status"
+          label="Situação"
+          tone={statusTone}
+          value={statusText}
+        />
+      </div>
+
+      <ConsolidatedComparisonRuler
+        currentText={currentText}
+        currentValue={currentValue}
+        referenceLabel={presentation?.referenceLabel ?? 'Referência prevista na meta'}
+        referenceText={referenceText}
+        referenceValue={referenceValue}
+      />
+
+      <div className="ratio-dual-consolidated-grid">
+        <section className="indicator-data-card ratio-dual-consolidated-data" aria-labelledby="ratio-consolidated-data-title">
+          <header className="indicator-data-card__heading">
+            <h3 id="ratio-consolidated-data-title">Dados do indicador</h3>
+            <p>Resultado municipal consolidado no ano de referência.</p>
+          </header>
+          <div className="ratio-dual-data-state" role="note">
+            <strong>Resultado consolidado disponível.</strong>
+            <p>Os componentes de numerador e denominador não estão publicados para este recorte.</p>
+          </div>
+          <dl className="indicator-data-summary ratio-dual-consolidated-summary">
+            <div className="indicator-data-summary__item">
+              <dt>Ano</dt>
+              <dd>{Number.isFinite(currentYear) ? currentYear : '—'}</dd>
+            </div>
+            <div className="indicator-data-summary__item">
+              <dt>Resultado</dt>
+              <dd>{currentText}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <aside className="indicator-quick-reading ratio-dual-consolidated-reading" aria-label="Leitura rápida do indicador">
+          <h3>Leitura rápida</h3>
+          <ol>
+            <ReadingItem
+              label="Resultado atual"
+              text={`${currentText} em ${Number.isFinite(currentYear) ? currentYear : 'ano não informado'}.`}
+            />
+            <ReadingItem
+              label={presentation?.referenceLabel ?? 'Referência prevista na meta'}
+              text={`O valor previsto para comparação é ${referenceText}.`}
+            />
+            <ReadingItem
+              label="Situação atual"
+              text={statusText}
+            />
+            <ReadingItem
+              label={presentation?.distanceLabel ?? 'Distância da referência'}
+              text={distanceText}
+            />
+          </ol>
+        </aside>
+      </div>
+    </>
+  )
+}
+
+function ConsolidatedComparisonRuler({
+  currentText,
+  currentValue,
+  referenceLabel,
+  referenceText,
+  referenceValue,
+}) {
+  const currentPosition = valueToPosition(currentValue, 100)
+  const referencePosition = valueToPosition(referenceValue, 100)
+  const tone = currentValue >= referenceValue ? 'success' : 'warning'
+
+  return (
+    <section className="ratio-dual-ruler-card ratio-dual-ruler-card--consolidated" aria-labelledby="ratio-consolidated-ruler-title">
+      <header className="ratio-dual-section-heading">
+        <h3 id="ratio-consolidated-ruler-title">Comparação com a referência</h3>
+        <p>Resultado municipal e referência prevista na meta na escala percentual.</p>
+      </header>
+      <div
+        className="goal-progress ratio-dual-ruler"
+        role="img"
+        aria-label={`Resultado ${currentText}; ${referenceLabel} ${referenceText}.`}
+      >
+        <div className="goal-progress__track ratio-dual-ruler__track">
+          <span
+            className={`goal-progress__fill goal-progress__fill--${tone}`}
+            style={{ width: `${currentPosition}%` }}
+          />
+          <CurrentRulerMarker
+            position={currentPosition}
+            tone={tone}
+            value={currentText}
+          />
+          <RulerTarget
+            label={referenceLabel}
+            position={referencePosition}
+            tone="final"
+            value={referenceText}
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
 
 function DualMilestoneRuler({ currentValue, distanceLabel, finalTarget, milestone }) {
   const finalValue = Number(finalTarget?.value)
@@ -422,10 +611,13 @@ function normalizeComponentRows(rows) {
     .sort((a, b) => a.ano - b.ano)
 }
 
-function resolveMilestoneReferences(result) {
-  const references = (result?.meta_references ?? [])
+function resolveMilestoneReferences(cycle, legalReference, result) {
+  const sourceReferences = cycle === 'pne_2026_2036'
+    ? legalReference?.milestones
+    : result?.meta_references
+  const references = (sourceReferences ?? [])
     .map((reference) => ({
-      label: reference?.label,
+      label: reference?.label ?? `Meta PNE ${reference?.year}`,
       value: Number(reference?.value),
       year: Number(reference?.year),
     }))
@@ -433,6 +625,7 @@ function resolveMilestoneReferences(result) {
     .sort((a, b) => a.year - b.year)
 
   if (references.length > 0) return references
+  if (cycle === 'pne_2026_2036') return []
 
   const fallbackValue = Number(result?.meta)
   const fallbackYear = Number(String(result?.meta_label ?? '').match(/\d{4}/)?.[0])
@@ -480,6 +673,17 @@ function formatPercent(value, fallback = '—') {
 
 function formatPp(value) {
   return `${percentFormatter.format(Number(value))} p.p.`
+}
+
+function formatSignedPp(value) {
+  if (!Number.isFinite(value)) return '—'
+  return `${value > 0 ? '+' : ''}${percentFormatter.format(value)} p.p.`
+}
+
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
 }
 
 function formatCount(value) {

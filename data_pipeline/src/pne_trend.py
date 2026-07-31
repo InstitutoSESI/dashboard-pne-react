@@ -156,6 +156,7 @@ def calculate_trend(
     *,
     value_type: str = "percent",
     methodology_break_years: Iterable[Any] | None = None,
+    observation_interval_years: int = 1,
 ) -> dict[str, Any]:
     """Classify the latest five calendar years ending at ``card_end_year``.
 
@@ -210,9 +211,15 @@ def calculate_trend(
     observations = len(window_points)
     if observations < MIN_OBSERVATIONS:
         return _empty_trend("insufficient_observations", observations=observations)
+    if (
+        not isinstance(observation_interval_years, int)
+        or isinstance(observation_interval_years, bool)
+        or observation_interval_years < 1
+    ):
+        return _empty_trend("invalid_observation_interval", observations=observations)
     if observations == MIN_OBSERVATIONS:
         consecutive = all(
-            right_year - left_year == 1
+            right_year - left_year == observation_interval_years
             for (left_year, _), (right_year, _) in zip(
                 window_points,
                 window_points[1:],
@@ -220,7 +227,7 @@ def calculate_trend(
         )
         if not consecutive:
             return _empty_trend(
-                "three_observations_not_consecutive",
+                "three_observations_not_frequency_compatible",
                 observations=observations,
             )
 
@@ -263,6 +270,7 @@ def attach_trend(
     *,
     value_type: str = "percent",
     methodology_break_years: Iterable[Any] | None = None,
+    observation_interval_years: int = 1,
 ) -> dict[str, Any]:
     """Return a result copy with a pipeline-owned trend audit object."""
 
@@ -279,5 +287,6 @@ def attach_trend(
         result.get("end_year"),
         value_type=value_type,
         methodology_break_years=methodology_break_years,
+        observation_interval_years=observation_interval_years,
     )
     return updated

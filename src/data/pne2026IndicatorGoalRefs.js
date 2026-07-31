@@ -1,36 +1,25 @@
-export const PNE_2026_INDICATOR_GOAL_REFS = {
-  creche: '1.a',
-  pre_escola: '1.c',
-  basico_6_17: '4.a',
-  basico_15_17: '4.a',
-  idade_regular_quinto: '4.b',
-  idade_regular_nono: '4.c',
-  idade_regular_medio: '4.d',
-  alfabetizacao: '3.a',
-  saeb_matematica_anos_iniciais: '5.a',
-  saeb_matematica_anos_finais: '5.b',
-  saeb_matematica_ensino_medio: '5.d',
-  saeb_portugues_anos_iniciais: '5.a',
-  saeb_portugues_anos_finais: '5.b',
-  saeb_portugues_ensino_medio: '5.d',
-  basico_integral: '6.a',
-  escolas_integral: '6.a',
-  educacao_ambiental: '8.c',
-  alfabetizacao_pop_15_mais: '11.a',
-  fundamental_concluido_18_mais: '11.b',
-  fundamental_concluido_15_29: '11.b',
-  medio_concluido_18_mais: '11.c',
-  medio_concluido_18_29: '11.c',
-  medio_tecnico_articulado_percentual: '12.a',
-  medio_tecnico_participacao_publica: '12.a',
-  subsequente_expansao: '12.b',
-  adequacao_ai: '17.a',
-  adequacao_af: '17.a',
-  adequacao_em: '17.a',
-  rendimento_magisterio: '17.b',
-  temporarios: '17.d',
-  pos_graduacao: '17.f',
-  conselho_escolar: '18.b',
-  salas_climatizadas: '8.b',
-  salas_acessiveis: '19.c',
-}
+import {
+  PNE_2026_GOAL_INDICATOR_CONTRACT,
+  PNE_2026_RELATIONSHIP_MODES,
+  canPne2026RelationEnterCycleSummary,
+} from './pne2026GoalIndicatorContract.js'
+
+const COMPARABLE_MODES = new Set([
+  PNE_2026_RELATIONSHIP_MODES.PROGRESS,
+  PNE_2026_RELATIONSHIP_MODES.TRACKING,
+])
+
+export const PNE_2026_INDICATOR_GOAL_REFS = Object.freeze(
+  Object.fromEntries(
+    PNE_2026_GOAL_INDICATOR_CONTRACT.relations
+      .filter((relation) => (
+        relation.includeInCycleGoalRefs
+        && COMPARABLE_MODES.has(relation.mode)
+        && canPne2026RelationEnterCycleSummary(relation)
+      ))
+      .map((relation) => [
+        relation.indicatorId,
+        relation.goalId,
+      ]),
+  ),
+)

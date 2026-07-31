@@ -92,6 +92,7 @@ const ROUTE_CASES = [
   ['#pnelegalgoals', 'pne-legal-goals'],
   ['#metas-legais', 'pne-legal-goals'],
   ['#pne2014', 'pne2014'],
+  ['#pne2014?detalhe=alfabetizacao', 'pne2014'],
   ['#pne2024', 'pne2014'],
   ['#/PNE-2024', 'pne2014'],
   ['#pne2026', 'pne2026'],
@@ -118,6 +119,12 @@ test('resolve todas as rotas e aliases vigentes', () => {
   for (const [hash, expectedPage] of ROUTE_CASES) {
     assert.equal(resolveActivePageFromHash(hash), expectedPage, hash || '(hash vazio)')
   }
+})
+
+test('preserva acesso direto ao detalhe de alfabetizacao no ciclo encerrado', () => {
+  const parsed = parseAppHash('#pne2014?detalhe=alfabetizacao')
+  assert.equal(parsed.route, 'pne2014')
+  assert.equal(parsed.params.get('detalhe'), 'alfabetizacao')
 })
 
 test('normaliza letras, acentos e caracteres especiais', () => {

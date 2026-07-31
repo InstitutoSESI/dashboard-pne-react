@@ -83,7 +83,10 @@ class PneTrendTests(unittest.TestCase):
         self.assertEqual(consecutive["status"], "up")
         self.assertEqual(consecutive["observations"], 3)
         self.assertEqual(nonconsecutive["status"], "unavailable")
-        self.assertEqual(nonconsecutive["unavailable_reason"], "three_observations_not_consecutive")
+        self.assertEqual(
+            nonconsecutive["unavailable_reason"],
+            "three_observations_not_frequency_compatible",
+        )
 
     def test_invalid_values_are_not_interpolated_or_zero_filled(self):
         invalid_history = calculate_trend(
@@ -136,12 +139,20 @@ class PneTrendTests(unittest.TestCase):
             [point(2021, 1), point(2023, 2), point(2025, 3)],
             2025,
         )
+        declared_biennial = calculate_trend(
+            [point(2021, 1), point(2023, 2), point(2025, 3)],
+            2025,
+            observation_interval_years=2,
+        )
         census = calculate_trend(
             [point(2010, 1), point(2022, 2)],
             2022,
+            observation_interval_years=12,
         )
 
         self.assertEqual(biennial["status"], "unavailable")
+        self.assertNotEqual(declared_biennial["status"], "unavailable")
+        self.assertEqual(declared_biennial["observations"], 3)
         self.assertEqual(census["status"], "unavailable")
 
     def test_trend_must_end_at_the_card_year(self):

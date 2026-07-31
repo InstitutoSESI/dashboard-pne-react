@@ -8,6 +8,7 @@ import { MetricCard } from '../../../components/MetricCard.jsx'
 import { QuickReadingHeading } from '../../../components/QuickReadingHeading.jsx'
 import { SegmentedControl } from '../../../components/SegmentedControl.jsx'
 import {
+  projectionAssumptionText,
   toDisplayPercentage,
   toProjectionView,
 } from '../educationAttendancePresentation'
@@ -58,7 +59,7 @@ function resolveDomain(projection: EducationProjectionViewContract) {
     ...(projection.projected_percent ?? []),
     projection.target_percent,
   ].filter((value): value is number => Number.isFinite(value as number))
-  return getBoundedDomain(values, 'percent')
+  return getBoundedDomain(values, 'percent', { allowPercentOverflow: false })
 }
 const percentFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
@@ -131,10 +132,10 @@ export function EducationDemandSection({
           { icon: 'municipality', label: 'Município', value: selectedMunicipio },
           { icon: 'scope', label: 'Escopo', value: 'Cobertura e tempo integral' },
           { icon: 'cut', label: 'Faixas etárias', value: 'Recortes combinados' },
-          ...(lastProjectionYear ? [{ icon: 'projection' as const, label: 'Projeções', value: `Até ${lastProjectionYear}` }] : []),
+          ...(lastProjectionYear ? [{ icon: 'projection' as const, label: 'Cenários', value: `Até ${lastProjectionYear}` }] : []),
         ]}
         description={(
-          <span>Evolução observada e trajetórias futuras calculadas para indicadores de cobertura e tempo integral.</span>
+          <span>Histórico dos indicadores e cenários de atendimento até 2036, considerando a evolução das matrículas e da população.</span>
         )}
         headingRef={pageTitleRef}
         title="Cenários de atendimento escolar"
@@ -143,8 +144,8 @@ export function EducationDemandSection({
 
       {availableItems.length === 0 ? (
         <section className="detail-panel empty-panel education-attendance-empty" aria-labelledby="education-attendance-empty-title">
-          <h2 id="education-attendance-empty-title">Não há projeções disponíveis para este município</h2>
-          <p>Não foram identificados indicadores com trajetória futura para o recorte selecionado.</p>
+          <h2 id="education-attendance-empty-title">Não há cenários disponíveis para este município</h2>
+          <p>Os dados deste município ainda estão sendo atualizados. Tente novamente mais tarde.</p>
         </section>
       ) : (
         <>
@@ -218,9 +219,13 @@ function ProjectedIndicatorSection({ cut, indicator }: {
   const finalYear = projection.projected_end_year
   const targetYear = projection.target_year ?? null
   const targetValue = projection.target_percent ?? null
-  const comparable = targetYear != null && targetYear === finalYear
-  const distance = comparable ? projection.distance_to_target_2036 ?? null : null
-  const cardCount = 2 + (targetValue != null ? 1 : 0) + (targetValue != null && comparable ? 1 : 0)
+  const distance = projection.distance_to_target_2036 ?? null
+  const comparable = targetValue != null && distance != null
+  const targetLabel = projection.target_label ?? 'Referência'
+  const targetCardLabel = targetYear != null
+    ? `${targetLabel} em ${targetYear}`
+    : targetLabel
+  const cardCount = 2 + (targetValue != null ? 1 : 0) + (comparable ? 1 : 0)
   const displayTitle = DISPLAY_TITLES[indicator.indicatorKey] ?? indicator.title
   const description = indicator.kind === 'age_coverage'
     ? `Relação entre as matrículas registradas no município e a população de referência de ${indicator.ageRange}.`
@@ -257,32 +262,42 @@ function ProjectedIndicatorSection({ cut, indicator }: {
         {targetValue != null ? (
           <MetricCard
             icon="target"
-            label={`Meta do PNE em ${targetYear}`}
+            label={targetCardLabel}
             value={<PercentageValue value={toDisplayPercentage(targetValue)} />}
-            detail="Referência normativa"
+            detail={projection.target_kind === 'legal' ? 'Referência normativa' : 'Parâmetro de acompanhamento'}
           />
         ) : null}
-        {targetValue != null && comparable ? (
+        {comparable ? (
           <MetricCard
             icon="distance"
-            label="Distância para a meta"
+            label={projection.target_kind === 'legal' ? 'Distância para a meta' : 'Distância da referência'}
             value={formatDistance(distance)}
-            detail={`Cenário e meta em ${targetYear}`}
+            detail={targetYear != null && targetYear !== finalYear
+              ? `Cenário em ${finalYear} versus referência de ${targetYear}`
+              : targetYear != null
+                ? `Cenário e referência em ${targetYear}`
+                : `Cenário em ${finalYear}`}
           />
         ) : null}
       </div>
 
-      {targetValue != null && !comparable ? (
+      {projection.displayWasCapped ? (
         <p className="education-attendance-year-note" role="note">
-          O cenário termina em {finalYear}, enquanto a meta do PNE se refere a {targetYear}; por isso, não é calculada uma diferença direta.
+          Quando o cálculo ultrapassa 100%, o painel apresenta 100% para facilitar a leitura.
+        </p>
+      ) : null}
+
+      {targetValue != null && targetYear != null && targetYear !== finalYear ? (
+        <p className="education-attendance-year-note" role="note">
+          A comparação usa o cenário de {finalYear} e a {lowercaseInitial(targetLabel)} prevista para {targetYear}; ela não informa se a referência foi atingida dentro do prazo legal.
         </p>
       ) : null}
 
       <div className="education-primary-analysis education-attendance-analysis">
         <div className="indicator-chart-card educacao-main-chart-card education-attendance-main-chart">
           <header className="education-attendance-chart-heading">
-            <h3>Evolução histórica e trajetória projetada</h3>
-            <p>O traço contínuo representa o observado; o tracejado representa o período futuro.</p>
+            <h3>Evolução histórica e cenário projetado</h3>
+            <p>A linha contínua mostra os anos já observados; a linha tracejada mostra o cenário até {finalYear}.</p>
           </header>
           <IndicatorProjectionPanel
             chartHeight={300}
@@ -295,7 +310,7 @@ function ProjectedIndicatorSection({ cut, indicator }: {
               projectedLegend: indicator.kind === 'integral_coverage'
                 ? `Trajetória de planejamento até ${finalYear}`
                 : `Trajetória projetada até ${finalYear}`,
-              projectedPoint: 'Projetado',
+              projectedPoint: 'Cenário projetado',
               variant: 'attendance-focus',
             }}
             contextOnly
@@ -337,17 +352,31 @@ function AttendanceQuickReading({ indicator, projection }: {
     {
       icon: 'projection',
       label: indicator.kind === 'integral_coverage' ? 'Trajetória até a referência' : 'Cenário ao final do período',
-      text: buildProjectedEvolution(indicator, projection.raw_projected_2036, finalYear),
+      text: buildProjectedEvolution(indicator, projection.projected_2036, finalYear),
+    },
+    {
+      icon: 'projection',
+      label: 'Como foi projetado',
+      text: buildProjectionAssumptions(indicator, projection),
     },
     ...(targetValue != null ? [{
       icon: 'target',
-      label: 'Meta do PNE',
-      text: `A referência normativa é ${formatPercentage(targetValue)} em ${targetYear}.`,
+      label: projection.target_label ?? 'Referência',
+      text: projection.target_kind === 'legal'
+        ? `A referência normativa é ${formatPercentage(targetValue)}${targetYear != null ? ` em ${targetYear}` : ''}.`
+        : `O parâmetro de acompanhamento é ${formatPercentage(targetValue)} e não constitui meta legal autônoma.`,
     }] : []),
-    ...(targetValue != null && targetYear === finalYear ? [{
+    ...(targetValue != null && distance != null ? [{
       icon: 'distance',
-      label: 'Situação em relação à meta',
-      text: buildTargetSituation(distance, targetYear),
+      label: projection.target_kind === 'legal'
+        ? 'Situação em relação à meta'
+        : 'Situação em relação à referência',
+      text: buildTargetSituation({
+        distance,
+        finalYear,
+        targetKind: projection.target_kind,
+        targetYear,
+      }),
     }] : []),
   ]
 
@@ -406,19 +435,55 @@ function buildProjectedEvolution(
   finalYear: number | null,
 ) {
   if (finalValue == null || finalYear == null) return 'Não há ponto final calculável para a trajetória.'
-  return indicator.kind === 'integral_coverage'
-    ? `A trajetória de planejamento alcança ${formatPercentage(finalValue)} em ${finalYear}.`
-    : `A trajetória projetada alcança ${formatPercentage(finalValue)} em ${finalYear}.`
+  if (indicator.kind === 'integral_coverage') {
+    return `A trajetória de planejamento alcança ${formatPercentage(finalValue)} em ${finalYear}.`
+  }
+  return `O cenário indica ${formatPercentage(finalValue)} em ${finalYear}.`
 }
 
-function buildTargetSituation(distance: number | null, targetYear: number | null) {
-  if (distance == null || !Number.isFinite(distance)) return 'A comparação direta com a meta não está disponível.'
-  if (Math.abs(distance) < 0.05) return `O cenário coincide com a meta em ${targetYear}.`
-  return `O cenário termina ${formatPercentage(Math.abs(distance), ' p.p.')} ${distance > 0 ? 'acima' : 'abaixo'} da meta.`
+function buildProjectionAssumptions(
+  indicator: EducationProjectedIndicator,
+  projection: ReturnType<typeof toProjectionView>,
+) {
+  return projectionAssumptionText(
+    indicator.kind,
+    projection.trend?.selectedBasis,
+  )
+}
+
+function buildTargetSituation({
+  distance,
+  finalYear,
+  targetKind,
+  targetYear,
+}: {
+  distance: number | null
+  finalYear: number | null
+  targetKind?: EducationProjectionViewContract['target_kind']
+  targetYear: number | null
+}) {
+  if (distance == null || !Number.isFinite(distance)) return 'A comparação direta não está disponível.'
+  const reference = targetKind === 'legal' ? 'meta' : 'referência de acompanhamento'
+  const yearContext = targetYear != null && targetYear !== finalYear
+    ? ` prevista para ${targetYear}`
+    : targetYear != null
+      ? ` em ${targetYear}`
+      : ''
+  const timingNote = targetKind === 'legal' && targetYear != null && targetYear !== finalYear
+    ? ' Essa comparação não informa se ela foi atingida dentro do prazo legal.'
+    : ''
+  if (Math.abs(distance) < 0.05) {
+    return `Em ${finalYear}, o cenário coincide com a ${reference}${yearContext}.${timingNote}`
+  }
+  return `Em ${finalYear}, o cenário fica ${formatPercentage(Math.abs(distance), ' p.p.')} ${distance > 0 ? 'acima' : 'abaixo'} da ${reference}${yearContext}.${timingNote}`
 }
 
 function formatPercentage(value: number, suffix = '%') {
-  return `${percentFormatter.format(Math.min(Math.max(value, 0), 100))}${suffix}`
+  return `${percentFormatter.format(value)}${suffix}`
+}
+
+function lowercaseInitial(value: string) {
+  return value ? `${value[0].toLocaleLowerCase('pt-BR')}${value.slice(1)}` : value
 }
 
 function PercentageValue({ value }: { value: DisplayPercentage }) {
@@ -436,20 +501,22 @@ function Methodology() {
     <section className="detail-panel education-attendance-methodology" aria-labelledby="education-attendance-methodology-title">
       <header>
         <span className="educacao-explore__eyebrow">Metodologia</span>
-        <h2 id="education-attendance-methodology-title">Como as projeções são construídas</h2>
+        <h2 id="education-attendance-methodology-title">Como os cenários foram estimados</h2>
       </header>
       <div className="education-attendance-methodology__content">
         <section>
           <h3>Cobertura escolar</h3>
-          <p>A projeção parte da evolução observada das matrículas e da população do grupo etário. A tendência recente é suavizada e combinada à variação populacional estimada até 2036, com limites anuais para evitar mudanças excessivas.</p>
+          <p>As projeções combinam as matrículas registradas no município com a população estimada para cada faixa etária. Para os anos futuros, consideramos a mudança esperada da população do Rio Grande do Sul até 2036.</p>
+          <p>Nos recortes de 6 a 17 e de 4 a 17 anos, o cenário combina o histórico de matrículas do município e do Rio Grande do Sul. No atendimento de 15 a 17 anos, acompanha a evolução das matrículas no estado. Nos demais indicadores, mantém como referência o número mais recente de matrículas.</p>
+          <p>Os cenários servem como referência para o planejamento municipal e podem mudar conforme novas matrículas e estimativas populacionais forem divulgadas.</p>
         </section>
         <section>
           <h3>Tempo integral</h3>
-          <p>A trajetória de tempo integral conecta o valor observado aos marcos de referência definidos para 2031 e 2036, permitindo visualizar o ritmo de avanço necessário ao longo do período.</p>
+          <p>A trajetória parte do valor atual e mostra o avanço necessário para alcançar as referências de 2031 e 2036.</p>
         </section>
         <section className="education-attendance-methodology__sources">
           <h3>Fontes e recorte</h3>
-          <p>Censo Escolar da Educação Básica (INEP) e base populacional municipal por idade simples utilizada pelo painel. Os percentuais de cobertura usam o município da escola no numerador e a população residente no denominador.</p>
+          <p>Dados do Censo Escolar (INEP), das estimativas populacionais do Ministério da Saúde/DATASUS e das projeções populacionais do IBGE, revisão 2024. As matrículas são contadas no município da escola e comparadas com a população residente. Por isso, o cálculo pode passar de 100%; nesses casos, o painel mostra 100% para facilitar a leitura.</p>
         </section>
       </div>
     </section>

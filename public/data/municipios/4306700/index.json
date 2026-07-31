@@ -639,26 +639,42 @@
         }
       },
       "alfabetizacao": {
-        "available": false,
-        "start_year": null,
-        "end_year": null,
-        "start_value": null,
-        "end_value": null,
-        "raw_delta": null,
-        "progress_delta": null,
-        "meta": 100.0,
-        "meta_label": "Meta PNE 2024",
+        "available": true,
+        "start_year": 2023,
+        "end_year": 2024,
+        "start_value": 81.25,
+        "end_value": 26.7,
+        "raw_delta": -54.55,
+        "progress_delta": -54.55,
+        "meta": null,
+        "meta_label": "Resultado observado",
         "direction": "at_least",
-        "distance": null,
-        "atingida": false,
-        "tracks_goal": true,
+        "atingida": null,
+        "tracks_goal": false,
+        "series": [
+          {
+            "ano": 2023,
+            "valor": 81.25
+          },
+          {
+            "ano": 2024,
+            "valor": 26.7
+          }
+        ],
+        "source": "INEP — Avaliação da Alfabetização / Indicador Criança Alfabetizada.",
+        "source_id": "inep_avaliacao_alfabetizacao_crianca_alfabetizada",
+        "network": "municipal",
+        "origin_files": [
+          "alfabetizacao_2023.xlsx",
+          "alfabetizacao_2024.xlsx"
+        ],
+        "updated_at": "2026-07-30",
         "display": {
-          "start_value": "-",
-          "end_value": "-",
-          "variation": "-",
-          "distance": "-",
-          "status": "Sem dados suficientes",
-          "interpretation": "Não foi possível montar a comparação desse indicador com os dados disponíveis para o município selecionado."
+          "start_value": "81,2%",
+          "end_value": "26,7%",
+          "variation": "Queda de 54,5 p.p.",
+          "status": "Visualização informativa",
+          "interpretation": "Entre 2023 e 2024, o indicador passou de 81,2% para 26,7%. A variação no período foi de queda de 54,5 p.p.."
         }
       },
       "pos_graduacao": {
@@ -5625,8 +5641,31 @@
       "creche": {
         "available": true,
         "base_year": 2025,
+        "horizon_year": 2036,
         "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "last_observed_numerator_with_state_age_denominator",
+        "method_label": "Cenário baseado no número mais recente de matrículas e na evolução projetada da população.",
+        "formula_id": "formula.creche",
+        "reference": {
+          "kind": "legal",
+          "label": "Meta do PNE",
+          "referenceId": "reference.1.a.creche",
+          "value": 60,
+          "year": 2036,
+          "unit": "percent",
+          "direction": "at_least",
+          "validationStatus": "official_law",
+          "milestones": [
+            {
+              "year": 2036,
+              "value": 60,
+              "unit": "percent",
+              "direction": "at_least",
+              "dimension": "overall"
+            }
+          ]
+        },
         "population_age_group": "0-3",
         "historical_years": [
           2014,
@@ -5725,57 +5764,141 @@
           96.6
         ],
         "projected_numerator": [
-          52.8,
-          52.6,
-          52.5,
-          52.3,
-          52.1,
-          51.9,
-          51.7,
-          51.6,
-          51.4,
-          51.2,
-          51.0
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0,
+          53.0
         ],
         "projected_percent_raw": [
-          46.44,
-          47.28,
-          48.25,
-          48.99,
-          49.67,
-          50.29,
-          50.86,
-          51.48,
-          51.96,
-          52.41,
-          52.82
+          46.61,
+          47.64,
+          48.71,
+          49.64,
+          50.53,
+          51.36,
+          52.14,
+          52.88,
+          53.58,
+          54.25,
+          54.89
         ],
         "projected_percent": [
-          46.44,
-          47.28,
-          48.25,
-          48.99,
-          49.67,
-          50.29,
-          50.86,
-          51.48,
-          51.96,
-          52.41,
-          52.82
+          46.61,
+          47.64,
+          48.71,
+          49.64,
+          50.53,
+          51.36,
+          52.14,
+          52.88,
+          53.58,
+          54.25,
+          54.89
         ],
-        "target_percent": 60.0,
-        "projected_2036": 52.82,
-        "projected_2036_raw": 52.82,
-        "distance_to_target_2036": -7.18,
+        "target_percent": 60,
+        "projected_2036": 54.89,
+        "projected_2036_raw": 54.89,
+        "projected_at_target": 54.89,
+        "projected_at_target_raw": 54.89,
+        "distance_to_target": -5.11,
+        "status_at_target": "risco_de_nao_atingir",
+        "distance_to_target_2036": -5.11,
         "status_2036": "risco_de_nao_atingir",
+        "trend": {
+          "method": "last_observation_persistence_baseline",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -0.598214,
+          "recentAnnualChange": -2.75,
+          "selectedAnnualChangeBeforeDamping": 0.0,
+          "selectedAnnualChange": 0.0,
+          "selectedBasis": "last_observation_persistence",
+          "dampingFactor": null,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 53.0
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "0-3",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "last_observation_persistence",
+            "heldOutMaePercentagePoints": 8.0221,
+            "selectionReason": "trend_candidate_not_robust_out_of_sample"
+          }
+        },
         "quality": "media",
         "warnings": []
       },
       "pre_escola": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": 2028,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "last_observed_numerator_with_state_age_denominator",
+        "method_label": "Cenário baseado no número mais recente de matrículas e na evolução projetada da população.",
+        "formula_id": "formula.pre_escola",
+        "reference": {
+          "kind": "legal",
+          "label": "Meta do PNE",
+          "referenceId": "reference.1.c.pre_escola",
+          "value": 100,
+          "year": 2028,
+          "unit": "percent",
+          "direction": "at_least",
+          "validationStatus": "official_law",
+          "milestones": [
+            {
+              "year": 2028,
+              "value": 100,
+              "unit": "percent",
+              "direction": "at_least",
+              "dimension": "overall"
+            }
+          ]
+        },
         "population_age_group": "4-5",
         "historical_years": [
           2014,
@@ -5874,30 +5997,30 @@
           47.6
         ],
         "projected_numerator": [
-          62.8,
-          62.7,
-          62.5,
-          62.3,
-          62.1,
-          62.0,
-          61.8,
-          61.6,
-          61.4,
-          61.3,
-          61.1
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0,
+          67.0
         ],
         "projected_percent_raw": [
-          109.0,
-          111.78,
-          113.07,
-          115.38,
-          117.94,
-          120.14,
-          122.02,
-          123.78,
-          125.38,
-          127.05,
-          128.41
+          116.29,
+          119.44,
+          121.21,
+          124.08,
+          127.25,
+          129.83,
+          132.29,
+          134.63,
+          136.82,
+          138.87,
+          140.81
         ],
         "projected_percent": [
           100.0,
@@ -5912,19 +6035,113 @@
           100.0,
           100.0
         ],
-        "target_percent": 100.0,
+        "target_percent": 100,
         "projected_2036": 100.0,
-        "projected_2036_raw": 128.41,
-        "distance_to_target_2036": 0.0,
-        "status_2036": "tende_a_atingir",
+        "projected_2036_raw": 140.81,
+        "projected_at_target": 100.0,
+        "projected_at_target_raw": 121.21,
+        "distance_to_target": 0.0,
+        "status_at_target": "tende_a_atingir",
+        "distance_to_target_2036": null,
+        "status_2036": null,
+        "trend": {
+          "method": "last_observation_persistence_baseline",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -0.5,
+          "recentAnnualChange": 1.75,
+          "selectedAnnualChangeBeforeDamping": 0.0,
+          "selectedAnnualChange": 0.0,
+          "selectedBasis": "last_observation_persistence",
+          "dampingFactor": null,
+          "diverges": true,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 67.0
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "4-5",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "last_observation_persistence",
+            "previousModel": "state_aggregate_damped_holt",
+            "heldOutMaePercentagePoints": 13.176,
+            "previousModelMaePercentagePoints": 15.8213,
+            "improvementPercentagePoints": 2.6453,
+            "improvementBootstrap95": [
+              1.7792,
+              3.5227
+            ],
+            "selectionReason": "lower_error_on_held_out_municipalities"
+          }
+        },
         "quality": "media",
-        "warnings": []
+        "warnings": [
+          "Tendencias recente e de longo prazo apontam direcoes opostas; a linha de base de persistencia nao extrapola nenhuma delas.",
+          "A razão bruta superou 100%; a apresentação pública foi limitada a 100%, e o valor bruto foi preservado para auditoria."
+        ]
       },
       "basico_6_17": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": 2029,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "municipal_state_shrunk_theil_sen_log_enrollment_with_state_age_denominator",
+        "method_label": "Cenário baseado no histórico de matrículas do município e do Rio Grande do Sul, combinado à evolução projetada da população.",
+        "formula_id": "formula.basico_6_17",
+        "reference": {
+          "kind": "legal",
+          "label": "Meta do PNE",
+          "referenceId": "reference.4.a.basico_6_17",
+          "value": 100,
+          "year": 2029,
+          "unit": "percent",
+          "direction": "at_least",
+          "validationStatus": "official_law",
+          "milestones": [
+            {
+              "year": 2029,
+              "value": 100,
+              "unit": "percent",
+              "direction": "at_least",
+              "dimension": "overall"
+            }
+          ]
+        },
         "population_age_group": "6-17",
         "historical_years": [
           2014,
@@ -6023,59 +6240,158 @@
           351.9
         ],
         "projected_numerator": [
-          367.5,
-          364.0,
-          360.5,
-          357.0,
-          353.5,
-          350.0,
-          346.5,
-          343.0,
-          339.5,
-          336.0,
-          332.5
+          350.2,
+          346.3,
+          343.3,
+          340.9,
+          339.0,
+          337.5,
+          336.3,
+          335.3,
+          334.5,
+          333.9,
+          333.4
         ],
         "projected_percent_raw": [
-          88.35,
-          87.98,
-          87.77,
-          87.77,
-          88.05,
-          88.63,
-          89.46,
-          90.65,
-          91.94,
-          93.15,
-          94.48
+          84.19,
+          83.7,
+          83.58,
+          83.81,
+          84.44,
+          85.46,
+          86.82,
+          88.62,
+          90.59,
+          92.57,
+          94.73
         ],
         "projected_percent": [
-          87.13,
-          87.98,
-          87.77,
-          87.77,
-          88.05,
-          88.63,
-          89.46,
-          90.65,
-          91.94,
-          93.15,
-          94.48
+          84.19,
+          83.7,
+          83.58,
+          83.81,
+          84.44,
+          85.46,
+          86.82,
+          88.62,
+          90.59,
+          92.57,
+          94.73
         ],
-        "target_percent": 100.0,
-        "projected_2036": 94.48,
-        "projected_2036_raw": 94.48,
-        "distance_to_target_2036": -5.52,
-        "status_2036": "risco_de_nao_atingir",
+        "target_percent": 100,
+        "projected_2036": 94.73,
+        "projected_2036_raw": 94.73,
+        "projected_at_target": 83.81,
+        "projected_at_target_raw": 83.81,
+        "distance_to_target": -16.19,
+        "status_at_target": "risco_de_nao_atingir",
+        "distance_to_target_2036": null,
+        "status_2036": null,
+        "trend": {
+          "method": "municipal_state_shrunk_theil_sen_log_v1",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -14.539683,
+          "recentAnnualChange": -10.0,
+          "selectedAnnualChangeBeforeDamping": -4.8,
+          "selectedAnnualChange": -4.8,
+          "selectedBasis": "municipal_state_shrunk_theil_sen_log",
+          "dampingFactor": 0.8,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 355.0,
+          "municipalStateModel": {
+            "candidateId": "municipal_shrink_h2014_w5_d0.80_all_years_k4",
+            "historyStartYear": 2014,
+            "windowObservations": 5,
+            "damping": 0.8,
+            "shrinkage": 4.0,
+            "excludedYears": [],
+            "maximumAbsoluteAnnualLogTrend": 0.15,
+            "municipalAnnualLogTrend": -0.02694882969074297,
+            "stateAnnualLogTrend": -0.004754110967342129,
+            "selectedAnnualLogTrend": -0.017084510258120373,
+            "municipalObservationCount": 5,
+            "stateObservationCount": 5,
+            "municipalWeight": 0.5555555555555556,
+            "stateWeight": 0.4444444444444444,
+            "fallback": null,
+            "territory": "Rio Grande do Sul"
+          }
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "6-17",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "municipal_state_shrunk_theil_sen_log",
+            "selectedCandidate": "municipal_shrink_h2014_w5_d0.80_all_years_k4",
+            "heldOutMaePercentagePoints": 4.7686,
+            "persistenceMaePercentagePoints": 5.7106,
+            "improvementPercentagePoints": 0.942,
+            "improvementBootstrap95": [
+              0.5064,
+              1.3788
+            ],
+            "selectionReason": "lower_error_on_held_out_municipalities"
+          }
+        },
         "quality": "media",
-        "warnings": [
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 88.3%)"
-        ]
+        "warnings": []
       },
       "basico_15_17": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": null,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "state_aggregate_damped_holt_enrollment_with_state_age_denominator",
+        "method_label": "Cenário baseado na evolução das matrículas no Rio Grande do Sul e na evolução projetada da população do município.",
+        "formula_id": "formula.basico_15_17",
+        "reference": {
+          "kind": "monitoring",
+          "label": "Referência de acompanhamento",
+          "referenceId": "monitoring.4.a.basico_15_17",
+          "value": 100,
+          "year": null,
+          "unit": "percent",
+          "direction": "at_least",
+          "validationStatus": "municipal_monitoring",
+          "milestones": []
+        },
         "population_age_group": "15-17",
         "historical_years": [
           2014,
@@ -6174,66 +6490,138 @@
           102.4
         ],
         "projected_numerator": [
-          80.1,
-          78.2,
-          76.2,
-          74.3,
-          72.4,
-          70.5,
-          68.5,
-          66.6,
-          64.7,
-          62.8,
-          60.8
+          77.4,
+          76.0,
+          74.7,
+          73.6,
+          72.5,
+          71.6,
+          70.8,
+          70.0,
+          69.3,
+          68.7,
+          68.2
         ],
         "projected_percent_raw": [
-          76.35,
-          73.91,
-          70.78,
-          67.93,
-          65.14,
-          62.84,
-          61.32,
-          60.47,
-          59.89,
-          59.36,
-          59.39
+          73.78,
+          71.83,
+          69.38,
+          67.29,
+          65.23,
+          63.82,
+          63.38,
+          63.55,
+          64.14,
+          64.94,
+          66.62
         ],
         "projected_percent": [
-          76.35,
-          74.35,
-          72.35,
-          70.35,
-          68.35,
-          66.35,
-          64.35,
-          62.35,
-          60.35,
-          59.36,
-          59.39
+          73.78,
+          71.83,
+          69.38,
+          67.29,
+          65.23,
+          63.82,
+          63.38,
+          63.55,
+          64.14,
+          64.94,
+          66.62
         ],
-        "target_percent": 85.0,
-        "projected_2036": 59.39,
-        "projected_2036_raw": 59.39,
-        "distance_to_target_2036": -25.61,
-        "status_2036": "risco_de_nao_atingir",
+        "target_percent": 100,
+        "projected_2036": 66.62,
+        "projected_2036_raw": 66.62,
+        "projected_at_target": null,
+        "projected_at_target_raw": null,
+        "distance_to_target": null,
+        "status_at_target": null,
+        "distance_to_target_2036": null,
+        "status_2036": null,
+        "trend": {
+          "method": "state_aggregate_damped_holt_v1",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -7.4375,
+          "recentAnnualChange": -5.5,
+          "selectedAnnualChangeBeforeDamping": -1.6,
+          "selectedAnnualChange": -1.6,
+          "selectedBasis": "state_aggregate_damped_holt",
+          "dampingFactor": 0.9,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 79.0,
+          "aggregateModel": {
+            "territory": "Rio Grande do Sul",
+            "alpha": 0.4,
+            "beta": 0.3,
+            "damping": 0.9,
+            "transform": "identity",
+            "anchoredAtLastObservation": true,
+            "stateBaseValue": 351469.0
+          }
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "15-17",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário parte do número mais recente de matrículas do município, acompanha a evolução das matrículas no Rio Grande do Sul e considera a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "state_aggregate_damped_holt",
+            "heldOutMaePercentagePoints": 11.1405,
+            "persistenceMaePercentagePoints": 13.5504,
+            "improvementPercentagePoints": 2.4099,
+            "improvementBootstrap95": [
+              2.0683,
+              2.7293
+            ],
+            "selectionReason": "lower_error_on_held_out_municipalities"
+          }
+        },
         "quality": "media",
-        "warnings": [
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 73.9%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 70.8%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 67.9%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 65.1%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 62.8%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 61.3%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 60.5%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 59.9%)"
-        ]
+        "warnings": []
       },
       "infantil_0_5": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": null,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "last_observed_numerator_with_state_age_denominator",
+        "method_label": "Cenário baseado no número mais recente de matrículas e na evolução projetada da população.",
+        "formula_id": null,
+        "reference": null,
         "population_age_group": "0-5",
         "historical_years": [
           2014,
@@ -6332,57 +6720,123 @@
           144.1
         ],
         "projected_numerator": [
-          111.5,
-          111.1,
-          110.6,
-          110.2,
-          109.7,
-          109.3,
-          108.8,
-          108.3,
-          107.9,
-          107.4,
-          107.0
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0,
+          112.0
         ],
         "projected_percent_raw": [
-          65.1,
-          66.41,
-          67.42,
-          68.57,
-          69.65,
-          70.63,
-          71.47,
-          72.23,
-          72.99,
-          73.62,
-          74.27
+          65.39,
+          66.95,
+          68.27,
+          69.69,
+          71.11,
+          72.37,
+          73.57,
+          74.7,
+          75.77,
+          76.78,
+          77.74
         ],
         "projected_percent": [
-          65.1,
-          66.41,
-          67.42,
-          68.57,
-          69.65,
-          70.63,
-          71.47,
-          72.23,
-          72.99,
-          73.62,
-          74.27
+          65.39,
+          66.95,
+          68.27,
+          69.69,
+          71.11,
+          72.37,
+          73.57,
+          74.7,
+          75.77,
+          76.78,
+          77.74
         ],
         "target_percent": null,
-        "projected_2036": 74.27,
-        "projected_2036_raw": 74.27,
+        "projected_2036": 77.74,
+        "projected_2036_raw": 77.74,
+        "projected_at_target": null,
+        "projected_at_target_raw": null,
+        "distance_to_target": null,
+        "status_at_target": null,
         "distance_to_target_2036": null,
         "status_2036": null,
+        "trend": {
+          "method": "last_observation_persistence_baseline",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -1.527778,
+          "recentAnnualChange": -3.208333,
+          "selectedAnnualChangeBeforeDamping": 0.0,
+          "selectedAnnualChange": 0.0,
+          "selectedBasis": "last_observation_persistence",
+          "dampingFactor": null,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 112.0
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "0-5",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "last_observation_persistence",
+            "heldOutMaePercentagePoints": 7.1552,
+            "selectionReason": "trend_candidate_not_robust_out_of_sample"
+          }
+        },
         "quality": "media",
         "warnings": []
       },
       "obrigatoria_4_17": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": null,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "municipal_state_shrunk_theil_sen_log_enrollment_with_state_age_denominator",
+        "method_label": "Cenário baseado no histórico de matrículas do município e do Rio Grande do Sul, combinado à evolução projetada da população.",
+        "formula_id": null,
+        "reference": null,
         "population_age_group": "4-17",
         "historical_years": [
           2014,
@@ -6481,60 +6935,148 @@
           399.3
         ],
         "projected_numerator": [
-          433.9,
-          430.7,
-          427.6,
-          424.4,
-          421.3,
-          418.1,
-          415.0,
-          411.8,
-          408.7,
-          405.5,
-          402.4
+          408.2,
+          403.5,
+          399.9,
+          397.0,
+          394.7,
+          392.8,
+          391.4,
+          390.2,
+          389.3,
+          388.5,
+          387.9
         ],
         "projected_percent_raw": [
-          91.65,
-          91.72,
-          91.81,
-          92.17,
-          92.85,
-          93.72,
-          94.83,
-          96.26,
-          97.79,
-          99.22,
-          100.78
+          86.23,
+          85.93,
+          85.87,
+          86.22,
+          86.99,
+          88.05,
+          89.44,
+          91.21,
+          93.15,
+          95.06,
+          97.14
         ],
         "projected_percent": [
-          88.79,
-          90.79,
-          91.81,
-          92.17,
-          92.85,
-          93.72,
-          94.83,
-          96.26,
-          97.79,
-          99.22,
-          100.0
+          86.23,
+          85.93,
+          85.87,
+          86.22,
+          86.99,
+          88.05,
+          89.44,
+          91.21,
+          93.15,
+          95.06,
+          97.14
         ],
         "target_percent": null,
-        "projected_2036": 100.0,
-        "projected_2036_raw": 100.78,
+        "projected_2036": 97.14,
+        "projected_2036_raw": 97.14,
+        "projected_at_target": null,
+        "projected_at_target_raw": null,
+        "distance_to_target": null,
+        "status_at_target": null,
         "distance_to_target_2036": null,
         "status_2036": null,
+        "trend": {
+          "method": "municipal_state_shrunk_theil_sen_log_v1",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -14.6875,
+          "recentAnnualChange": -9.0,
+          "selectedAnnualChangeBeforeDamping": -5.8,
+          "selectedAnnualChange": -5.8,
+          "selectedBasis": "municipal_state_shrunk_theil_sen_log",
+          "dampingFactor": 0.8,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 414.0,
+          "municipalStateModel": {
+            "candidateId": "municipal_shrink_h2014_w8_d0.80_all_years_k4",
+            "historyStartYear": 2014,
+            "windowObservations": 8,
+            "damping": 0.8,
+            "shrinkage": 4.0,
+            "excludedYears": [],
+            "maximumAbsoluteAnnualLogTrend": 0.15,
+            "municipalAnnualLogTrend": -0.024762081195420595,
+            "stateAnnualLogTrend": -0.0037132024460178785,
+            "selectedAnnualLogTrend": -0.017745788278953022,
+            "municipalObservationCount": 8,
+            "stateObservationCount": 8,
+            "municipalWeight": 0.6666666666666666,
+            "stateWeight": 0.33333333333333337,
+            "fallback": null,
+            "territory": "Rio Grande do Sul"
+          }
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "4-17",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "municipal_state_shrunk_theil_sen_log",
+            "selectedCandidate": "municipal_shrink_h2014_w8_d0.80_all_years_k4",
+            "heldOutMaePercentagePoints": 4.5609,
+            "persistenceMaePercentagePoints": 5.3054,
+            "improvementPercentagePoints": 0.7445,
+            "improvementBootstrap95": [
+              0.3456,
+              1.1358
+            ],
+            "selectionReason": "lower_error_on_held_out_municipalities"
+          }
+        },
         "quality": "media",
-        "warnings": [
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.7%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.7%)"
-        ]
+        "warnings": []
       },
       "escolar_6_14": {
         "available": true,
         "base_year": 2025,
-        "target_year": 2036,
-        "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+        "horizon_year": 2036,
+        "target_year": null,
+        "methodology_version": "pne2026-municipal-attendance-backtested-hybrid-v3",
+        "method": "last_observed_numerator_with_state_age_denominator",
+        "method_label": "Cenário baseado no número mais recente de matrículas e na evolução projetada da população.",
+        "formula_id": null,
+        "reference": null,
         "population_age_group": "6-14",
         "historical_years": [
           2014,
@@ -6633,39 +7175,39 @@
           250.4
         ],
         "projected_numerator": [
-          283.5,
-          283.0,
-          282.4,
-          281.9,
-          281.4,
-          280.9,
-          280.3,
-          279.8,
-          279.3,
-          278.8,
-          278.2
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0,
+          276.0
         ],
         "projected_percent_raw": [
-          91.14,
-          91.88,
-          93.11,
-          94.66,
-          96.74,
-          99.11,
-          101.4,
-          103.99,
-          106.58,
-          109.01,
-          111.12
+          88.73,
+          89.61,
+          91.0,
+          92.68,
+          94.88,
+          97.38,
+          99.85,
+          102.57,
+          105.32,
+          107.91,
+          110.25
         ],
         "projected_percent": [
-          90.46,
-          91.88,
-          93.11,
-          94.66,
-          96.66,
-          98.66,
-          100.0,
+          88.73,
+          89.61,
+          91.0,
+          92.68,
+          94.88,
+          97.38,
+          99.85,
           100.0,
           100.0,
           100.0,
@@ -6673,14 +7215,73 @@
         ],
         "target_percent": null,
         "projected_2036": 100.0,
-        "projected_2036_raw": 111.12,
+        "projected_2036_raw": 110.25,
+        "projected_at_target": null,
+        "projected_at_target_raw": null,
+        "distance_to_target": null,
+        "status_at_target": null,
         "distance_to_target_2036": null,
         "status_2036": null,
+        "trend": {
+          "method": "last_observation_persistence_baseline",
+          "historicalDiagnosticMethod": "theil_sen",
+          "longTermAnnualChange": -7.22619,
+          "recentAnnualChange": -1.5,
+          "selectedAnnualChangeBeforeDamping": 0.0,
+          "selectedAnnualChange": 0.0,
+          "selectedBasis": "last_observation_persistence",
+          "dampingFactor": null,
+          "diverges": false,
+          "observationCount": 12,
+          "recentWindowObservationCount": 5,
+          "baseYear": 2025,
+          "baseValue": 276.0
+        },
+        "denominator_model": {
+          "method": "municipal_base_scaled_by_rs_age_group_change",
+          "methodCode": "municipal_base_times_rs_age_factor",
+          "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+          "historicalPopulationSourceId": "municipal_age_population_panel",
+          "projectionSourceId": "ibge_population_projection_2024",
+          "projectionRevision": "2024",
+          "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+          "populationAgeGroup": "6-14",
+          "municipalBaseYear": 2025,
+          "stateProjectionBaseYear": 2025,
+          "territorialBasis": "população residente municipal"
+        },
+        "uncertainty": {
+          "status": "backtested_no_probability_interval",
+          "interval": null,
+          "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+          "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+          "backtest": {
+            "method": "rolling_origin_with_held_out_municipalities",
+            "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+            "valuePolicy": "raw_without_display_cap",
+            "displayCapApplied": false,
+            "unit": "percentage_points",
+            "validatedHorizonsYears": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "developmentMunicipalities": 379,
+            "heldOutMunicipalities": 118,
+            "heldOutPeriod": [
+              2023,
+              2025
+            ],
+            "selectedModel": "last_observation_persistence",
+            "heldOutMaePercentagePoints": 5.5472,
+            "selectionReason": "persistence_had_lower_development_error"
+          }
+        },
         "quality": "media",
         "warnings": [
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.1%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 96.7%)",
-          "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 99.1%)"
+          "A razão bruta superou 100%; a apresentação pública foi limitada a 100%, e o valor bruto foi preservado para auditoria."
         ]
       }
     },
@@ -8058,7 +8659,7 @@
           "indicatorKey": "creche",
           "indicatorType": "age_coverage_proxy",
           "kind": "age_coverage",
-          "title": "Atendimento em creche",
+          "title": "Matrículas de crianças de 0 a 3 anos em relação à população residente estimada",
           "ageRange": "0 a 3 anos",
           "ageRangeDetails": {
             "start": 0,
@@ -8075,92 +8676,122 @@
             "numerator": "mat_basico_0_3",
             "denominator": "pop_0_3"
           },
+          "formulaId": "formula.creche",
+          "sourceIds": [
+            "inep_censo_escolar",
+            "municipal_age_population_panel"
+          ],
           "observed": {
             "year": 2025,
             "numerator": 53.0,
             "denominator": 116.0,
-            "rawValue": 45.69
+            "rawValue": 45.69,
+            "displayValue": 45.69
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 66.0,
               "denominator": 153.0,
-              "rawValue": 43.14
+              "rawValue": 43.14,
+              "displayValue": 43.14
             },
             {
               "year": 2015,
               "numerator": 58.0,
               "denominator": 150.0,
-              "rawValue": 38.67
+              "rawValue": 38.67,
+              "displayValue": 38.67
             },
             {
               "year": 2016,
               "numerator": 49.0,
               "denominator": 146.0,
-              "rawValue": 33.56
+              "rawValue": 33.56,
+              "displayValue": 33.56
             },
             {
               "year": 2017,
               "numerator": 58.0,
               "denominator": 143.0,
-              "rawValue": 40.56
+              "rawValue": 40.56,
+              "displayValue": 40.56
             },
             {
               "year": 2018,
               "numerator": 57.0,
               "denominator": 141.0,
-              "rawValue": 40.43
+              "rawValue": 40.43,
+              "displayValue": 40.43
             },
             {
               "year": 2019,
               "numerator": 69.0,
               "denominator": 140.0,
-              "rawValue": 49.29
+              "rawValue": 49.29,
+              "displayValue": 49.29
             },
             {
               "year": 2020,
               "numerator": 54.0,
               "denominator": 136.0,
-              "rawValue": 39.71
+              "rawValue": 39.71,
+              "displayValue": 39.71
             },
             {
               "year": 2021,
               "numerator": 63.0,
               "denominator": 135.0,
-              "rawValue": 46.67
+              "rawValue": 46.67,
+              "displayValue": 46.67
             },
             {
               "year": 2022,
               "numerator": 62.0,
               "denominator": 130.0,
-              "rawValue": 47.69
+              "rawValue": 47.69,
+              "displayValue": 47.69
             },
             {
               "year": 2023,
               "numerator": 43.0,
               "denominator": 123.0,
-              "rawValue": 34.96
+              "rawValue": 34.96,
+              "displayValue": 34.96
             },
             {
               "year": 2024,
               "numerator": 56.0,
               "denominator": 120.0,
-              "rawValue": 46.67
+              "rawValue": 46.67,
+              "displayValue": 46.67
             },
             {
               "year": 2025,
               "numerator": 53.0,
               "denominator": 116.0,
-              "rawValue": 45.69
+              "rawValue": 45.69,
+              "displayValue": 45.69
             }
           ],
           "reference": {
-            "value": 60.0,
-            "unit": "percent",
-            "validationStatus": "configured_unvalidated",
+            "kind": "legal",
+            "label": "Meta do PNE",
+            "referenceId": "reference.1.a.creche",
+            "value": 60,
             "year": 2036,
-            "direction": "at_least"
+            "unit": "percent",
+            "direction": "at_least",
+            "validationStatus": "official_law",
+            "milestones": [
+              {
+                "year": 2036,
+                "value": 60,
+                "unit": "percent",
+                "direction": "at_least",
+                "dimension": "overall"
+              }
+            ]
           },
           "populationModel": {
             "status": "modeled",
@@ -8175,84 +8806,184 @@
             "percentageChange": -16.72,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 8.0221,
+                "selectionReason": "trend_candidate_not_robust_out_of_sample"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "last_observed_numerator_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 52.8,
+                "numerator": 53.0,
                 "denominator": 113.7,
-                "rawValue": 46.44
+                "rawValue": 46.61,
+                "displayValue": 46.61
               },
               {
                 "year": 2027,
-                "numerator": 52.6,
+                "numerator": 53.0,
                 "denominator": 111.2,
-                "rawValue": 47.28
+                "rawValue": 47.64,
+                "displayValue": 47.64
               },
               {
                 "year": 2028,
-                "numerator": 52.5,
+                "numerator": 53.0,
                 "denominator": 108.8,
-                "rawValue": 48.25
+                "rawValue": 48.71,
+                "displayValue": 48.71
               },
               {
                 "year": 2029,
-                "numerator": 52.3,
+                "numerator": 53.0,
                 "denominator": 106.8,
-                "rawValue": 48.99
+                "rawValue": 49.64,
+                "displayValue": 49.64
               },
               {
                 "year": 2030,
-                "numerator": 52.1,
+                "numerator": 53.0,
                 "denominator": 104.9,
-                "rawValue": 49.67
+                "rawValue": 50.53,
+                "displayValue": 50.53
               },
               {
                 "year": 2031,
-                "numerator": 51.9,
+                "numerator": 53.0,
                 "denominator": 103.2,
-                "rawValue": 50.29
+                "rawValue": 51.36,
+                "displayValue": 51.36
               },
               {
                 "year": 2032,
-                "numerator": 51.7,
+                "numerator": 53.0,
                 "denominator": 101.7,
-                "rawValue": 50.86
+                "rawValue": 52.14,
+                "displayValue": 52.14
               },
               {
                 "year": 2033,
-                "numerator": 51.6,
+                "numerator": 53.0,
                 "denominator": 100.2,
-                "rawValue": 51.48
+                "rawValue": 52.88,
+                "displayValue": 52.88
               },
               {
                 "year": 2034,
-                "numerator": 51.4,
+                "numerator": 53.0,
                 "denominator": 98.9,
-                "rawValue": 51.96
+                "rawValue": 53.58,
+                "displayValue": 53.58
               },
               {
                 "year": 2035,
-                "numerator": 51.2,
+                "numerator": 53.0,
                 "denominator": 97.7,
-                "rawValue": 52.41
+                "rawValue": 54.25,
+                "displayValue": 54.25
               },
               {
                 "year": 2036,
-                "numerator": 51.0,
+                "numerator": 53.0,
                 "denominator": 96.6,
-                "rawValue": 52.82
+                "rawValue": 54.89,
+                "displayValue": 54.89
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "last_observation_persistence_baseline",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -0.598214,
+              "recentAnnualChange": -2.75,
+              "selectedAnnualChangeBeforeDamping": 0.0,
+              "selectedAnnualChange": 0.0,
+              "selectedBasis": "last_observation_persistence",
+              "dampingFactor": null,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 53.0
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "0-3",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 8.0221,
+                "selectionReason": "trend_candidate_not_robust_out_of_sample"
+              }
+            }
           },
           "historicalChangePercentagePoints": 2.55,
           "diagnostics": {
@@ -8278,7 +9009,7 @@
           "indicatorKey": "pre_escola",
           "indicatorType": "age_coverage_proxy",
           "kind": "age_coverage",
-          "title": "Atendimento na pré-escola",
+          "title": "Matrículas de crianças de 4 a 5 anos em relação à população residente estimada",
           "ageRange": "4 a 5 anos",
           "ageRangeDetails": {
             "start": 4,
@@ -8295,92 +9026,122 @@
             "numerator": "mat_infantil_pre",
             "denominator": "pop_4_5"
           },
+          "formulaId": "formula.pre_escola",
+          "sourceIds": [
+            "inep_censo_escolar",
+            "municipal_age_population_panel"
+          ],
           "observed": {
             "year": 2025,
             "numerator": 67.0,
             "denominator": 60.0,
-            "rawValue": 111.67
+            "rawValue": 111.67,
+            "displayValue": 100.0
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 68.0,
               "denominator": 70.0,
-              "rawValue": 97.14
+              "rawValue": 97.14,
+              "displayValue": 97.14
             },
             {
               "year": 2015,
               "numerator": 73.0,
               "denominator": 70.0,
-              "rawValue": 104.29
+              "rawValue": 104.29,
+              "displayValue": 100.0
             },
             {
               "year": 2016,
               "numerator": 74.0,
               "denominator": 73.0,
-              "rawValue": 101.37
+              "rawValue": 101.37,
+              "displayValue": 100.0
             },
             {
               "year": 2017,
               "numerator": 58.0,
               "denominator": 74.0,
-              "rawValue": 78.38
+              "rawValue": 78.38,
+              "displayValue": 78.38
             },
             {
               "year": 2018,
               "numerator": 45.0,
               "denominator": 72.0,
-              "rawValue": 62.5
+              "rawValue": 62.5,
+              "displayValue": 62.5
             },
             {
               "year": 2019,
               "numerator": 68.0,
               "denominator": 73.0,
-              "rawValue": 93.15
+              "rawValue": 93.15,
+              "displayValue": 93.15
             },
             {
               "year": 2020,
               "numerator": 62.0,
               "denominator": 72.0,
-              "rawValue": 86.11
+              "rawValue": 86.11,
+              "displayValue": 86.11
             },
             {
               "year": 2021,
               "numerator": 70.0,
               "denominator": 68.0,
-              "rawValue": 102.94
+              "rawValue": 102.94,
+              "displayValue": 100.0
             },
             {
               "year": 2022,
               "numerator": 57.0,
               "denominator": 65.0,
-              "rawValue": 87.69
+              "rawValue": 87.69,
+              "displayValue": 87.69
             },
             {
               "year": 2023,
               "numerator": 62.0,
               "denominator": 64.0,
-              "rawValue": 96.88
+              "rawValue": 96.88,
+              "displayValue": 96.88
             },
             {
               "year": 2024,
               "numerator": 63.0,
               "denominator": 61.0,
-              "rawValue": 103.28
+              "rawValue": 103.28,
+              "displayValue": 100.0
             },
             {
               "year": 2025,
               "numerator": 67.0,
               "denominator": 60.0,
-              "rawValue": 111.67
+              "rawValue": 111.67,
+              "displayValue": 100.0
             }
           ],
           "reference": {
-            "value": 100.0,
+            "kind": "legal",
+            "label": "Meta do PNE",
+            "referenceId": "reference.1.c.pre_escola",
+            "value": 100,
+            "year": 2028,
             "unit": "percent",
-            "validationStatus": "configured_unvalidated",
-            "year": 2036,
-            "direction": "at_least"
+            "direction": "at_least",
+            "validationStatus": "official_law",
+            "milestones": [
+              {
+                "year": 2028,
+                "value": 100,
+                "unit": "percent",
+                "direction": "at_least",
+                "dimension": "overall"
+              }
+            ]
           },
           "populationModel": {
             "status": "modeled",
@@ -8395,86 +9156,200 @@
             "percentageChange": -20.67,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "previousModel": "state_aggregate_damped_holt",
+                "heldOutMaePercentagePoints": 13.176,
+                "previousModelMaePercentagePoints": 15.8213,
+                "improvementPercentagePoints": 2.6453,
+                "improvementBootstrap95": [
+                  1.7792,
+                  3.5227
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "last_observed_numerator_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 62.8,
+                "numerator": 67.0,
                 "denominator": 57.6,
-                "rawValue": 109.0
+                "rawValue": 116.29,
+                "displayValue": 100.0
               },
               {
                 "year": 2027,
-                "numerator": 62.7,
+                "numerator": 67.0,
                 "denominator": 56.1,
-                "rawValue": 111.78
+                "rawValue": 119.44,
+                "displayValue": 100.0
               },
               {
                 "year": 2028,
-                "numerator": 62.5,
+                "numerator": 67.0,
                 "denominator": 55.3,
-                "rawValue": 113.07
+                "rawValue": 121.21,
+                "displayValue": 100.0
               },
               {
                 "year": 2029,
-                "numerator": 62.3,
+                "numerator": 67.0,
                 "denominator": 54.0,
-                "rawValue": 115.38
+                "rawValue": 124.08,
+                "displayValue": 100.0
               },
               {
                 "year": 2030,
-                "numerator": 62.1,
+                "numerator": 67.0,
                 "denominator": 52.7,
-                "rawValue": 117.94
+                "rawValue": 127.25,
+                "displayValue": 100.0
               },
               {
                 "year": 2031,
-                "numerator": 62.0,
+                "numerator": 67.0,
                 "denominator": 51.6,
-                "rawValue": 120.14
+                "rawValue": 129.83,
+                "displayValue": 100.0
               },
               {
                 "year": 2032,
-                "numerator": 61.8,
+                "numerator": 67.0,
                 "denominator": 50.6,
-                "rawValue": 122.02
+                "rawValue": 132.29,
+                "displayValue": 100.0
               },
               {
                 "year": 2033,
-                "numerator": 61.6,
+                "numerator": 67.0,
                 "denominator": 49.8,
-                "rawValue": 123.78
+                "rawValue": 134.63,
+                "displayValue": 100.0
               },
               {
                 "year": 2034,
-                "numerator": 61.4,
+                "numerator": 67.0,
                 "denominator": 49.0,
-                "rawValue": 125.38
+                "rawValue": 136.82,
+                "displayValue": 100.0
               },
               {
                 "year": 2035,
-                "numerator": 61.3,
+                "numerator": 67.0,
                 "denominator": 48.2,
-                "rawValue": 127.05
+                "rawValue": 138.87,
+                "displayValue": 100.0
               },
               {
                 "year": 2036,
-                "numerator": 61.1,
+                "numerator": 67.0,
                 "denominator": 47.6,
-                "rawValue": 128.41
+                "rawValue": 140.81,
+                "displayValue": 100.0
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "last_observation_persistence_baseline",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -0.5,
+              "recentAnnualChange": 1.75,
+              "selectedAnnualChangeBeforeDamping": 0.0,
+              "selectedAnnualChange": 0.0,
+              "selectedBasis": "last_observation_persistence",
+              "dampingFactor": null,
+              "diverges": true,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 67.0
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "4-5",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "previousModel": "state_aggregate_damped_holt",
+                "heldOutMaePercentagePoints": 13.176,
+                "previousModelMaePercentagePoints": 15.8213,
+                "improvementPercentagePoints": 2.6453,
+                "improvementBootstrap95": [
+                  1.7792,
+                  3.5227
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            }
           },
-          "historicalChangePercentagePoints": 14.53,
+          "historicalChangePercentagePoints": 2.86,
           "diagnostics": {
             "invalidDenominator": false,
             "smallDenominator": false,
@@ -8482,12 +9357,14 @@
             "above100": true,
             "numeratorAboveDenominator": true,
             "warnings": [
-              "O valor acima de 100% é preservado: matrículas por município da escola e população residente têm bases territoriais distintas."
+              "A razão bruta supera 100% porque matrículas e população têm bases territoriais distintas; a apresentação pública é limitada a 100%.",
+              "Tendencias recente e de longo prazo apontam direcoes opostas; a linha de base de persistencia nao extrapola nenhuma delas.",
+              "A razão bruta superou 100%; a apresentação pública foi limitada a 100%, e o valor bruto foi preservado para auditoria."
             ]
           },
           "presentation": {
-            "headline": "111,7%",
-            "statusLabel": "Acima de 100% — bases territoriais distintas",
+            "headline": "100,0%",
+            "statusLabel": "Razão bruta acima de 100% — exibição limitada",
             "interpretationStatus": "above_population_reference",
             "insightLines": [
               "O indicador compara matrículas no município da escola com a população residente de 4 a 5 anos.",
@@ -8500,7 +9377,7 @@
           "indicatorKey": "basico_6_17",
           "indicatorType": "age_coverage_proxy",
           "kind": "age_coverage",
-          "title": "Atendimento na educação básica",
+          "title": "Matrículas de 6 a 17 anos em relação à população residente estimada",
           "ageRange": "6 a 17 anos",
           "ageRangeDetails": {
             "start": 6,
@@ -8517,92 +9394,122 @@
             "numerator": "mat_basico_6_17",
             "denominator": "pop_6_17"
           },
+          "formulaId": "formula.basico_6_17",
+          "sourceIds": [
+            "inep_censo_escolar",
+            "municipal_age_population_panel"
+          ],
           "observed": {
             "year": 2025,
             "numerator": 355.0,
             "denominator": 417.0,
-            "rawValue": 85.13
+            "rawValue": 85.13,
+            "displayValue": 85.13
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 498.0,
               "denominator": 523.0,
-              "rawValue": 95.22
+              "rawValue": 95.22,
+              "displayValue": 95.22
             },
             {
               "year": 2015,
               "numerator": 481.0,
               "denominator": 499.0,
-              "rawValue": 96.39
+              "rawValue": 96.39,
+              "displayValue": 96.39
             },
             {
               "year": 2016,
               "numerator": 483.0,
               "denominator": 477.0,
-              "rawValue": 101.26
+              "rawValue": 101.26,
+              "displayValue": 100.0
             },
             {
               "year": 2017,
               "numerator": 556.0,
               "denominator": 462.0,
-              "rawValue": 120.35
+              "rawValue": 120.35,
+              "displayValue": 100.0
             },
             {
               "year": 2018,
               "numerator": 463.0,
               "denominator": 450.0,
-              "rawValue": 102.89
+              "rawValue": 102.89,
+              "displayValue": 100.0
             },
             {
               "year": 2019,
               "numerator": 416.0,
               "denominator": 439.0,
-              "rawValue": 94.76
+              "rawValue": 94.76,
+              "displayValue": 94.76
             },
             {
               "year": 2020,
               "numerator": 395.0,
               "denominator": 432.0,
-              "rawValue": 91.44
+              "rawValue": 91.44,
+              "displayValue": 91.44
             },
             {
               "year": 2021,
               "numerator": 361.0,
               "denominator": 431.0,
-              "rawValue": 83.76
+              "rawValue": 83.76,
+              "displayValue": 83.76
             },
             {
               "year": 2022,
               "numerator": 401.0,
               "denominator": 429.0,
-              "rawValue": 93.47
+              "rawValue": 93.47,
+              "displayValue": 93.47
             },
             {
               "year": 2023,
               "numerator": 379.0,
               "denominator": 419.0,
-              "rawValue": 90.45
+              "rawValue": 90.45,
+              "displayValue": 90.45
             },
             {
               "year": 2024,
               "numerator": 371.0,
               "denominator": 419.0,
-              "rawValue": 88.54
+              "rawValue": 88.54,
+              "displayValue": 88.54
             },
             {
               "year": 2025,
               "numerator": 355.0,
               "denominator": 417.0,
-              "rawValue": 85.13
+              "rawValue": 85.13,
+              "displayValue": 85.13
             }
           ],
           "reference": {
-            "value": 100.0,
+            "kind": "legal",
+            "label": "Meta do PNE",
+            "referenceId": "reference.4.a.basico_6_17",
+            "value": 100,
+            "year": 2029,
             "unit": "percent",
-            "validationStatus": "configured_unvalidated",
-            "year": 2036,
-            "direction": "at_least"
+            "direction": "at_least",
+            "validationStatus": "official_law",
+            "milestones": [
+              {
+                "year": 2029,
+                "value": 100,
+                "unit": "percent",
+                "direction": "at_least",
+                "dimension": "overall"
+              }
+            ]
           },
           "populationModel": {
             "status": "modeled",
@@ -8617,84 +9524,216 @@
             "percentageChange": -15.61,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "municipal_state_shrunk_theil_sen_log",
+                "selectedCandidate": "municipal_shrink_h2014_w5_d0.80_all_years_k4",
+                "heldOutMaePercentagePoints": 4.7686,
+                "persistenceMaePercentagePoints": 5.7106,
+                "improvementPercentagePoints": 0.942,
+                "improvementBootstrap95": [
+                  0.5064,
+                  1.3788
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "municipal_state_shrunk_theil_sen_log_enrollment_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 367.5,
+                "numerator": 350.2,
                 "denominator": 416.0,
-                "rawValue": 88.35
+                "rawValue": 84.19,
+                "displayValue": 84.19
               },
               {
                 "year": 2027,
-                "numerator": 364.0,
+                "numerator": 346.3,
                 "denominator": 413.7,
-                "rawValue": 87.98
+                "rawValue": 83.7,
+                "displayValue": 83.7
               },
               {
                 "year": 2028,
-                "numerator": 360.5,
+                "numerator": 343.3,
                 "denominator": 410.7,
-                "rawValue": 87.77
+                "rawValue": 83.58,
+                "displayValue": 83.58
               },
               {
                 "year": 2029,
-                "numerator": 357.0,
+                "numerator": 340.9,
                 "denominator": 406.8,
-                "rawValue": 87.77
+                "rawValue": 83.81,
+                "displayValue": 83.81
               },
               {
                 "year": 2030,
-                "numerator": 353.5,
+                "numerator": 339.0,
                 "denominator": 401.5,
-                "rawValue": 88.05
+                "rawValue": 84.44,
+                "displayValue": 84.44
               },
               {
                 "year": 2031,
-                "numerator": 350.0,
+                "numerator": 337.5,
                 "denominator": 394.9,
-                "rawValue": 88.63
+                "rawValue": 85.46,
+                "displayValue": 85.46
               },
               {
                 "year": 2032,
-                "numerator": 346.5,
+                "numerator": 336.3,
                 "denominator": 387.3,
-                "rawValue": 89.46
+                "rawValue": 86.82,
+                "displayValue": 86.82
               },
               {
                 "year": 2033,
-                "numerator": 343.0,
+                "numerator": 335.3,
                 "denominator": 378.4,
-                "rawValue": 90.65
+                "rawValue": 88.62,
+                "displayValue": 88.62
               },
               {
                 "year": 2034,
-                "numerator": 339.5,
+                "numerator": 334.5,
                 "denominator": 369.2,
-                "rawValue": 91.94
+                "rawValue": 90.59,
+                "displayValue": 90.59
               },
               {
                 "year": 2035,
-                "numerator": 336.0,
+                "numerator": 333.9,
                 "denominator": 360.7,
-                "rawValue": 93.15
+                "rawValue": 92.57,
+                "displayValue": 92.57
               },
               {
                 "year": 2036,
-                "numerator": 332.5,
+                "numerator": 333.4,
                 "denominator": 351.9,
-                "rawValue": 94.48
+                "rawValue": 94.73,
+                "displayValue": 94.73
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "municipal_state_shrunk_theil_sen_log_v1",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -14.539683,
+              "recentAnnualChange": -10.0,
+              "selectedAnnualChangeBeforeDamping": -4.8,
+              "selectedAnnualChange": -4.8,
+              "selectedBasis": "municipal_state_shrunk_theil_sen_log",
+              "dampingFactor": 0.8,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 355.0,
+              "municipalStateModel": {
+                "candidateId": "municipal_shrink_h2014_w5_d0.80_all_years_k4",
+                "historyStartYear": 2014,
+                "windowObservations": 5,
+                "damping": 0.8,
+                "shrinkage": 4.0,
+                "excludedYears": [],
+                "maximumAbsoluteAnnualLogTrend": 0.15,
+                "municipalAnnualLogTrend": -0.02694882969074297,
+                "stateAnnualLogTrend": -0.004754110967342129,
+                "selectedAnnualLogTrend": -0.017084510258120373,
+                "municipalObservationCount": 5,
+                "stateObservationCount": 5,
+                "municipalWeight": 0.5555555555555556,
+                "stateWeight": 0.4444444444444444,
+                "fallback": null,
+                "territory": "Rio Grande do Sul"
+              }
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "6-17",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "municipal_state_shrunk_theil_sen_log",
+                "selectedCandidate": "municipal_shrink_h2014_w5_d0.80_all_years_k4",
+                "heldOutMaePercentagePoints": 4.7686,
+                "persistenceMaePercentagePoints": 5.7106,
+                "improvementPercentagePoints": 0.942,
+                "improvementBootstrap95": [
+                  0.5064,
+                  1.3788
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            }
           },
           "historicalChangePercentagePoints": -10.09,
           "diagnostics": {
@@ -8703,9 +9742,7 @@
             "smallDenominatorThreshold": 394.0,
             "above100": false,
             "numeratorAboveDenominator": false,
-            "warnings": [
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 88.3%)"
-            ]
+            "warnings": []
           },
           "presentation": {
             "headline": "85,1%",
@@ -8722,7 +9759,7 @@
           "indicatorKey": "basico_15_17",
           "indicatorType": "age_coverage_proxy",
           "kind": "age_coverage",
-          "title": "Atendimento de adolescentes",
+          "title": "Matrículas de 15 a 17 anos em relação à população residente estimada",
           "ageRange": "15 a 17 anos",
           "ageRangeDetails": {
             "start": 15,
@@ -8739,92 +9776,114 @@
             "numerator": "mat_basico_15_17",
             "denominator": "pop_15_17"
           },
+          "formulaId": "formula.basico_15_17",
+          "sourceIds": [
+            "inep_censo_escolar",
+            "municipal_age_population_panel"
+          ],
           "observed": {
             "year": 2025,
             "numerator": 79.0,
             "denominator": 105.0,
-            "rawValue": 75.24
+            "rawValue": 75.24,
+            "displayValue": 75.24
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 139.0,
               "denominator": 157.0,
-              "rawValue": 88.54
+              "rawValue": 88.54,
+              "displayValue": 88.54
             },
             {
               "year": 2015,
               "numerator": 154.0,
               "denominator": 144.0,
-              "rawValue": 106.94
+              "rawValue": 106.94,
+              "displayValue": 100.0
             },
             {
               "year": 2016,
               "numerator": 148.0,
               "denominator": 135.0,
-              "rawValue": 109.63
+              "rawValue": 109.63,
+              "displayValue": 100.0
             },
             {
               "year": 2017,
               "numerator": 145.0,
               "denominator": 126.0,
-              "rawValue": 115.08
+              "rawValue": 115.08,
+              "displayValue": 100.0
             },
             {
               "year": 2018,
               "numerator": 117.0,
               "denominator": 118.0,
-              "rawValue": 99.15
+              "rawValue": 99.15,
+              "displayValue": 99.15
             },
             {
               "year": 2019,
               "numerator": 99.0,
               "denominator": 115.0,
-              "rawValue": 86.09
+              "rawValue": 86.09,
+              "displayValue": 86.09
             },
             {
               "year": 2020,
               "numerator": 94.0,
               "denominator": 111.0,
-              "rawValue": 84.68
+              "rawValue": 84.68,
+              "displayValue": 84.68
             },
             {
               "year": 2021,
               "numerator": 77.0,
               "denominator": 109.0,
-              "rawValue": 70.64
+              "rawValue": 70.64,
+              "displayValue": 70.64
             },
             {
               "year": 2022,
               "numerator": 110.0,
               "denominator": 106.0,
-              "rawValue": 103.77
+              "rawValue": 103.77,
+              "displayValue": 100.0
             },
             {
               "year": 2023,
               "numerator": 95.0,
               "denominator": 105.0,
-              "rawValue": 90.48
+              "rawValue": 90.48,
+              "displayValue": 90.48
             },
             {
               "year": 2024,
               "numerator": 82.0,
               "denominator": 104.0,
-              "rawValue": 78.85
+              "rawValue": 78.85,
+              "displayValue": 78.85
             },
             {
               "year": 2025,
               "numerator": 79.0,
               "denominator": 105.0,
-              "rawValue": 75.24
+              "rawValue": 75.24,
+              "displayValue": 75.24
             }
           ],
           "reference": {
-            "value": 85.0,
+            "kind": "monitoring",
+            "label": "Referência de acompanhamento",
+            "referenceId": "monitoring.4.a.basico_15_17",
+            "value": 100,
+            "year": null,
             "unit": "percent",
-            "validationStatus": "configured_unvalidated",
-            "year": 2036,
-            "direction": "at_least"
+            "direction": "at_least",
+            "validationStatus": "municipal_monitoring",
+            "milestones": []
           },
           "populationModel": {
             "status": "modeled",
@@ -8839,84 +9898,205 @@
             "percentageChange": -2.48,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário parte do número mais recente de matrículas do município, acompanha a evolução das matrículas no Rio Grande do Sul e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "state_aggregate_damped_holt",
+                "heldOutMaePercentagePoints": 11.1405,
+                "persistenceMaePercentagePoints": 13.5504,
+                "improvementPercentagePoints": 2.4099,
+                "improvementBootstrap95": [
+                  2.0683,
+                  2.7293
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "state_aggregate_damped_holt_enrollment_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 80.1,
+                "numerator": 77.4,
                 "denominator": 104.9,
-                "rawValue": 76.35
+                "rawValue": 73.78,
+                "displayValue": 73.78
               },
               {
                 "year": 2027,
-                "numerator": 78.2,
+                "numerator": 76.0,
                 "denominator": 105.8,
-                "rawValue": 73.91
+                "rawValue": 71.83,
+                "displayValue": 71.83
               },
               {
                 "year": 2028,
-                "numerator": 76.2,
+                "numerator": 74.7,
                 "denominator": 107.7,
-                "rawValue": 70.78
+                "rawValue": 69.38,
+                "displayValue": 69.38
               },
               {
                 "year": 2029,
-                "numerator": 74.3,
+                "numerator": 73.6,
                 "denominator": 109.4,
-                "rawValue": 67.93
+                "rawValue": 67.29,
+                "displayValue": 67.29
               },
               {
                 "year": 2030,
-                "numerator": 72.4,
+                "numerator": 72.5,
                 "denominator": 111.1,
-                "rawValue": 65.14
+                "rawValue": 65.23,
+                "displayValue": 65.23
               },
               {
                 "year": 2031,
-                "numerator": 70.5,
+                "numerator": 71.6,
                 "denominator": 112.2,
-                "rawValue": 62.84
+                "rawValue": 63.82,
+                "displayValue": 63.82
               },
               {
                 "year": 2032,
-                "numerator": 68.5,
+                "numerator": 70.8,
                 "denominator": 111.7,
-                "rawValue": 61.32
+                "rawValue": 63.38,
+                "displayValue": 63.38
               },
               {
                 "year": 2033,
-                "numerator": 66.6,
+                "numerator": 70.0,
                 "denominator": 110.1,
-                "rawValue": 60.47
+                "rawValue": 63.55,
+                "displayValue": 63.55
               },
               {
                 "year": 2034,
-                "numerator": 64.7,
+                "numerator": 69.3,
                 "denominator": 108.0,
-                "rawValue": 59.89
+                "rawValue": 64.14,
+                "displayValue": 64.14
               },
               {
                 "year": 2035,
-                "numerator": 62.8,
+                "numerator": 68.7,
                 "denominator": 105.8,
-                "rawValue": 59.36
+                "rawValue": 64.94,
+                "displayValue": 64.94
               },
               {
                 "year": 2036,
-                "numerator": 60.8,
+                "numerator": 68.2,
                 "denominator": 102.4,
-                "rawValue": 59.39
+                "rawValue": 66.62,
+                "displayValue": 66.62
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "state_aggregate_damped_holt_v1",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -7.4375,
+              "recentAnnualChange": -5.5,
+              "selectedAnnualChangeBeforeDamping": -1.6,
+              "selectedAnnualChange": -1.6,
+              "selectedBasis": "state_aggregate_damped_holt",
+              "dampingFactor": 0.9,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 79.0,
+              "aggregateModel": {
+                "territory": "Rio Grande do Sul",
+                "alpha": 0.4,
+                "beta": 0.3,
+                "damping": 0.9,
+                "transform": "identity",
+                "anchoredAtLastObservation": true,
+                "stateBaseValue": 351469.0
+              }
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "15-17",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário parte do número mais recente de matrículas do município, acompanha a evolução das matrículas no Rio Grande do Sul e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "state_aggregate_damped_holt",
+                "heldOutMaePercentagePoints": 11.1405,
+                "persistenceMaePercentagePoints": 13.5504,
+                "improvementPercentagePoints": 2.4099,
+                "improvementBootstrap95": [
+                  2.0683,
+                  2.7293
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            }
           },
           "historicalChangePercentagePoints": -13.3,
           "diagnostics": {
@@ -8925,16 +10105,7 @@
             "smallDenominatorThreshold": 95.0,
             "above100": false,
             "numeratorAboveDenominator": false,
-            "warnings": [
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 73.9%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 70.8%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 67.9%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 65.1%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 62.8%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 61.3%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 60.5%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 59.9%)"
-            ]
+            "warnings": []
           },
           "presentation": {
             "headline": "75,2%",
@@ -8968,84 +10139,99 @@
             "numerator": "mat_basico_0_5",
             "denominator": "pop_0_5"
           },
+          "formulaId": null,
+          "sourceIds": [],
           "observed": {
             "year": 2025,
             "numerator": 112.0,
             "denominator": 176.0,
-            "rawValue": 63.64
+            "rawValue": 63.64,
+            "displayValue": 63.64
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 134.0,
               "denominator": 223.0,
-              "rawValue": 60.09
+              "rawValue": 60.09,
+              "displayValue": 60.09
             },
             {
               "year": 2015,
               "numerator": 136.0,
               "denominator": 220.0,
-              "rawValue": 61.82
+              "rawValue": 61.82,
+              "displayValue": 61.82
             },
             {
               "year": 2016,
               "numerator": 120.0,
               "denominator": 219.0,
-              "rawValue": 54.79
+              "rawValue": 54.79,
+              "displayValue": 54.79
             },
             {
               "year": 2017,
               "numerator": 110.0,
               "denominator": 217.0,
-              "rawValue": 50.69
+              "rawValue": 50.69,
+              "displayValue": 50.69
             },
             {
               "year": 2018,
               "numerator": 101.0,
               "denominator": 213.0,
-              "rawValue": 47.42
+              "rawValue": 47.42,
+              "displayValue": 47.42
             },
             {
               "year": 2019,
               "numerator": 134.0,
               "denominator": 213.0,
-              "rawValue": 62.91
+              "rawValue": 62.91,
+              "displayValue": 62.91
             },
             {
               "year": 2020,
               "numerator": 118.0,
               "denominator": 208.0,
-              "rawValue": 56.73
+              "rawValue": 56.73,
+              "displayValue": 56.73
             },
             {
               "year": 2021,
               "numerator": 127.0,
               "denominator": 203.0,
-              "rawValue": 62.56
+              "rawValue": 62.56,
+              "displayValue": 62.56
             },
             {
               "year": 2022,
               "numerator": 120.0,
               "denominator": 195.0,
-              "rawValue": 61.54
+              "rawValue": 61.54,
+              "displayValue": 61.54
             },
             {
               "year": 2023,
               "numerator": 108.0,
               "denominator": 187.0,
-              "rawValue": 57.75
+              "rawValue": 57.75,
+              "displayValue": 57.75
             },
             {
               "year": 2024,
               "numerator": 122.0,
               "denominator": 181.0,
-              "rawValue": 67.4
+              "rawValue": 67.4,
+              "displayValue": 67.4
             },
             {
               "year": 2025,
               "numerator": 112.0,
               "denominator": 176.0,
-              "rawValue": 63.64
+              "rawValue": 63.64,
+              "displayValue": 63.64
             }
           ],
           "reference": null,
@@ -9062,84 +10248,184 @@
             "percentageChange": -18.13,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 7.1552,
+                "selectionReason": "trend_candidate_not_robust_out_of_sample"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "last_observed_numerator_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 111.5,
+                "numerator": 112.0,
                 "denominator": 171.3,
-                "rawValue": 65.1
+                "rawValue": 65.39,
+                "displayValue": 65.39
               },
               {
                 "year": 2027,
-                "numerator": 111.1,
+                "numerator": 112.0,
                 "denominator": 167.3,
-                "rawValue": 66.41
+                "rawValue": 66.95,
+                "displayValue": 66.95
               },
               {
                 "year": 2028,
-                "numerator": 110.6,
+                "numerator": 112.0,
                 "denominator": 164.0,
-                "rawValue": 67.42
+                "rawValue": 68.27,
+                "displayValue": 68.27
               },
               {
                 "year": 2029,
-                "numerator": 110.2,
+                "numerator": 112.0,
                 "denominator": 160.7,
-                "rawValue": 68.57
+                "rawValue": 69.69,
+                "displayValue": 69.69
               },
               {
                 "year": 2030,
-                "numerator": 109.7,
+                "numerator": 112.0,
                 "denominator": 157.5,
-                "rawValue": 69.65
+                "rawValue": 71.11,
+                "displayValue": 71.11
               },
               {
                 "year": 2031,
-                "numerator": 109.3,
+                "numerator": 112.0,
                 "denominator": 154.8,
-                "rawValue": 70.63
+                "rawValue": 72.37,
+                "displayValue": 72.37
               },
               {
                 "year": 2032,
-                "numerator": 108.8,
+                "numerator": 112.0,
                 "denominator": 152.2,
-                "rawValue": 71.47
+                "rawValue": 73.57,
+                "displayValue": 73.57
               },
               {
                 "year": 2033,
-                "numerator": 108.3,
+                "numerator": 112.0,
                 "denominator": 149.9,
-                "rawValue": 72.23
+                "rawValue": 74.7,
+                "displayValue": 74.7
               },
               {
                 "year": 2034,
-                "numerator": 107.9,
+                "numerator": 112.0,
                 "denominator": 147.8,
-                "rawValue": 72.99
+                "rawValue": 75.77,
+                "displayValue": 75.77
               },
               {
                 "year": 2035,
-                "numerator": 107.4,
+                "numerator": 112.0,
                 "denominator": 145.9,
-                "rawValue": 73.62
+                "rawValue": 76.78,
+                "displayValue": 76.78
               },
               {
                 "year": 2036,
-                "numerator": 107.0,
+                "numerator": 112.0,
                 "denominator": 144.1,
-                "rawValue": 74.27
+                "rawValue": 77.74,
+                "displayValue": 77.74
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "last_observation_persistence_baseline",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -1.527778,
+              "recentAnnualChange": -3.208333,
+              "selectedAnnualChangeBeforeDamping": 0.0,
+              "selectedAnnualChange": 0.0,
+              "selectedBasis": "last_observation_persistence",
+              "dampingFactor": null,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 112.0
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "0-5",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 7.1552,
+                "selectionReason": "trend_candidate_not_robust_out_of_sample"
+              }
+            }
           },
           "historicalChangePercentagePoints": 3.55,
           "diagnostics": {
@@ -9182,84 +10468,99 @@
             "numerator": "mat_basico_4_17",
             "denominator": "pop_4_17"
           },
+          "formulaId": null,
+          "sourceIds": [],
           "observed": {
             "year": 2025,
             "numerator": 414.0,
             "denominator": 477.0,
-            "rawValue": 86.79
+            "rawValue": 86.79,
+            "displayValue": 86.79
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 566.0,
               "denominator": 593.0,
-              "rawValue": 95.45
+              "rawValue": 95.45,
+              "displayValue": 95.45
             },
             {
               "year": 2015,
               "numerator": 559.0,
               "denominator": 569.0,
-              "rawValue": 98.24
+              "rawValue": 98.24,
+              "displayValue": 98.24
             },
             {
               "year": 2016,
               "numerator": 554.0,
               "denominator": 550.0,
-              "rawValue": 100.73
+              "rawValue": 100.73,
+              "displayValue": 100.0
             },
             {
               "year": 2017,
               "numerator": 608.0,
               "denominator": 536.0,
-              "rawValue": 113.43
+              "rawValue": 113.43,
+              "displayValue": 100.0
             },
             {
               "year": 2018,
               "numerator": 507.0,
               "denominator": 522.0,
-              "rawValue": 97.13
+              "rawValue": 97.13,
+              "displayValue": 97.13
             },
             {
               "year": 2019,
               "numerator": 481.0,
               "denominator": 512.0,
-              "rawValue": 93.95
+              "rawValue": 93.95,
+              "displayValue": 93.95
             },
             {
               "year": 2020,
               "numerator": 459.0,
               "denominator": 504.0,
-              "rawValue": 91.07
+              "rawValue": 91.07,
+              "displayValue": 91.07
             },
             {
               "year": 2021,
               "numerator": 425.0,
               "denominator": 499.0,
-              "rawValue": 85.17
+              "rawValue": 85.17,
+              "displayValue": 85.17
             },
             {
               "year": 2022,
               "numerator": 459.0,
               "denominator": 494.0,
-              "rawValue": 92.91
+              "rawValue": 92.91,
+              "displayValue": 92.91
             },
             {
               "year": 2023,
               "numerator": 444.0,
               "denominator": 483.0,
-              "rawValue": 91.93
+              "rawValue": 91.93,
+              "displayValue": 91.93
             },
             {
               "year": 2024,
               "numerator": 437.0,
               "denominator": 480.0,
-              "rawValue": 91.04
+              "rawValue": 91.04,
+              "displayValue": 91.04
             },
             {
               "year": 2025,
               "numerator": 414.0,
               "denominator": 477.0,
-              "rawValue": 86.79
+              "rawValue": 86.79,
+              "displayValue": 86.79
             }
           ],
           "reference": null,
@@ -9276,84 +10577,216 @@
             "percentageChange": -16.29,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "municipal_state_shrunk_theil_sen_log",
+                "selectedCandidate": "municipal_shrink_h2014_w8_d0.80_all_years_k4",
+                "heldOutMaePercentagePoints": 4.5609,
+                "persistenceMaePercentagePoints": 5.3054,
+                "improvementPercentagePoints": 0.7445,
+                "improvementBootstrap95": [
+                  0.3456,
+                  1.1358
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "municipal_state_shrunk_theil_sen_log_enrollment_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 433.9,
+                "numerator": 408.2,
                 "denominator": 473.4,
-                "rawValue": 91.65
+                "rawValue": 86.23,
+                "displayValue": 86.23
               },
               {
                 "year": 2027,
-                "numerator": 430.7,
+                "numerator": 403.5,
                 "denominator": 469.6,
-                "rawValue": 91.72
+                "rawValue": 85.93,
+                "displayValue": 85.93
               },
               {
                 "year": 2028,
-                "numerator": 427.6,
+                "numerator": 399.9,
                 "denominator": 465.7,
-                "rawValue": 91.81
+                "rawValue": 85.87,
+                "displayValue": 85.87
               },
               {
                 "year": 2029,
-                "numerator": 424.4,
+                "numerator": 397.0,
                 "denominator": 460.4,
-                "rawValue": 92.17
+                "rawValue": 86.22,
+                "displayValue": 86.22
               },
               {
                 "year": 2030,
-                "numerator": 421.3,
+                "numerator": 394.7,
                 "denominator": 453.7,
-                "rawValue": 92.85
+                "rawValue": 86.99,
+                "displayValue": 86.99
               },
               {
                 "year": 2031,
-                "numerator": 418.1,
+                "numerator": 392.8,
                 "denominator": 446.1,
-                "rawValue": 93.72
+                "rawValue": 88.05,
+                "displayValue": 88.05
               },
               {
                 "year": 2032,
-                "numerator": 415.0,
+                "numerator": 391.4,
                 "denominator": 437.6,
-                "rawValue": 94.83
+                "rawValue": 89.44,
+                "displayValue": 89.44
               },
               {
                 "year": 2033,
-                "numerator": 411.8,
+                "numerator": 390.2,
                 "denominator": 427.8,
-                "rawValue": 96.26
+                "rawValue": 91.21,
+                "displayValue": 91.21
               },
               {
                 "year": 2034,
-                "numerator": 408.7,
+                "numerator": 389.3,
                 "denominator": 417.9,
-                "rawValue": 97.79
+                "rawValue": 93.15,
+                "displayValue": 93.15
               },
               {
                 "year": 2035,
-                "numerator": 405.5,
+                "numerator": 388.5,
                 "denominator": 408.7,
-                "rawValue": 99.22
+                "rawValue": 95.06,
+                "displayValue": 95.06
               },
               {
                 "year": 2036,
-                "numerator": 402.4,
+                "numerator": 387.9,
                 "denominator": 399.3,
-                "rawValue": 100.78
+                "rawValue": 97.14,
+                "displayValue": 97.14
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "municipal_state_shrunk_theil_sen_log_v1",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -14.6875,
+              "recentAnnualChange": -9.0,
+              "selectedAnnualChangeBeforeDamping": -5.8,
+              "selectedAnnualChange": -5.8,
+              "selectedBasis": "municipal_state_shrunk_theil_sen_log",
+              "dampingFactor": 0.8,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 414.0,
+              "municipalStateModel": {
+                "candidateId": "municipal_shrink_h2014_w8_d0.80_all_years_k4",
+                "historyStartYear": 2014,
+                "windowObservations": 8,
+                "damping": 0.8,
+                "shrinkage": 4.0,
+                "excludedYears": [],
+                "maximumAbsoluteAnnualLogTrend": 0.15,
+                "municipalAnnualLogTrend": -0.024762081195420595,
+                "stateAnnualLogTrend": -0.0037132024460178785,
+                "selectedAnnualLogTrend": -0.017745788278953022,
+                "municipalObservationCount": 8,
+                "stateObservationCount": 8,
+                "municipalWeight": 0.6666666666666666,
+                "stateWeight": 0.33333333333333337,
+                "fallback": null,
+                "territory": "Rio Grande do Sul"
+              }
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "4-17",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário combina o histórico de matrículas do município e do Rio Grande do Sul com a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "municipal_state_shrunk_theil_sen_log",
+                "selectedCandidate": "municipal_shrink_h2014_w8_d0.80_all_years_k4",
+                "heldOutMaePercentagePoints": 4.5609,
+                "persistenceMaePercentagePoints": 5.3054,
+                "improvementPercentagePoints": 0.7445,
+                "improvementBootstrap95": [
+                  0.3456,
+                  1.1358
+                ],
+                "selectionReason": "lower_error_on_held_out_municipalities"
+              }
+            }
           },
           "historicalChangePercentagePoints": -8.66,
           "diagnostics": {
@@ -9362,10 +10795,7 @@
             "smallDenominatorThreshold": 454.0,
             "above100": false,
             "numeratorAboveDenominator": false,
-            "warnings": [
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.7%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.7%)"
-            ]
+            "warnings": []
           },
           "presentation": {
             "headline": "86,8%",
@@ -9399,84 +10829,99 @@
             "numerator": "mat_basico_6_14",
             "denominator": "pop_6_14"
           },
+          "formulaId": null,
+          "sourceIds": [],
           "observed": {
             "year": 2025,
             "numerator": 276.0,
             "denominator": 312.0,
-            "rawValue": 88.46
+            "rawValue": 88.46,
+            "displayValue": 88.46
           },
           "historical": [
             {
               "year": 2014,
               "numerator": 359.0,
               "denominator": 366.0,
-              "rawValue": 98.09
+              "rawValue": 98.09,
+              "displayValue": 98.09
             },
             {
               "year": 2015,
               "numerator": 327.0,
               "denominator": 355.0,
-              "rawValue": 92.11
+              "rawValue": 92.11,
+              "displayValue": 92.11
             },
             {
               "year": 2016,
               "numerator": 335.0,
               "denominator": 342.0,
-              "rawValue": 97.95
+              "rawValue": 97.95,
+              "displayValue": 97.95
             },
             {
               "year": 2017,
               "numerator": 411.0,
               "denominator": 336.0,
-              "rawValue": 122.32
+              "rawValue": 122.32,
+              "displayValue": 100.0
             },
             {
               "year": 2018,
               "numerator": 346.0,
               "denominator": 332.0,
-              "rawValue": 104.22
+              "rawValue": 104.22,
+              "displayValue": 100.0
             },
             {
               "year": 2019,
               "numerator": 317.0,
               "denominator": 324.0,
-              "rawValue": 97.84
+              "rawValue": 97.84,
+              "displayValue": 97.84
             },
             {
               "year": 2020,
               "numerator": 301.0,
               "denominator": 321.0,
-              "rawValue": 93.77
+              "rawValue": 93.77,
+              "displayValue": 93.77
             },
             {
               "year": 2021,
               "numerator": 284.0,
               "denominator": 322.0,
-              "rawValue": 88.2
+              "rawValue": 88.2,
+              "displayValue": 88.2
             },
             {
               "year": 2022,
               "numerator": 291.0,
               "denominator": 323.0,
-              "rawValue": 90.09
+              "rawValue": 90.09,
+              "displayValue": 90.09
             },
             {
               "year": 2023,
               "numerator": 284.0,
               "denominator": 314.0,
-              "rawValue": 90.45
+              "rawValue": 90.45,
+              "displayValue": 90.45
             },
             {
               "year": 2024,
               "numerator": 289.0,
               "denominator": 315.0,
-              "rawValue": 91.75
+              "rawValue": 91.75,
+              "displayValue": 91.75
             },
             {
               "year": 2025,
               "numerator": 276.0,
               "denominator": 312.0,
-              "rawValue": 88.46
+              "rawValue": 88.46,
+              "displayValue": 88.46
             }
           ],
           "reference": null,
@@ -9493,84 +10938,184 @@
             "percentageChange": -19.74,
             "method": "municipal_base_scaled_by_rs_age_group_change",
             "methodCode": "municipal_base_times_rs_age_factor",
+            "historicalPopulationSourceId": "municipal_age_population_panel",
+            "projectionSourceId": "ibge_population_projection_2024",
+            "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 5.5472,
+                "selectionReason": "persistence_had_lower_development_error"
+              }
+            },
             "label": "População modelada para 2036"
           },
           "scenario": {
-            "type": "trend_scenario",
+            "type": "conditional_projection",
             "kind": "existing_projection",
-            "method": "Tendencia suavizada com limite plausivel por indicador para reduzir extrapolacoes excessivas",
+            "method": "last_observed_numerator_with_state_age_denominator",
             "projected": [
               {
                 "year": 2026,
-                "numerator": 283.5,
+                "numerator": 276.0,
                 "denominator": 311.1,
-                "rawValue": 91.14
+                "rawValue": 88.73,
+                "displayValue": 88.73
               },
               {
                 "year": 2027,
-                "numerator": 283.0,
+                "numerator": 276.0,
                 "denominator": 308.0,
-                "rawValue": 91.88
+                "rawValue": 89.61,
+                "displayValue": 89.61
               },
               {
                 "year": 2028,
-                "numerator": 282.4,
+                "numerator": 276.0,
                 "denominator": 303.3,
-                "rawValue": 93.11
+                "rawValue": 91.0,
+                "displayValue": 91.0
               },
               {
                 "year": 2029,
-                "numerator": 281.9,
+                "numerator": 276.0,
                 "denominator": 297.8,
-                "rawValue": 94.66
+                "rawValue": 92.68,
+                "displayValue": 92.68
               },
               {
                 "year": 2030,
-                "numerator": 281.4,
+                "numerator": 276.0,
                 "denominator": 290.9,
-                "rawValue": 96.74
+                "rawValue": 94.88,
+                "displayValue": 94.88
               },
               {
                 "year": 2031,
-                "numerator": 280.9,
+                "numerator": 276.0,
                 "denominator": 283.4,
-                "rawValue": 99.11
+                "rawValue": 97.38,
+                "displayValue": 97.38
               },
               {
                 "year": 2032,
-                "numerator": 280.3,
+                "numerator": 276.0,
                 "denominator": 276.4,
-                "rawValue": 101.4
+                "rawValue": 99.85,
+                "displayValue": 99.85
               },
               {
                 "year": 2033,
-                "numerator": 279.8,
+                "numerator": 276.0,
                 "denominator": 269.1,
-                "rawValue": 103.99
+                "rawValue": 102.57,
+                "displayValue": 100.0
               },
               {
                 "year": 2034,
-                "numerator": 279.3,
+                "numerator": 276.0,
                 "denominator": 262.1,
-                "rawValue": 106.58
+                "rawValue": 105.32,
+                "displayValue": 100.0
               },
               {
                 "year": 2035,
-                "numerator": 278.8,
+                "numerator": 276.0,
                 "denominator": 255.8,
-                "rawValue": 109.01
+                "rawValue": 107.91,
+                "displayValue": 100.0
               },
               {
                 "year": 2036,
-                "numerator": 278.2,
+                "numerator": 276.0,
                 "denominator": 250.4,
-                "rawValue": 111.12
+                "rawValue": 110.25,
+                "displayValue": 100.0
               }
             ],
             "status": "available",
             "historicalEndYear": 2025,
             "horizonYear": 2036,
-            "quality": "media"
+            "quality": "media",
+            "trend": {
+              "method": "last_observation_persistence_baseline",
+              "historicalDiagnosticMethod": "theil_sen",
+              "longTermAnnualChange": -7.22619,
+              "recentAnnualChange": -1.5,
+              "selectedAnnualChangeBeforeDamping": 0.0,
+              "selectedAnnualChange": 0.0,
+              "selectedBasis": "last_observation_persistence",
+              "dampingFactor": null,
+              "diverges": false,
+              "observationCount": 12,
+              "recentWindowObservationCount": 5,
+              "baseYear": 2025,
+              "baseValue": 276.0
+            },
+            "denominatorModel": {
+              "method": "municipal_base_scaled_by_rs_age_group_change",
+              "methodCode": "municipal_base_times_rs_age_factor",
+              "formula": "população municipal no ano-base × (população projetada do RS na faixa e ano / população projetada do RS na faixa e ano-base)",
+              "historicalPopulationSourceId": "municipal_age_population_panel",
+              "projectionSourceId": "ibge_population_projection_2024",
+              "projectionRevision": "2024",
+              "projectionSourceSha256": "6e5c3d21a2e8ff50badd7be2785e1664b41a43277543be541641b0cd802c3205",
+              "populationAgeGroup": "6-14",
+              "municipalBaseYear": 2025,
+              "stateProjectionBaseYear": 2025,
+              "territorialBasis": "população residente municipal"
+            },
+            "uncertainty": {
+              "status": "backtested_no_probability_interval",
+              "interval": null,
+              "reason": "A comparação retrospectiva cobre períodos de um a cinco anos, mas não há intervalo probabilístico para todo o cenário até 2036.",
+              "interpretation": "O cenário mantém o número mais recente de matrículas e considera a evolução projetada da população.",
+              "backtest": {
+                "method": "rolling_origin_with_held_out_municipalities",
+                "metric": "100_abs_predicted_minus_observed_numerator_over_observed_target_population",
+                "valuePolicy": "raw_without_display_cap",
+                "displayCapApplied": false,
+                "unit": "percentage_points",
+                "validatedHorizonsYears": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5
+                ],
+                "developmentMunicipalities": 379,
+                "heldOutMunicipalities": 118,
+                "heldOutPeriod": [
+                  2023,
+                  2025
+                ],
+                "selectedModel": "last_observation_persistence",
+                "heldOutMaePercentagePoints": 5.5472,
+                "selectionReason": "persistence_had_lower_development_error"
+              }
+            }
           },
           "historicalChangePercentagePoints": -9.63,
           "diagnostics": {
@@ -9580,9 +11125,7 @@
             "above100": false,
             "numeratorAboveDenominator": false,
             "warnings": [
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 91.1%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 96.7%)",
-              "Variacao anual do percentual projetado limitada a 2 p.p. (raw era 99.1%)"
+              "A razão bruta superou 100%; a apresentação pública foi limitada a 100%, e o valor bruto foi preservado para auditoria."
             ]
           },
           "presentation": {
@@ -9613,6 +11156,10 @@
             "numerator": "mat_basico_integral",
             "denominator": "mat_basico"
           },
+          "formulaId": "formula.basico_integral",
+          "sourceIds": [
+            "inep_censo_escolar"
+          ],
           "observed": {
             "year": 2025,
             "numerator": 83.0,
@@ -9688,21 +11235,30 @@
             }
           ],
           "reference": {
+            "kind": "legal",
+            "label": "Meta do PNE",
+            "referenceId": "reference.6.a.basico_integral",
             "targets": [
               {
                 "year": 2031,
-                "value": 35.0,
-                "type": "configured_reference",
-                "requiredAnnualPacePp": 2.95738
+                "value": 35,
+                "unit": "percent",
+                "direction": "at_least",
+                "dimension": "overall",
+                "type": "official_law_reference",
+                "referenceId": "reference.6.a.basico_integral"
               },
               {
                 "year": 2036,
-                "value": 50.0,
-                "type": "configured_reference",
-                "requiredAnnualPacePp": 3.0
+                "value": 50,
+                "unit": "percent",
+                "direction": "at_least",
+                "dimension": "overall",
+                "type": "official_law_reference",
+                "referenceId": "reference.6.a.basico_integral"
               }
             ],
-            "validationStatus": "configured_unvalidated"
+            "validationStatus": "official_law"
           },
           "scenario": {
             "type": "pne_reference_trajectory",
@@ -9801,7 +11357,7 @@
             ]
           },
           "presentation": {
-            "headline": "17,3%",
+            "headline": "Não calculável",
             "statusLabel": "Base reduzida — interpretar com cautela",
             "interpretationStatus": "available_with_warning",
             "insightLines": [

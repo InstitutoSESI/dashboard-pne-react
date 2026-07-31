@@ -8,7 +8,7 @@ import pandas as pd
 
 from src.pne2026_public_diagnostic_v2 import apply_pne2026_diagnostic_presentation
 
-from src.data_loader import get_data_cache_ttl_seconds, load_adequacao_docente_data, load_atendimento_educacional_especializado_data, load_basico_15_17_data, load_basico_6_17_data, load_basico_integral_data, load_censo_populacao_alfabetizacao_data, load_censo_populacao_ensino_fundamental_concluido_15_29_data, load_censo_populacao_ensino_fundamental_concluido_18_mais_data, load_censo_populacao_ensino_medio_concluido_18_29_data, load_censo_populacao_ensino_medio_concluido_18_mais_data, load_docentes_pos_graduacao_data, load_docentes_temporarios_data, load_eja_integrada_educacao_profissional_data, load_escolas_integral_data, load_ept_nivel_medio_data, load_infraestrutura_escolar_data, load_medio_tecnico_articulado_data, load_pne_data, load_pne_2026_2036_metricas_data, load_pre_escola_data, load_rendimento_professores_data, load_saeb_proficiencia_data, load_taxa_alfabetizacao_data, load_distorcao_idade_serie_data
+from src.data_loader import get_data_cache_ttl_seconds, load_adequacao_docente_data, load_atendimento_educacional_especializado_data, load_basico_15_17_data, load_basico_6_17_data, load_basico_integral_data, load_censo_populacao_alfabetizacao_data, load_censo_populacao_ensino_fundamental_concluido_15_29_data, load_censo_populacao_ensino_fundamental_concluido_15_mais_data, load_censo_populacao_ensino_fundamental_concluido_18_mais_data, load_censo_populacao_ensino_medio_concluido_18_29_data, load_censo_populacao_ensino_medio_concluido_18_mais_data, load_docentes_pos_graduacao_data, load_docentes_temporarios_data, load_eja_integrada_educacao_profissional_data, load_escolas_integral_data, load_ept_nivel_medio_data, load_infraestrutura_escolar_data, load_medio_tecnico_articulado_data, load_pne_data, load_pne_2026_2036_metricas_data, load_pre_escola_data, load_rendimento_professores_data, load_saeb_proficiencia_data, load_taxa_alfabetizacao_data, load_distorcao_idade_serie_data
 from src.data_loader import load_school_infrastructure_contract
 from src.school_infrastructure_materialization import (
     REFERENCE_YEAR as SCHOOL_INFRASTRUCTURE_REFERENCE_YEAR,
@@ -16,8 +16,21 @@ from src.school_infrastructure_materialization import (
 )
 
 from src.pne_trend import attach_trend
+from src.pne.goal_indicator_contract import (
+    CONTRACT,
+    get_formula_for_indicator,
+    get_indicator,
+    get_indicator_reference_profile,
+    get_relation_context_for_indicator,
+)
 
-from src.medio_tecnico_articulado import MedioTecnicoArticuladoValidationError, calculate_medio_tecnico_articulado_series
+from src.medio_tecnico_articulado import (
+    BASELINE_YEAR as CYCLE_BASELINE_YEAR,
+    MedioTecnicoArticuladoValidationError,
+    calculate_medio_tecnico_articulado_series,
+    calculate_public_expansion_series,
+    calculate_subsequent_expansion_series,
+)
 
 from src.pne.common import GOAL_AT_LEAST, GOAL_AT_MOST, _build_accumulated_growth_result, _build_eja_integrada_percentual_result, _build_ratio_result, _build_result, _build_value_result, _empty_result, _goal_achieved, _safe_load
 
@@ -25,79 +38,218 @@ TARGET_START_YEAR = 2015
 
 TARGET_END_YEAR = 2025
 
-META_CRECHE = 60.0
+def _contract_reference(indicator_id, observed_year=TARGET_END_YEAR):
+    return get_indicator_reference_profile(indicator_id, observed_year)
 
-META_PRE_ESCOLA = 100.0
 
-META_BASICO_6_17 = 100.0
+def _contract_reference_value(indicator_id, observed_year=TARGET_END_YEAR):
+    reference = _contract_reference(indicator_id, observed_year)
+    if reference is None:
+        raise ValueError(f"Indicador sem referência canônica: {indicator_id}")
+    return float(reference["value"])
 
-META_BASICO_15_17 = 85.0
 
-META_BASICO_INTEGRAL_INICIAL = 35.0
+def _contract_milestone_value(indicator_id, position):
+    reference = _contract_reference(indicator_id)
+    milestones = (reference or {}).get("milestones") or []
+    if not milestones:
+        raise ValueError(f"Indicador sem marcos canônicos: {indicator_id}")
+    return float(milestones[position]["value"])
 
-META_BASICO_INTEGRAL_FINAL = 50.0
 
-META_ESCOLAS_INTEGRAL_INICIAL = 50.0
+def _contract_goal_milestones(goal_id, reference_id, dimension=None):
+    goal = CONTRACT["goals"][goal_id]
+    reference = next(
+        (
+            item
+            for item in goal.get("legalReferences", [])
+            if item["referenceId"] == reference_id
+        ),
+        None,
+    )
+    if reference is None:
+        raise ValueError(f"Referência canônica ausente: {reference_id}")
+    return [
+        milestone
+        for milestone in reference["milestones"]
+        if dimension is None or milestone.get("dimension") == dimension
+    ]
 
-META_ESCOLAS_INTEGRAL_FINAL = 65.0
 
-META_EJA_INTEGRADA_EPT_INTERMEDIARIA = 25.0
+def _contract_goal_milestone_value(
+    goal_id,
+    reference_id,
+    position,
+    *,
+    dimension=None,
+):
+    milestones = _contract_goal_milestones(
+        goal_id,
+        reference_id,
+        dimension,
+    )
+    if not milestones:
+        raise ValueError(
+            f"Marco canônico ausente: {reference_id}/{dimension or 'overall'}"
+        )
+    return float(milestones[position]["value"])
 
-META_EJA_INTEGRADA_EPT_FINAL = 50.0
 
-META_MEDIO_TECNICO_ARTICULADO = 50.0
+META_CRECHE = _contract_reference_value("creche")
 
-META_EPT_PARTICIPACAO_PUBLICA = 50.0
+META_PRE_ESCOLA = _contract_reference_value("pre_escola")
 
-META_SUBSEQUENTE_EXPANSAO = 60.0
+META_BASICO_6_17 = _contract_reference_value("basico_6_17")
 
-META_ALFABETIZACAO_POP_15_MAIS_5_ANO = 97.0
+META_BASICO_15_17 = _contract_reference_value("basico_15_17")
 
-META_ALFABETIZACAO_POP_15_MAIS_FINAL = 100.0
+META_BASICO_INTEGRAL_INICIAL = _contract_milestone_value("basico_integral", 0)
 
-META_FUNDAMENTAL_CONCLUIDO_18_MAIS = 85.0
+META_BASICO_INTEGRAL_FINAL = _contract_milestone_value("basico_integral", -1)
 
-META_FUNDAMENTAL_CONCLUIDO_15_29 = 100.0
+META_ESCOLAS_INTEGRAL_INICIAL = _contract_milestone_value("escolas_integral", 0)
 
-META_MEDIO_CONCLUIDO_18_MAIS = 75.0
+META_ESCOLAS_INTEGRAL_FINAL = _contract_milestone_value("escolas_integral", -1)
 
-META_MEDIO_CONCLUIDO_18_29 = 100.0
+META_EJA_INTEGRADA_EPT_INTERMEDIARIA = _contract_milestone_value(
+    "eja_integrada_educacao_profissional_percentual",
+    0,
+)
 
-META_ALFABETIZACAO = 100.0
+META_EJA_INTEGRADA_EPT_FINAL = _contract_milestone_value(
+    "eja_integrada_educacao_profissional_percentual",
+    -1,
+)
+
+META_MEDIO_TECNICO_ARTICULADO = _contract_reference_value(
+    "medio_tecnico_articulado_percentual"
+)
+
+META_EPT_PARTICIPACAO_PUBLICA = _contract_reference_value(
+    "medio_tecnico_participacao_publica"
+)
+
+META_SUBSEQUENTE_EXPANSAO = _contract_reference_value("subsequente_expansao")
+
+META_ALFABETIZACAO_POP_15_MAIS_5_ANO = _contract_milestone_value(
+    "alfabetizacao_pop_15_mais",
+    0,
+)
+
+META_ALFABETIZACAO_POP_15_MAIS_FINAL = _contract_milestone_value(
+    "alfabetizacao_pop_15_mais",
+    -1,
+)
+
+META_FUNDAMENTAL_CONCLUIDO_18_MAIS = _contract_reference_value(
+    "fundamental_concluido_15_mais"
+)
+
+META_FUNDAMENTAL_CONCLUIDO_15_29 = _contract_reference_value(
+    "fundamental_concluido_15_29"
+)
+
+META_MEDIO_CONCLUIDO_18_MAIS = _contract_reference_value(
+    "medio_concluido_18_mais"
+)
+
+META_MEDIO_CONCLUIDO_18_29 = _contract_reference_value(
+    "medio_concluido_18_29"
+)
+
+META_ALFABETIZACAO = _contract_milestone_value("alfabetizacao", -1)
 
 META_SAEB_ADEQUADO = {
-    "anos_iniciais": 70.0,
-    "anos_finais": 60.0,
-    "ensino_medio": 50.0,
+    "anos_iniciais": _contract_milestone_value(
+        "saeb_matematica_anos_iniciais",
+        0,
+    ),
+    "anos_finais": _contract_milestone_value(
+        "saeb_matematica_anos_finais",
+        0,
+    ),
+    "ensino_medio": _contract_milestone_value(
+        "saeb_matematica_ensino_medio",
+        0,
+    ),
 }
 
-META_SAEB_BASICO = 100.0
+META_SAEB_BASICO = {
+    "anos_iniciais": _contract_goal_milestone_value(
+        "5.a",
+        "reference.5.a.saeb_anos_iniciais",
+        0,
+        dimension="basic_or_higher",
+    ),
+    "anos_finais": _contract_goal_milestone_value(
+        "5.b",
+        "reference.5.b.saeb_anos_finais",
+        0,
+        dimension="basic_or_higher",
+    ),
+    "ensino_medio": _contract_goal_milestone_value(
+        "5.d",
+        "reference.5.d.saeb_ensino_medio",
+        0,
+        dimension="basic_or_higher",
+    ),
+}
 
 META_IDADE_REGULAR = {
-    "quinto_ano": 100.0,
-    "nono_ano": 95.0,
-    "ensino_medio": 90.0,
+    "quinto_ano": _contract_reference_value("idade_regular_quinto"),
+    "nono_ano": _contract_reference_value("idade_regular_nono"),
+    "ensino_medio": _contract_reference_value("idade_regular_medio"),
 }
 
-META_ADEQUACAO = 100.0
+META_ADEQUACAO = {
+    "anos_iniciais": _contract_reference_value("adequacao_ai"),
+    "anos_finais": _contract_reference_value("adequacao_af"),
+    "ensino_medio": _contract_reference_value("adequacao_em"),
+}
 
-META_POS_GRADUACAO = 70.0
+META_POS_GRADUACAO = _contract_goal_milestone_value(
+    "17.f",
+    "reference.17.f.pos_graduacao",
+    -1,
+)
 
-META_RENDIMENTO_MAGISTERIO = 100.0
+META_RENDIMENTO_MAGISTERIO = _contract_goal_milestone_value(
+    "17.b",
+    "reference.17.b.rendimento_magisterio",
+    -1,
+)
 
-META_TEMPORARIOS = 30.0
+META_TEMPORARIOS = _contract_goal_milestone_value(
+    "17.d",
+    "reference.17.d.temporarios",
+    -1,
+)
 
-META_INFRA_CONECTIVIDADE_2_ANO = 50.0
+META_INFRA_CONECTIVIDADE_2_ANO = _contract_goal_milestone_value(
+    "7.a",
+    "reference.7.a.connectivity",
+    0,
+)
 
-META_INFRA_CONECTIVIDADE_5_ANO = 75.0
+META_INFRA_CONECTIVIDADE_5_ANO = _contract_goal_milestone_value(
+    "7.a",
+    "reference.7.a.connectivity",
+    1,
+)
 
-META_INFRA_CONECTIVIDADE_FINAL = 100.0
+META_INFRA_CONECTIVIDADE_FINAL = _contract_goal_milestone_value(
+    "7.a",
+    "reference.7.a.connectivity",
+    -1,
+)
 
-META_INFRA_CONSELHO_ESCOLAR = 100.0
+META_INFRA_CONSELHO_ESCOLAR = _contract_reference_value("conselho_escolar")
 
-ANO_TRANSICAO_META_2031 = 2031
+ANO_TRANSICAO_META_2031 = int(
+    _contract_reference("basico_integral")["milestones"][0]["year"]
+)
 
-ANO_FINAL_PNE_2036 = 2036
+ANO_FINAL_PNE_2036 = int(CONTRACT["cycle"]["endYear"])
 
 SAEB_ETAPA_CODIGO = {
     "anos_iniciais": 5,
@@ -128,7 +280,11 @@ SAEB_RESULT_GROUPS = {
         "etapa": etapa,
         "etapa_codigo": etapa_codigo,
         "value_column": SAEB_NIVEL_COLUMNS[nivel],
-        "meta": (META_SAEB_BASICO if nivel == "basico" else META_SAEB_ADEQUADO[etapa]),
+        "meta": (
+            META_SAEB_BASICO[etapa]
+            if nivel == "basico"
+            else META_SAEB_ADEQUADO[etapa]
+        ),
     }
     for materia in ("matematica", "portugues")
     for nivel in ("basico", "adequado")
@@ -152,9 +308,9 @@ IDADE_REGULAR_RESULT_GROUPS = {
 }
 
 ADEQUACAO_RESULT_GROUPS = {
-    "adequacao_ai": ("anos_iniciais", META_ADEQUACAO),
-    "adequacao_af": ("anos_finais", META_ADEQUACAO),
-    "adequacao_em": ("ensino_medio", META_ADEQUACAO),
+    "adequacao_ai": ("anos_iniciais", META_ADEQUACAO["anos_iniciais"]),
+    "adequacao_af": ("anos_finais", META_ADEQUACAO["anos_finais"]),
+    "adequacao_em": ("ensino_medio", META_ADEQUACAO["ensino_medio"]),
 }
 
 INFRA_ITEMS = [
@@ -263,9 +419,9 @@ INFRA_ITEMS = [
     },
     {
         "key": "conselho_escolar",
-        "label": "Escolas públicas com conselho escolar instituído e em funcionamento",
+        "label": "Escolas públicas que declararam possuir conselho escolar",
         "sub": "",
-        "desc": "Percentual de escolas públicas da educação básica com conselho escolar instituído e em pleno funcionamento.",
+        "desc": "Percentual de escolas públicas que declararam possuir conselho escolar no Censo Escolar; a resposta não comprova composição, regularidade de reuniões, permanência ou funcionamento efetivo.",
         "value_column": "percentual_conselho_escolar",
         "count_column": "escolas_publicas_com_orgao_conselho_escolar",
         "denominator_column": "escolas_publicas_total",
@@ -583,7 +739,7 @@ def _calculate_saeb_results(municipio):
         basic_result = build_level_result(
             filtered,
             value_column=SAEB_NIVEL_COLUMNS["basico"],
-            meta=META_SAEB_BASICO,
+            meta=META_SAEB_BASICO[config["etapa"]],
         )
         adequate_result = build_level_result(
             filtered,
@@ -925,8 +1081,12 @@ def _calc_medio_tecnico_articulado_percentual(municipio):
             "value_mode": "percent",
             "acima_de_100": bool(above_100_years),
             "acima_de_100_anos": above_100_years,
+            "dataStatus": "available",
         }
     )
+    latest = valid[valid["ano"] == int(result["end_year"])].iloc[-1]
+    result["numerator"] = float(latest["mat_articulado_total"])
+    result["denominator"] = float(latest["mat_medio"])
     if above_100_years:
         result["display"]["warning"] = (
             "Valores acima de 100% podem ocorrer porque a medida usa matrículas "
@@ -934,165 +1094,84 @@ def _calc_medio_tecnico_articulado_percentual(municipio):
         )
     return result
 
+
+def _fixed_baseline_result(series, meta):
+    if series is None or series.empty:
+        result = _empty_result(meta, meta_label="Meta PNE 2036")
+        result.update(
+            {
+                "base_year": CYCLE_BASELINE_YEAR,
+                "dataStatus": "unavailable",
+                "reasonCode": "source_unavailable",
+            }
+        )
+        return result
+
+    available = series[series["data_status"] == "available"].copy()
+    if available.empty:
+        latest = series.sort_values("ano").iloc[-1]
+        result = _empty_result(meta, meta_label="Meta PNE 2036")
+        result.update(
+            {
+                "base_year": CYCLE_BASELINE_YEAR,
+                "dataStatus": str(latest["data_status"]),
+                "reasonCode": str(latest["reason_code"]),
+            }
+        )
+        for source, destination in (
+            ("numerador", "numerator"),
+            ("denominador", "denominator"),
+            ("reference_value", "reference_value"),
+        ):
+            if source in latest.index and pd.notna(latest[source]):
+                result[destination] = float(latest[source])
+        return result
+
+    available = available.sort_values("ano")
+    result = _build_result(
+        available[["ano", "valor"]],
+        meta,
+        meta_label="Meta PNE 2036",
+        target_start_year=int(available["ano"].min()),
+        target_end_year=int(available["ano"].max()),
+    )
+    latest = available[available["ano"] == int(result["end_year"])].iloc[-1]
+    result.update(
+        {
+            "base_year": CYCLE_BASELINE_YEAR,
+            "dataStatus": "available",
+            "numerator": float(latest["numerador"]),
+            "denominator": float(latest["denominador"]),
+        }
+    )
+    if "reference_value" in latest.index and pd.notna(latest["reference_value"]):
+        result["reference_value"] = float(latest["reference_value"])
+    return result
+
+
 def _calc_medio_tecnico_participacao_publica(municipio):
     df = _safe_load(load_ept_nivel_medio_data)
-    if (
-        df.empty
-        or "municipio" not in df.columns
-        or "ano" not in df.columns
-        or "mat_ept_nivel_medio_total" not in df.columns
-        or "mat_ept_nivel_medio_publica" not in df.columns
-    ):
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
+    if df.empty or "municipio" not in df.columns:
+        return _fixed_baseline_result(
+            pd.DataFrame(), META_EPT_PARTICIPACAO_PUBLICA
         )
-
     dff = df[df["municipio"] == municipio].copy()
-    if dff.empty:
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
-        )
-
-    yearly = (
-        dff.groupby("ano", as_index=False)[
-            ["mat_ept_nivel_medio_total", "mat_ept_nivel_medio_publica"]
-        ]
-        .sum()
-        .copy()
-    )
-    yearly["ano"] = pd.to_numeric(yearly["ano"], errors="coerce")
-    yearly["mat_ept_nivel_medio_total"] = pd.to_numeric(
-        yearly["mat_ept_nivel_medio_total"], errors="coerce"
-    )
-    yearly["mat_ept_nivel_medio_publica"] = pd.to_numeric(
-        yearly["mat_ept_nivel_medio_publica"], errors="coerce"
-    )
-    yearly = (
-        yearly.dropna(
-            subset=[
-                "ano",
-                "mat_ept_nivel_medio_total",
-                "mat_ept_nivel_medio_publica",
-            ]
-        )
-        .sort_values("ano")
-        .reset_index(drop=True)
-    )
-    if yearly.empty:
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
-        )
-
-    base_rows = yearly[yearly["ano"] >= TARGET_START_YEAR]
-    if base_rows.empty:
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
-        )
-
-    base_row = base_rows.head(1).iloc[0]
-    base_total = float(base_row["mat_ept_nivel_medio_total"])
-    base_publica = float(base_row["mat_ept_nivel_medio_publica"])
-    if base_total <= 0:
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
-        )
-
-    base_year = int(base_row["ano"])
-    yearly = yearly[yearly["ano"] >= base_year].copy().sort_values("ano")
-    yearly["mat_ept_nivel_medio_privada"] = (
-        yearly["mat_ept_nivel_medio_total"] - yearly["mat_ept_nivel_medio_publica"]
-    )
-    yearly["exp_publica"] = yearly["mat_ept_nivel_medio_publica"].diff().fillna(0.0)
-    yearly["exp_privada"] = yearly["mat_ept_nivel_medio_privada"].diff().fillna(0.0)
-    yearly["exp_publica_positiva"] = yearly["exp_publica"].clip(lower=0.0)
-    yearly["exp_privada_positiva"] = yearly["exp_privada"].clip(lower=0.0)
-    yearly["exp_publica_acumulada"] = yearly["exp_publica_positiva"].cumsum()
-    yearly["exp_privada_acumulada"] = yearly["exp_privada_positiva"].cumsum()
-    yearly["exp_total_acumulada"] = (
-        yearly["exp_publica_acumulada"] + yearly["exp_privada_acumulada"]
-    )
-    yearly["valor"] = 0.0
-    expansion_mask = yearly["exp_total_acumulada"] > 0
-    yearly.loc[expansion_mask, "valor"] = (
-        yearly.loc[expansion_mask, "exp_publica_acumulada"]
-        .div(yearly.loc[expansion_mask, "exp_total_acumulada"])
-        .mul(100.0)
-    )
-    yearly = yearly[yearly["ano"] > base_year].copy()
-    yearly = yearly.replace([math.inf, -math.inf], pd.NA).dropna(subset=["valor"])
-    if yearly.empty:
-        return _empty_result(
-            META_EPT_PARTICIPACAO_PUBLICA,
-            meta_label="Meta PNE 2036",
-        )
-
-    result = _build_result(
-        yearly[["ano", "valor"]],
-        META_EPT_PARTICIPACAO_PUBLICA,
-        meta_label="Meta PNE 2036",
-        target_start_year=base_year,
-        target_end_year=TARGET_END_YEAR,
-    )
-    result["base_year"] = base_year
-    result["base_total"] = base_total
-    result["base_publica"] = base_publica
-    return result
+    try:
+        series = calculate_public_expansion_series(dff)
+    except MedioTecnicoArticuladoValidationError:
+        series = pd.DataFrame()
+    return _fixed_baseline_result(series, META_EPT_PARTICIPACAO_PUBLICA)
 
 def _calc_subsequente_expansao(municipio):
     df = _safe_load(load_ept_nivel_medio_data)
-    value_column = (
-        "mat_profissional_tecnico_subsequente"
-        if "mat_profissional_tecnico_subsequente" in df.columns
-        else "mat_subsequente_total"
-    )
-    result = _build_accumulated_growth_result(
-        lambda: df,
-        municipio,
-        value_column=value_column,
-        meta=META_SUBSEQUENTE_EXPANSAO,
-        meta_label="Meta PNE 2036",
-        base_year=TARGET_START_YEAR,
-        target_start_year=TARGET_START_YEAR,
-        target_end_year=TARGET_END_YEAR,
-    )
-    if not result.get("available"):
-        return result
-
+    if df.empty or "municipio" not in df.columns:
+        return _fixed_baseline_result(pd.DataFrame(), META_SUBSEQUENTE_EXPANSAO)
     dff = df[df["municipio"] == municipio].copy()
-    if dff.empty or "ano" not in dff.columns or value_column not in dff.columns:
-        return result
-
-    yearly = dff.groupby("ano", as_index=False)[value_column].sum().copy()
-    yearly["ano"] = pd.to_numeric(yearly["ano"], errors="coerce")
-    yearly[value_column] = pd.to_numeric(yearly[value_column], errors="coerce")
-    yearly = (
-        yearly.dropna(subset=["ano", value_column])
-        .sort_values("ano")
-        .reset_index(drop=True)
-    )
-    if yearly.empty:
-        return result
-
-    display_series = yearly[
-        (yearly["ano"] >= int(result["start_year"]))
-        & (yearly["ano"] <= int(result["end_year"]))
-    ].copy()
-    if display_series.empty:
-        return result
-
-    result["display_value_mode"] = "count"
-    result["display_start_value"] = float(display_series.iloc[0][value_column])
-    result["display_end_value"] = float(display_series.iloc[-1][value_column])
-    result["display_series"] = [
-        {"ano": int(row["ano"]), "valor": float(row[value_column])}
-        for _, row in display_series.iterrows()
-    ]
-    return result
+    try:
+        series = calculate_subsequent_expansion_series(dff)
+    except MedioTecnicoArticuladoValidationError:
+        series = pd.DataFrame()
+    return _fixed_baseline_result(series, META_SUBSEQUENTE_EXPANSAO)
 
 def _calc_alfabetizacao(municipio):
     precomputed = _build_precomputed_result(
@@ -1151,7 +1230,20 @@ def _calc_fundamental_concluido_15_29(municipio):
         denominator="populacao_15_29_total",
         meta=META_FUNDAMENTAL_CONCLUIDO_15_29,
         meta_label="Meta PNE 2036",
-        target_start_year=2010,
+        target_start_year=2022,
+        target_end_year=2022,
+    )
+
+
+def _calc_fundamental_concluido_15_mais(municipio):
+    return _build_ratio_result(
+        load_censo_populacao_ensino_fundamental_concluido_15_mais_data,
+        municipio,
+        numerator="populacao_15_mais_ensino_fundamental_concluido",
+        denominator="populacao_15_mais_total",
+        meta=META_FUNDAMENTAL_CONCLUIDO_18_MAIS,
+        meta_label="Meta PNE 2036",
+        target_start_year=2022,
         target_end_year=2022,
     )
 
@@ -1228,7 +1320,7 @@ def _calc_adequacao(municipio, etapa_key):
         load_adequacao_docente_data,
         municipio,
         value_column="percentual_adequacao",
-        meta=META_ADEQUACAO,
+        meta=META_ADEQUACAO[etapa_key],
         meta_label="Meta PNE 2036",
         filters={"etapa": etapa_key, "dependencia": "total"},
         target_start_year=2019,
@@ -1348,25 +1440,25 @@ INDICADORES = {
         "items": [
             {
                 "key": "creche",
-                "label": "População de 0 a 3 anos que frequenta a escola/creche",
+                "label": "Matrículas de crianças de 0 a 3 anos em relação à população residente estimada",
                 "sub": "",
-                "desc": "Percentual da população de 0 a 3 anos que frequenta a escola ou creche.",
+                "desc": "Matrículas de crianças de 0 a 3 anos registradas nas escolas do município divididas pela população residente estimada da mesma faixa; o resultado pode superar 100% por causa da diferença de territorialidade.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_creche,
             },
             {
                 "key": "pre_escola",
-                "label": "População de 4 a 5 anos que frequenta a escola/creche",
+                "label": "Matrículas de crianças de 4 a 5 anos em relação à população residente estimada",
                 "sub": "",
-                "desc": "Percentual da população de 4 a 5 anos que frequenta a escola ou creche.",
+                "desc": "Matrículas de crianças de 4 a 5 anos registradas nas escolas do município divididas pela população residente estimada da mesma faixa; o resultado pode superar 100% por causa da diferença de territorialidade.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_pre_escola,
             },
             {
                 "key": "basico_6_17",
-                "label": "População de 6 a 17 anos que frequenta a educação básica",
+                "label": "Matrículas de 6 a 17 anos em relação à população residente estimada",
                 "sub": "",
-                "desc": "Percentual da população de 6 a 17 anos que frequenta a educação básica.",
+                "desc": "Matrículas de estudantes de 6 a 17 anos registradas nas escolas do município divididas pela população residente estimada da mesma faixa; o resultado pode superar 100% por causa da diferença de territorialidade.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_basico_6_17,
             },
@@ -1416,31 +1508,31 @@ INDICADORES = {
             },
             {
                 "key": "medio_tecnico_articulado_percentual",
-                "label": "Ensino médio articulado à educação profissional técnica",
-                "sub": "Indicador aproximado",
-                "desc": "Percentual das matrículas em cursos técnicos integrados em relação ao total de matrículas do ensino médio.",
+                "label": "Matrículas técnicas integradas ou concomitantes em relação às matrículas do Ensino Médio",
+                "sub": "",
+                "desc": "Razão entre matrículas técnicas integradas ou concomitantes e matrículas do Ensino Médio; os agregados não identificam estudantes únicos e a referência de 50% é de acompanhamento.",
                 "source": "INEP — Sinopse Estatística da Educação Básica.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_medio_tecnico_articulado_percentual,
                 "show_in_cycle": True,
-                "include_in_cycle_summary": True,
+                "include_in_cycle_summary": False,
                 "tracks_goal": True,
                 "coverage": "aproximada",
                 "value_mode": "percent",
             },
             {
                 "key": "medio_tecnico_participacao_publica",
-                "label": "Participação acumulada do segmento público na expansão da EPT de nível médio",
+                "label": "Participação pública na expansão da EPT de nível médio desde 2025",
                 "sub": "",
-                "desc": "Participação acumulada do segmento público nas expansões anuais positivas das matrículas da Educação Profissional e Tecnológica de nível médio no município, considerando a evolução de 2015 até o ano analisado.",
+                "desc": "Participação da expansão líquida pública na expansão líquida total da Educação Profissional e Tecnológica de nível médio desde a base fixa de 2025.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_medio_tecnico_participacao_publica,
             },
             {
                 "key": "subsequente_expansao",
-                "label": "Expansão acumulada das matrículas em cursos técnicos subsequentes",
+                "label": "Expansão das matrículas em cursos técnicos subsequentes desde 2025",
                 "sub": "",
-                "desc": "Expansão acumulada das matrículas nos cursos técnicos subsequentes da Educação Profissional e Tecnológica de nível médio no município, considerando a evolução a partir de 2015.",
+                "desc": "Expansão das matrículas nos cursos técnicos subsequentes da Educação Profissional e Tecnológica de nível médio no município em relação à base fixa de 2025.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_subsequente_expansao,
             },
@@ -1466,6 +1558,14 @@ INDICADORES = {
                 "desc": "Percentual da população de 18 anos ou mais com ensino fundamental concluído, com base nos Censos Demográficos.",
                 "meta_label": "Meta PNE 2036",
                 "compute": _calc_fundamental_concluido_18_mais,
+            },
+            {
+                "key": "fundamental_concluido_15_mais",
+                "label": "População de 15 anos ou mais com ensino fundamental concluído",
+                "sub": "",
+                "desc": "Percentual da população de 15 anos ou mais com ensino fundamental concluído no Censo Demográfico 2022.",
+                "meta_label": "Meta PNE 2036",
+                "compute": _calc_fundamental_concluido_15_mais,
             },
             {
                 "key": "fundamental_concluido_15_29",
@@ -1533,9 +1633,9 @@ INDICADORES = {
             ],
             {
                 "key": "idade_regular_quinto",
-                "label": "Estudantes que concluem os anos iniciais na idade regular",
+                "label": "Estudantes matriculados sem distorção — anos iniciais",
                 "sub": "",
-                "desc": "Percentual de estudantes que concluem os anos iniciais do ensino fundamental na idade adequada.",
+                "desc": "Percentual de estudantes matriculados sem distorção idade-série nos anos iniciais do ensino fundamental.",
                 "meta_label": "Meta PNE 2036",
                 "compute": lambda municipio: _calc_idade_regular(
                     municipio, "quinto_ano"
@@ -1543,17 +1643,17 @@ INDICADORES = {
             },
             {
                 "key": "idade_regular_nono",
-                "label": "Estudantes que concluem os anos finais na idade regular",
+                "label": "Estudantes matriculados sem distorção — anos finais",
                 "sub": "",
-                "desc": "Percentual de estudantes que concluem os anos finais do ensino fundamental na idade adequada.",
+                "desc": "Percentual de estudantes matriculados sem distorção idade-série nos anos finais do ensino fundamental.",
                 "meta_label": "Meta PNE 2036",
                 "compute": lambda municipio: _calc_idade_regular(municipio, "nono_ano"),
             },
             {
                 "key": "idade_regular_medio",
-                "label": "Estudantes que concluem o ensino médio na idade regular",
+                "label": "Estudantes matriculados sem distorção — Ensino Médio",
                 "sub": "",
-                "desc": "Percentual de estudantes que concluem o ensino médio na idade adequada.",
+                "desc": "Percentual de estudantes matriculados sem distorção idade-série no ensino médio.",
                 "meta_label": "Meta PNE 2036",
                 "compute": lambda municipio: _calc_idade_regular(
                     municipio, "ensino_medio"
@@ -1643,6 +1743,37 @@ INDICADORES = {
     },
 }
 
+def _apply_canonical_indicator_catalog():
+    for category in INDICADORES.values():
+        for item in category["items"]:
+            indicator = get_indicator(item["key"])
+            if indicator is None:
+                continue
+            formula = get_formula_for_indicator(item["key"]) or {}
+            reference = _contract_reference(item["key"])
+            item["label"] = indicator["publicTitle"]
+            item["desc"] = (
+                indicator.get("publicDescription")
+                or formula.get("description")
+                or item.get("desc")
+            )
+            item["formulaId"] = indicator["formulaId"]
+            item["sourceIds"] = list(indicator["sourceIds"])
+            if reference is not None:
+                item["meta_label"] = (
+                    f"Meta PNE {reference['year']}"
+                    if reference["kind"] == "legal" and reference.get("year")
+                    else reference["label"]
+                )
+            else:
+                context = get_relation_context_for_indicator(item["key"])
+                relation = (context or {}).get("relation") or {}
+                if relation.get("mode") in {"complementary", "hidden"}:
+                    item.pop("meta_label", None)
+                    item["tracks_goal"] = False
+
+
+_apply_canonical_indicator_catalog()
 apply_pne2026_diagnostic_presentation(INDICADORES)
 
 CATEGORY_ORDER = [
@@ -1705,6 +1836,62 @@ def _build_precomputed_result(
         tracks_goal=tracks_goal,
     )
 
+
+def _apply_canonical_reference(indicator_key, result):
+    if not isinstance(result, dict):
+        return result
+    context = get_relation_context_for_indicator(
+        indicator_key,
+        result.get("end_year") or TARGET_END_YEAR,
+    )
+    relation = (context or {}).get("relation") or {}
+    if relation.get("mode") in {"complementary", "hidden"}:
+        updated = dict(result)
+        updated["meta"] = None
+        updated.pop("meta_label", None)
+        updated["tracks_goal"] = False
+        updated["distance"] = None
+        updated["atingida"] = False
+        updated["deadline"] = None
+        updated["reference_kind"] = None
+        updated["reference_id"] = None
+        updated["reference_validation_status"] = None
+        return updated
+    reference = _contract_reference(
+        indicator_key,
+        result.get("end_year") or TARGET_END_YEAR,
+    )
+    if reference is None:
+        return result
+
+    updated = dict(result)
+    updated["meta"] = float(reference["value"])
+    updated["meta_label"] = (
+        f"Meta PNE {reference['year']}"
+        if reference["kind"] == "legal" and reference.get("year")
+        else reference["label"]
+    )
+    updated["direction"] = reference["direction"]
+    updated["reference_kind"] = reference["kind"]
+    updated["reference_id"] = reference["referenceId"]
+    updated["reference_validation_status"] = reference["validationStatus"]
+    updated["deadline"] = reference.get("year")
+    end_value = updated.get("end_value")
+    if end_value is None or pd.isna(end_value):
+        updated["distance"] = None
+        updated["atingida"] = False
+        return updated
+
+    distance = (
+        float(reference["value"]) - float(end_value)
+        if reference["direction"] == GOAL_AT_MOST
+        else float(end_value) - float(reference["value"])
+    )
+    updated["distance"] = distance
+    updated["atingida"] = _goal_achieved(distance)
+    return updated
+
+
 def _attach_trends(results):
     item_lookup = {
         item["key"]: item
@@ -1713,8 +1900,13 @@ def _attach_trends(results):
     }
     enriched = {}
     for indicator_key, result in results.items():
+        result = _apply_canonical_reference(indicator_key, result)
         item = item_lookup.get(indicator_key, {})
-        if item.get("monitoring_mode") == "approximate_reference":
+        if item.get("monitoring_mode") in {
+            "approximate_reference",
+            "complementary",
+            "hidden",
+        }:
             enriched[indicator_key] = result
             continue
         value_type = item.get("value_mode") or result.get("value_mode", "percent")
@@ -1722,6 +1914,9 @@ def _attach_trends(results):
             result,
             value_type=value_type,
             methodology_break_years=item.get("methodology_break_years"),
+            observation_interval_years=(
+                2 if indicator_key.startswith("saeb_") else 1
+            ),
         )
     return enriched
 

@@ -101,6 +101,8 @@ const INEP_CENSO = 'INEP — Censo Escolar'
 const INEP_CENSO_POPULATION = 'INEP — Censo Escolar e base populacional do diagnóstico'
 const INEP_SINOPSE_BASIC = 'INEP — Sinopse Estatística da Educação Básica'
 const INEP_AVERAGE_CLASS_SIZE = 'INEP — Indicador Média de Alunos por Turma (ATU)'
+const INEP_SUPERIOR = 'INEP — Censo da Educação Superior'
+const INEP_CENSO_IBGE_INDIGENA = 'INEP — Censo Escolar e IBGE — Censo Demográfico 2022'
 
 export const MUNICIPAL_REPORT_PUBLIC_LABELS: Record<string, MunicipalReportPublicLabel> = {
   creche: {
@@ -360,12 +362,12 @@ export const MUNICIPAL_REPORT_PUBLIC_LABELS: Record<string, MunicipalReportPubli
     interpretationNote: 'Neste indicador, percentuais menores representam menor participação de vínculos temporários.',
   },
   conselho_escolar: {
-    publicTitle: 'Escolas públicas com conselho escolar instituído e em funcionamento',
-    publicShortTitle: 'Escolas públicas com conselho escolar',
-    publicDescription: 'Participação das escolas públicas da Educação Básica que declaram ter conselho escolar instituído e em funcionamento.',
+    publicTitle: 'Escolas públicas que declararam possuir conselho escolar',
+    publicShortTitle: 'Declaração de conselho escolar',
+    publicDescription: 'Participação das escolas públicas da Educação Básica que declararam possuir conselho escolar.',
     unitLabel: 'percentual de escolas públicas',
     sourceLabel: INEP_CENSO,
-    interpretationNote: 'É um registro declaratório e não avalia a frequência, a representatividade ou a efetividade das reuniões do conselho.',
+    interpretationNote: 'É um registro declaratório do Censo Escolar e não comprova composição, regularidade de reuniões, permanência ou funcionamento efetivo.',
   },
   proposta_pedagogica: {
     publicTitle: 'Escolas públicas com projeto político-pedagógico ou proposta pedagógica',
@@ -470,6 +472,110 @@ export const MUNICIPAL_REPORT_PUBLIC_LABELS: Record<string, MunicipalReportPubli
     unitLabel: 'percentual de expansão',
     sourceLabel: INEP_CENSO,
     interpretationNote: 'A medida acompanha expansão acumulada e não mede qualidade ou permanência.',
+  },
+  educacao_indigena_cobertura_estimada_4_17: {
+    publicTitle: 'Cobertura estimada da educação escolar indígena — 4 a 17 anos',
+    publicShortTitle: 'Cobertura estimada da educação escolar indígena',
+    publicDescription: 'Relação estimada entre matrículas de 2025 da educação escolar indígena localizadas no município e a população indígena residente de 4 a 17 anos do Censo Demográfico 2022.',
+    unitLabel: 'percentual estimado',
+    sourceLabel: INEP_CENSO_IBGE_INDIGENA,
+    interpretationNote: 'Combina INEP e IBGE, anos e territorialidades diferentes. Deslocamentos entre municípios podem produzir resultados acima de 100%; é um retrato complementar e estimativo.',
+  },
+  aee_oferta_escolas_elegiveis: {
+    publicTitle: 'Escolas com matrículas da Educação Especial que oferecem AEE',
+    publicShortTitle: 'Oferta escolar de AEE',
+    publicDescription: 'Participação das escolas com matrículas da Educação Especial que declaram oferta de atendimento educacional especializado.',
+    unitLabel: 'percentual de escolas elegíveis',
+    sourceLabel: INEP_CENSO,
+    interpretationNote: 'A unidade é a escola elegível, isto é, com matrícula da Educação Especial. A medida declara oferta e não mede necessidade, atendimento efetivo, frequência, adequação, qualidade ou atendimento em outra unidade.',
+  },
+  superior_concluintes_oferta_local: {
+    publicTitle: 'Concluintes da graduação na oferta localizada no município',
+    publicShortTitle: 'Concluintes da graduação na oferta local',
+    publicDescription: 'Total anual de concluintes vinculados a cursos de graduação cuja oferta está localizada no município.',
+    unitLabel: 'concluintes',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'Localização da oferta não equivale a residência; o total nacional da meta não é distribuído entre municípios.',
+  },
+  superior_docentes_mestres_doutores_sede: {
+    publicTitle: 'Docentes com mestrado ou doutorado nas IES com sede no município',
+    publicShortTitle: 'Mestres e doutores nas IES com sede local',
+    publicDescription: 'Participação dos docentes com mestrado ou doutorado no total docente das IES cuja sede administrativa está no município.',
+    unitLabel: 'percentual de docentes',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'Publicado somente com decomposição exaustiva por titulação; sede administrativa não equivale a residência e não comprova todos os recortes jurídicos da meta.',
+  },
+  alfabetizacao: {
+    publicTitle: 'Estudantes alfabetizados ao final do 2º ano do Ensino Fundamental — rede municipal',
+    publicShortTitle: 'Alfabetização ao final do 2º ano',
+    publicDescription: 'Percentual oficial de estudantes avaliados da rede municipal que alcançaram o padrão nacional de alfabetização.',
+    unitLabel: 'percentual de estudantes avaliados',
+    sourceLabel: 'INEP — Avaliação da Alfabetização',
+    interpretationNote: 'Ausência de resultado ou participação inferior a 70% não significa zero; o indicador não inclui automaticamente outras redes.',
+  },
+  eja_atendimento_18_mais: {
+    publicTitle: 'Matrículas de EJA de estudantes com 18 anos ou mais em relação à população sem Educação Básica concluída',
+    publicShortTitle: 'Atendimento estimado da EJA — 18 anos ou mais',
+    publicDescription: 'Matrículas EJA de estudantes com 18 anos ou mais sobre a população residente da faixa sem Educação Básica concluída.',
+    unitLabel: 'percentual estimado',
+    sourceLabel: 'INEP — Sinopse da Educação Básica e IBGE — Censo 2022',
+    interpretationNote: 'O numerador segue o município da escola e o denominador, o de residência; a razão pode superar 100%.',
+  },
+  graduacao_frequencia_18_24: {
+    publicTitle: 'População de 18 a 24 anos que frequenta curso de graduação',
+    publicShortTitle: 'Frequência à graduação — 18 a 24 anos',
+    publicDescription: 'Percentual de residentes de 18 a 24 anos que frequentavam graduação no Censo 2022.',
+    unitLabel: 'percentual da população',
+    sourceLabel: 'IBGE — Censo Demográfico 2022',
+    interpretationNote: 'Acompanha o componente quantitativo e não mede qualidade nem todos os recortes de desigualdade da meta.',
+  },
+  superior_completo_25_34: {
+    publicTitle: 'População de 25 a 34 anos com educação superior completa',
+    publicShortTitle: 'Superior completo — 25 a 34 anos',
+    publicDescription: 'Percentual de residentes de 25 a 34 anos com educação superior completa no Censo 2022.',
+    unitLabel: 'percentual da população',
+    sourceLabel: 'IBGE — Censo Demográfico 2022',
+    interpretationNote: 'Acompanha o componente quantitativo e não mede qualidade nem todos os recortes de desigualdade da meta.',
+  },
+  taxa_bruta_graduacao: {
+    publicTitle: 'Taxa bruta de frequência à graduação',
+    publicShortTitle: 'Taxa bruta de frequência à graduação',
+    publicDescription: 'Residentes de todas as idades que frequentavam graduação em relação à população residente de 18 a 24 anos.',
+    unitLabel: 'taxa bruta percentual',
+    sourceLabel: 'IBGE — Censo Demográfico 2022',
+    interpretationNote: 'A taxa bruta pode superar 100% e não deve ser truncada.',
+  },
+  docentes_tempo_integral_ies: {
+    publicTitle: 'Docentes em exercício em tempo integral nas IES com sede no município',
+    publicShortTitle: 'Tempo integral no total das IES',
+    publicDescription: 'Percentual total de docentes em exercício em regime de tempo integral.',
+    unitLabel: 'percentual de docentes',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'O município é o da sede/reitoria da IES, não o de residência do docente.',
+  },
+  docentes_tempo_integral_universidades: {
+    publicTitle: 'Docentes em tempo integral nas universidades com sede no município',
+    publicShortTitle: 'Tempo integral nas universidades',
+    publicDescription: 'Razão de acompanhamento por soma das categorias administrativas oficiais.',
+    unitLabel: 'percentual de docentes contabilizados',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'Não classifica cumprimento legal por categoria pública, privada ou comunitária.',
+  },
+  docentes_tempo_integral_centros_universitarios: {
+    publicTitle: 'Docentes em tempo integral nos centros universitários com sede no município',
+    publicShortTitle: 'Tempo integral nos centros universitários',
+    publicDescription: 'Razão de acompanhamento por soma das categorias administrativas oficiais.',
+    unitLabel: 'percentual de docentes contabilizados',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'Não classifica cumprimento legal por categoria pública, privada ou comunitária.',
+  },
+  docentes_tempo_integral_faculdades: {
+    publicTitle: 'Docentes em tempo integral nas faculdades com sede no município',
+    publicShortTitle: 'Tempo integral nas faculdades',
+    publicDescription: 'Razão de acompanhamento por soma das categorias administrativas oficiais.',
+    unitLabel: 'percentual de docentes contabilizados',
+    sourceLabel: INEP_SUPERIOR,
+    interpretationNote: 'Não classifica cumprimento legal por categoria pública, privada ou comunitária.',
   },
 }
 

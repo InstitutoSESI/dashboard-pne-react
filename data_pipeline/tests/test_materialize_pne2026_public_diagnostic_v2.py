@@ -76,30 +76,22 @@ class MaterializePne2026PublicDiagnosticV2UnitTest(unittest.TestCase):
             self.assertEqual(second.read_bytes(), original_second)
 
 
-class MaterializePne2026PublicDiagnosticV2PayloadTest(unittest.TestCase):
+class MaterializePne2026PublicDiagnosticV2SnapshotAuditTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.audit = materializer.audit_materialized()
-
-    def test_all_canonical_contracts_are_deterministic(self):
-        self.assertEqual(self.audit["canonicalCount"], 497)
-        self.assertEqual(self.audit["physicalFileCount"], 497)
-        self.assertEqual(self.audit["changedPaths"], [])
-        self.assertEqual(self.audit["existingV2ContractCount"], 497)
-
-    def test_v1_is_preserved_and_v2_has_full_pne_parity(self):
-        self.assertEqual(self.audit["v1Before"], self.audit["v1After"])
-        self.assertEqual(self.audit["v1After"]["resultCount"], 9119)
-        self.assertEqual(
-            self.audit["v1After"]["classificationCounts"],
-            {"advance": 7759, "maintain": 1360, "unclassified": 0},
+        from data_pipeline.tests.test_pne2026_public_diagnostic_v2 import (
+            Pne2026PublicDiagnosticV2AuditTest,
         )
-        v2 = self.audit["v2Audit"]
-        self.assertEqual(v2["v2AvailableOccurrences"], 15896)
-        self.assertEqual(v2["pneAbsentOccurrences"], 1002)
-        self.assertEqual(v2["duplicateResultCount"], 0)
-        self.assertEqual(v2["outOfCatalogResultCount"], 0)
-        self.assertTrue(v2["publicationReady"])
+
+        Pne2026PublicDiagnosticV2AuditTest.setUpClass()
+        cls.audit = Pne2026PublicDiagnosticV2AuditTest.audit
+
+    def test_materializer_accepts_the_git_snapshot_audit_without_writing(self):
+        materializer._assert_v2_audit(self.audit)
+        self.assertEqual(self.audit["v2AvailableOccurrences"], 15114)
+        self.assertEqual(self.audit["pneAbsentOccurrences"], 293)
+        self.assertEqual(self.audit["duplicateResultCount"], 0)
+        self.assertTrue(self.audit["publicationReady"])
 
 
 if __name__ == "__main__":

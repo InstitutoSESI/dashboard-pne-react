@@ -1,5 +1,5 @@
 import { Fragment, useMemo } from 'react'
-import type { Pne2026PublicDiagnosticV2 } from '../../diagnostic/diagnosticTypes'
+import type { Pne2026DiagnosticViewModel } from '../../diagnostic/diagnosticTypes'
 import {
   buildPmeReferenceTableModel,
   type PmeReferenceDataSources,
@@ -9,7 +9,7 @@ import { ReportMetrics, ReportTableRegion } from './MunicipalTechnicalReportLayo
 
 interface PmeReferenceIndicatorsTableProps {
   dataSources?: PmeReferenceDataSources
-  diagnostic: Pne2026PublicDiagnosticV2 | null
+  diagnostic: Pne2026DiagnosticViewModel | null
   error?: string | null
   loading?: boolean
 }

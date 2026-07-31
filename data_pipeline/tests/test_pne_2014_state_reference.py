@@ -32,8 +32,15 @@ class ClosedCycleStateReferenceTests(unittest.TestCase):
 
         self.assertEqual(METHODOLOGY_VERSION, "pne2014-rs-reference-v1")
         self.assertEqual(len(registry), 24)
-        self.assertEqual(set(registry) - enabled, set(BLOCKED_REASONS))
-        self.assertEqual(len(BLOCKED_REASONS), 12)
+        self.assertEqual(
+            set(registry) - enabled - {"alfabetizacao"},
+            set(BLOCKED_REASONS),
+        )
+        self.assertEqual(len(BLOCKED_REASONS), 11)
+        self.assertEqual(
+            registry["alfabetizacao"]["source_type"],
+            "official_state_published_percentage",
+        )
         self.assertEqual(
             set(UNAVAILABLE_REASONS),
             {

@@ -761,7 +761,7 @@ function MunicipalTechnicalReportContent({
       overview={state.status === 'ready' ? state.data : null}
       pmeDiagnostic={
         diagnosticState.status === 'success'
-          ? diagnosticState.data?.pne2026PublicDiagnosticV2 ?? null
+          ? diagnosticState.data?.pne2026PublicDiagnostic ?? null
           : null
       }
       pmeDiagnosticError={diagnosticState.status === 'error' ? diagnosticState.error : null}

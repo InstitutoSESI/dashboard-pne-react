@@ -55,7 +55,7 @@ test('participação pública permanece neutra enquanto não houver expansão ap
   assert.equal(model.missingValue, null)
 })
 
-test('participação pública acumula expansões positivas a partir da base de 2025', () => {
+test('participação pública usa expansão líquida entre 2025 e o último ano', () => {
   const model = buildPne2026AccumulativeModel({
     cycle: CYCLE,
     indicatorKey: 'medio_tecnico_participacao_publica',
@@ -63,17 +63,40 @@ test('participação pública acumula expansões positivas a partir da base de 2
       series_dependencia: [
         { ano: 2025, federal: 10, estadual: 50, municipal: 0, privada: 40 },
         { ano: 2026, federal: 15, estadual: 55, municipal: 0, privada: 50 },
-        { ano: 2027, federal: 20, estadual: 60, municipal: 0, privada: 50 },
+        { ano: 2027, federal: 10, estadual: 60, municipal: 0, privada: 70 },
       ],
     },
   })
 
-  assert.equal(model.publicExpansion, 20)
-  assert.equal(model.totalExpansion, 30)
-  assert.ok(Math.abs(model.currentValue - (200 / 3)) < 0.000001)
-  assert.equal(model.missingValue, 0)
-  assert.equal(model.achieved, true)
-  assert.equal(model.status, 'achieved')
+  assert.equal(model.publicExpansion, 10)
+  assert.equal(model.totalExpansion, 40)
+  assert.equal(model.currentValue, 25)
+  assert.equal(model.missingValue, 25)
+  assert.equal(model.achieved, false)
+  assert.equal(model.status, 'below')
+})
+
+test('participação pública preserva retração e valores superiores a 100%', () => {
+  const buildModel = (latest) => buildPne2026AccumulativeModel({
+    cycle: CYCLE,
+    indicatorKey: 'medio_tecnico_participacao_publica',
+    details: {
+      series_dependencia: [
+        { ano: 2025, federal: 10, estadual: 50, municipal: 0, privada: 40 },
+        { ano: 2026, ...latest },
+      ],
+    },
+  })
+
+  const retraction = buildModel({ federal: 10, estadual: 40, municipal: 0, privada: 70 })
+  assert.equal(retraction.publicExpansion, -10)
+  assert.equal(retraction.totalExpansion, 20)
+  assert.equal(retraction.currentValue, -50)
+
+  const above100 = buildModel({ federal: 20, estadual: 70, municipal: 0, privada: 20 })
+  assert.equal(above100.publicExpansion, 30)
+  assert.equal(above100.totalExpansion, 10)
+  assert.equal(above100.currentValue, 300)
 })
 
 test('outros indicadores e ciclos não recebem a regra especial', () => {

@@ -204,12 +204,19 @@ alfabetizacao AS (
         a.ano,
         m.municipio,
         'alfabetizacao' AS indicador,
-        AVG(a.taxa_alfabetizacao::double precision) AS valor
+        a.taxa_alfabetizacao::double precision AS valor
     FROM alfabetizacao a
     JOIN municipios_base m
       ON m.id_municipio = a.id_municipio::text
-    WHERE a.dependencia = 'publica'
-    GROUP BY 1, 2, 3
+    WHERE a.ano <= 2024
+      AND LOWER(TRIM(a.dependencia)) = 'municipal'
+      AND (
+          SELECT COUNT(*)
+          FROM alfabetizacao duplicada
+          WHERE duplicada.ano = a.ano
+            AND duplicada.id_municipio::text = a.id_municipio::text
+            AND LOWER(TRIM(duplicada.dependencia)) = 'municipal'
+      ) = 1
 ),
 alfabetizacao_pop_15_mais AS (
     SELECT

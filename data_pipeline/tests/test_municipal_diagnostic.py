@@ -10,6 +10,7 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
 
 from src.municipal_diagnostic import (  # noqa: E402
     _build_decision_reading,
+    _public_trajectory,
     build_municipal_diagnostic_v2,
     build_state_benchmark_registry,
     calculate_directional_percentile,
@@ -100,11 +101,11 @@ class MunicipalDiagnosticContractTest(unittest.TestCase):
             item for item in contract["indicators"] if item["indicatorId"] == indicator_id
         )
 
-    def test_all_49_indicators_are_serialized_and_missing_is_never_zero(self):
+    def test_all_50_indicators_are_serialized_and_missing_is_never_zero(self):
         contract = self.build()
-        self.assertEqual(contract["summary"]["indicatorCount"], 49)
-        self.assertEqual(len(contract["indicators"]), 49)
-        self.assertEqual(len({item["indicatorId"] for item in contract["indicators"]}), 49)
+        self.assertEqual(contract["summary"]["indicatorCount"], 54)
+        self.assertEqual(len(contract["indicators"]), 54)
+        self.assertEqual(len({item["indicatorId"] for item in contract["indicators"]}), 54)
         self.assertEqual(contract["summary"]["availableResults"], 0)
         for indicator in contract["indicators"]:
             self.assertEqual(indicator["dataStatus"], "missing")
@@ -197,9 +198,12 @@ class MunicipalDiagnosticContractTest(unittest.TestCase):
                 definition["valueDomainPolicy"],
                 "allow_above_max_known_mixed_territorial_basis",
             )
-            self.assertEqual(definition["displayPolicy"], "preserve_raw_value")
+            self.assertEqual(
+                definition["displayPolicy"],
+                "cap_at_100_preserve_raw_for_audit",
+            )
 
-    def test_mixed_territorial_basis_above_100_is_valid_and_uses_raw_value(self):
+    def test_mixed_territorial_basis_keeps_raw_and_caps_public_display(self):
         contract = self.build(
             {
                 "creche": result(105.5, 60),
@@ -215,7 +219,7 @@ class MunicipalDiagnosticContractTest(unittest.TestCase):
         for indicator_id in ("creche", "pre_escola", "basico_6_17"):
             indicator = self.indicator(contract, indicator_id)
             self.assertEqual(indicator["dataStatus"], "available")
-            self.assertEqual(indicator["displayValue"], indicator["rawValue"])
+            self.assertEqual(indicator["displayValue"], 100.0)
             self.assertEqual(indicator["valueDomainStatus"], "within_domain")
             self.assertEqual(indicator["targetComparisonStatus"], "eligible")
             self.assertTrue(indicator["goalAttained"])
@@ -231,7 +235,7 @@ class MunicipalDiagnosticContractTest(unittest.TestCase):
 
         pre_school = self.indicator(contract, "pre_escola")
         self.assertEqual(pre_school["rawValue"], 122.222)
-        self.assertEqual(pre_school["displayValue"], 122.222)
+        self.assertEqual(pre_school["displayValue"], 100.0)
         self.assertAlmostEqual(pre_school["favorableDistance"], 22.222)
         self.assertEqual(
             pre_school["methodology"]["formula"],
@@ -247,7 +251,7 @@ class MunicipalDiagnosticContractTest(unittest.TestCase):
 
         age_15_17 = self.indicator(contract, "basico_15_17")
         self.assertEqual(age_15_17["dataStatus"], "available")
-        self.assertEqual(age_15_17["displayValue"], 104.75)
+        self.assertEqual(age_15_17["displayValue"], 100.0)
         self.assertEqual(age_15_17["valueDomainStatus"], "within_domain")
         self.assertEqual(
             age_15_17["targetComparisonStatus"], "methodologically_incompatible"
@@ -483,7 +487,7 @@ class StateBenchmarkContractTest(unittest.TestCase):
 
         pre_school = self.indicator(with_benchmark, "pre_escola")
         self.assertEqual(pre_school["rawValue"], 122.222)
-        self.assertEqual(pre_school["displayValue"], 122.222)
+        self.assertEqual(pre_school["displayValue"], 100.0)
         self.assertAlmostEqual(
             pre_school["benchmarks"]["state"]["favorableDifference"], 27.622
         )
@@ -687,6 +691,21 @@ class TrajectoryGovernancePeerTest(unittest.TestCase):
         self.assertAlmostEqual(temporary_trajectory["requiredAnnualPace"], 10 / 6)
         self.assertEqual(temporary_trajectory["paceStatus"], "moving_away")
 
+    def test_inconclusive_historical_trend_is_not_treated_as_observed_pace(self):
+        creche = result(40, 60, "at_least", year=2025)
+        creche["trend"] = {
+            "status": "inconclusive",
+            "slope": 1.5,
+            "observations": 5,
+            "method": "theil_sen_v1",
+        }
+        trajectory = self.indicator(self.build({"creche": creche}), "creche")[
+            "trajectory"
+        ]
+
+        self.assertIsNone(trajectory["observedFavorableAnnualPace"])
+        self.assertEqual(trajectory["paceStatus"], "inconclusive")
+
     def test_trend_projection_and_component_maintenance_are_distinct(self):
         contract = self.build(
             {
@@ -697,10 +716,22 @@ class TrajectoryGovernancePeerTest(unittest.TestCase):
                 "creche": {
                     "available": True,
                     "target_year": 2036,
-                    "method": "attendance_projection",
+                    "horizon_year": 2036,
+                    "method": "last_observed_numerator_with_state_age_denominator",
                     "years": [2036],
                     "projected_percent_raw": [51.0],
                     "projected_2036_raw": 51.0,
+                    "trend": {
+                        "selectedBasis": "last_observation_persistence",
+                        "diverges": False,
+                    },
+                    "denominator_model": {
+                        "method": "municipal_base_scaled_by_rs_age_group_change",
+                    },
+                    "uncertainty": {
+                        "status": "not_estimated",
+                        "interval": None,
+                    },
                     "quality": "media",
                     "warnings": [],
                 }
@@ -722,8 +753,72 @@ class TrajectoryGovernancePeerTest(unittest.TestCase):
         self.assertEqual(trend["projectedValue"], 51.0)
         self.assertEqual(maintenance["scenarioType"], "component_maintenance")
         self.assertEqual(maintenance["projectedValue"], 20.0)
-        self.assertEqual(trend["uncertainty"], "not_estimated")
-        self.assertEqual(maintenance["uncertainty"], "not_estimated")
+        self.assertEqual(trend["uncertainty"]["status"], "not_estimated")
+        self.assertEqual(maintenance["uncertainty"]["status"], "not_estimated")
+        self.assertEqual(
+            trend["denominatorModel"]["method"],
+            "municipal_base_scaled_by_rs_age_group_change",
+        )
+        self.assertEqual(
+            maintenance["trendModel"]["selectedBasis"],
+            "latest_observed_components_held_constant",
+        )
+
+    def test_public_reading_distinguishes_municipal_and_state_trend(self):
+        reading = _public_trajectory(
+            {
+                "targetComparisonStatus": "eligible",
+                "trajectory": {
+                    "status": "available",
+                    "scenarioType": "trend_projection",
+                    "quality": "media",
+                    "observedFavorableAnnualPace": 0.5,
+                    "historyPointCount": 5,
+                    "projectedValue": 82.0,
+                    "model": (
+                        "municipal_state_shrunk_theil_sen_log_enrollment_"
+                        "with_state_age_denominator"
+                    ),
+                    "trendModel": {
+                        "selectedBasis": (
+                            "municipal_state_shrunk_theil_sen_log"
+                        ),
+                        "diverges": False,
+                    },
+                },
+            }
+        )
+
+        self.assertIn(
+            "histórico de matrículas do município e do Rio Grande do Sul",
+            reading["modelReading"],
+        )
+        self.assertNotIn("Holt", reading["modelReading"])
+        self.assertNotIn("mantém o número", reading["modelReading"])
+
+    def test_divergent_projection_does_not_publish_exact_achievement_year(self):
+        contract = self.build(
+            {"creche": result(40, 60, year=2025)},
+            projections={
+                "creche": {
+                    "available": True,
+                    "target_year": 2036,
+                    "method": "attendance_projection",
+                    "years": [2036],
+                    "projected_percent_raw": [65.0],
+                    "projected_2036_raw": 65.0,
+                    "trend": {"diverges": True},
+                    "quality": "media",
+                    "warnings": [],
+                }
+            },
+        )
+        trajectory = self.indicator(contract, "creche")["trajectory"]
+        self.assertIsNone(trajectory["estimatedAchievementYear"])
+        self.assertIn(
+            "attendance_projection_divergent_trends",
+            trajectory["warningCodes"],
+        )
 
     def test_next_official_milestone_is_selected(self):
         contract = self.build({"basico_integral": result(20, 50, year=2025)})

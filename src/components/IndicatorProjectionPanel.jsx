@@ -70,11 +70,11 @@ export function IndicatorProjectionPanel({
   const lastChartPointYear = chart.points.filter((point) => point.valid !== false).slice(-1)[0]?.year
   const transitionYear = chart.points.filter((point) => point.valid !== false && !point.isProjected).slice(-1)[0]?.year
   const latestHistoricalPoint = chart.points.filter((point) => point.valid !== false && !point.isProjected).slice(-1)[0]
-  const projectedPointLabel = contentLabels.projectedPoint ?? 'Projetado'
+  const projectedPointLabel = contentLabels.projectedPoint ?? 'Linha de base'
   const formatValue = (value) => formatProjectionValue(value, valueType)
   const accessibleChartLabel = chartLabel
-    ? `${contentLabels.accessibleChartPrefix ?? (contextOnly ? 'Gráfico de cenário estimado' : 'Gráfico de projeção tendencial')}: ${chartLabel}`
-    : contentLabels.accessibleChartPrefix ?? (contextOnly ? 'Gráfico de cenário estimado' : 'Gráfico de projeção tendencial')
+    ? `${contentLabels.accessibleChartPrefix ?? 'Gráfico de linha de base de persistência'}: ${chartLabel}`
+    : contentLabels.accessibleChartPrefix ?? 'Gráfico de linha de base de persistência'
   const focusablePoints = chart.points.filter((point) => point.valid !== false)
   const resolvedTabStopYear = focusablePoints.some((point) => point.year === tabStopYear)
     ? tabStopYear
@@ -118,16 +118,20 @@ export function IndicatorProjectionPanel({
   const lastHistoricalPct = latestHistoricalPoint?.value ?? null
   const status = projection.status_2036
   const tendeAtingir = status === 'tende_a_atingir'
+  const targetReferenceLabel = `${projection.target_label ?? 'Referência'}${projection.target_year ? ` ${projection.target_year}` : ''}`
+  const targetDistanceLabel = projection.target_kind === 'monitoring'
+    ? 'Distância da referência no cenário'
+    : 'Distância da meta no cenário'
 
   return (
     <div className={`complementary-projection${contextOnly ? ' complementary-projection--context' : ''}${compact ? ' complementary-projection--compact' : ''}${contentLabels.variant ? ` complementary-projection--${contentLabels.variant}` : ''}`}>
       <div className="complementary-projection__header">
-        {showTitle ? <h5>{contentLabels.title ?? (contextOnly ? 'Cenário estimado até 2036' : 'Projeção tendencial até 2036')}</h5> : null}
+        {showTitle ? <h5>{contentLabels.title ?? (contextOnly ? 'Cenário de persistência até 2036' : 'Linha de base de persistência até 2036')}</h5> : null}
         {!contextOnly ? (
           <p className="complementary-projection__method">
-            Este cenário estima como o indicador pode evoluir até 2036, considerando o
-            comportamento recente das matrículas e a tendência populacional projetada para
-            a faixa etária no RS. O resultado serve como referência de planejamento e não
+            Este cenário mantém o último número observado de matrículas e atualiza o
+            denominador com a variação populacional projetada para a faixa etária no RS.
+            É uma linha de base para planejamento, sem intervalo probabilístico, e não
             representa uma previsão oficial.
           </p>
         ) : null}
@@ -143,7 +147,7 @@ export function IndicatorProjectionPanel({
           </span>
         </div>
         <div className="complementary-projection__card">
-          <span className="complementary-projection__card-label">{contentLabels.projectedValue ?? (compact ? 'Cenário estimado 2036' : contextOnly ? 'Cenário estimado em 2036' : 'Projetado em 2036')}</span>
+          <span className="complementary-projection__card-label">{contentLabels.projectedValue ?? (compact ? 'Linha de base 2036' : 'Linha de base em 2036')}</span>
           <span className="complementary-projection__card-value">
             {projected2036 != null ? formatValue(projected2036) : '—'}
           </span>
@@ -151,14 +155,14 @@ export function IndicatorProjectionPanel({
         {!contextOnly ? (
           <>
             <div className="complementary-projection__card">
-              <span className="complementary-projection__card-label">Meta PNE 2036</span>
+              <span className="complementary-projection__card-label">{targetReferenceLabel}</span>
               <span className="complementary-projection__card-value">
                 {target != null ? `${percentFormatter.format(target)}%` : '—'}
               </span>
             </div>
             <div className="complementary-projection__card">
-              <span className="complementary-projection__card-label">Distância estimada da meta</span>
-              <span className={`complementary-projection__card-value ${tendeAtingir ? 'complementary-projection__value--positive' : 'complementary-projection__value--negative'}`}>
+              <span className="complementary-projection__card-label">{targetDistanceLabel}</span>
+              <span className={`complementary-projection__card-value ${status == null ? '' : tendeAtingir ? 'complementary-projection__value--positive' : 'complementary-projection__value--negative'}`}>
                 {distance != null ? `${distance >= 0 ? '+' : ''}${percentFormatter.format(distance)} p.p.` : '—'}
               </span>
             </div>
@@ -172,9 +176,9 @@ export function IndicatorProjectionPanel({
             className="complementary-projection__legend"
             items={[
               { key: 'observed', label: contentLabels.observedLegend ?? (transitionYear ? `Observado até ${transitionYear}` : 'Observado'), color: 'var(--chart-primary)' },
-              ...(showProjectedLegend ? [{ key: 'projected', label: contentLabels.projectedLegend ?? 'Projetado até 2036', color: contentLabels.projectedColor ?? (compact || !contextOnly ? 'var(--chart-primary)' : 'var(--chart-series-2)'), dashed: true }] : []),
+              ...(showProjectedLegend ? [{ key: 'projected', label: contentLabels.projectedLegend ?? 'Linha de base até 2036', color: contentLabels.projectedColor ?? (compact || !contextOnly ? 'var(--chart-primary)' : 'var(--chart-series-2)'), dashed: true }] : []),
               ...(chart.referencePaths.length ? [{ key: 'reference-trajectory', label: contentLabels.referenceLegend ?? 'Trajetória necessária para a referência', color: 'var(--chart-series-3)', dashed: true }] : []),
-              ...(target != null ? [{ key: 'target', label: 'Meta PNE 2036', color: 'var(--chart-series-3)', dashed: true }] : []),
+              ...(target != null ? [{ key: 'target', label: targetReferenceLabel, color: 'var(--chart-series-3)', dashed: true }] : []),
             ]}
           />
           <div
@@ -342,15 +346,26 @@ export function IndicatorProjectionPanel({
         ) : null
       ) : (
         <div className="complementary-projection__reading">
-          <p>
-            {tendeAtingir
-              ? 'Se a trajetória atual for mantida, o município tende a atingir a meta em 2036.'
-              : 'Se a trajetória atual for mantida, o município apresenta risco de não atingir a meta em 2036.'}
-          </p>
+          <p>{buildProjectionComparisonReading({ projection, status })}</p>
         </div>
       )}
     </div>
   )
+}
+
+function buildProjectionComparisonReading({ projection, status }) {
+  if (status == null) return 'A comparação do cenário com a referência não está disponível.'
+
+  const finalYear = projection.projected_end_year ?? 2036
+  const targetYear = projection.target_year ?? null
+  const reference = projection.target_kind === 'monitoring'
+    ? 'referência de acompanhamento'
+    : 'meta'
+  const result = status === 'tende_a_atingir' ? 'alcança' : 'não alcança'
+  if (targetYear != null && targetYear !== finalYear) {
+    return `No cenário de ${finalYear}, o município ${result} a ${reference} prevista para ${targetYear}. Essa comparação não informa se ela foi atingida dentro do prazo legal.`
+  }
+  return `No cenário de ${finalYear}, o município ${result} a ${reference}${targetYear != null ? ` prevista para ${targetYear}` : ''}.`
 }
 
 function formatProjectionQuality(quality) {
