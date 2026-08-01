@@ -8,10 +8,13 @@ export function Layout({
   activePage,
   activeEducationSection,
   children,
-  municipios,
+  municipalities,
   onNavigate,
 }) {
-  const { selectedMunicipio, setSelectedMunicipio } = useMunicipality()
+  const {
+    selectedMunicipalityId,
+    setSelectedMunicipalityId,
+  } = useMunicipality()
   const contentRef = useRef(null)
 
   useEffect(() => {
@@ -54,9 +57,9 @@ export function Layout({
       <div className="dashboard-main">
         <ContextBar
           activePage={activePage}
-          municipios={municipios}
-          selectedMunicipio={selectedMunicipio}
-          onMunicipioChange={setSelectedMunicipio}
+          municipalities={municipalities}
+          selectedMunicipalityId={selectedMunicipalityId}
+          onMunicipalityChange={setSelectedMunicipalityId}
         />
         <main className="content-area" ref={contentRef}>{children}</main>
       </div>

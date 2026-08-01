@@ -21,6 +21,8 @@ Não há backend de aplicação em produção. Toda informação disponível no 
 - `src/features`: fluxos de Educação, Diagnóstico e Financiamento.
 - `src/components`: componentes compartilhados.
 - `src/data`: catálogos, metadados e loaders dos contratos estáticos.
+- `src/config`: validação e adaptação da configuração estadual ativa.
+- `src/domain`: contratos puros de registro, rota e persistência municipal.
 - `src/utils` e `src/hooks`: apresentação, navegação e carregamento.
 - `src/styles` e `src/App.css`: tokens e camadas temáticas atuais.
 
@@ -40,7 +42,35 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 
 ## Contratos de dados
 
-`municipios_index.json` é o único catálogo municipal público e é carregado no início junto com `indicadores.json`. O frontend deriva em memória a lista simples de nomes a partir das entradas desse catálogo, preservando o contrato dos consumidores atuais. O agregado `municipios.json` continua existindo somente como staging interno do pipeline, usado como entrada do particionamento, e não faz parte do contrato público. No ciclo PNE 2026–2036, `indicadores.json`, o catálogo do Diagnóstico e `docs/generated/PNE_2026_CONTRACT.md` são projeções do contrato canônico, verificadas por `npm run check:pne-contract`. O slug continua sendo o identificador legível da rota, mas os arquivos municipais são canônicos somente pelo código IBGE: `/data/municipios/<ibge>/...`.
+`config/states/rs.json` é a primeira configuração estadual versionada e é
+validada em runtime por `src/config/stateConfig.ts`. Ela declara o contrato
+`state-config-v1`, o estado RS, o prefixo IBGE 43, a cobertura esperada de 497
+municípios e o locale `pt-BR`. O frontend continua RS-only: não há configuração
+de outro estado nem seletor estadual nesta etapa.
+
+`municipios_index.json` continua sendo o único catálogo municipal público e é
+carregado no início junto com `indicadores.json`, sem terceira requisição. Na
+fronteira de carregamento, o payload bruto em português
+`MunicipalityIndexEntryPayload` é validado e convertido para a única coleção
+canônica `MunicipalityRef[]`. O código IBGE (`ibgeCode`) é a identidade interna,
+`name` serve somente à apresentação e `slug` somente às URLs. O registro mantém
+a ordem pública, valida quantidade, prefixo, unicidade, path e indexa os
+municípios por código. A resolução por nome existe apenas para migração do
+armazenamento antigo e compatibilidade histórica de URL, sempre exigindo uma
+correspondência única.
+
+O agregado `municipios.json` continua existindo somente como staging interno do pipeline, usado como entrada do particionamento, e não faz parte do contrato público. No ciclo PNE 2026–2036, `indicadores.json`, o catálogo do Diagnóstico e `docs/generated/PNE_2026_CONTRACT.md` são projeções do contrato canônico, verificadas por `npm run check:pne-contract`. O slug continua sendo o identificador legível da rota, mas os arquivos municipais são canônicos somente pelo código IBGE: `/data/municipios/<ibge>/...`.
+
+O `MunicipalityContext` persiste `selectedMunicipalityId` no contrato JSON
+versionado `dashboard-context-v2`, que inclui `stateCode` e `municipalityId`.
+A chave antiga baseada somente no nome é lida uma vez para migração, convertida
+por correspondência única e removida; ela nunca volta a ser escrita. Rotas com
+`municipio` aceitam slug, código IBGE ou nome legado e, quando válidas, são
+normalizadas para o slug sem mudar a identidade interna.
+
+Esta fundação ainda não constitui suporte real a múltiplos estados. Essa
+capacidade, inclusive seleção e publicação por estado, depende das Etapas 4B e
+4C.
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 

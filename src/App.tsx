@@ -20,11 +20,11 @@ function App() {
   const initialData = useInitialAppData()
 
   return (
-    <MunicipalityProvider municipios={initialData.municipios}>
+    <MunicipalityProvider municipalities={initialData.municipalities}>
       <Layout
         activePage={activePage}
         activeEducationSection={activeEducationSection}
-        municipios={initialData.municipios}
+        municipalities={initialData.municipalities}
         onNavigate={navigate}
       >
         <AppContent

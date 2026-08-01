@@ -131,6 +131,145 @@ assert.deepEqual(
 const productionSourceFiles = tracked.filter(
   (path) => path.startsWith('src/') && ['.js', '.jsx', '.ts', '.tsx'].includes(extname(path)),
 )
+
+const municipalityIdentityPaths = [
+  'src/config/stateConfig.ts',
+  'src/context/MunicipalityContext.tsx',
+  'src/domain/municipalityRegistry.ts',
+  'src/domain/municipalityRouting.ts',
+  'src/domain/municipalitySelectorModel.ts',
+  'src/domain/municipalityStorage.ts',
+  'src/hooks/useInitialAppData.ts',
+  'src/hooks/useMunicipioData.ts',
+  'src/components/MunicipalitySelector.tsx',
+]
+for (const path of municipalityIdentityPaths) {
+  assert.ok(existsSync(resolve(repoRoot, path)), `Módulo da identidade municipal ausente: ${path}.`)
+}
+
+const stateConfigPath = resolve(repoRoot, 'config/states/rs.json')
+assert.ok(existsSync(stateConfigPath), 'Configuração estadual canônica ausente: config/states/rs.json.')
+const stateConfig = JSON.parse(readFileSync(stateConfigPath, 'utf8'))
+assert.deepEqual(
+  stateConfig,
+  {
+    schemaVersion: 'state-config-v1',
+    stateCode: 'RS',
+    stateName: 'Rio Grande do Sul',
+    municipalityIbgePrefix: '43',
+    expectedMunicipalityCount: 497,
+    locale: 'pt-BR',
+  },
+  'A configuração estadual do RS divergiu do contrato state-config-v1.',
+)
+
+const municipalityContextSource = readFileSync(
+  resolve(repoRoot, 'src/context/MunicipalityContext.tsx'),
+  'utf8',
+)
+assert.doesNotMatch(
+  municipalityContextSource,
+  /\b(?:MunicipioName|selectedMunicipio|setSelectedMunicipio)\b/,
+  'MunicipalityContext não pode voltar a armazenar ou selecionar pelo nome.',
+)
+assert.match(
+  municipalityContextSource,
+  /selectedMunicipalityId\s*:\s*MunicipalityId\s*\|\s*null/,
+  'MunicipalityContext deve manter o código IBGE como identidade da seleção.',
+)
+
+const municipalityStorageSource = readFileSync(
+  resolve(repoRoot, 'src/domain/municipalityStorage.ts'),
+  'utf8',
+)
+const municipalityFrontendSourceFiles = Array.from(new Set([
+  ...productionSourceFiles,
+  ...municipalityIdentityPaths,
+]))
+const legacyMunicipalityStorageReferences = municipalityFrontendSourceFiles.filter((path) => (
+  existsSync(resolve(repoRoot, path))
+  && readFileSync(resolve(repoRoot, path), 'utf8').includes('pne_dashboard_municipio')
+))
+assert.deepEqual(
+  legacyMunicipalityStorageReferences,
+  ['src/domain/municipalityStorage.ts'],
+  'A chave municipal antiga só pode ser referenciada pelo módulo de migração.',
+)
+assert.doesNotMatch(
+  municipalityStorageSource,
+  /(?:safeSet|setItem)\s*\(\s*(?:storage\s*,\s*)?LEGACY_MUNICIPALITY_STORAGE_KEY/,
+  'A aplicação não pode voltar a gravar na chave municipal antiga.',
+)
+assert.match(
+  municipalityStorageSource,
+  /JSON\.stringify\([\s\S]*stateCode[\s\S]*municipalityId/,
+  'O armazenamento municipal versionado deve serializar stateCode e municipalityId.',
+)
+
+const useMunicipioDataSource = readFileSync(
+  resolve(repoRoot, 'src/hooks/useMunicipioData.ts'),
+  'utf8',
+)
+assert.doesNotMatch(
+  useMunicipioDataSource,
+  /\bmunicipiosIndex\b|\bMunicipioName\b|\.nome\b/,
+  'useMunicipioData deve carregar diretamente pelo código, sem lookup por nome.',
+)
+assert.match(
+  useMunicipioDataSource,
+  /loadMunicipioData\(selectedMunicipalityId\)/,
+  'useMunicipioData deve determinar o arquivo pelo código IBGE selecionado.',
+)
+
+const municipalitySelectorSource = readFileSync(
+  resolve(repoRoot, 'src/components/MunicipalitySelector.tsx'),
+  'utf8',
+)
+assert.doesNotMatch(
+  municipalitySelectorSource,
+  /\bselectedMunicipio\b|\bmunicipios\s*:/,
+  'MunicipalitySelector não pode expor o contrato antigo baseado em nomes.',
+)
+assert.match(
+  municipalitySelectorSource,
+  /onChange\(municipality\.ibgeCode\)/,
+  'MunicipalitySelector deve retornar código IBGE.',
+)
+assert.ok(
+  !tracked.includes('src/components/MunicipalitySelector.jsx')
+  && !existsSync(resolve(repoRoot, 'src/components/MunicipalitySelector.jsx')),
+  'MunicipalitySelector.jsx foi movido e não pode voltar a ser rastreado.',
+)
+
+const initialAppDataSource = readFileSync(resolve(repoRoot, 'src/hooks/useInitialAppData.ts'), 'utf8')
+const initialAppDataTypesSource = readFileSync(resolve(repoRoot, 'src/types/data.ts'), 'utf8')
+const initialAppDataContractSource = initialAppDataTypesSource.split('export type InitialAppData', 2)[1] ?? ''
+assert.doesNotMatch(
+  `${initialAppDataSource}\n${initialAppDataContractSource}`,
+  /\b(?:municipios|municipiosIndex)\s*:/,
+  'InitialAppData não pode manter listas municipais paralelas.',
+)
+
+const identityCountDuplicates = municipalityIdentityPaths.filter((path) => (
+  /\b497\b/.test(readFileSync(resolve(repoRoot, path), 'utf8'))
+))
+assert.deepEqual(
+  identityCountDuplicates,
+  [],
+  'A camada frontend de identidade deve obter a quantidade municipal da configuração estadual.',
+)
+
+const municipalityNumberCoercions = municipalityFrontendSourceFiles.filter((path) => (
+  /(?:Number|parseInt)\s*\([^)]*\b(?:id_municipio|municipalityId|ibgeCode)\b/.test(
+    readFileSync(resolve(repoRoot, path), 'utf8'),
+  )
+))
+assert.deepEqual(
+  municipalityNumberCoercions,
+  [],
+  `Código municipal convertido para number no frontend:\n${municipalityNumberCoercions.join('\n')}`,
+)
+
 const retiredMunicipalityLoaderReferences = productionSourceFiles.filter((path) => (
   /\/data\/municipios\.json/.test(readFileSync(resolve(repoRoot, path), 'utf8'))
 ))
@@ -180,6 +319,11 @@ assert.doesNotMatch(
   'package.json não pode declarar municipios.json como catálogo público.',
 )
 const packageJson = JSON.parse(packageJsonSource)
+assert.equal(
+  packageJson.scripts?.['test:municipality-identity'],
+  'node --test --test-concurrency=1 scripts/checks/municipality-identity.test.mjs',
+  'A suíte permanente de identidade municipal deve permanecer exposta no package.json.',
+)
 const expectedUvPythonScripts = [
   'test:python',
   'check:python-deps',

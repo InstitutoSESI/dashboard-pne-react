@@ -34,6 +34,21 @@ As fontes reproduzíveis e os insumos de regeneração permanecem em
 `data_pipeline/data`. Os artefatos públicos são gerados pelo pipeline e não
 devem ser editados manualmente.
 
+## Configuração estadual e identidade municipal
+
+`config/states/rs.json` é a configuração estadual ativa e versionada. O
+frontend valida o contrato `state-config-v1` ao iniciar e permanece limitado ao
+Rio Grande do Sul. O cadastro dos municípios não é duplicado nessa configuração:
+continua vindo de `public/data/municipios_index.json`, cujo payload bruto é
+convertido para `MunicipalityRef[]`.
+
+Internamente, o código IBGE identifica o município; o nome é texto de
+apresentação e o slug é o valor canônico de URL. A persistência do navegador usa
+`dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
+em nome são migrados uma única vez quando há correspondência inequívoca. Não há
+seletor de estado, configuração de Alagoas nem caminhos públicos de dados por
+estado; suporte multiestado completo depende das Etapas 4B e 4C.
+
 ## Atualização completa
 
 ```powershell
@@ -149,6 +164,7 @@ npm run python:lock:check
 npm run check:python-deps
 npm run test:unit
 npm run test:education
+npm run test:municipality-identity
 npm run test:python
 npm run build
 ```

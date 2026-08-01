@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ErrorState } from '../components/ErrorState'
 import { FinancialSectionHeader } from '../components/FinancialIndicatorPrimitives'
 import { FinancialCompactModuleSelector } from '../components/FinancialCompactModuleSelector'
@@ -9,7 +9,7 @@ import { PnatePanel } from '../components/PnatePanel'
 import { SiopeIndicatorsPanel } from '../components/SiopeIndicatorsPanel'
 import { VaarPanel } from '../components/VaarPanel'
 import { EducationCompactHeader } from '../features/education/components/EducationCompactHeader'
-import { loadEducationMunicipio, loadEducationMunicipiosIndex } from '../data/educationData'
+import { loadEducationMunicipio } from '../data/educationData'
 import {
   FINANCIAL_MODULES,
   FINANCIAL_OVERVIEW_COPY,
@@ -23,6 +23,7 @@ import { municipalFinanceLoader } from '../data/municipalFinance'
 import '../styles/education-pages.css'
 
 export function FinancialPage({
+  municipalityId,
   municipioData,
   municipioError,
   municipioLoading,
@@ -34,17 +35,10 @@ export function FinancialPage({
   const usesEducationCatalogLayout = ['siope', 'fundeb', 'pnate'].includes(module?.panel)
   const [detailKey, setDetailKey] = useState(() => getHashContext().params.get('detalhe') ?? '')
 
-  const educationIndexState = useAsyncData(
-    () => (module && selectedMunicipio ? loadEducationMunicipiosIndex() : null),
-    [module?.pageKey, selectedMunicipio],
-  )
-  const selectedId = useMemo(() => {
-    const list = educationIndexState.data?.municipios ?? []
-    return list.find((item) => item.municipio === selectedMunicipio)?.id_municipio ?? null
-  }, [educationIndexState.data, selectedMunicipio])
+  const selectedId = municipalityId
   const educationMunicipioState = useAsyncData(
-    () => (module && selectedMunicipio && selectedId ? loadEducationMunicipio(selectedId) : null),
-    [module?.pageKey, selectedId, selectedMunicipio],
+    () => (module && selectedId ? loadEducationMunicipio(selectedId) : null),
+    [module?.pageKey, selectedId],
   )
 
   useEffect(() => {
@@ -69,7 +63,7 @@ export function FinancialPage({
       ) : null}
       {!detailKey && !usesEducationCatalogLayout ? <FinancialCompactModuleSelector activePageKey={pageKey} /> : null}
 
-      {!selectedMunicipio ? (
+      {!selectedId ? (
         <FinancialModuleEmpty module={module} />
       ) : municipioLoading ? (
         <LoadingState message={FINANCIAL_PAGE_COPY.module.municipalityLoading(selectedMunicipio)} />
@@ -78,7 +72,6 @@ export function FinancialPage({
       ) : (
         <FinancialModulePanel
           detailKey={detailKey}
-          educationIndexState={educationIndexState}
           educationMunicipioState={educationMunicipioState}
           module={module}
           municipioData={municipioData}
@@ -299,7 +292,6 @@ function FinancialModuleEmpty({ module }) {
 
 function FinancialModulePanel({
   detailKey,
-  educationIndexState,
   educationMunicipioState,
   module,
   municipioData,
@@ -312,15 +304,15 @@ function FinancialModulePanel({
     [module.panel, selectedId],
   )
 
-  if (educationIndexState.loading || educationMunicipioState.loading) {
+  if (educationMunicipioState.loading) {
     return <LoadingState message={FINANCIAL_PAGE_COPY.module.moduleLoading(module.title)} />
   }
 
-  if (educationIndexState.error || educationMunicipioState.error) {
+  if (educationMunicipioState.error) {
     return (
       <ErrorState
         title={FINANCIAL_PAGE_COPY.module.moduleErrorTitle(module.title)}
-        message={educationIndexState.error || educationMunicipioState.error}
+        message={educationMunicipioState.error}
       />
     )
   }
@@ -333,7 +325,6 @@ function FinancialModulePanel({
         detailKey={detailKey}
         idMunicipio={selectedId}
         onDetailChange={onDetailChange}
-        selectedMunicipio={selectedMunicipio}
       />
     )
   }

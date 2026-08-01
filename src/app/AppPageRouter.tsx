@@ -1,18 +1,30 @@
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
-import { lazy, Suspense, useEffect, useMemo, useRef, type ComponentType, type ReactNode } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { FINANCIAL_PAGE_KEYS } from '../data/financialPageKeys'
 import { EDUCATION_SECTION_KEYS, resolveEducationSection } from '../data/educationIndicatorCatalog'
+import {
+  getEffectiveMunicipality,
+  resolveMunicipalityRouteRequest,
+} from '../domain/municipalityRouting'
 import { useMunicipioData } from '../hooks/useMunicipioData'
 import { Home } from '../pages/Home'
 import type { AppPageKey } from '../types/app'
-import type { IndicadoresPayload, MunicipioIndexEntry, MunicipioName } from '../types/data'
+import type { IndicadoresPayload, MunicipalityId, MunicipalityRef } from '../types/data'
 import type { Navigate, ParsedAppLocation } from '../types/navigation'
+import { replaceHashContext } from '../utils/hashNavigation'
 import { isFinancialPage } from './appRoutes'
 import { EmptyMunicipioState } from './EmptyMunicipioState'
 import { PageLoadBoundary } from './PageLoadBoundary'
-import { replaceHashContext } from '../utils/hashNavigation'
 
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
@@ -25,22 +37,15 @@ const LazyPneOverviewPage = lazy(() => import('../pages/PneOverviewPage').then((
 interface AppPageRouterProps {
   activePage: AppPageKey
   indicadores: IndicadoresPayload
-  municipios: MunicipioName[]
-  municipiosIndex: MunicipioIndexEntry[]
+  municipalities: MunicipalityRef[]
   navigationContext: ParsedAppLocation
   onNavigate: Navigate
 }
 
-type PneLegalGoalsPageProps = {
-  indicadores: IndicadoresPayload
-  municipioData?: unknown
-  municipios?: MunicipioName[]
-  onMunicipioChange: (value: MunicipioName | null) => void
-  onNavigate: Navigate
-  selectedMunicipio: MunicipioName | null
+interface MunicipalityRouteSync {
+  routeKey: string
+  municipalityId: MunicipalityId | null
 }
-
-const TypedPneLegalGoalsPage = LazyPneLegalGoalsPage as ComponentType<PneLegalGoalsPageProps>
 
 function LazyPageBoundary({ children, page }: { children: ReactNode; page: AppPageKey }) {
   return (
@@ -55,41 +60,53 @@ function LazyPageBoundary({ children, page }: { children: ReactNode; page: AppPa
 export function AppPageRouter({
   activePage,
   indicadores,
-  municipios,
-  municipiosIndex,
+  municipalities,
   navigationContext,
   onNavigate,
 }: AppPageRouterProps) {
-  const { selectedMunicipio, setSelectedMunicipio } = useMunicipality()
   const {
-    data: municipioData,
-    error: municipioError,
-    loading: municipioLoading,
-  } = useMunicipioData(municipiosIndex, selectedMunicipio)
-  const selectedMunicipalityEntry = useMemo(() => (
-    municipiosIndex.find((item) => item.nome === selectedMunicipio) ?? null
-  ), [municipiosIndex, selectedMunicipio])
-  const isEducationDataPage = activePage === 'educacao' || activePage === 'relatorio-tecnico-municipal'
+    selectedMunicipality,
+    selectedMunicipalityId,
+    selectionReady,
+    setSelectedMunicipalityId,
+  } = useMunicipality()
+  const isEducationDataPage = activePage === 'educacao'
+    || activePage === 'relatorio-tecnico-municipal'
   const isLegacyTechnicalReportRoute = activePage === 'educacao'
     && resolveEducationSection({
       requestedSection: navigationContext.params.get('secao'),
     }) === EDUCATION_SECTION_KEYS.technicalReport
-  const requestedMunicipalityValue = activePage === FINANCIAL_PAGE_KEYS.panorama || isEducationDataPage
-    ? navigationContext.params.get('municipio')?.trim() ?? ''
-    : ''
-  const requestedMunicipalityEntry = useMemo(() => {
-    if (!requestedMunicipalityValue) return null
-    const normalized = requestedMunicipalityValue.toLocaleLowerCase('pt-BR')
-    return municipiosIndex.find((item) => (
-      item.slug === normalized
-      || item.id_municipio === normalized
-      || item.nome.toLocaleLowerCase('pt-BR') === normalized
-    )) ?? null
-  }, [municipiosIndex, requestedMunicipalityValue])
+  const requestedMunicipalityValue = navigationContext.params.get('municipio')?.trim() ?? ''
+  const shouldSyncMunicipalityUrl = isEducationDataPage
+    || activePage === FINANCIAL_PAGE_KEYS.panorama
+    || navigationContext.params.has('municipio')
+  const routeResolution = useMemo(() => (
+    shouldSyncMunicipalityUrl
+      ? resolveMunicipalityRouteRequest(municipalities, requestedMunicipalityValue)
+      : { municipality: null, shouldNormalize: false }
+  ), [municipalities, requestedMunicipalityValue, shouldSyncMunicipalityUrl])
+  const requestedMunicipality = routeResolution.municipality
+  const effectiveMunicipality = getEffectiveMunicipality(
+    shouldSyncMunicipalityUrl ? requestedMunicipalityValue : '',
+    requestedMunicipality,
+    selectedMunicipality,
+  )
+  const effectiveMunicipalityId = effectiveMunicipality?.ibgeCode ?? null
+  const selectedMunicipio = effectiveMunicipality?.name ?? null
+  const routeSyncRef = useRef<MunicipalityRouteSync | null>(null)
+  const {
+    data: municipioData,
+    error: municipioError,
+    loading: municipioLoading,
+  } = useMunicipioData(effectiveMunicipalityId)
   const loadedMunicipalityId = typeof municipioData?.id_municipio === 'string'
     ? municipioData.id_municipio
     : null
-  const educationUrlSyncRef = useRef<{ pending: boolean; slug: string } | null>(null)
+  const municipalityPayloadChanging = Boolean(
+    effectiveMunicipalityId
+    && municipioData
+    && loadedMunicipalityId !== effectiveMunicipalityId,
+  )
 
   useEffect(() => {
     if (!isLegacyTechnicalReportRoute) return
@@ -101,70 +118,83 @@ export function AppPageRouter({
     })
   }, [isLegacyTechnicalReportRoute])
 
-  useEffect(() => {
-    if (
-      activePage === FINANCIAL_PAGE_KEYS.panorama
-      && requestedMunicipalityEntry
-      && requestedMunicipalityEntry.nome !== selectedMunicipio
-    ) {
-      setSelectedMunicipio(requestedMunicipalityEntry.nome)
-    }
-  }, [activePage, requestedMunicipalityEntry, selectedMunicipio, setSelectedMunicipio])
-
-  useEffect(() => {
-    if (!isEducationDataPage || !requestedMunicipalityEntry) return
-
-    const currentSync = educationUrlSyncRef.current
-    if (currentSync?.slug === requestedMunicipalityEntry.slug) {
-      if (currentSync.pending && requestedMunicipalityEntry.nome === selectedMunicipio) {
-        currentSync.pending = false
-      }
+  useLayoutEffect(() => {
+    if (!selectionReady || !shouldSyncMunicipalityUrl || isLegacyTechnicalReportRoute) {
+      routeSyncRef.current = null
       return
     }
-
-    educationUrlSyncRef.current = {
-      pending: requestedMunicipalityEntry.nome !== selectedMunicipio,
-      slug: requestedMunicipalityEntry.slug,
-    }
-    if (requestedMunicipalityEntry.nome !== selectedMunicipio) {
-      setSelectedMunicipio(requestedMunicipalityEntry.nome)
-    }
-  }, [isEducationDataPage, requestedMunicipalityEntry, selectedMunicipio, setSelectedMunicipio])
-
-  useEffect(() => {
-    if (!isEducationDataPage || isLegacyTechnicalReportRoute) return
 
     const route = navigationContext.rawRoute
-      || (activePage === 'relatorio-tecnico-municipal' ? 'relatorio-tecnico-municipal' : 'educacao')
-    if (requestedMunicipalityEntry) {
-      const currentSync = educationUrlSyncRef.current
-      if (
-        currentSync?.slug === requestedMunicipalityEntry.slug
-        && !currentSync.pending
-        && selectedMunicipalityEntry
-        && selectedMunicipalityEntry.slug !== requestedMunicipalityEntry.slug
-      ) {
-        educationUrlSyncRef.current = { pending: false, slug: selectedMunicipalityEntry.slug }
-        replaceHashContext(route, { municipio: selectedMunicipalityEntry.slug })
+      || (activePage === 'relatorio-tecnico-municipal'
+        ? 'relatorio-tecnico-municipal'
+        : activePage)
+    const routeKey = `${route}\u0000${requestedMunicipalityValue}`
+    const currentSync = routeSyncRef.current
+
+    if (requestedMunicipality) {
+      if (!currentSync || currentSync.routeKey !== routeKey) {
+        routeSyncRef.current = {
+          routeKey,
+          municipalityId: requestedMunicipality.ibgeCode,
+        }
+        if (selectedMunicipalityId !== requestedMunicipality.ibgeCode) {
+          setSelectedMunicipalityId(requestedMunicipality.ibgeCode)
+        }
+        if (routeResolution.shouldNormalize) {
+          replaceHashContext(route, { municipio: requestedMunicipality.slug })
+        }
         return
       }
-      if (requestedMunicipalityValue !== requestedMunicipalityEntry.slug) {
-        replaceHashContext(route, { municipio: requestedMunicipalityEntry.slug })
+
+      if (selectedMunicipalityId !== currentSync.municipalityId) {
+        routeSyncRef.current = null
+        replaceHashContext(route, { municipio: selectedMunicipality?.slug ?? null })
+        return
+      }
+
+      if (routeResolution.shouldNormalize) {
+        replaceHashContext(route, { municipio: requestedMunicipality.slug })
       }
       return
     }
 
-    educationUrlSyncRef.current = null
-    replaceHashContext(route, { municipio: selectedMunicipalityEntry?.slug ?? null })
+    if (requestedMunicipalityValue) {
+      if (!currentSync || currentSync.routeKey !== routeKey) {
+        routeSyncRef.current = {
+          routeKey,
+          municipalityId: selectedMunicipalityId,
+        }
+        return
+      }
+
+      if (currentSync.municipalityId !== selectedMunicipalityId) {
+        routeSyncRef.current = null
+        replaceHashContext(route, { municipio: selectedMunicipality?.slug ?? null })
+      }
+      return
+    }
+
+    routeSyncRef.current = null
+    if (selectedMunicipality) {
+      replaceHashContext(route, { municipio: selectedMunicipality.slug })
+    }
   }, [
     activePage,
-    isEducationDataPage,
     isLegacyTechnicalReportRoute,
     navigationContext.rawRoute,
-    requestedMunicipalityEntry,
+    requestedMunicipality,
     requestedMunicipalityValue,
-    selectedMunicipalityEntry,
+    routeResolution.shouldNormalize,
+    selectedMunicipality,
+    selectedMunicipalityId,
+    selectionReady,
+    setSelectedMunicipalityId,
+    shouldSyncMunicipalityUrl,
   ])
+
+  if (!selectionReady) {
+    return <LoadingState message="Preparando município..." />
+  }
 
   if (activePage === 'home') {
     return <Home onNavigate={onNavigate} selectedMunicipio={selectedMunicipio} />
@@ -178,15 +208,17 @@ export function AppPageRouter({
     )
   }
 
-  if (activePage === 'pne-legal-goals' && !selectedMunicipio) {
+  if (activePage === 'pne-legal-goals' && !effectiveMunicipalityId) {
     return (
       <LazyPageBoundary page={activePage}>
-        <TypedPneLegalGoalsPage
+        <LazyPneLegalGoalsPage
           indicadores={indicadores}
-          municipios={municipios}
-          onMunicipioChange={setSelectedMunicipio}
+          municipioData={null}
+          municipalities={municipalities}
+          onMunicipalityChange={setSelectedMunicipalityId}
           onNavigate={onNavigate}
-          selectedMunicipio={selectedMunicipio}
+          selectedMunicipalityId={null}
+          selectedMunicipio={null}
         />
       </LazyPageBoundary>
     )
@@ -196,8 +228,8 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyMunicipalFinancePanoramaPage
-          municipalityIdentifier={requestedMunicipalityEntry?.id_municipio ?? loadedMunicipalityId}
-          municipalityName={requestedMunicipalityEntry?.nome ?? selectedMunicipio}
+          municipalityIdentifier={effectiveMunicipalityId}
+          municipalityName={selectedMunicipio}
           navigationContext={navigationContext}
         />
       </LazyPageBoundary>
@@ -208,9 +240,10 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyFinancialPage
+          municipalityId={effectiveMunicipalityId}
           municipioData={municipioData}
           municipioError={municipioError}
-          municipioLoading={municipioLoading}
+          municipioLoading={municipioLoading || municipalityPayloadChanging}
           pageKey={activePage}
           selectedMunicipio={selectedMunicipio}
         />
@@ -218,25 +251,17 @@ export function AppPageRouter({
     )
   }
 
-  if (
-    isEducationDataPage
-    && requestedMunicipalityEntry
-    && requestedMunicipalityEntry.nome !== selectedMunicipio
-  ) {
-    return <LoadingState message={`Carregando dados de ${requestedMunicipalityEntry.nome}...`} />
-  }
-
-  if (!selectedMunicipio) {
+  if (!effectiveMunicipalityId || !effectiveMunicipality) {
     return (
       <EmptyMunicipioState
         onNavigate={onNavigate}
-        onMunicipioChange={setSelectedMunicipio}
-        municipios={municipios}
+        onMunicipalityChange={setSelectedMunicipalityId}
+        municipalities={municipalities}
       />
     )
   }
 
-  if (municipioLoading) {
+  if (municipioLoading || municipalityPayloadChanging) {
     return <LoadingState message={`Carregando dados de ${selectedMunicipio}...`} />
   }
 
@@ -253,11 +278,11 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyCyclePage
-        cycle="pne_2014_2024"
-        indicadores={indicadores}
-        municipioData={municipioData}
-        selectedMunicipio={selectedMunicipio}
-        title="PNE 2014–2024"
+          cycle="pne_2014_2024"
+          indicadores={indicadores}
+          municipioData={municipioData}
+          selectedMunicipio={selectedMunicipio}
+          title="PNE 2014–2024"
         />
       </LazyPageBoundary>
     )
@@ -267,11 +292,11 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyCyclePage
-        cycle="pne_2026_2036"
-        indicadores={indicadores}
-        municipioData={municipioData}
-        selectedMunicipio={selectedMunicipio}
-        title="PNE 2026–2036"
+          cycle="pne_2026_2036"
+          indicadores={indicadores}
+          municipioData={municipioData}
+          selectedMunicipio={selectedMunicipio}
+          title="PNE 2026–2036"
         />
       </LazyPageBoundary>
     )
@@ -280,12 +305,13 @@ export function AppPageRouter({
   if (activePage === 'pne-legal-goals') {
     return (
       <LazyPageBoundary page={activePage}>
-        <TypedPneLegalGoalsPage
+        <LazyPneLegalGoalsPage
           indicadores={indicadores}
           municipioData={municipioData}
-          municipios={municipios}
-          onMunicipioChange={setSelectedMunicipio}
+          municipalities={municipalities}
+          onMunicipalityChange={setSelectedMunicipalityId}
           onNavigate={onNavigate}
+          selectedMunicipalityId={effectiveMunicipalityId}
           selectedMunicipio={selectedMunicipio}
         />
       </LazyPageBoundary>
@@ -309,9 +335,10 @@ export function AppPageRouter({
         <LazyEducationPage
           indicadores={indicadores}
           municipioData={municipioData}
-          municipalitySlug={selectedMunicipalityEntry?.slug ?? null}
+          municipalityId={effectiveMunicipalityId}
+          municipalitySlug={effectiveMunicipality.slug}
           navigationContext={navigationContext}
-          selectedMunicipio={selectedMunicipio}
+          selectedMunicipio={effectiveMunicipality.name}
         />
       </LazyPageBoundary>
     )

@@ -44,6 +44,7 @@ npm run build
 npm run test:unit
 npm run test:education
 npm run test:app-routing
+npm run test:municipality-identity
 npm run test:data-sources
 npm run test:ui-architecture
 npm run test:python
@@ -57,6 +58,13 @@ Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.
 e o executa no ambiente congelado pelo uv.
 
 ## Dados estáticos
+
+`config/states/rs.json` é a primeira configuração estadual versionada da
+plataforma. Nesta etapa o frontend continua operando exclusivamente com o Rio
+Grande do Sul: o código IBGE identifica internamente o município, o nome é
+usado para apresentação e o slug permanece reservado às URLs. O catálogo
+público continua sendo `public/data/municipios_index.json`, sem alteração de
+schema ou de caminho.
 
 `public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
 
@@ -93,6 +101,7 @@ Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.en
 ## Estrutura
 
 - `src`: aplicação React, rotas, componentes, features, modelos e estilos.
+- `config/states`: configurações estaduais versionadas; somente o RS está ativo.
 - `public/data`: dados públicos servidos diretamente ao navegador.
 - `data_pipeline/src`: cálculo, acesso às fontes e contratos de dados.
 - `data_pipeline/src/pne`: regras puras dos ciclos do PNE, sem framework web.

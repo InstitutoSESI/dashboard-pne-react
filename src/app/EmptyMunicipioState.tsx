@@ -1,24 +1,18 @@
 import { MunicipalitySelector } from '../components/MunicipalitySelector'
-import type { ComponentType } from 'react'
-import type { MunicipioName } from '../types/data'
+import type { MunicipalityId, MunicipalityRef } from '../types/data'
 import type { Navigate } from '../types/navigation'
 
 interface EmptyMunicipioStateProps {
-  municipios: MunicipioName[]
-  onMunicipioChange: (value: MunicipioName | null) => void
+  municipalities: MunicipalityRef[]
+  onMunicipalityChange: (value: MunicipalityId | null) => void
   onNavigate?: Navigate
 }
 
-interface MunicipalitySelectorProps {
-  municipios: MunicipioName[]
-  onChange: (value: MunicipioName | null) => void
-  selectedMunicipio: string
-  variant: 'hero'
-}
-
-const TypedMunicipalitySelector = MunicipalitySelector as ComponentType<MunicipalitySelectorProps>
-
-export function EmptyMunicipioState({ onNavigate, onMunicipioChange, municipios }: EmptyMunicipioStateProps) {
+export function EmptyMunicipioState({
+  onNavigate,
+  onMunicipalityChange,
+  municipalities,
+}: EmptyMunicipioStateProps) {
   return (
     <section className="empty-state">
       <div className="empty-state__icon" aria-hidden="true">
@@ -33,11 +27,11 @@ export function EmptyMunicipioState({ onNavigate, onMunicipioChange, municipios 
         seleção. Escolha o município que deseja analisar.
       </p>
       <div className="empty-municipality-selector">
-        <TypedMunicipalitySelector
+        <MunicipalitySelector
           variant="hero"
-          municipios={municipios}
-          selectedMunicipio=""
-          onChange={onMunicipioChange}
+          municipalities={municipalities}
+          selectedMunicipalityId={null}
+          onChange={onMunicipalityChange}
         />
       </div>
       <button type="button" className="primary-button" onClick={() => onNavigate?.('home')}>

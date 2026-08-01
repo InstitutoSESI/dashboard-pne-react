@@ -1,26 +1,52 @@
-import { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
+import {
+  filterMunicipalitiesByName,
+  normalizeMunicipalitySearchText,
+  sortMunicipalitiesByName,
+} from '../domain/municipalitySelectorModel'
+import type { MunicipalityId, MunicipalityRef } from '../types/data'
 
-function normalizeText(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('pt-BR')
-    .trim()
+export interface MunicipalitySelectorHandle {
+  click: () => void
+  focus: () => void
 }
 
-export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
+export interface MunicipalitySelectorProps {
+  className?: string
+  municipalities: MunicipalityRef[]
+  selectedMunicipalityId: MunicipalityId | null
+  onChange: (value: MunicipalityId | null) => void
+  variant?: 'default' | 'hero'
+  placeholder?: string
+}
+
+export const MunicipalitySelector = forwardRef<
+  MunicipalitySelectorHandle,
+  MunicipalitySelectorProps
+>(function MunicipalitySelector(
   {
     className = '',
-    municipios,
-    selectedMunicipio,
-    value,
+    municipalities,
+    selectedMunicipalityId,
     onChange,
     variant = 'default',
     placeholder = 'Buscar município',
   },
   ref,
 ) {
-  const current = value ?? selectedMunicipio ?? ''
   const isHero = variant === 'hero'
   const instanceId = useId().replace(/:/g, '')
   const inputId = `municipio-selector-input-${instanceId}`
@@ -30,29 +56,34 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const inputRef = useRef(null)
-  const containerRef = useRef(null)
-  const listboxRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLLabelElement>(null)
+  const listboxRef = useRef<HTMLUListElement>(null)
 
   useImperativeHandle(ref, () => ({
     focus: () => inputRef.current?.focus(),
     click: () => inputRef.current?.click(),
   }))
 
-  const list = useMemo(() => (
-    Array.isArray(municipios)
-      ? [...municipios].sort((left, right) => left.localeCompare(right, 'pt-BR', { sensitivity: 'base' }))
-      : []
-  ), [municipios])
+  const list = useMemo(
+    () => sortMunicipalitiesByName(
+      Array.isArray(municipalities) ? municipalities : [],
+      ACTIVE_STATE_CONFIG.locale,
+    ),
+    [municipalities],
+  )
+  const selectedMunicipality = useMemo(
+    () => list.find((municipality) => municipality.ibgeCode === selectedMunicipalityId) ?? null,
+    [list, selectedMunicipalityId],
+  )
 
   const filtered = useMemo(() => {
-    const q = normalizeText(query)
-    return q
-      ? list.filter((municipio) => normalizeText(municipio).includes(q))
-      : list
+    return filterMunicipalitiesByName(list, query, ACTIVE_STATE_CONFIG.locale)
   }, [list, query])
 
-  const optionId = (municipio) => `municipio-option-${instanceId}-${normalizeText(municipio).replace(/[^a-z0-9]+/g, '-')}`
+  const optionId = (municipality: MunicipalityRef) => (
+    `municipio-option-${instanceId}-${municipality.ibgeCode}`
+  )
 
   useEffect(() => {
     if (activeIndex >= filtered.length) {
@@ -67,8 +98,12 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
 
   useEffect(() => {
     if (!isOpen) return undefined
-    function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+    function handleClickOutside(event: globalThis.MouseEvent) {
+      if (
+        containerRef.current
+        && event.target instanceof Node
+        && !containerRef.current.contains(event.target)
+      ) {
         setIsOpen(false)
       }
     }
@@ -76,35 +111,22 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
 
-  function commit(municipio) {
-    if (!municipio) return
-    onChange?.(municipio)
+  function commit(municipality: MunicipalityRef | undefined) {
+    if (!municipality) return
+    onChange(municipality.ibgeCode)
     setQuery('')
     setIsOpen(false)
     setActiveIndex(0)
     inputRef.current?.blur()
   }
 
-  function handleInputChange(event) {
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
     setQuery(event.target.value)
     setIsOpen(true)
     setActiveIndex(0)
   }
 
-  function handleInputFocus() {
-    setIsOpen(true)
-  }
-
-  function handleChevronClick() {
-    if (isOpen) {
-      setIsOpen(false)
-    } else {
-      setIsOpen(true)
-      inputRef.current?.focus()
-    }
-  }
-
-  function handleKeyDown(event) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       if (!isOpen) setIsOpen(true)
@@ -119,18 +141,18 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
       }
     } else if (event.key === 'Escape') {
       setIsOpen(false)
-    } else if (event.key === 'Backspace' && query === '' && current) {
-      onChange?.(null)
+    } else if (event.key === 'Backspace' && query === '' && selectedMunicipalityId) {
+      onChange(null)
     }
   }
 
-  const displayValue = isOpen ? query : current || ''
+  const displayValue = isOpen ? query : selectedMunicipality?.name ?? ''
   const showPlaceholder = !displayValue
 
   return (
     <label
       ref={containerRef}
-      className={`municipio-selector platform-selector ${isHero ? 'municipio-selector--hero' : ''} ${current ? 'is-selected' : ''} ${className} ${isOpen ? 'is-open' : ''}`}
+      className={`municipio-selector platform-selector ${isHero ? 'municipio-selector--hero' : ''} ${selectedMunicipality ? 'is-selected' : ''} ${className} ${isOpen ? 'is-open' : ''}`}
     >
       <span className="municipio-selector__label">Município</span>
       <div className="municipio-selector__field">
@@ -152,38 +174,45 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
           value={displayValue}
           placeholder={showPlaceholder ? placeholder : ''}
           onChange={handleInputChange}
-          onFocus={handleInputFocus}
+          onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           autoComplete="off"
-          spellCheck="false"
+          spellCheck={false}
         />
-        {current && !isOpen && (
+        {selectedMunicipality && !isOpen ? (
           <button
             type="button"
             className="municipio-selector__clear"
             aria-label="Limpar seleção"
-            onClick={(event) => {
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
               event.stopPropagation()
-              onChange?.(null)
+              onChange(null)
               setQuery('')
               inputRef.current?.focus()
             }}
           >
             ×
           </button>
-        )}
+        ) : null}
         <button
           type="button"
           className="municipio-selector__chevron-btn"
           aria-label="Abrir lista de municípios"
           tabIndex={-1}
-          onClick={handleChevronClick}
+          onClick={() => {
+            if (isOpen) {
+              setIsOpen(false)
+            } else {
+              setIsOpen(true)
+              inputRef.current?.focus()
+            }
+          }}
         >
           <svg className="municipio-selector__chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
-        {isOpen && (
+        {isOpen ? (
           <ul
             id={listboxId}
             ref={listboxRef}
@@ -193,50 +222,52 @@ export const MunicipalitySelector = forwardRef(function MunicipalitySelector(
             {filtered.length === 0 ? (
               <li className="municipio-selector__empty">Nenhum município encontrado.</li>
             ) : (
-              filtered.map((municipio, index) => (
+              filtered.map((municipality, index) => (
                 <li
-                  key={municipio}
-                  id={optionId(municipio)}
+                  key={municipality.ibgeCode}
+                  id={optionId(municipality)}
                   role="option"
-                  aria-selected={index === activeIndex}
+                  aria-selected={municipality.ibgeCode === selectedMunicipalityId}
                   className={
                     index === activeIndex
                       ? 'municipio-selector__option is-active'
                       : 'municipio-selector__option'
                   }
-                  onMouseDown={(event) => {
+                  onMouseDown={(event: MouseEvent<HTMLLIElement>) => {
                     event.preventDefault()
                   }}
-                  onClick={(event) => {
+                  onClick={(event: MouseEvent<HTMLLIElement>) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    commit(municipio)
+                    commit(municipality)
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
-                  {highlightMatch(municipio, query)}
+                  {highlightMatch(municipality.name, query)}
                 </li>
               ))
             )}
           </ul>
-        )}
+        ) : null}
       </div>
     </label>
   )
 })
 
-function highlightMatch(text, query) {
-  const q = normalizeText(query)
-  if (!q) return text
-  const normalizedText = String(text).normalize('NFD').replace(/\p{Diacritic}/gu, '')
+function highlightMatch(text: string, query: string): ReactNode {
+  const normalizedQuery = normalizeMunicipalitySearchText(query, ACTIVE_STATE_CONFIG.locale)
+  if (!normalizedQuery) return text
+  const normalizedText = text.normalize('NFD').replace(/\p{Diacritic}/gu, '')
   const lowerText = normalizedText.toLocaleLowerCase('pt-BR')
-  const matchIndex = lowerText.indexOf(q)
+  const matchIndex = lowerText.indexOf(normalizedQuery)
   if (matchIndex < 0) return text
   return (
     <>
       {text.slice(0, matchIndex)}
-      <mark className="municipio-selector__match">{text.slice(matchIndex, matchIndex + q.length)}</mark>
-      {text.slice(matchIndex + q.length)}
+      <mark className="municipio-selector__match">
+        {text.slice(matchIndex, matchIndex + normalizedQuery.length)}
+      </mark>
+      {text.slice(matchIndex + normalizedQuery.length)}
     </>
   )
 }

@@ -47,9 +47,10 @@ const PERCENT_FORMATTER = new Intl.NumberFormat('pt-BR', {
 export function PneLegalGoalsPage({
   indicadores,
   municipioData,
-  municipios = EMPTY_ARRAY,
-  onMunicipioChange,
+  municipalities = EMPTY_ARRAY,
+  onMunicipalityChange,
   onNavigate,
+  selectedMunicipalityId,
   selectedMunicipio,
 }) {
   const [expandedGoalIds, setExpandedGoalIds] = useState(() => new Set())
@@ -253,19 +254,19 @@ export function PneLegalGoalsPage({
         <CoverageLegend />
       </section>
 
-      {!selectedMunicipio ? (
+      {!selectedMunicipalityId ? (
         <section className="page-card legal-goals-empty-municipio">
           <h2>Selecione um município para acompanhar os indicadores relacionados</h2>
           <p>
             A matriz legal já está disponível, mas resultados atuais, distâncias
             e situações observadas dependem da escolha de um município.
           </p>
-          {onMunicipioChange ? (
+          {onMunicipalityChange ? (
             <div className="legal-goals-empty-municipio__selector">
               <MunicipalitySelector
-                municipios={municipios}
-                onChange={onMunicipioChange}
-                selectedMunicipio=""
+                municipalities={municipalities}
+                onChange={onMunicipalityChange}
+                selectedMunicipalityId={selectedMunicipalityId ?? null}
                 variant="hero"
               />
             </div>

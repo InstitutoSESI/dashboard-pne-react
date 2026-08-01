@@ -1,8 +1,10 @@
 import type {
   IndicadoresPayload,
+  MunicipalityId,
   MunicipioData,
   MunicipiosIndexPayload,
 } from '../types/data'
+import { assertMunicipalityPayloadMatchesRequest } from '../domain/municipalityDataIdentity.js'
 import type { MunicipalInequalityDocument } from '../types/municipalInequality'
 
 type JsonObject = Record<string, unknown>
@@ -59,8 +61,11 @@ export function loadMunicipiosIndex(): Promise<MunicipiosIndexPayload> {
   return loadJson<MunicipiosIndexPayload>('/data/municipios_index.json')
 }
 
-export function loadMunicipioData(idMunicipio: string): Promise<MunicipioData> {
-  return loadJson<MunicipioData>(`/data/municipios/${idMunicipio}/index.json`)
+export function loadMunicipioData(idMunicipio: MunicipalityId): Promise<MunicipioData> {
+  return loadJson<MunicipioData>(
+    `/data/municipios/${idMunicipio}/index.json`,
+    (data) => assertMunicipalityPayloadMatchesRequest(data, idMunicipio),
+  )
 }
 
 export function loadMunicipioDetails(idMunicipio: string): Promise<MunicipioDetails> {
@@ -77,7 +82,7 @@ export function loadPneStateReference(cycle = 'pne_2026_2036'): Promise<unknown>
   return loadJson<unknown>(`/data/${cycle}/referencia_estadual.json`)
 }
 
-export function primeMunicipioCache(idMunicipio: string, data: MunicipioData): void {
+export function primeMunicipioCache(idMunicipio: MunicipalityId, data: MunicipioData): void {
   if (!idMunicipio) return
   dataCache.set(`/data/municipios/${idMunicipio}/index.json`, data)
 }

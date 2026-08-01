@@ -6,6 +6,10 @@ const MUNICIPALITY = 'Agudo'
 const MUNICIPALITY_SLUG = 'agudo'
 const MUNICIPALITY_ID = '4300109'
 const SECOND_MUNICIPALITY = 'Alegria'
+const SECOND_MUNICIPALITY_ID = '4300455'
+const SECOND_MUNICIPALITY_SLUG = 'alegria'
+const MUNICIPALITY_STORAGE_KEY = 'pne_dashboard_context_v2'
+const LEGACY_MUNICIPALITY_STORAGE_KEY = 'pne_dashboard_municipio'
 const VIEWPORTS = [
   { width: 1366, height: 768 },
   { width: 390, height: 844 },
@@ -16,6 +20,25 @@ async function selectMunicipality(page, municipality = MUNICIPALITY) {
   await input.fill(municipality)
   await page.getByRole('option', { name: municipality, exact: true }).first().click()
   await page.getByRole('button', { name: 'Limpar seleção' }).first().waitFor({ state: 'visible' })
+}
+
+async function readStoredMunicipalityContext(page) {
+  return page.evaluate((storageKey) => {
+    const raw = localStorage.getItem(storageKey)
+    return raw ? JSON.parse(raw) : null
+  }, MUNICIPALITY_STORAGE_KEY)
+}
+
+async function assertCanonicalMunicipalityStorage(page, municipalityId) {
+  assert.deepEqual(await readStoredMunicipalityContext(page), {
+    schemaVersion: 'dashboard-context-v2',
+    stateCode: 'RS',
+    municipalityId,
+  })
+  assert.equal(
+    await page.evaluate((storageKey) => localStorage.getItem(storageKey), LEGACY_MUNICIPALITY_STORAGE_KEY),
+    null,
+  )
 }
 
 async function assertNoHorizontalOverflow(page, label) {
@@ -53,7 +76,22 @@ async function verifyViewport(browser, viewport) {
     await selectMunicipality(page, SECOND_MUNICIPALITY)
     await page.getByText(SECOND_MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
     await selectMunicipality(page)
+    await assertCanonicalMunicipalityStorage(page, MUNICIPALITY_ID)
+    await page.getByRole('button', { name: 'Limpar seleção' }).first().click()
+    assert.equal(await readStoredMunicipalityContext(page), null)
+    await selectMunicipality(page)
     await assertNoHorizontalOverflow(page, `Home ${label}`)
+
+    await page.goto(`${BASE_URL}/#educacao?municipio=${SECOND_MUNICIPALITY_ID}&secao=panorama`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('heading', { level: 1, name: 'Panorama educacional' }).first().waitFor({ state: 'visible' })
+    await page.getByText(SECOND_MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await page.waitForFunction((slug) => new URLSearchParams(window.location.hash.split('?')[1]).get('municipio') === slug, SECOND_MUNICIPALITY_SLUG)
+    await assertCanonicalMunicipalityStorage(page, SECOND_MUNICIPALITY_ID)
+
+    await page.goto(`${BASE_URL}/#educacao?municipio=${encodeURIComponent(MUNICIPALITY)}&secao=panorama`, { waitUntil: 'domcontentloaded' })
+    await page.getByText(MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await page.waitForFunction((slug) => new URLSearchParams(window.location.hash.split('?')[1]).get('municipio') === slug, MUNICIPALITY_SLUG)
+    await assertCanonicalMunicipalityStorage(page, MUNICIPALITY_ID)
 
     if (viewport.width < 700) {
       await page.getByRole('button', { name: 'Menu', exact: true }).click()
@@ -109,9 +147,26 @@ async function verifyViewport(browser, viewport) {
   }
 }
 
+async function verifyLegacyStorageMigration(browser) {
+  const context = await browser.newContext({ viewport: VIEWPORTS[0] })
+  const page = await context.newPage()
+  await page.addInitScript(({ key, municipality }) => {
+    localStorage.setItem(key, municipality)
+  }, { key: LEGACY_MUNICIPALITY_STORAGE_KEY, municipality: MUNICIPALITY })
+
+  try {
+    await page.goto(`${BASE_URL}/#home`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('button', { name: 'Limpar seleção' }).first().waitFor({ state: 'visible' })
+    await assertCanonicalMunicipalityStorage(page, MUNICIPALITY_ID)
+  } finally {
+    await context.close()
+  }
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true })
   try {
+    await verifyLegacyStorageMigration(browser)
     for (const viewport of VIEWPORTS) await verifyViewport(browser, viewport)
   } finally {
     await browser.close()

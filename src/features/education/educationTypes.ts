@@ -1,4 +1,9 @@
-import type { IndicadoresPayload, MunicipioData, MunicipioName } from '../../types/data'
+import type {
+  IndicadoresPayload,
+  MunicipalityId,
+  MunicipioData,
+  MunicipioName,
+} from '../../types/data'
 import type { ParsedAppLocation } from '../../types/navigation'
 import type { EducationAttendancePayload } from './educationAttendanceTypes'
 import type { SchoolInfrastructureContract } from '../../data/schoolInfrastructureContract'
@@ -74,7 +79,8 @@ export interface EducationMunicipioData extends MunicipioData {
 export interface EducationPageProps {
   indicadores: IndicadoresPayload
   municipioData?: EducationMunicipioData | null
+  municipalityId: MunicipalityId
   municipalitySlug?: string | null
   navigationContext: ParsedAppLocation
-  selectedMunicipio: MunicipioName | null
+  selectedMunicipio: MunicipioName
 }
