@@ -154,9 +154,15 @@ class PlanningScenarioTests(unittest.TestCase):
             "pne_2026_2036_rankings": {},
             "diagnostico": {},
         }
-        payload = partition.build_municipio_payload(
-            payloads, "Teste", "teste", "1"
+        record = partition.MunicipalityRecord(
+            ibge_code="4300001",
+            name="Teste",
+            slug="teste",
         )
+        payload = partition.build_municipio_payload(payloads, "Teste", record)
+        self.assertEqual(payload["id_municipio"], "4300001")
+        self.assertEqual(payload["municipio"], "Teste")
+        self.assertEqual(payload["slug"], "teste")
         cycle = payload["pne_2026_2036"]
         self.assertIs(cycle["projecoes"], current)
         self.assertIs(cycle["cenarios_planejamento"], scenarios)

@@ -40,6 +40,7 @@ npm run lint
 npm run check:fast
 npm run python:lock:check
 npm run check:python-deps
+npm run test:pipeline-state-config
 npm run build
 npm run test:unit
 npm run test:education
@@ -59,12 +60,13 @@ e o executa no ambiente congelado pelo uv.
 
 ## Dados estáticos
 
-`config/states/rs.json` é a primeira configuração estadual versionada da
-plataforma. Nesta etapa o frontend continua operando exclusivamente com o Rio
-Grande do Sul: o código IBGE identifica internamente o município, o nome é
-usado para apresentação e o slug permanece reservado às URLs. O catálogo
-público continua sendo `public/data/municipios_index.json`, sem alteração de
-schema ou de caminho.
+`config/states/rs.json` contém os metadados estaduais e
+`config/municipalities/rs.json` contém o registro municipal canônico do
+pipeline. Nesta etapa a plataforma continua operando exclusivamente com o Rio
+Grande do Sul: o código IBGE é a identidade, o nome é apresentação e
+compatibilidade temporária de agregados internos, e o slug permanece reservado
+às URLs. `public/data/municipios_index.json` conserva schema e caminho, mas é
+uma projeção publicada do registro, nunca a entrada do universo no pipeline.
 
 `public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
 
@@ -102,6 +104,7 @@ Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.en
 
 - `src`: aplicação React, rotas, componentes, features, modelos e estilos.
 - `config/states`: configurações estaduais versionadas; somente o RS está ativo.
+- `config/municipalities`: identidade municipal canônica versionada por estado.
 - `public/data`: dados públicos servidos diretamente ao navegador.
 - `data_pipeline/src`: cálculo, acesso às fontes e contratos de dados.
 - `data_pipeline/src/pne`: regras puras dos ciclos do PNE, sem framework web.

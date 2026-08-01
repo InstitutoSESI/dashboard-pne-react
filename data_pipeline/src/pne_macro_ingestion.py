@@ -12,14 +12,17 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
-import unicodedata
 from typing import Any, Mapping
 
+from .config import DATA_PIPELINE_DIR
+from .municipality_registry import (
+    MunicipalityRegistryError,
+    load_municipality_registry,
+    normalize_municipality_name,
+)
+from .state_config import DEFAULT_STATE_CODE, load_state_config
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = REPO_ROOT / "data_pipeline" / "data" / "pne_macro_sources"
-MUNICIPALITY_INDEX = REPO_ROOT / "public" / "data" / "municipios_index.json"
-EXPECTED_MUNICIPALITIES = 497
+DATA_ROOT = DATA_PIPELINE_DIR / "data" / "pne_macro_sources"
 NORMALIZED_SCHEMA = "pne-macro-source-normalized-v1"
 MANIFEST_SCHEMA = "pne-macro-source-manifest-v1"
 
@@ -46,40 +49,26 @@ def canonical_json_bytes(value: Mapping[str, Any]) -> bytes:
 
 
 def normalize_name(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", str(value or ""))
-    text = "".join(char for char in text if not unicodedata.combining(char))
-    return " ".join(
-        "".join(char if char.isalnum() else " " for char in text.casefold()).split()
-    )
+    """Alias de compatibilidade para a normalização municipal canônica."""
+
+    return normalize_municipality_name(value)
 
 
 def load_municipality_universe(
-    index_path: Path = MUNICIPALITY_INDEX,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> tuple[dict[str, str], dict[str, str]]:
-    payload = json.loads(index_path.read_text(encoding="utf-8"))
-    entries = payload.get("municipios") or []
-    if len(entries) != EXPECTED_MUNICIPALITIES:
-        raise ValueError(
-            "O universo municipal deve conter exatamente "
-            f"{EXPECTED_MUNICIPALITIES} municípios."
-        )
-    names_by_id: dict[str, str] = {}
+    state_config = load_state_config(state_code)
+    registry = load_municipality_registry(state_config)
+    names_by_id = dict(sorted(registry.names_by_id.items()))
     ids_by_name: dict[str, str] = {}
-    for entry in entries:
-        municipality_id = str(entry.get("id_municipio") or "")
-        name = str(entry.get("nome") or "")
-        normalized_name = normalize_name(name)
-        if (
-            len(municipality_id) != 7
-            or not municipality_id.isdigit()
-            or not normalized_name
-        ):
-            raise ValueError(f"Município inválido no universo: {entry!r}")
-        if municipality_id in names_by_id or normalized_name in ids_by_name:
-            raise ValueError(f"Município duplicado no universo: {entry!r}")
-        names_by_id[municipality_id] = name
-        ids_by_name[normalized_name] = municipality_id
-    return dict(sorted(names_by_id.items())), ids_by_name
+    for normalized_name, municipality_ids in registry.ids_by_normalized_name.items():
+        if len(municipality_ids) != 1:
+            raise MunicipalityRegistryError(
+                "O contrato legado de nomes do PNE exige resolução única; "
+                f"nome normalizado ambíguo {normalized_name!r}."
+            )
+        ids_by_name[normalized_name] = municipality_ids[0]
+    return names_by_id, ids_by_name
 
 
 def normalized_snapshot(
@@ -88,14 +77,26 @@ def normalized_snapshot(
     edition: str,
     records: Mapping[str, Mapping[str, Any]],
     municipality_names: Mapping[str, str],
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Any]:
-    if len(municipality_names) != EXPECTED_MUNICIPALITIES:
-        raise ValueError(
-            f"{source_id}: universo deve conter {EXPECTED_MUNICIPALITIES} municípios."
+    state_config = load_state_config(state_code)
+    registry = load_municipality_registry(state_config)
+    expected_names = dict(registry.names_by_id)
+    if dict(municipality_names) != expected_names:
+        missing = sorted(registry.ids - set(municipality_names))
+        extra = sorted(set(municipality_names) - registry.ids)
+        renamed = sorted(
+            municipality_id
+            for municipality_id in registry.ids & set(municipality_names)
+            if municipality_names[municipality_id] != expected_names[municipality_id]
         )
-    if set(records) != set(municipality_names):
-        missing = sorted(set(municipality_names) - set(records))
-        extra = sorted(set(records) - set(municipality_names))
+        raise ValueError(
+            f"{source_id}: universo municipal diverge do registro de {state_code}; "
+            f"ausentes={missing[:5]}, extras={extra[:5]}, nomes={renamed[:5]}."
+        )
+    if set(records) != registry.ids:
+        missing = sorted(registry.ids - set(records))
+        extra = sorted(set(records) - registry.ids)
         raise ValueError(
             f"{source_id}: cobertura municipal inválida; "
             f"ausentes={missing[:5]}, extras={extra[:5]}."
@@ -105,13 +106,16 @@ def normalized_snapshot(
         record = dict(records[municipality_id])
         if record.get("municipalityId") != municipality_id:
             raise ValueError(f"{source_id}: identidade divergente em {municipality_id}.")
-        record.setdefault("municipalityName", municipality_names[municipality_id])
+        expected_name = expected_names[municipality_id]
+        if record.get("municipalityName") not in {None, expected_name}:
+            raise ValueError(f"{source_id}: nome municipal divergente em {municipality_id}.")
+        record.setdefault("municipalityName", expected_name)
         normalized_records[municipality_id] = record
     return {
         "schemaVersion": NORMALIZED_SCHEMA,
         "sourceId": source_id,
         "edition": edition,
-        "municipalityCount": EXPECTED_MUNICIPALITIES,
+        "municipalityCount": registry.municipality_count,
         "records": normalized_records,
     }
 

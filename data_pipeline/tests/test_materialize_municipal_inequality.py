@@ -21,6 +21,8 @@ sys.modules[MATERIALIZER_SPEC.name] = materializer
 MATERIALIZER_SPEC.loader.exec_module(materializer)
 
 from data_pipeline.src.municipal_inequality import build_document  # noqa: E402
+from src.municipality_registry import load_municipality_registry  # noqa: E402
+from src.state_config import StateConfig  # noqa: E402
 
 
 class MaterializeMunicipalInequalityTests(unittest.TestCase):
@@ -36,21 +38,47 @@ class MaterializeMunicipalInequalityTests(unittest.TestCase):
         self.target = self.root / "static_partitioned" / "municipios"
         self.education = self.root / "static_partitioned" / "educacao" / "municipios"
         self.published = self.root / "public" / "data" / "municipios"
-        self.registry = self.root / "static_partitioned" / "municipios_index.json"
+        self.registry_path = self.root / "municipality-registry.json"
         self.target.mkdir(parents=True)
         self.education.mkdir(parents=True)
+        self.state = StateConfig(
+            schema_version="state-config-v1",
+            state_code="RS",
+            state_name="Rio Grande do Sul",
+            municipality_ibge_prefix="43",
+            expected_municipality_count=len(self.municipalities),
+            locale="pt-BR",
+        )
         self._write_json(
-            self.registry,
+            self.registry_path,
             {
-                "generated_at": "2026-08-01T00:00:00+00:00",
-                "total_municipios": len(self.municipalities),
-                "municipios": [
-                    {"id_municipio": municipality_id, "nome": name}
+                "schemaVersion": "municipality-registry-v1",
+                "stateCode": "RS",
+                "municipalityCount": len(self.municipalities),
+                "municipalities": [
+                    {
+                        "ibgeCode": municipality_id,
+                        "name": name,
+                        "slug": "acegua" if municipality_id == "4300034" else "agua-santa",
+                    }
                     for municipality_id, name in self.municipalities.items()
                 ],
             },
         )
-        for municipality_id in self.municipalities:
+        self.registry = load_municipality_registry(
+            self.state,
+            registry_path=self.registry_path,
+        )
+        for record in self.registry.ordered_records:
+            self._write_json(
+                self.target / record.ibge_code / "index.json",
+                {
+                    "id_municipio": record.ibge_code,
+                    "municipio": record.name,
+                    "slug": record.slug,
+                },
+            )
+            municipality_id = record.ibge_code
             self._write_details(self.target, municipality_id)
             self._write_education(municipality_id, supports_recalculation=True)
 
@@ -59,15 +87,8 @@ class MaterializeMunicipalInequalityTests(unittest.TestCase):
             "ALLOWED_OUTPUT_ROOTS",
             frozenset({self.target.resolve()}),
         )
-        self.expected_count_patch = patch.object(
-            materializer,
-            "EXPECTED_MUNICIPALITIES",
-            len(self.municipalities),
-        )
         self.allowed_output_patch.start()
-        self.expected_count_patch.start()
         self.addCleanup(self.allowed_output_patch.stop)
-        self.addCleanup(self.expected_count_patch.stop)
 
     @staticmethod
     def _write_json(path: Path, payload: dict) -> None:
@@ -162,7 +183,7 @@ class MaterializeMunicipalInequalityTests(unittest.TestCase):
         return materializer.materialize(
             self.target,
             education_root=self.education,
-            registry_path=self.registry,
+            registry=self.registry,
             published_root=self.published,
             check=check,
         )
@@ -200,6 +221,25 @@ class MaterializeMunicipalInequalityTests(unittest.TestCase):
 
         self.assertEqual(replace.call_count, len(self.municipalities))
         self.assertEqual(list(self.target.rglob("*.tmp")), [])
+
+    def test_check_reports_changes_without_modifying_documents_or_shared_private_data(self) -> None:
+        before = {
+            path: path.read_bytes()
+            for path in self.target.glob("*/details.json")
+        }
+
+        result = self._materialize(check=True)
+
+        self.assertEqual(result["mode"], "check")
+        self.assertEqual(result["updated"], len(self.municipalities))
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+        for path in before:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            municipality_id = path.parent.name
+            self.assertEqual(
+                payload["_shared"]["privadas_conveniadas"],
+                {"sentinel": f"private:{municipality_id}"},
+            )
 
     def test_existing_embedded_document_is_used_when_education_cannot_recalculate(self) -> None:
         expected = {}
@@ -259,6 +299,21 @@ class MaterializeMunicipalInequalityTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertNotIn("diagnostico.json", source)
+        self.assertNotIn("municipios_index.json", source)
+        self.assertNotIn("EXPECTED_MUNICIPALITIES", source)
+
+    def test_extra_slug_directory_fails_before_any_details_write(self) -> None:
+        extra = self.target / "acegua-legado"
+        extra.mkdir()
+        before = {
+            path: path.read_bytes()
+            for path in self.target.glob("*/details.json")
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "Conjunto físico divergente"):
+            self._materialize()
+
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
 
 
 if __name__ == "__main__":

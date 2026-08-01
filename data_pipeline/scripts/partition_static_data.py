@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
-import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,34 +12,22 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from src.config import PIPELINE_EXPORT_DIR, STATIC_PARTITIONED_DATA_DIR  # noqa: E402
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRecord,
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    load_state_config,
+)
 
 SOURCE_DIR = PIPELINE_EXPORT_DIR / "data"
 OUTPUT_DIR = STATIC_PARTITIONED_DATA_DIR
 
 CYCLES = ("pne_2014_2024", "pne_2026_2036")
-EXPECTED_MUNICIPALITIES = 497
 COPIED_ROOT_STATIC_FILES = ("indicadores.json",)
-
-
-def slugify(value: str, fallback: str = "municipio") -> str:
-    normalized = unicodedata.normalize("NFKD", value)
-    ascii_value = "".join(ch for ch in normalized if not unicodedata.combining(ch))
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_value.lower()).strip("-")
-    slug = re.sub(r"-+", "-", slug)
-    return slug or fallback
-
-
-def unique_slugs(names: list[str]) -> dict[str, str]:
-    used: dict[str, int] = {}
-    result: dict[str, str] = {}
-
-    for name in names:
-        base_slug = slugify(name)
-        count = used.get(base_slug, 0) + 1
-        used[base_slug] = count
-        result[name] = base_slug if count == 1 else f"{base_slug}-{count}"
-
-    return result
 
 
 def load_json(path: Path) -> dict:
@@ -200,7 +186,51 @@ def load_aggregate_payloads() -> dict[str, dict]:
     return payloads
 
 
-def validate_fundeb_payload(payloads: dict[str, dict], municipios: list[str]) -> None:
+def resolve_aggregate_municipalities(
+    payload: dict,
+    registry: MunicipalityRegistry,
+) -> dict[str, str]:
+    raw_names = payload.get("municipios")
+    if not isinstance(raw_names, list):
+        raise RuntimeError(
+            "[partition] Agregado municipios.json inválido: 'municipios' deve ser uma lista."
+        )
+
+    aggregate_names_by_id: dict[str, str] = {}
+    for position, raw_name in enumerate(raw_names, start=1):
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            raise RuntimeError(
+                f"[partition] Nome municipal inválido na posição {position}: {raw_name!r}."
+            )
+        try:
+            record = registry.resolve_unique_name(raw_name)
+        except MunicipalityRegistryError as exc:
+            raise RuntimeError(
+                f"[partition] Município do agregado não resolvido: {raw_name!r}: {exc}"
+            ) from exc
+        if record.ibge_code in aggregate_names_by_id:
+            raise RuntimeError(
+                "[partition] Agregado municipal duplicado para o código "
+                f"{record.ibge_code}: {raw_name!r}."
+            )
+        aggregate_names_by_id[record.ibge_code] = raw_name
+
+    observed_ids = set(aggregate_names_by_id)
+    if observed_ids != registry.ids:
+        missing = sorted(registry.ids - observed_ids)
+        extra = sorted(observed_ids - registry.ids)
+        raise RuntimeError(
+            "[partition] Agregado municipal diverge do registro; "
+            f"ausentes={missing[:5]}, extras={extra[:5]}."
+        )
+    return aggregate_names_by_id
+
+
+def validate_fundeb_payload(
+    payloads: dict[str, dict],
+    municipios: list[str],
+    registry: MunicipalityRegistry,
+) -> None:
     fundeb_payload = payloads.get("fundeb") or {}
     fundeb_municipios = fundeb_payload.get("municipios")
     if not isinstance(fundeb_municipios, dict):
@@ -209,7 +239,7 @@ def validate_fundeb_payload(payloads: dict[str, dict], municipios: list[str]) ->
             "ou sem objeto 'municipios'. Rode export_static_data.py completo antes do particionamento."
         )
 
-    total_expected = EXPECTED_MUNICIPALITIES
+    total_expected = registry.municipality_count
     total_base = len(municipios)
     total_file = int(fundeb_payload.get("total_municipios") or len(fundeb_municipios))
     total_entries = len(fundeb_municipios)
@@ -236,6 +266,8 @@ def validate_fundeb_payload(payloads: dict[str, dict], municipios: list[str]) ->
         problems.append(f"fundeb_por_municipio.json contem {total_entries} entradas, esperado {total_expected}")
     if total_with_data != total_expected:
         problems.append(f"FUNDEB com dados em {total_with_data} municipios, esperado {total_expected}")
+    if set(fundeb_municipios) != set(municipios):
+        problems.append("FUNDEB diverge do conjunto de nomes do agregado municipal")
 
     if problems:
         raise RuntimeError(
@@ -244,7 +276,11 @@ def validate_fundeb_payload(payloads: dict[str, dict], municipios: list[str]) ->
         )
 
 
-def validate_pnate_payload(payloads: dict[str, dict], municipios: list[str]) -> None:
+def validate_pnate_payload(
+    payloads: dict[str, dict],
+    municipios: list[str],
+    registry: MunicipalityRegistry,
+) -> None:
     pnate_payload = payloads.get("pnate") or {}
     pnate_municipios = pnate_payload.get("municipios")
     if not isinstance(pnate_municipios, dict):
@@ -253,7 +289,7 @@ def validate_pnate_payload(payloads: dict[str, dict], municipios: list[str]) -> 
             "ou sem objeto 'municipios'. Rode export_static_data.py completo antes do particionamento."
         )
 
-    total_expected = EXPECTED_MUNICIPALITIES
+    total_expected = registry.municipality_count
     total_base = len(municipios)
     total_file = int(pnate_payload.get("total_municipios") or len(pnate_municipios))
     total_entries = len(pnate_municipios)
@@ -280,6 +316,8 @@ def validate_pnate_payload(payloads: dict[str, dict], municipios: list[str]) -> 
         problems.append(f"pnate_por_municipio.json contem {total_entries} entradas, esperado {total_expected}")
     if total_with_data != total_expected:
         problems.append(f"PNATE com dados em {total_with_data} municipios, esperado {total_expected}")
+    if set(pnate_municipios) != set(municipios):
+        problems.append("PNATE diverge do conjunto de nomes do agregado municipal")
 
     if problems:
         raise RuntimeError(
@@ -289,7 +327,9 @@ def validate_pnate_payload(payloads: dict[str, dict], municipios: list[str]) -> 
 
 
 def validate_planning_scenarios_payload(
-    payloads: dict[str, dict], municipios: list[str]
+    payloads: dict[str, dict],
+    municipios: list[str],
+    registry: MunicipalityRegistry,
 ) -> None:
     payload = payloads.get("planning_scenarios") or {}
     scenarios = payload.get("municipios")
@@ -304,8 +344,10 @@ def validate_planning_scenarios_payload(
         problems.append("status de publicação inválido")
     if payload.get("scenarioType") != "maintenance":
         problems.append("tipo de cenário inválido")
-    if not isinstance(scenarios, dict) or len(scenarios) != EXPECTED_MUNICIPALITIES:
+    if not isinstance(scenarios, dict) or len(scenarios) != registry.municipality_count:
         problems.append("cobertura municipal incompleta")
+    elif set(scenarios) != set(municipios):
+        problems.append("conjunto municipal divergente")
     else:
         for municipio in municipios:
             contracts = scenarios.get(municipio)
@@ -356,49 +398,39 @@ def extract_pnate(payload: dict, municipio: str) -> dict | None:
     return payload.get("municipios", {}).get(municipio, {}).get("pnate")
 
 
-def extract_fundeb_id(payload: dict, municipio: str) -> str | None:
-    fundeb_data = extract_fundeb(payload, municipio)
-    if not fundeb_data:
-        return None
-
-    resumo_id = fundeb_data.get("resumo_ultimo_ano", {}).get("id_municipio")
-    if resumo_id:
-        return str(resumo_id)
-
-    for row in fundeb_data.get("historico", []):
-        row_id = row.get("id_municipio")
-        if row_id:
-            return str(row_id)
-
-    return None
-
-
 def build_municipio_payload(
     payloads: dict[str, dict],
-    municipio: str,
-    slug: str,
-    id_municipio: str | None = None,
+    aggregate_name: str,
+    record: MunicipalityRecord,
 ) -> dict:
-    fundeb_data = extract_fundeb(payloads["fundeb"], municipio)
-    pnate_data = extract_pnate(payloads["pnate"], municipio)
-    projection_data = extract_projections(payloads["projecoes"], municipio)
+    fundeb_data = extract_fundeb(payloads["fundeb"], aggregate_name)
+    pnate_data = extract_pnate(payloads["pnate"], aggregate_name)
+    projection_data = extract_projections(payloads["projecoes"], aggregate_name)
     planning_scenarios = extract_planning_scenarios(
-        payloads["planning_scenarios"], municipio
+        payloads["planning_scenarios"], aggregate_name
     )
     education_attendance = extract_education_attendance(
-        payloads["education_attendance"], municipio
+        payloads["education_attendance"], aggregate_name
     )
     payload = {
-        "id_municipio": id_municipio,
-        "municipio": municipio,
-        "slug": slug,
+        "id_municipio": record.ibge_code,
+        "municipio": record.name,
+        "slug": record.slug,
         "pne_2014_2024": {
-            "indicadores": extract_results(payloads["pne_2014_2024_indicadores"], municipio),
-            "rankings": extract_rankings(payloads["pne_2014_2024_rankings"], municipio),
+            "indicadores": extract_results(
+                payloads["pne_2014_2024_indicadores"], aggregate_name
+            ),
+            "rankings": extract_rankings(
+                payloads["pne_2014_2024_rankings"], aggregate_name
+            ),
         },
         "pne_2026_2036": {
-            "indicadores": extract_results(payloads["pne_2026_2036_indicadores"], municipio),
-            "rankings": extract_rankings(payloads["pne_2026_2036_rankings"], municipio),
+            "indicadores": extract_results(
+                payloads["pne_2026_2036_indicadores"], aggregate_name
+            ),
+            "rankings": extract_rankings(
+                payloads["pne_2026_2036_rankings"], aggregate_name
+            ),
             "projecoes": projection_data,
             "cenarios_planejamento": planning_scenarios,
         },
@@ -446,25 +478,30 @@ def main() -> int:
         default=str(OUTPUT_DIR),
         help="Diretório onde os JSONs particionados serão gerados.",
     )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
     args = parser.parse_args()
 
     SOURCE_DIR = Path(args.source_dir).resolve()
     OUTPUT_DIR = Path(args.output_dir).resolve()
+    state_config = load_state_config(args.state)
+    registry = load_municipality_registry(state_config)
 
     print("[partition] Iniciando particionamento dos dados estáticos.")
     print(f"[partition] Origem: {SOURCE_DIR}")
     print(f"[partition] Saída: {OUTPUT_DIR}")
 
     payloads = load_aggregate_payloads()
-    municipios = payloads["municipios"].get("municipios", [])
-    validate_fundeb_payload(payloads, municipios)
-    validate_pnate_payload(payloads, municipios)
-    validate_planning_scenarios_payload(payloads, municipios)
-    slug_map = unique_slugs(municipios)
-    id_map = {
-        municipio: extract_fundeb_id(payloads["fundeb"], municipio)
-        for municipio in municipios
-    }
+    aggregate_names_by_id = resolve_aggregate_municipalities(
+        payloads["municipios"], registry
+    )
+    municipios = list(aggregate_names_by_id.values())
+    validate_fundeb_payload(payloads, municipios, registry)
+    validate_pnate_payload(payloads, municipios, registry)
+    validate_planning_scenarios_payload(payloads, municipios, registry)
     stats = {"created": 0, "updated": 0, "preserved": 0, "removed": 0}
     expected_paths: set[Path] = set()
 
@@ -482,54 +519,45 @@ def main() -> int:
             )
 
     generated_at = resolve_generated_at(payloads)
-    index_items = [
-        {
-            "nome": municipio,
-            "id_municipio": id_map.get(municipio),
-            "slug": slug_map[municipio],
-            "path": f"/data/municipios/{id_map.get(municipio) or slug_map[municipio]}/index.json",
-        }
-        for municipio in municipios
-    ]
     write_json(
         OUTPUT_DIR / "municipios_index.json",
-        {
-            "generated_at": generated_at,
-            "total_municipios": len(index_items),
-            "municipios": index_items,
-        },
+        registry.build_public_index_payload(generated_at=generated_at),
         stats,
         expected_paths,
     )
 
     errors: list[dict[str, str]] = []
-    for position, municipio in enumerate(municipios, start=1):
-        slug = slug_map[municipio]
-        id_municipio = id_map.get(municipio)
-        canonical_id = id_municipio or slug
-        print(f"[partition] {position}/{len(municipios)} {municipio} -> {canonical_id}")
+    for position, record in enumerate(registry.ordered_records, start=1):
+        aggregate_name = aggregate_names_by_id[record.ibge_code]
+        print(
+            f"[partition] {position}/{registry.municipality_count} "
+            f"{record.name} -> {record.ibge_code}"
+        )
         try:
             municipio_payload = build_municipio_payload(
                 payloads,
-                municipio,
-                slug,
-                id_municipio,
+                aggregate_name,
+                record,
             )
             write_json(
-                OUTPUT_DIR / "municipios" / canonical_id / "index.json",
+                OUTPUT_DIR / "municipios" / record.ibge_code / "index.json",
                 municipio_payload,
                 stats,
                 expected_paths,
             )
             write_json(
-                OUTPUT_DIR / "municipios" / canonical_id / "details.json",
-                extract_indicator_details(payloads["indicator_details"], municipio),
+                OUTPUT_DIR / "municipios" / record.ibge_code / "details.json",
+                extract_indicator_details(
+                    payloads["indicator_details"], aggregate_name
+                ),
                 stats,
                 expected_paths,
             )
         except Exception as exc:  # noqa: BLE001 - keep processing other municipalities.
-            errors.append({"municipio": municipio, "slug": slug, "erro": str(exc)})
-            print(f"[partition] ERRO em {municipio}: {exc}")
+            errors.append(
+                {"municipio": record.name, "slug": record.slug, "erro": str(exc)}
+            )
+            print(f"[partition] ERRO em {record.name}: {exc}")
 
     if errors:
         write_json(

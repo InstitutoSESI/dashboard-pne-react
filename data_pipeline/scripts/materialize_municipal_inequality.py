@@ -16,10 +16,20 @@ from src.config import (  # noqa: E402
     PUBLIC_DATA_DIR,
     STATIC_PARTITIONED_DATA_DIR,
 )
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRecord,
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
 from src.municipal_inequality import build_document  # noqa: E402
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+)
 
 
-EXPECTED_MUNICIPALITIES = 497
 PUBLIC_MUNICIPAL_ROOT = PUBLIC_DATA_DIR / "municipios"
 ALLOWED_OUTPUT_ROOTS = frozenset(
     {
@@ -168,61 +178,82 @@ def validate_output_root(output_root: Path) -> Path:
     return resolved
 
 
+def _validate_index_identity(
+    target: Path,
+    record: MunicipalityRecord,
+) -> None:
+    path = target / record.ibge_code / "index.json"
+    payload = _read_json(path)
+    expected = {
+        "id_municipio": record.ibge_code,
+        "municipio": record.name,
+        "slug": record.slug,
+    }
+    observed = {field: payload.get(field) for field in expected}
+    if observed != expected:
+        raise RuntimeError(
+            f"Identidade municipal divergente em {path}: {observed!r}."
+        )
+
+
 def materialize(
     output_root: Path,
     *,
     education_root: Path | None = None,
     registry_path: Path | None = None,
+    registry: MunicipalityRegistry | None = None,
+    state_code: str = DEFAULT_STATE_CODE,
     published_root: Path = PUBLIC_MUNICIPAL_ROOT,
     check: bool = False,
 ) -> dict[str, Any]:
+    if registry is None:
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(
+            state_config,
+            registry_path=registry_path,
+        )
     target = validate_output_root(output_root)
     source_root = (
         education_root or target.parent / "educacao" / "municipios"
     ).expanduser().resolve()
     if not source_root.is_dir():
         raise FileNotFoundError(source_root)
-    registry = _read_json(
-        registry_path or target.parent / "municipios_index.json"
-    )
-    entries = list(registry.get("municipios") or [])
-    if (
-        registry.get("total_municipios") != EXPECTED_MUNICIPALITIES
-        or len(entries) != EXPECTED_MUNICIPALITIES
-    ):
-        raise RuntimeError("Registro municipal não contém os 497 municípios.")
+
+    physical_directories = {
+        path.name for path in target.iterdir() if path.is_dir()
+    }
+    if physical_directories != registry.ids:
+        missing = sorted(registry.ids - physical_directories)
+        extra = sorted(physical_directories - registry.ids)
+        raise RuntimeError(
+            f"Conjunto físico divergente; ausentes={missing[:5]}, extras={extra[:5]}."
+        )
+    education_ids = {path.stem for path in source_root.glob("*.json")}
+    if education_ids != registry.ids:
+        missing = sorted(registry.ids - education_ids)
+        extra = sorted(education_ids - registry.ids)
+        raise RuntimeError(
+            "Conjunto educacional divergente; "
+            f"ausentes={missing[:5]}, extras={extra[:5]}."
+        )
 
     rows_by_municipality: dict[str, list[dict[str, Any]]] = {}
     education_by_municipality: dict[str, dict[str, Any]] = {}
-    observed: set[str] = set()
-    for entry in sorted(entries, key=lambda item: str(item["id_municipio"])):
-        municipality_id = str(entry.get("id_municipio") or "")
-        municipality_name = str(entry.get("nome") or "").strip()
-        if len(municipality_id) != 7 or not municipality_id.isdigit():
-            raise RuntimeError(f"Código municipal inválido no registro: {municipality_id!r}.")
-        if not municipality_name:
-            raise RuntimeError(f"Nome municipal ausente para {municipality_id}.")
-        if municipality_id in observed:
-            raise RuntimeError(f"Código municipal duplicado: {municipality_id}.")
-        observed.add(municipality_id)
-
-        education = _read_json(source_root / f"{municipality_id}.json")
-        if str(education.get("id_municipio")) != municipality_id:
+    for record in registry.ordered_records:
+        _validate_index_identity(target, record)
+        education = _read_json(source_root / f"{record.ibge_code}.json")
+        if education.get("id_municipio") != record.ibge_code:
             raise RuntimeError(
-                f"Identidade educacional divergente para {municipality_id}."
+                f"Identidade educacional divergente para {record.ibge_code}."
             )
-        education_by_municipality[municipality_id] = education
-        rows_by_municipality[municipality_id] = _education_rows(education)
+        education_by_municipality[record.ibge_code] = education
+        rows_by_municipality[record.ibge_code] = _education_rows(education)
 
     fallback_root = published_root.expanduser().resolve()
-    physical_details = {
-        path.parent.name
-        for path in target.glob("*/details.json")
-        if len(path.parent.name) == 7 and path.parent.name.isdigit()
-    }
-    if physical_details != observed:
-        missing = sorted(observed - physical_details)
-        extra = sorted(physical_details - observed)
+    physical_details = {path.parent.name for path in target.glob("*/details.json")}
+    if physical_details != registry.ids:
+        missing = sorted(registry.ids - physical_details)
+        extra = sorted(physical_details - registry.ids)
         raise RuntimeError(
             f"Conjunto físico divergente; ausentes={missing[:5]}, extras={extra[:5]}."
         )
@@ -230,9 +261,9 @@ def materialize(
     planned: list[tuple[Path, dict[str, Any]]] = []
     preserved_pilot_count = 0
     recalculated_count = 0
-    for entry in sorted(entries, key=lambda item: str(item["id_municipio"])):
-        municipality_id = str(entry["id_municipio"])
-        municipality_name = str(entry.get("nome") or "").strip()
+    for record in registry.ordered_records:
+        municipality_id = record.ibge_code
+        municipality_name = record.name
         education = education_by_municipality[municipality_id]
         details_path = target / municipality_id / "details.json"
         details = _read_json(details_path)
@@ -248,9 +279,13 @@ def materialize(
         if can_recalculate:
             generated_at = str(
                 education.get("updated_at")
-                or registry.get("generated_at")
+                or (existing_document or {}).get("generatedAt")
                 or ""
             )
+            if not generated_at:
+                raise RuntimeError(
+                    f"Timestamp de origem ausente para {municipality_id}."
+                )
             document = build_document(
                 municipality_id=municipality_id,
                 municipality_name=municipality_name,
@@ -289,14 +324,10 @@ def materialize(
         status = _write_if_changed(path, payload, check=check)
         stats[status] += 1
 
-    physical = {
-        path.parent.name
-        for path in target.glob("*/details.json")
-        if len(path.parent.name) == 7 and path.parent.name.isdigit()
-    }
-    if physical != observed:
-        missing = sorted(observed - physical)
-        extra = sorted(physical - observed)
+    physical = {path.parent.name for path in target.glob("*/details.json")}
+    if physical != registry.ids:
+        missing = sorted(registry.ids - physical)
+        extra = sorted(physical - registry.ids)
         raise RuntimeError(
             f"Conjunto físico divergente; ausentes={missing[:5]}, extras={extra[:5]}."
         )
@@ -306,14 +337,14 @@ def materialize(
         "educationSource": str(source_root),
         "pilotSource": (
             "education"
-            if recalculated_count == len(observed)
+            if recalculated_count == registry.municipality_count
             else "published"
-            if preserved_pilot_count == len(observed)
+            if preserved_pilot_count == registry.municipality_count
             else "mixed"
         ),
         "recalculatedPilotCount": recalculated_count,
         "preservedPublishedPilotCount": preserved_pilot_count,
-        "municipalityCount": len(observed),
+        "municipalityCount": registry.municipality_count,
         **stats,
     }
 
@@ -322,15 +353,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Incorpora o documento municipal de desigualdade em details.json."
     )
-    parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--output-root", type=Path, default=PUBLIC_MUNICIPAL_ROOT)
     parser.add_argument("--education-root", type=Path)
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    try:
+        state_config = load_state_config(args.state)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
     print(
         json.dumps(
             materialize(
                 args.output_root,
                 education_root=args.education_root,
+                registry=registry,
                 check=args.check,
             ),
             ensure_ascii=False,

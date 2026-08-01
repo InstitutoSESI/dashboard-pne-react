@@ -43,14 +43,23 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 ## Contratos de dados
 
 `config/states/rs.json` é a primeira configuração estadual versionada e é
-validada em runtime por `src/config/stateConfig.ts`. Ela declara o contrato
+validada em runtime por `src/config/stateConfig.ts` e pelo pipeline em
+`data_pipeline/src/state_config.py`. Ela declara o contrato
 `state-config-v1`, o estado RS, o prefixo IBGE 43, a cobertura esperada de 497
 municípios e o locale `pt-BR`. O frontend continua RS-only: não há configuração
 de outro estado nem seletor estadual nesta etapa.
 
+`config/municipalities/rs.json` implementa `municipality-registry-v1` e é a
+fonte canônica de código IBGE, nome e slug no pipeline Python. O registro é
+validado por `data_pipeline/src/municipality_registry.py` contra a configuração
+estadual, preserva a ordem versionada e oferece lookups imutáveis por código e
+resolução única por nome. O código IBGE é a chave; nome é apresentação e
+compatibilidade temporária; slug é rota pública.
+
 `municipios_index.json` continua sendo o único catálogo municipal público e é
-carregado no início junto com `indicadores.json`, sem terceira requisição. Na
-fronteira de carregamento, o payload bruto em português
+carregado pelo frontend junto com `indicadores.json`, sem terceira requisição.
+Ele agora é uma projeção publicada do registro canônico, com o mesmo schema,
+ordem e caminho existentes. Na fronteira de carregamento, o payload bruto em português
 `MunicipalityIndexEntryPayload` é validado e convertido para a única coleção
 canônica `MunicipalityRef[]`. O código IBGE (`ibgeCode`) é a identidade interna,
 `name` serve somente à apresentação e `slug` somente às URLs. O registro mantém
@@ -59,7 +68,16 @@ municípios por código. A resolução por nome existe apenas para migração do
 armazenamento antigo e compatibilidade histórica de URL, sempre exigindo uma
 correspondência única.
 
-O agregado `municipios.json` continua existindo somente como staging interno do pipeline, usado como entrada do particionamento, e não faz parte do contrato público. No ciclo PNE 2026–2036, `indicadores.json`, o catálogo do Diagnóstico e `docs/generated/PNE_2026_CONTRACT.md` são projeções do contrato canônico, verificadas por `npm run check:pne-contract`. O slug continua sendo o identificador legível da rota, mas os arquivos municipais são canônicos somente pelo código IBGE: `/data/municipios/<ibge>/...`.
+O agregado `municipios.json` continua existindo somente como staging interno do
+pipeline, usado como entrada transitória do particionamento e indexado por nome.
+Cada nome precisa resolver de forma única contra o registro; ele não cria código
+nem slug. Fundeb e PNATE permanecem fontes de dados e de cobertura, mas não
+definem existência, nome ou código municipal. No ciclo PNE 2026–2036,
+`indicadores.json`, o catálogo do Diagnóstico e
+`docs/generated/PNE_2026_CONTRACT.md` são projeções do contrato canônico,
+verificadas por `npm run check:pne-contract`. O slug continua sendo o
+identificador legível da rota, mas os arquivos municipais são canônicos somente
+pelo código IBGE: `/data/municipios/<ibge>/...`.
 
 O `MunicipalityContext` persiste `selectedMunicipalityId` no contrato JSON
 versionado `dashboard-context-v2`, que inclui `stateCode` e `municipalityId`.
@@ -68,9 +86,10 @@ por correspondência única e removida; ela nunca volta a ser escrita. Rotas com
 `municipio` aceitam slug, código IBGE ou nome legado e, quando válidas, são
 normalizadas para o slug sem mudar a identidade interna.
 
-Esta fundação ainda não constitui suporte real a múltiplos estados. Essa
-capacidade, inclusive seleção e publicação por estado, depende das Etapas 4B e
-4C.
+Esta fundação ainda não constitui suporte real a múltiplos estados. Os scripts
+centrais aceitam `--state RS` e falham antes de escrever quando a configuração
+solicitada não existe. Fontes, fórmulas e agregados ainda específicos do RS,
+Alagoas, seleção e publicação por estado dependem das Etapas 4B2 e 4C.
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 

@@ -163,6 +163,67 @@ assert.deepEqual(
   'A configuração estadual do RS divergiu do contrato state-config-v1.',
 )
 
+const municipalityRegistryPath = resolve(repoRoot, 'config/municipalities/rs.json')
+assert.ok(
+  existsSync(municipalityRegistryPath),
+  'Registro municipal canônico ausente: config/municipalities/rs.json.',
+)
+const municipalityRegistry = JSON.parse(readFileSync(municipalityRegistryPath, 'utf8'))
+assert.deepEqual(
+  Object.keys(municipalityRegistry).toSorted(),
+  ['municipalities', 'municipalityCount', 'schemaVersion', 'stateCode'],
+  'Registro municipal canônico contém campos inesperados.',
+)
+assert.equal(municipalityRegistry.schemaVersion, 'municipality-registry-v1')
+assert.equal(municipalityRegistry.stateCode, stateConfig.stateCode)
+assert.equal(municipalityRegistry.municipalityCount, stateConfig.expectedMunicipalityCount)
+assert.ok(Array.isArray(municipalityRegistry.municipalities))
+assert.equal(
+  municipalityRegistry.municipalities.length,
+  municipalityRegistry.municipalityCount,
+)
+const registryIds = []
+const registrySlugs = []
+for (const [index, municipality] of municipalityRegistry.municipalities.entries()) {
+  assert.deepEqual(
+    Object.keys(municipality).toSorted(),
+    ['ibgeCode', 'name', 'slug'],
+    `Registro municipal na posição ${index + 1} contém campos inesperados.`,
+  )
+  assert.match(
+    municipality.ibgeCode,
+    new RegExp(`^${stateConfig.municipalityIbgePrefix}\\d{5}$`),
+    `Código IBGE inválido no registro: ${municipality.ibgeCode}.`,
+  )
+  assert.equal(typeof municipality.name, 'string')
+  assert.ok(municipality.name.trim(), `Nome municipal vazio em ${municipality.ibgeCode}.`)
+  assert.equal(typeof municipality.slug, 'string')
+  assert.ok(municipality.slug.trim(), `Slug municipal vazio em ${municipality.ibgeCode}.`)
+  registryIds.push(municipality.ibgeCode)
+  registrySlugs.push(municipality.slug.toLocaleLowerCase('pt-BR'))
+}
+assert.equal(new Set(registryIds).size, municipalityRegistry.municipalityCount)
+assert.equal(new Set(registrySlugs).size, municipalityRegistry.municipalityCount)
+
+const publicMunicipalityIndexPath = resolve(repoRoot, 'public/data/municipios_index.json')
+const publicMunicipalityIndex = JSON.parse(
+  readFileSync(publicMunicipalityIndexPath, 'utf8'),
+)
+assert.deepEqual(
+  publicMunicipalityIndex,
+  {
+    generated_at: publicMunicipalityIndex.generated_at,
+    total_municipios: municipalityRegistry.municipalityCount,
+    municipios: municipalityRegistry.municipalities.map((municipality) => ({
+      nome: municipality.name,
+      id_municipio: municipality.ibgeCode,
+      slug: municipality.slug,
+      path: `/data/municipios/${municipality.ibgeCode}/index.json`,
+    })),
+  },
+  'municipios_index.json deve ser exatamente a projeção pública do registro canônico.',
+)
+
 const municipalityContextSource = readFileSync(
   resolve(repoRoot, 'src/context/MunicipalityContext.tsx'),
   'utf8',
@@ -333,6 +394,7 @@ const expectedUvPythonScripts = [
   'update:data:skip-build',
   'verify:indicator',
   'validate:details',
+  'test:pipeline-state-config',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -449,7 +511,11 @@ const municipalityIds = readdirSync(municipalRoot, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && /^\d{7}$/.test(entry.name))
   .map((entry) => entry.name)
   .toSorted()
-assert.equal(municipalityIds.length, 497, 'Publicação municipal deve conter 497 municípios.')
+assert.deepEqual(
+  municipalityIds,
+  registryIds.toSorted(),
+  'Diretórios municipais públicos devem coincidir exatamente com o registro canônico.',
+)
 const trackedMunicipalDiagnostics = tracked.filter((path) => (
   /^public\/data\/municipios\/\d{7}\/diagnostico\.json$/.test(path)
   && existsSync(resolve(repoRoot, path))
@@ -496,6 +562,11 @@ assert.doesNotMatch(
   /diagnostico\.json|desigualdade_por_municipio\.json|build_partitioned_inequality_document/,
   'O particionamento não pode recriar o artefato municipal aposentado.',
 )
+assert.doesNotMatch(
+  partitionSource,
+  /extract_fundeb_id|\bslugify\b|\bunique_slugs\b|\bcanonical_id\b/,
+  'O particionamento não pode descobrir identidade pelo Fundeb nem recriar slug municipal.',
+)
 
 const exportSource = readFileSync(
   resolve(repoRoot, 'data_pipeline/scripts/export_static_data.py'),
@@ -515,6 +586,45 @@ assert.doesNotMatch(
   updateSource,
   researchDependencyPattern,
   'update_static_data.py não pode importar nem executar código de pesquisa.',
+)
+
+const migratedPipelineSources = new Map([
+  ['data_pipeline/src/pne_macro_ingestion.py', readFileSync(
+    resolve(repoRoot, 'data_pipeline/src/pne_macro_ingestion.py'),
+    'utf8',
+  )],
+  ['data_pipeline/scripts/partition_static_data.py', partitionSource],
+  ['data_pipeline/scripts/update_static_data.py', updateSource],
+  ['data_pipeline/scripts/validate_static_details.py', readFileSync(
+    resolve(repoRoot, 'data_pipeline/scripts/validate_static_details.py'),
+    'utf8',
+  )],
+  ['data_pipeline/scripts/materialize_municipal_inequality.py', readFileSync(
+    resolve(repoRoot, 'data_pipeline/scripts/materialize_municipal_inequality.py'),
+    'utf8',
+  )],
+])
+for (const [path, source] of migratedPipelineSources) {
+  assert.doesNotMatch(
+    source,
+    /\bEXPECTED_MUNICIPALIT(?:Y_COUNT|IES)\s*=/,
+    `${path} voltou a declarar cardinalidade municipal literal na fundação migrada.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /\b(?:int|float)\s*\([^\n)]*\bid_municipio\b/,
+    `${path} converte código IBGE municipal para número.`,
+  )
+}
+assert.doesNotMatch(
+  migratedPipelineSources.get('data_pipeline/src/pne_macro_ingestion.py'),
+  /municipios_index\.json|MUNICIPALITY_INDEX/,
+  'PNE macro não pode voltar a usar municipios_index.json como universo canônico.',
+)
+assert.doesNotMatch(
+  migratedPipelineSources.get('data_pipeline/scripts/materialize_municipal_inequality.py'),
+  /municipios_index\.json/,
+  'Materializador de desigualdade não pode usar o índice público como registro.',
 )
 const municipalContract = updateSource.match(
   /MUNICIPAL_STATIC_FILES\s*=\s*frozenset\(\s*\{([\s\S]*?)\}\s*\)/,

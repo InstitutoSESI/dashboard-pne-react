@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -18,10 +19,19 @@ from src.config import (  # noqa: E402
     REPO_ROOT,
     STATIC_PARTITIONED_DATA_DIR,
 )
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+)
 
 PYTHON = sys.executable
 NPM = "npm.cmd" if os.name == "nt" else "npm"
-EXPECTED_MUNICIPALITIES = 497
 ROOT_STATIC_FILES = frozenset(
     {"indicadores.json", "municipios_index.json"}
 )
@@ -143,7 +153,7 @@ def is_managed_static_path(relative: Path) -> bool:
 
 def validate_static_partition(
     source_root: Path,
-    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
+    registry: MunicipalityRegistry,
 ) -> list[Path]:
     source_files = iter_files(source_root)
     unexpected = [
@@ -172,10 +182,24 @@ def validate_static_partition(
         if len(relative.parts) == 3 and relative.parts[0] == "municipios":
             municipal_contracts.setdefault(relative.parts[1], set()).add(path.name)
 
-    if len(municipal_contracts) != expected_municipalities:
+    municipal_root = source_root / "municipios"
+    observed_ids = (
+        {path.name for path in municipal_root.iterdir() if path.is_dir()}
+        if municipal_root.is_dir()
+        else set()
+    )
+    if observed_ids != registry.ids:
+        missing_ids = sorted(registry.ids - observed_ids)
+        extra_ids = sorted(observed_ids - registry.ids)
         raise RuntimeError(
-            "[update-data] Staging estatico contem "
-            f"{len(municipal_contracts)} municipios; esperado {expected_municipalities}."
+            "[update-data] Conjunto municipal do staging diverge do registro; "
+            f"ausentes={missing_ids[:5]}, extras={extra_ids[:5]}."
+        )
+
+    if set(municipal_contracts) != registry.ids:
+        raise RuntimeError(
+            "[update-data] Staging estatico nao possui contratos para todos os "
+            "diretorios municipais do registro."
         )
 
     incomplete = {
@@ -192,6 +216,61 @@ def validate_static_partition(
             "[update-data] Staging estatico contem contratos municipais "
             f"incompletos: {preview}."
         )
+
+    index_path = source_root / "municipios_index.json"
+    try:
+        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"[update-data] municipios_index.json invalido no staging: {exc}."
+        ) from exc
+    if not isinstance(index_payload, dict):
+        raise RuntimeError(
+            "[update-data] municipios_index.json do staging deve ser um objeto."
+        )
+    generated_at = index_payload.get("generated_at")
+    try:
+        expected_index = registry.build_public_index_payload(
+            generated_at=generated_at
+        )
+    except MunicipalityRegistryError as exc:
+        raise RuntimeError(
+            f"[update-data] municipios_index.json invalido no staging: {exc}"
+        ) from exc
+    if index_payload != expected_index:
+        raise RuntimeError(
+            "[update-data] municipios_index.json do staging diverge da projeção do registro."
+        )
+
+    for record in registry.ordered_records:
+        municipal_index_path = (
+            source_root / "municipios" / record.ibge_code / "index.json"
+        )
+        try:
+            municipal_payload = json.loads(
+                municipal_index_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(
+                f"[update-data] Contrato municipal inválido em {record.ibge_code}: {exc}."
+            ) from exc
+        if not isinstance(municipal_payload, dict):
+            raise RuntimeError(
+                f"[update-data] index.json de {record.ibge_code} deve ser um objeto."
+            )
+        expected_identity = {
+            "id_municipio": record.ibge_code,
+            "municipio": record.name,
+            "slug": record.slug,
+        }
+        observed_identity = {
+            field: municipal_payload.get(field) for field in expected_identity
+        }
+        if observed_identity != expected_identity:
+            raise RuntimeError(
+                "[update-data] Identidade municipal divergente no staging para "
+                f"{record.ibge_code}: {observed_identity!r}."
+            )
 
     return source_files
 
@@ -255,7 +334,8 @@ def sync_partitioned_to_public(
     results: list[StepResult],
     source_root: Path = STATIC_PARTITIONED_DATA_DIR,
     public_root: Path = PUBLIC_DATA_DIR,
-    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
+    registry: MunicipalityRegistry | None = None,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> SyncStats:
     name = "sync"
     print(f"[update-data] Iniciando {name}: {source_root} -> {public_root}")
@@ -266,7 +346,10 @@ def sync_partitioned_to_public(
     if not public_root.exists():
         raise RuntimeError(f"[update-data] Diretorio public/data nao encontrado: {public_root}")
 
-    source_files = validate_static_partition(source_root, expected_municipalities)
+    if registry is None:
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+    source_files = validate_static_partition(source_root, registry)
     expected_targets: set[Path] = set()
     created = updated = preserved = removed = 0
 
@@ -386,6 +469,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Mostra o perfil das etapas do export, partition, sync, validação e build.",
     )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
     return parser.parse_args()
 
 
@@ -393,6 +481,12 @@ def main() -> int:
     args = parse_args()
     if args.education_only and args.skip_education:
         raise SystemExit("--education-only e --skip-education sao mutuamente exclusivos.")
+    try:
+        state_config = load_state_config(args.state)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"[update-data] Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
     results: list[StepResult] = []
     skipped: list[str] = []
 
@@ -401,12 +495,24 @@ def main() -> int:
         export_command.append("--include-derived")
     if args.profile:
         export_command.append("--profile")
-    partition_command = [PYTHON, "data_pipeline/scripts/partition_static_data.py"]
+    partition_command = [
+        PYTHON,
+        "data_pipeline/scripts/partition_static_data.py",
+        "--state",
+        state_config.state_code,
+    ]
     education_command = [
         PYTHON,
         "data_pipeline/scripts/export_education_indicators.py",
     ]
-    validate_command = [NPM, "run", "validate:details"]
+    validate_command = [
+        NPM,
+        "run",
+        "validate:details",
+        "--",
+        "--state",
+        state_config.state_code,
+    ]
     build_command = [NPM, "run", "build"]
 
     if args.validate_only:
@@ -441,6 +547,8 @@ def main() -> int:
         str(inequality_output_root),
         "--education-root",
         str(PUBLIC_DATA_DIR / "educacao" / "municipios"),
+        "--state",
+        state_config.state_code,
     ]
 
     planned_commands: list[tuple[str, list[str]]] = []
@@ -482,7 +590,7 @@ def main() -> int:
         skipped.append("inequality")
 
     if run_sync:
-        sync_partitioned_to_public(results)
+        sync_partitioned_to_public(results, registry=registry)
 
     run_command("validate", validate_command, results)
     validate_ok = True

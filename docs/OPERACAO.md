@@ -36,18 +36,26 @@ devem ser editados manualmente.
 
 ## Configuração estadual e identidade municipal
 
-`config/states/rs.json` é a configuração estadual ativa e versionada. O
-frontend valida o contrato `state-config-v1` ao iniciar e permanece limitado ao
-Rio Grande do Sul. O cadastro dos municípios não é duplicado nessa configuração:
-continua vindo de `public/data/municipios_index.json`, cujo payload bruto é
-convertido para `MunicipalityRef[]`.
+`config/states/rs.json` é a configuração estadual ativa e versionada. Frontend
+e pipeline validam o mesmo contrato `state-config-v1`. A identidade municipal
+canônica do pipeline fica separada em `config/municipalities/rs.json`, no
+contrato `municipality-registry-v1`; `public/data/municipios_index.json` é uma
+projeção publicada desse registro e não pode ser usado como fonte do universo.
 
 Internamente, o código IBGE identifica o município; o nome é texto de
-apresentação e o slug é o valor canônico de URL. A persistência do navegador usa
+apresentação e compatibilidade temporária dos agregados por nome, e o slug é o
+valor canônico de URL. O particionamento resolve nomes de forma única contra o
+registro e nunca deriva código ou slug do nome. Fundeb e PNATE fornecem dados,
+mas não identidade. A persistência do navegador usa
 `dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
 em nome são migrados uma única vez quando há correspondência inequívoca. Não há
 seletor de estado, configuração de Alagoas nem caminhos públicos de dados por
-estado; suporte multiestado completo depende das Etapas 4B e 4C.
+estado; fontes e fórmulas multiestado dependem da Etapa 4B2, e o suporte de
+produto e publicação por estado depende da Etapa 4C.
+
+Os comandos centrais aceitam `--state RS`; `rs` é normalizado para `RS`. Um
+estado sem `config/states/<uf>.json`, como `AL` nesta etapa, falha antes de
+exportação, particionamento, sincronização ou escrita, sem fallback para RS.
 
 ## Atualização completa
 
@@ -80,6 +88,9 @@ npm run update:education-data
 
 # Mostra as etapas e tempos sem executar
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
+
+# Explicita o estado ativo sem alterar o caminho público atual
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run
 
 # Validação rápida do código da aplicação
 npm run check:fast

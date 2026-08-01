@@ -6,7 +6,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 
 PIPELINE_ROOT = Path(__file__).resolve().parents[1]
@@ -20,9 +19,41 @@ sys.modules[VALIDATOR_SPEC.name] = validator
 VALIDATOR_SPEC.loader.exec_module(validator)
 
 from data_pipeline.src.municipal_inequality import build_document  # noqa: E402
+from src.municipality_registry import load_municipality_registry  # noqa: E402
+from src.state_config import StateConfig  # noqa: E402
 
 
 class ValidateStaticDetailsTests(unittest.TestCase):
+    municipalities = {
+        "4300034": ("Aceguá", "acegua"),
+        "4300059": ("Água Santa", "agua-santa"),
+    }
+
+    @classmethod
+    def _registry(cls, root: Path):
+        state = StateConfig(
+            schema_version="state-config-v1",
+            state_code="RS",
+            state_name="Rio Grande do Sul",
+            municipality_ibge_prefix="43",
+            expected_municipality_count=len(cls.municipalities),
+            locale="pt-BR",
+        )
+        path = root / "registry.json"
+        cls._write(
+            path,
+            {
+                "schemaVersion": "municipality-registry-v1",
+                "stateCode": "RS",
+                "municipalityCount": len(cls.municipalities),
+                "municipalities": [
+                    {"ibgeCode": code, "name": name, "slug": slug}
+                    for code, (name, slug) in cls.municipalities.items()
+                ],
+            },
+        )
+        return load_municipality_registry(state, registry_path=path)
+
     @staticmethod
     def _document(municipality_id: str, name: str) -> dict:
         return build_document(
@@ -121,6 +152,7 @@ class ValidateStaticDetailsTests(unittest.TestCase):
     def test_shared_coverage_requires_both_documents_for_every_municipality(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             data_dir = Path(temporary)
+            registry = self._registry(data_dir)
             paths = []
             for municipality_id, name in (
                 ("4300034", "Aceguá"),
@@ -131,10 +163,56 @@ class ValidateStaticDetailsTests(unittest.TestCase):
                 paths.append(path)
             problems: list[validator.Problem] = []
 
-            with patch.object(validator, "EXPECTED_MUNICIPALITIES", len(paths)):
-                validator._validate_shared_coverage(paths, data_dir, problems)
+            validator._validate_shared_coverage(
+                paths,
+                data_dir,
+                problems,
+                registry,
+            )
 
             self.assertEqual(problems, [])
+
+    def test_registry_name_is_required_in_embedded_document(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "municipios" / "4300034" / "details.json"
+            self._write(path, self._details("4300034", "Nome divergente"))
+            problems: list[validator.Problem] = []
+
+            validator.validate_detail_file(
+                path,
+                problems,
+                municipality_name="Aceguá",
+            )
+
+            self.assertTrue(
+                any("must equal registry name 'Aceguá'" in problem.message for problem in problems)
+            )
+
+    def test_municipal_index_identity_is_compared_with_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            data_dir = Path(temporary)
+            registry = self._registry(data_dir)
+            record = registry.get_by_id("4300034")
+            index_path = data_dir / "municipios" / record.ibge_code / "index.json"
+            self._write(
+                index_path,
+                {
+                    "id_municipio": record.ibge_code,
+                    "municipio": record.name,
+                    "slug": record.slug,
+                },
+            )
+            problems: list[validator.Problem] = []
+            validator.validate_municipal_index_identity(data_dir, record, problems)
+            self.assertEqual(problems, [])
+
+            payload = json.loads(index_path.read_text(encoding="utf-8"))
+            payload["slug"] = "slug-divergente"
+            self._write(index_path, payload)
+            validator.validate_municipal_index_identity(data_dir, record, problems)
+            self.assertTrue(
+                any("diverges from registry" in problem.message for problem in problems)
+            )
 
 
 if __name__ == "__main__":
