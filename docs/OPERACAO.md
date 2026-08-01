@@ -3,11 +3,32 @@
 ## Preparação
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r data_pipeline\requirements.txt
+winget install --id=astral-sh.uv -e
+uv --version
 npm ci
+npm run python:sync
+npm run python:lock:check
+npm run test:python
 ```
+
+O intervalo suportado é Python 3.11 a 3.13. `data_pipeline/pyproject.toml`
+declara as dependências diretas de runtime e mantém `pytest` somente no grupo
+`test`; `data_pipeline/uv.lock` fixa a resolução completa usada pelos comandos.
+Não instale pacotes avulsos para corrigir imports. Atualizações de dependências
+devem ocorrer em mudança própria, com regeneração e validação explícitas do
+lock. O antigo `data_pipeline/requirements.txt` foi aposentado.
+
+Para uma integração pontual com pip, gere uma exportação descartável em um
+diretório ignorado e não a versione:
+
+```powershell
+uv export --project data_pipeline --frozen --format requirements.txt `
+  --output-file exports/python-requirements.txt
+```
+
+Uma segunda sincronização sem mudanças reutiliza o ambiente local em
+`data_pipeline/.venv`. O uv reduz o custo de preparação do ambiente, mas não
+substitui a futura otimização incremental da materialização dos dados.
 
 As fontes reproduzíveis e os insumos de regeneração permanecem em
 `data_pipeline/data`. Os artefatos públicos são gerados pelo pipeline e não
@@ -43,7 +64,7 @@ npm run update:data:skip-build
 npm run update:education-data
 
 # Mostra as etapas e tempos sem executar
-python data_pipeline/scripts/update_static_data.py --dry-run --profile
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
 
 # Validação rápida do código da aplicação
 npm run check:fast
@@ -60,7 +81,7 @@ a publicação do Diagnóstico PNE completo em `pne2026-diagnostic-v3`.
 A geração após a atualização de Educação é feita por:
 
 ```powershell
-python data_pipeline/scripts/materialize_municipal_inequality.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/materialize_municipal_inequality.py `
   --output-root data_pipeline/export/static_partitioned/municipios
 ```
 
@@ -84,10 +105,10 @@ deve existir somente a release apontada por `current.json`.
 Geração e validação:
 
 ```powershell
-python data_pipeline/scripts/materialize_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/materialize_pne2026_public_diagnostic_v3.py `
   --output-dir data_pipeline/.staging/pne-diagnostic-current
 
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --source-dir data_pipeline/.staging/pne-diagnostic-current `
   --destination-dir public/data/pne2026-diagnostic-v3 `
   --check
@@ -96,7 +117,7 @@ python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
 Publicação:
 
 ```powershell
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --source-dir data_pipeline/.staging/pne-diagnostic-current `
   --destination-dir public/data/pne2026-diagnostic-v3
 ```
@@ -105,7 +126,7 @@ A ativação de `current.json` é atômica. Depois dela, o promotor apaga releas
 inativas automaticamente. Para apenas conferir ou aplicar essa invariável:
 
 ```powershell
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --prune-inactive `
   --destination-dir public/data/pne2026-diagnostic-v3 `
   --check
@@ -124,6 +145,8 @@ respectivos comandos e não devem ser usados como entrada permanente.
 
 ```powershell
 npm run check:fast
+npm run python:lock:check
+npm run check:python-deps
 npm run test:unit
 npm run test:education
 npm run test:python

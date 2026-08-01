@@ -11,6 +11,36 @@ const tracked = execFileSync('git', ['ls-files', '-z'], {
   maxBuffer: 16 * 1024 * 1024,
 }).split('\0').filter(Boolean)
 
+const pythonProjectPath = resolve(repoRoot, 'data_pipeline/pyproject.toml')
+const pythonLockPath = resolve(repoRoot, 'data_pipeline/uv.lock')
+const retiredRequirementsPath = resolve(repoRoot, 'data_pipeline/requirements.txt')
+assert.ok(existsSync(pythonProjectPath), 'Contrato Python ausente: data_pipeline/pyproject.toml.')
+assert.ok(existsSync(pythonLockPath), 'Lock Python ausente: data_pipeline/uv.lock.')
+assert.ok(
+  !existsSync(retiredRequirementsPath),
+  'data_pipeline/requirements.txt foi aposentado; use pyproject.toml e uv.lock.',
+)
+
+const trackedPythonEnvironments = tracked.filter((path) => (
+  /(?:^|\/)(?:\.venv|venv|\.uv-cache|uv-cache|__pycache__|\.pytest_cache)(?:\/|$)/i.test(path)
+  || /\.py[co]$/i.test(path)
+))
+assert.deepEqual(
+  trackedPythonEnvironments,
+  [],
+  `Ambientes ou caches Python/uv rastreados:\n${trackedPythonEnvironments.join('\n')}`,
+)
+
+const misplacedPythonContracts = tracked.filter((path) => (
+  /^(?:public\/data|data_pipeline\/data)\//.test(path)
+  && /(?:^|\/)(?:pyproject\.toml|uv\.lock|requirements\.txt)$/.test(path)
+))
+assert.deepEqual(
+  misplacedPythonContracts,
+  [],
+  `Contratos do ambiente Python não pertencem às árvores de dados:\n${misplacedPythonContracts.join('\n')}`,
+)
+
 const retiredFinanceContractName = ['MunicipalFinance', 'PrototypeDocumentV1'].join('')
 const retiredFinanceMethodology = ['municipal-finance', 'p5a-v1'].join('-')
 const retiredOperationalResearchPaths = [
@@ -150,6 +180,50 @@ assert.doesNotMatch(
   'package.json não pode declarar municipios.json como catálogo público.',
 )
 const packageJson = JSON.parse(packageJsonSource)
+const expectedUvPythonScripts = [
+  'test:python',
+  'check:python-deps',
+  'update:education-data',
+  'update:indigenous-coverage',
+  'update:data',
+  'update:data:skip-build',
+  'verify:indicator',
+  'validate:details',
+]
+for (const name of expectedUvPythonScripts) {
+  const command = String(packageJson.scripts?.[name] ?? '')
+  assert.ok(command, `Script Python obrigatório ausente: ${name}.`)
+  const pythonSegments = command.split(/\s*&&\s*/).filter((segment) => /\bpython(?:\.exe)?\b/.test(segment))
+  assert.ok(pythonSegments.length > 0, `${name} deve executar Python pelo ambiente uv.`)
+  for (const segment of pythonSegments) {
+    assert.match(
+      segment,
+      /^uv\s+run\s+--project\s+data_pipeline(?:\s+--(?:group\s+\S+|frozen|locked|no-default-groups))*\s+python(?:\.exe)?\b/,
+      `${name} contém comando Python operacional fora de uv run --project data_pipeline.`,
+    )
+  }
+}
+assert.match(
+  String(packageJson.scripts?.['python:sync'] ?? ''),
+  /^uv\s+sync\s+--project\s+data_pipeline\s+--group\s+test\s+--frozen$/,
+  'python:sync deve sincronizar o grupo test sem alterar o lock.',
+)
+assert.match(
+  String(packageJson.scripts?.['python:lock:check'] ?? ''),
+  /^uv\s+lock\s+--project\s+data_pipeline\s+--check$/,
+  'python:lock:check deve validar o lock canônico.',
+)
+const directOperationalPython = Object.entries(packageJson.scripts ?? {})
+  .filter(([, command]) => /(?:^|\s)(?:python(?:\.exe)?|py(?:\.exe)?)(?=\s)/i.test(String(command)))
+  .flatMap(([name, command]) => String(command).split(/\s*&&\s*/)
+    .filter((segment) => /(?:^|\s)(?:python(?:\.exe)?|py(?:\.exe)?)(?=\s)/i.test(segment))
+    .filter((segment) => !/^uv\s+run\s+--project\s+data_pipeline\b/.test(segment))
+    .map((segment) => `${name}: ${segment}`))
+assert.deepEqual(
+  directOperationalPython,
+  [],
+  `Comandos Python operacionais fora do uv no package.json:\n${directOperationalPython.join('\n')}`,
+)
 const researchUpdateScripts = Object.entries(packageJson.scripts ?? {})
   .filter(([name, command]) => (
     /^update(?::|$)/.test(name)

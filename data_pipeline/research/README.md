@@ -18,14 +18,14 @@ Os snapshots metodológicos de `director_selection` e `inec_connectivity` perman
 Experimento de projeção educacional:
 
 ```powershell
-python data_pipeline/research/projections/run_education_attendance_projection_experiment.py `
+uv run --project data_pipeline --frozen python data_pipeline/research/projections/run_education_attendance_projection_experiment.py `
   --output-dir data_pipeline/export/education_attendance_projection_experiment
 ```
 
 Auditoria do critério de seleção de diretores:
 
 ```powershell
-python data_pipeline/research/audits/audit_pne_director_selection.py `
+uv run --project data_pipeline --frozen python data_pipeline/research/audits/audit_pne_director_selection.py `
   --csv CAMINHO_PARA_O_CSV `
   --dictionary CAMINHO_PARA_O_DICIONARIO_XLSX
 ```
@@ -33,11 +33,15 @@ python data_pipeline/research/audits/audit_pne_director_selection.py `
 Auditoria de conectividade INEC/ENEC com a nota técnica já obtida:
 
 ```powershell
-python data_pipeline/research/audits/audit_pne_inec_connectivity.py `
+uv run --project data_pipeline --frozen python data_pipeline/research/audits/audit_pne_inec_connectivity.py `
   --note-file CAMINHO_PARA_A_NOTA_TECNICA_PDF
 ```
 
 Use `--help` em qualquer comando para consultar os argumentos sem abrir banco, acessar a rede, executar o experimento ou escrever arquivos.
+
+A pesquisa reutiliza as dependências de runtime declaradas no
+`data_pipeline/pyproject.toml`; não há um ambiente ou grupo `research`
+separado. Sincronize o lock antes da execução com `npm run python:sync`.
 
 ## Promoção de resultados
 

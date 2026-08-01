@@ -56,6 +56,12 @@ release ativa apontada por `pne2026-diagnostic-v3/current.json`.
 
 As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, enquanto os contratos financeiros usam `data_pipeline/export/municipal_finance`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
 
+O ambiente Python do pipeline também tem contrato único: as dependências
+diretas ficam em `data_pipeline/pyproject.toml` e a resolução reproduzível em
+`data_pipeline/uv.lock`. Os comandos operacionais do `package.json` executam
+Python por `uv run --project data_pipeline`; a pesquisa usa o mesmo ambiente,
+mas permanece fora do pipeline automático.
+
 ## Publicação e segurança
 
 O artefato publicável é `dist`. A hospedagem deve servir arquivos estáticos e usar `index.html` como fallback. Credenciais, dumps privados e dados pessoais não podem entrar em `public`, `dist` ou arquivos versionados.
