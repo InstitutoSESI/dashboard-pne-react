@@ -14,7 +14,7 @@ import {
 } from './pne2026DiagnosticPresentationCatalog.js'
 
 export const PNE_2026_PUBLIC_DIAGNOSTIC_V3_SCHEMA = 'pne2026-public-diagnostic-v4'
-export const PNE_2026_CONTRACT_HASH = 'f2778fe65582cb6efbbc0dc8e4b74dad023a656193beb2ea65954c30a91f1c9e'
+export const PNE_2026_CONTRACT_HASH = 'c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5'
 export const PNE_2026_PRESENTATION_POLICY_HASH = 'c330fb98c727dbb461b809a5f178f92ac73661ee3fe4e9c73cfb9b38ea9f1d3b'
 
 const TOP_LEVEL_FIELDS = new Set([

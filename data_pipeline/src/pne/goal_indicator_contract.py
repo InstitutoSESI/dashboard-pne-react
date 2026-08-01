@@ -902,7 +902,7 @@ def get_indicator_reference_profile(
         return None
 
     if reference_kind == "legal":
-        milestone = reference.get("milestone")
+        milestone = (context.get("legalReference") or {}).get("milestone")
         if milestone is None:
             return None
         return {

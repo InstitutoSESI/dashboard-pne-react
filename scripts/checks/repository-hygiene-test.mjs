@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +8,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const tracked = execFileSync('git', ['ls-files', '-z'], {
   cwd: repoRoot,
   encoding: 'utf8',
+  maxBuffer: 16 * 1024 * 1024,
 }).split('\0').filter(Boolean)
 
 const forbiddenTracked = [
@@ -56,6 +57,48 @@ for (const document of canonicalDocs) {
   }
 }
 assert.deepEqual(brokenLinks, [], `Links locais quebrados:\n${brokenLinks.join('\n')}`)
+
+const pnePublicationRoot = resolve(repoRoot, 'public/data/pne2026-diagnostic-v3')
+const activePointer = JSON.parse(
+  readFileSync(resolve(pnePublicationRoot, 'current.json'), 'utf8'),
+)
+const releaseNames = readdirSync(resolve(pnePublicationRoot, 'releases'), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .toSorted()
+assert.deepEqual(
+  releaseNames,
+  [activePointer.releaseId],
+  'A publicação PNE deve manter somente a release ativa.',
+)
+
+const municipalRoot = resolve(repoRoot, 'public/data/municipios')
+const municipalityIds = readdirSync(municipalRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && /^\d{7}$/.test(entry.name))
+  .map((entry) => entry.name)
+  .toSorted()
+assert.equal(municipalityIds.length, 497, 'Publicação municipal deve conter 497 municípios.')
+for (const municipalityId of municipalityIds) {
+  const diagnostic = JSON.parse(
+    readFileSync(
+      resolve(municipalRoot, municipalityId, 'diagnostico.json'),
+      'utf8',
+    ),
+  )
+  assert.equal(
+    diagnostic.schemaVersion,
+    'municipal-inequality-v1',
+    `${municipalityId}: diagnóstico municipal fora do contrato compacto.`,
+  )
+  assert.deepEqual(
+    Object.keys(diagnostic).toSorted(),
+    ['generatedAt', 'inequalityPilot', 'municipality', 'schemaVersion'],
+    `${municipalityId}: diagnóstico municipal contém blocos obsoletos.`,
+  )
+  assert.equal(diagnostic.municipality?.id, municipalityId)
+}
 
 const forbiddenReferences = [
   ['data_pipeline/app.py', /data_pipeline\/app\.py/],

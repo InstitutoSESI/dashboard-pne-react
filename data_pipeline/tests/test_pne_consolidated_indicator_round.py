@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import sys
 import unittest
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_PIPELINE_DIR = REPO_ROOT / "data_pipeline"
+if str(DATA_PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 
 class PneConsolidatedIndicatorRoundTests(unittest.TestCase):

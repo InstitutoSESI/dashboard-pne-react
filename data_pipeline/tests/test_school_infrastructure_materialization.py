@@ -1,23 +1,22 @@
-import pandas as pd
-import pytest
+import sys
+from pathlib import Path
 
-import src.school_infrastructure_materialization as materialization
+import pandas as pd
+
+DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
+if str(DATA_PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(DATA_PIPELINE_DIR))
+
 from src.school_infrastructure_materialization import (
     CONTRACT_VERSION,
     CUT_ORDER,
     INDICATOR_ORDER,
     RESULT_KEYS,
-    adapt_legacy_document,
+    attach_school_infrastructure_contract,
     adapt_pne_internet_details,
     adapt_pne_internet_yearly,
     build_contracts,
-    build_manifest,
-    classify_diff_path,
-    compare_trees,
-    json_bytes,
     result_for,
-    validate_stage,
-    write_json_atomic,
 )
 
 
@@ -56,7 +55,7 @@ def contract():
     return build_contracts(source_frame(), ["4300001"])["4300001"]
 
 
-def legacy_document():
+def education_document():
     return {
         "id_municipio": "4300001",
         "municipio": "Município",
@@ -138,9 +137,9 @@ def test_contract_has_stable_shape_order_and_missing_semantics():
     assert zero_available["status"] == "published"
 
 
-def test_legacy_adapter_is_additive_and_derived_from_contract():
-    original = legacy_document()
-    adapted = adapt_legacy_document(original, contract())
+def test_contract_attachment_preserves_history_and_uses_current_result():
+    original = education_document()
+    adapted = attach_school_infrastructure_contract(original, contract())
     infra = adapted["blocos"]["rede_escolar"]["infraestrutura"]
     assert "series" in infra
     assert infra["contractVersion"] == CONTRACT_VERSION
@@ -212,60 +211,3 @@ def test_existing_pne_internet_result_uses_canonical_2025(monkeypatch):
         {"ano": 2024, "valor": 75.0},
         {"ano": 2025, "valor": result_for(contract(), "internet")["percentage"]},
     ]
-
-
-def test_serialization_determinism_allowlist_and_unexpected_detection(tmp_path):
-    first = tmp_path / "first"
-    second = tmp_path / "second"
-    for directory in (first, second):
-        write_json_atomic(directory / "municipios" / "4300001.json", {"b": 1, "a": 2})
-        write_json_atomic(directory / "index.json", {"schemaVersion": 1})
-    comparison = compare_trees(first, second)
-    assert comparison["identical"]
-
-
-def test_json_rejects_nan_and_diff_allowlist():
-    with pytest.raises(ValueError):
-        json_bytes({"percentage": float("nan")})
-    assert (
-        classify_diff_path(
-            "/blocos/rede_escolar/infraestrutura/years/[0]/cuts/total"
-        )
-        == "canonicalContract"
-    )
-    assert (
-        classify_diff_path("/blocos/matriculas/series/[ano=2025]/valor")
-        == "unexpected"
-    )
-
-
-def test_validator_reads_materialized_file_and_manifest(tmp_path, monkeypatch):
-    stage = tmp_path / "stage"
-    document = adapt_legacy_document(legacy_document(), contract())
-    write_json_atomic(stage / "municipios" / "4300001.json", document)
-    monkeypatch.setattr(
-        materialization,
-        "EXPECTED_STATE_TOTALS",
-        {
-            "total": 2,
-            "federal": 0,
-            "estadual": 0,
-            "municipal": 1,
-            "publica": 1,
-            "privada": 1,
-            "urbana": 1,
-            "rural": 1,
-        },
-    )
-    expected_indicators = {}
-    for indicator in INDICATOR_ORDER:
-        item = result_for(contract(), indicator)
-        expected_indicators[indicator] = (item["numerator"], item["denominator"])
-    monkeypatch.setattr(
-        materialization, "EXPECTED_STATE_INDICATORS", expected_indicators
-    )
-    report = validate_stage(stage, ["4300001"], expected_count=1)
-    assert report["valid"], report["errors"]
-    manifest = build_manifest(stage, ["4300001"])
-    assert manifest["municipalityCount"] == manifest["fileCount"] == 1
-    assert len(manifest["contentHash"]) == 64

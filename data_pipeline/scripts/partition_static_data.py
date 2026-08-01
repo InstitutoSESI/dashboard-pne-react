@@ -3,14 +3,20 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-SOURCE_DIR = BASE_DIR / "export" / "data"
-OUTPUT_DIR = BASE_DIR / "export" / "data_partitioned"
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from src.config import PIPELINE_EXPORT_DIR, STATIC_PARTITIONED_DATA_DIR  # noqa: E402
+
+SOURCE_DIR = PIPELINE_EXPORT_DIR / "data"
+OUTPUT_DIR = STATIC_PARTITIONED_DATA_DIR
 
 CYCLES = ("pne_2014_2024", "pne_2026_2036")
 EXPECTED_MUNICIPALITIES = 497
@@ -106,7 +112,7 @@ def copy_file_if_changed(
 
 def safe_prepare_output_dir() -> None:
     resolved_output = OUTPUT_DIR.resolve()
-    expected_parent = (BASE_DIR / "export").resolve()
+    expected_parent = PIPELINE_EXPORT_DIR.resolve()
 
     if resolved_output.parent != expected_parent:
         raise RuntimeError(f"Diretório de saída inesperado: {resolved_output}")
@@ -151,8 +157,8 @@ def load_aggregate_payloads() -> dict[str, dict]:
             SOURCE_DIR / cycle / "rankings_por_municipio.json"
         )
 
-    payloads["diagnostico"] = load_optional_json(
-        SOURCE_DIR / "pne_2026_2036" / "diagnostico_por_municipio.json"
+    payloads["inequality"] = load_json(
+        SOURCE_DIR / "pne_2026_2036" / "desigualdade_por_municipio.json"
     )
     payloads["indicator_details"] = load_json(
         SOURCE_DIR / "indicator_details_por_municipio.json"
@@ -315,195 +321,32 @@ def extract_rankings(payload: dict, municipio: str) -> dict:
     return payload.get("municipios", {}).get(municipio, {}).get("categories", {})
 
 
-def extract_diagnostico(payload: dict, municipio: str) -> dict:
-    municipal = payload.get("municipios", {}).get(municipio, {})
-    return municipal.get("diagnostico", municipal)
-
-
-def extract_diagnostico_v2(payload: dict, municipio: str) -> dict:
-    return payload.get("municipios", {}).get(municipio, {}).get("diagnostico_v2", {})
-
-
-def validate_diagnostic_payload(payloads: dict[str, dict], municipios: list[str]) -> None:
-    diagnostic_payload = payloads["diagnostico"]
-    municipal_contracts = diagnostic_payload.get("municipios", {})
+def validate_inequality_payload(
+    payloads: dict[str, dict], municipios: list[str]
+) -> None:
+    payload = payloads.get("inequality") or {}
+    documents = payload.get("municipios")
     problems: list[str] = []
-    if len(municipios) != EXPECTED_MUNICIPALITIES:
-        problems.append(
-            f"esperados {EXPECTED_MUNICIPALITIES} municípios; encontrados {len(municipios)}"
-        )
-    if len(municipal_contracts) != len(municipios):
-        problems.append(
-            f"diagnóstico contém {len(municipal_contracts)} contratos para {len(municipios)} municípios"
-        )
-
-    for municipio in municipios:
-        contract = extract_diagnostico_v2(diagnostic_payload, municipio)
-        indicators = contract.get("indicators", [])
-        indicator_ids = [item.get("indicatorId") for item in indicators]
-        indicator_lookup = {item.get("indicatorId"): item for item in indicators}
-        if contract.get("schemaVersion") != "municipal-diagnostic-v2":
-            problems.append(f"schema incompatível em {municipio}")
-            break
-        if len(indicators) != 49 or len(set(indicator_ids)) != 49:
-            problems.append(f"contrato sem 49 indicadores únicos em {municipio}")
-            break
-        for indicator in indicators:
-            null_reasons = indicator.get("nullReasons", {})
-            for field, value in indicator.items():
-                if value is None and field not in null_reasons:
-                    problems.append(
-                        f"null sem razão em {municipio}/{indicator.get('indicatorId')}/{field}"
-                    )
-                    break
-            configured_reference = indicator.get("configuredReference", {})
-            for field, value in configured_reference.items():
-                path = f"configuredReference.{field}"
-                if value is None and path not in null_reasons:
-                    problems.append(
-                        f"null sem razão em {municipio}/{indicator.get('indicatorId')}/{path}"
-                    )
-                    break
-            benchmarks = indicator.get("benchmarks", {})
-            for benchmark_name in ("state", "municipalDistribution"):
-                benchmark = benchmarks.get(benchmark_name)
-                if not isinstance(benchmark, dict):
-                    problems.append(
-                        f"benchmark ausente em {municipio}/{indicator.get('indicatorId')}/{benchmark_name}"
-                    )
-                    break
-                null_reason = benchmark.get("reason") or benchmark.get("directionReason")
-                if any(value is None for key, value in benchmark.items() if key not in {"reason", "directionReason"}) and not null_reason:
-                    problems.append(
-                        f"null de benchmark sem razão em {municipio}/{indicator.get('indicatorId')}/{benchmark_name}"
-                    )
-                    break
-            if indicator.get("priorityScore") is not None:
-                problems.append(
-                    f"priorityScore publicado em {municipio}/{indicator.get('indicatorId')}"
-                )
+    if payload.get("schemaVersion") != "municipal-inequality-v1":
+        problems.append("schemaVersion inválida")
+    if not isinstance(documents, dict) or len(documents) != EXPECTED_MUNICIPALITIES:
+        problems.append("cobertura municipal incompleta")
+    else:
+        for municipio in municipios:
+            document = documents.get(municipio)
+            if not isinstance(document, dict):
+                problems.append(f"documento ausente para {municipio}")
                 break
             if (
-                indicator.get("targetComparisonStatus")
-                == "methodologically_incompatible"
-                and indicator.get("goalAttained") is not None
+                document.get("schemaVersion") != "municipal-inequality-v1"
+                or document.get("municipalityName") != municipio
+                or not isinstance(document.get("inequalityPilot"), dict)
             ):
-                problems.append(
-                    f"incompatível com cumprimento definido em {municipio}/{indicator.get('indicatorId')}"
-                )
+                problems.append(f"documento inválido para {municipio}")
                 break
-            if problems:
-                break
-        if problems:
-            break
-
-        for attention_item in contract.get("attentionItems", []):
-            indicator = indicator_lookup.get(attention_item.get("indicatorId"))
-            if not indicator:
-                problems.append(f"referência de atenção quebrada em {municipio}")
-                break
-            if (
-                indicator.get("legalCorrespondence") in {"proxy", "informational"}
-                or indicator.get("targetComparisonStatus") != "eligible"
-                or indicator.get("valueDomainStatus") != "within_domain"
-            ):
-                problems.append(
-                    f"indicador inelegível na atenção em {municipio}/{indicator.get('indicatorId')}"
-                )
-                break
-        if problems:
-            break
-
-        for collection_name in ("preservedItems", "excludedItems"):
-            for reference in contract.get(collection_name, []):
-                if reference.get("indicatorId") not in indicator_lookup:
-                    problems.append(
-                        f"referência quebrada em {municipio}/{collection_name}"
-                    )
-                    break
-        if problems:
-            break
-
-        attention_ids = [
-            reference.get("indicatorId")
-            for reference in contract.get("attentionItems", [])
-        ]
-        if len(attention_ids) != len(set(attention_ids)):
-            problems.append(f"atenção contém referências duplicadas em {municipio}")
-            break
-
-        decision_summary = contract.get("decisionSummary", {})
-        decision_collections = {
-            "municipalActionItems": decision_summary.get("municipalActionItems", []),
-            "coordinationItems": decision_summary.get("coordinationItems", []),
-            "investigationItems": decision_summary.get("investigationItems", []),
-            "monitoringItems": decision_summary.get("monitoringItems", []),
-            "preservationItems": decision_summary.get("preservationItems", []),
-        }
-        if decision_summary.get("selectionMethodologyVersion") != "municipal-decision-summary-p3c-v2":
-            problems.append(f"síntese decisória ausente em {municipio}")
-            break
-        if len(decision_collections["municipalActionItems"]) > 3:
-            problems.append(f"mais de três ações municipais em {municipio}")
-            break
-        if len(decision_collections["coordinationItems"]) > 2:
-            problems.append(f"mais de duas pactuações em {municipio}")
-            break
-        selected_ids = [
-            reference.get("indicatorId")
-            for references in decision_collections.values()
-            for reference in references
-        ]
-        if len(selected_ids) != len(set(selected_ids)):
-            problems.append(f"síntese decisória duplicada em {municipio}")
-            break
-        for reference in decision_collections["investigationItems"]:
-            if "selectionPosition" in reference:
-                problems.append(f"investigação ordinal em {municipio}")
-                break
-        for reference in decision_collections["municipalActionItems"]:
-            indicator = indicator_lookup.get(reference.get("indicatorId"), {})
-            if (
-                indicator.get("evidenceLevel") not in {"high", "medium"}
-                or indicator.get("governance", {}).get("classification")
-                in {"state_led", "federal_led", "territorial", "informational"}
-            ):
-                problems.append(
-                    f"ação municipal inelegível em {municipio}/{reference.get('indicatorId')}"
-                )
-                break
-        if problems:
-            break
-
-        state_summary = contract.get("stateBenchmarkSummary", {})
-        if state_summary.get("analyzedCount") != contract.get("summary", {}).get("validLegalComparisons"):
-            problems.append(f"resumo estadual fora do universo analisado em {municipio}")
-            break
-        primary_total = sum(
-            int(state_summary.get(key, 0))
-            for key in ("betterCount", "worseCount", "equivalentCount", "unavailableCount")
-        )
-        if primary_total != int(state_summary.get("analyzedCount", -1)):
-            problems.append(f"totais estaduais inconsistentes em {municipio}")
-            break
-        if any(
-            not isinstance(indicator.get(field), dict)
-            for indicator in indicators
-            for field in (
-                "trajectory",
-                "governance",
-                "municipalExposure",
-                "similarMunicipalities",
-                "evidence",
-                "decisionReading",
-            )
-        ):
-            problems.append(f"extensÃ£o aprofundada ausente em {municipio}")
-            break
-
     if problems:
         raise RuntimeError(
-            "[partition] Contratos diagnostico_v2 inválidos: " + "; ".join(problems)
+            "[partition] Desigualdade municipal inválida: " + "; ".join(problems)
         )
 
 
@@ -563,9 +406,6 @@ def build_municipio_payload(
     education_attendance = extract_education_attendance(
         payloads["education_attendance"], municipio
     )
-    diagnostico_v2 = build_partitioned_diagnostic_contract(
-        payloads, municipio, id_municipio
-    )
     payload = {
         "id_municipio": id_municipio,
         "municipio": municipio,
@@ -577,14 +417,6 @@ def build_municipio_payload(
         "pne_2026_2036": {
             "indicadores": extract_results(payloads["pne_2026_2036_indicadores"], municipio),
             "rankings": extract_rankings(payloads["pne_2026_2036_rankings"], municipio),
-            "diagnostico_ref": {
-                "status": "available" if diagnostico_v2 else "unavailable",
-                "schemaVersion": diagnostico_v2.get("schemaVersion") if diagnostico_v2 else None,
-                "methodologyVersion": diagnostico_v2.get("methodologyVersion") if diagnostico_v2 else None,
-                "generatedAt": diagnostico_v2.get("generatedAt") if diagnostico_v2 else None,
-                "path": f"/data/municipios/{slug}/diagnostico.json",
-                "legacyCompatibility": "aggregate_only",
-            },
             "projecoes": projection_data,
             "cenarios_planejamento": planning_scenarios,
         },
@@ -599,51 +431,30 @@ def build_municipio_payload(
     return payload
 
 
-def build_partitioned_diagnostic_contract(
+def build_partitioned_inequality_document(
     payloads: dict[str, dict],
     municipio: str,
     id_municipio: str | None,
 ) -> dict:
-    diagnostico_v2 = extract_diagnostico_v2(payloads["diagnostico"], municipio)
-    if not diagnostico_v2:
-        return {}
-    contract = dict(diagnostico_v2)
-    metadata = dict(contract.get("generationMetadata") or {})
-    contract["municipalityId"] = str(id_municipio or contract.get("municipalityId"))
-    metadata["municipalityIdentityStatus"] = (
-        "official_id" if id_municipio else "name_fallback_pending_partition"
+    source = (
+        (payloads.get("inequality") or {})
+        .get("municipios", {})
+        .get(municipio)
     )
-    metadata["deliveryMode"] = "route_lazy_static_json"
-    metadata["legacyCompatibility"] = "aggregate_export_only"
-    contract["generationMetadata"] = metadata
-    if "trajectoryScenarioInventory" not in contract:
-        projection_data = extract_projections(payloads["projecoes"], municipio)
-        scenario_data = extract_planning_scenarios(
-            payloads["planning_scenarios"], municipio
-        )
-        contract["trajectoryScenarioInventory"] = {
-            "attendance": [
-                {
-                    "indicatorId": indicator_id,
-                    "scenarioType": "trend_projection",
-                    "status": (
-                        "available"
-                        if scenario.get("available") is True
-                        else "not_available"
-                    ),
-                }
-                for indicator_id, scenario in projection_data.items()
-            ],
-            "maintenance": [
-                {
-                    "indicatorId": indicator_id,
-                    "scenarioType": "component_maintenance",
-                    "status": str(scenario.get("status") or "not_available"),
-                }
-                for indicator_id, scenario in scenario_data.items()
-            ],
-        }
-    return contract
+    if not isinstance(source, dict):
+        raise RuntimeError(f"Desigualdade municipal ausente para {municipio}.")
+    municipality_id = str(id_municipio or "")
+    if len(municipality_id) != 7 or not municipality_id.isdigit():
+        raise RuntimeError(f"Código municipal inválido para {municipio}.")
+    return {
+        "schemaVersion": "municipal-inequality-v1",
+        "generatedAt": str(source.get("generatedAt") or ""),
+        "municipality": {
+            "id": municipality_id,
+            "name": municipio,
+        },
+        "inequalityPilot": source["inequalityPilot"],
+    }
 
 
 def format_size(bytes_count: int) -> str:
@@ -693,7 +504,7 @@ def main() -> int:
     validate_fundeb_payload(payloads, municipios)
     validate_pnate_payload(payloads, municipios)
     validate_planning_scenarios_payload(payloads, municipios)
-    validate_diagnostic_payload(payloads, municipios)
+    validate_inequality_payload(payloads, municipios)
     slug_map = unique_slugs(municipios)
     id_map = {
         municipio: extract_fundeb_id(payloads["fundeb"], municipio)
@@ -760,7 +571,7 @@ def main() -> int:
                 slug,
                 id_municipio,
             )
-            diagnostic_contract = build_partitioned_diagnostic_contract(
+            inequality_document = build_partitioned_inequality_document(
                 payloads, municipio, id_municipio
             )
             write_json(
@@ -771,7 +582,7 @@ def main() -> int:
             )
             write_json(
                 OUTPUT_DIR / "municipios" / canonical_id / "diagnostico.json",
-                diagnostic_contract,
+                inequality_document,
                 stats,
                 expected_paths,
             )

@@ -13,6 +13,7 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = DATA_PIPELINE_DIR.parent
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
+from src.config import MUNICIPAL_FINANCE_EXPORT_DIR  # noqa: E402
 from src.municipal_finance import (  # noqa: E402
     DATA_VERSION,
     generate_contracts,
@@ -43,7 +44,7 @@ DEFAULT_RREO_REVISIONS = (
     DATA_PIPELINE_DIR / "data" / "municipal_finance" / "rreo_source_revisions.json"
 )
 DEFAULT_CHECKPOINT = DATA_PIPELINE_DIR / "export" / "debug" / "municipal_finance_dca_checkpoint.json"
-DEFAULT_EXPORT_ROOT = DATA_PIPELINE_DIR / "export" / "data_partitioned"
+DEFAULT_EXPORT_ROOT = MUNICIPAL_FINANCE_EXPORT_DIR
 DEFAULT_PUBLIC_ROOT = REPO_ROOT / "public" / "data"
 DEFAULT_COVERAGE_CSV = REPO_ROOT / "docs" / "data" / "diagnostico_financeiro_cobertura_497.csv"
 DEFAULT_RECONCILIATION_CSV = REPO_ROOT / "docs" / "data" / "diagnostico_financeiro_reconciliacao_amostra.csv"
@@ -92,6 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--municipality-index", type=Path, default=DEFAULT_INDEX)
     parser.add_argument("--source-snapshot", type=Path, default=DEFAULT_SNAPSHOT)
     parser.add_argument("--constitutional-snapshot", type=Path, default=DEFAULT_CONSTITUTIONAL_SNAPSHOT)
+    parser.add_argument("--output-root", type=Path, default=DEFAULT_EXPORT_ROOT)
     parser.add_argument("--refresh-sources", action="store_true")
     parser.add_argument("--refresh-constitutional", action="store_true")
     parser.add_argument("--annual-reference-year", type=int, default=2025)
@@ -135,8 +137,8 @@ def main() -> None:
         constitutional_snapshot = load_constitutional_snapshot(args.constitutional_snapshot)
     snapshot = merge_constitutional_snapshot(snapshot, constitutional_snapshot)
 
-    output_roots = [DEFAULT_EXPORT_ROOT]
-    if args.sync_public:
+    output_roots = [args.output_root]
+    if args.sync_public and args.output_root.resolve() != DEFAULT_PUBLIC_ROOT.resolve():
         output_roots.append(DEFAULT_PUBLIC_ROOT)
 
     generation_started = time.perf_counter()
@@ -156,14 +158,18 @@ def main() -> None:
 
     validation = None
     if args.validate:
-        validation_root = DEFAULT_PUBLIC_ROOT if args.sync_public else DEFAULT_EXPORT_ROOT
-        validation = validate_generated_contracts(validation_root, municipalities)
+        validation_root = DEFAULT_PUBLIC_ROOT if args.sync_public else args.output_root
+        validation = validate_generated_contracts(
+            validation_root,
+            municipalities,
+            municipal_index_root=args.municipality_index.parent,
+        )
 
     determinism = None
     if args.check_determinism:
         determinism = verify_determinism(municipalities, snapshot)
 
-    load_root = DEFAULT_PUBLIC_ROOT if args.sync_public else DEFAULT_EXPORT_ROOT
+    load_root = DEFAULT_PUBLIC_ROOT if args.sync_public else args.output_root
     local_load_ms = measure_local_loading(load_root, municipalities)
     print(
         json.dumps(

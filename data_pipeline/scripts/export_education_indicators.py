@@ -29,7 +29,7 @@ sys.path.insert(0, str(DATA_PIPELINE_DIR))
 from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SESI_DB_DIR  # noqa: E402
 from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
 from src.school_infrastructure_materialization import (  # noqa: E402
-    adapt_legacy_document,
+    attach_school_infrastructure_contract,
     build_contracts,
 )
 
@@ -2504,7 +2504,7 @@ def exportar_municipios(
                 "avisos": AVISOS_GLOBAIS,
                 "blocos": blocos,
             }
-            dados = adapt_legacy_document(
+            dados = attach_school_infrastructure_contract(
                 dados, infrastructure_contracts[str(id_mun)]
             )
 

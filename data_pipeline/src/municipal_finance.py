@@ -2052,9 +2052,14 @@ def validate_contract(contract: dict[str, Any]) -> None:
         raise AssertionError(f"{code}: metadados de publicação inválidos")
 
 
-def validate_generated_contracts(root: Path, municipalities: list[dict[str, str]]) -> dict[str, Any]:
+def validate_generated_contracts(
+    root: Path,
+    municipalities: list[dict[str, str]],
+    municipal_index_root: Path | None = None,
+) -> dict[str, Any]:
     sizes = []
     digest = hashlib.sha256()
+    index_root = municipal_index_root or root
     for municipality in municipalities:
         code_path = root / "municipios" / municipality["ibgeCode"] / "financeiro.json"
         if not code_path.exists():
@@ -2065,7 +2070,14 @@ def validate_generated_contracts(root: Path, municipalities: list[dict[str, str]
         sizes.append(len(code_bytes))
         digest.update(municipality["ibgeCode"].encode("ascii"))
         digest.update(code_bytes)
-        index_payload = json.loads((root / "municipios" / municipality["ibgeCode"] / "index.json").read_text(encoding="utf-8"))
+        index_payload = json.loads(
+            (
+                index_root
+                / "municipios"
+                / municipality["ibgeCode"]
+                / "index.json"
+            ).read_text(encoding="utf-8")
+        )
         if "financeiro" in index_payload:
             raise AssertionError(f"financeiro incluído no index.json: {municipality['ibgeCode']}")
     return {

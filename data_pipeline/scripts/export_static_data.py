@@ -22,9 +22,9 @@ EXPORT_DIR = BASE_DIR / "export" / "data"
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from src.municipal_diagnostic import (
-    build_municipal_diagnostic_v2,
-    build_state_benchmark_registry,
+from src.municipal_inequality import (  # noqa: E402
+    DOCUMENT_SCHEMA_VERSION as INEQUALITY_SCHEMA_VERSION,
+    build_urban_rural_integral_pilot,
 )
 
 
@@ -633,221 +633,24 @@ def _export_cycle_rankings(
     }
 
 
-def _build_legacy_diagnostic_compatibility(
-    *,
-    contract: Mapping[str, Any],
-    raw_results: Mapping[str, Mapping[str, Any]],
-    cycle_module: Any,
-    shared: Any,
-    municipio: str,
-    errors: list[dict[str, Any]],
+def _export_inequality_documents(
+    *, municipios: list[str], generated_at: str
 ) -> dict[str, Any]:
-    """Mantém o envelope legado sem criar uma segunda regra de diagnóstico."""
-
-    item_lookup = _build_item_lookup(cycle_module)
-    assessments = {
-        item["indicatorId"]: item for item in contract.get("indicators", [])
-    }
-    attention_ids = [
-        item["indicatorId"] for item in contract.get("attentionItems", [])
-    ]
-    preserved_ids = [
-        item["indicatorId"] for item in contract.get("preservedItems", [])
-    ]
-    categories = []
-    for theme_summary in contract.get("summary", {}).get("themes", []):
-        theme = theme_summary["theme"]
-        category = cycle_module.INDICADORES[theme]
-        serialized_indicators = []
-        informative_ids = []
-        for item in category.get("items", []):
-            indicator_id = item["key"]
-            assessment = assessments[indicator_id]
-            result = raw_results.get(indicator_id, {})
-            if assessment.get("rawValue") is None:
-                continue
-            tracks_goal = assessment.get("targetComparisonStatus") == "eligible"
-            if not tracks_goal:
-                informative_ids.append(indicator_id)
-            adapted_result = {
-                **result,
-                "atingida": assessment.get("goalAttained"),
-                "distance": assessment.get("favorableDistance"),
-                "tracks_goal": tracks_goal,
-            }
-            serialized_indicators.append(
-                {
-                    "key": indicator_id,
-                    "label": item.get("label"),
-                    "desc": item.get("desc"),
-                    "tracks_goal": tracks_goal,
-                    "achieved": assessment.get("goalAttained") is True,
-                    "result": _serialize_result(
-                        result=adapted_result,
-                        item=item_lookup.get(indicator_id),
-                        shared=shared,
-                        municipio=municipio,
-                        cycle_key="pne_2026_2036",
-                        indicator_key=indicator_id,
-                        errors=errors,
-                    ),
-                }
-            )
-
-        theme_attention = [value for value in attention_ids if value in assessments and assessments[value]["theme"] == theme]
-        theme_preserved = [value for value in preserved_ids if value in assessments and assessments[value]["theme"] == theme]
-        categories.append(
-            {
-                "key": theme,
-                "label": category.get("label"),
-                "subtitle": theme_summary.get("label"),
-                "icon": category.get("icon"),
-                "accent": category.get("accent"),
-                "observed": "Síntese derivada do contrato canônico diagnostico_v2.",
-                "reading": "O campo legado é mantido somente para compatibilidade de transição.",
-                "total": len(serialized_indicators),
-                "goal_total": theme_summary.get("validLegalComparisons"),
-                "informative_total": len(serialized_indicators) - int(theme_summary.get("validLegalComparisons", 0)),
-                "achieved": theme_summary.get("goalsAttained"),
-                "attention_count": theme_summary.get("comparableGaps"),
-                "counter_text": (
-                    f"{theme_summary.get('goalsAttained', 0)} de "
-                    f"{theme_summary.get('validLegalComparisons', 0)} referências quantitativas atingidas"
-                ),
-                "evidence_lines": [
-                    "Regras legais e metodológicas calculadas exclusivamente no pipeline.",
-                    "Comparações incompatíveis permanecem fora da ordem provisória.",
-                ],
-                "attention_indicators": theme_attention,
-                "positive_indicators": theme_preserved,
-                "informative_indicators": informative_ids,
-                "indicators": serialized_indicators,
-            }
-        )
-
-    summary = contract["summary"]
-    title_by_id = {
-        indicator["indicatorId"]: indicator["title"]
-        for indicator in contract["indicators"]
-    }
-    active_category = attention_ids and assessments[attention_ids[0]]["theme"]
-    if not active_category:
-        active_category = categories[0]["key"] if categories else None
-    return {
-        "active_category": active_category,
-        "summary": {
-            "indicadores_analisados": summary["availableResults"],
-            "metas_atingidas": summary["goalsAttained"],
-            "pontos_de_atencao": summary["comparableGaps"],
-        },
-        "principais_desafios": [
-            f"Lacuna comparável: {title_by_id[indicator_id]}."
-            for indicator_id in attention_ids[:4]
-        ],
-        "pontos_positivos": [
-            f"Referência quantitativa atingida: {title_by_id[indicator_id]}."
-            for indicator_id in preserved_ids[:4]
-        ],
-        "categories": categories,
-        "compatibility": {
-            "status": "deprecated",
-            "replacement": "diagnostico_v2",
-            "businessRulesSource": "build_municipal_diagnostic_v2",
-        },
-    }
-
-
-def _export_diagnostics(
-    *,
-    municipios: list[str],
-    cycle_module: Any,
-    shared: Any,
-    errors: list[dict[str, Any]],
-    results_cache: ResultsCache,
-    generated_at: str,
-    state_reference: Mapping[str, Any],
-    indicator_details_payload: Mapping[str, Any],
-    projections_payload: Mapping[str, Any],
-    planning_scenarios_payload: Mapping[str, Any],
-) -> dict[str, Any]:
-    exported = 0
-    municipio_payloads: dict[str, Any] = {}
-
-    municipal_results = {
-        municipio: results_cache.get(
-            cycle_key="pne_2026_2036",
-            cycle_module=cycle_module,
-            municipio=municipio,
-            indicator_keys=None,
-        )
-        for municipio in municipios
-    }
-    municipal_details = {
-        municipio: (
-            indicator_details_payload.get("municipios", {})
-            .get(municipio, {})
-            .get("indicator_details", {})
-        )
-        for municipio in municipios
-    }
-    benchmark_registry = build_state_benchmark_registry(
-        state_reference=state_reference,
-        municipal_results=municipal_results,
-        municipal_details=municipal_details,
-    )
-
-    print("\nProcessando diagnóstico pne_2026_2036...")
-    for index, municipio in enumerate(municipios, start=1):
-        print(f"  [{index}/{len(municipios)}] {municipio}")
-        try:
-            results = municipal_results[municipio]
-            contract = build_municipal_diagnostic_v2(
-                municipality_name=municipio,
-                results=results,
-                generated_at=generated_at,
-                benchmark_registry=benchmark_registry,
-                indicator_details=municipal_details.get(municipio, {}),
-                projections=(projections_payload.get("municipios", {}) or {}).get(
-                    municipio, {}
-                ),
-                planning_scenarios=(
-                    planning_scenarios_payload.get("municipios", {}) or {}
-                ).get(municipio, {}),
-                cycle_id="pne_2026_2036",
-            )
-            municipio_payloads[municipio] = {
-                "diagnostico": _build_legacy_diagnostic_compatibility(
-                    contract=contract,
-                    raw_results=results,
-                    cycle_module=cycle_module,
-                    shared=shared,
-                    municipio=municipio,
-                    errors=errors,
-                ),
-                "diagnostico_v2": contract,
-            }
-            exported += 1
-        except Exception as exc:  # noqa: BLE001 - export should continue per city.
-            errors.append(
-                {
-                    "cycle": "pne_2026_2036",
-                    "municipio": municipio,
-                    "stage": "diagnostico",
-                    "error": str(exc),
-                    "traceback": traceback.format_exc(limit=4),
-                }
-            )
-            municipio_payloads[municipio] = {
-                "diagnostico": {"categories": [], "error": str(exc)},
-                "diagnostico_v2": {"error": str(exc)},
-            }
+    """Gera o envelope mínimo; os recortes são materializados após Educação."""
 
     return {
-        "generated_at": _generated_at(),
-        "cycle": "pne_2026_2036",
+        "schemaVersion": INEQUALITY_SCHEMA_VERSION,
+        "generated_at": generated_at,
         "total_municipios": len(municipios),
-        "municipios_exportados": exported,
-        "municipios": municipio_payloads,
+        "municipios": {
+            municipio: {
+                "schemaVersion": INEQUALITY_SCHEMA_VERSION,
+                "generatedAt": generated_at,
+                "municipalityName": municipio,
+                "inequalityPilot": build_urban_rural_integral_pilot(None),
+            }
+            for municipio in municipios
+        },
     }
 
 
@@ -1489,23 +1292,15 @@ def main() -> int:
             generated_files.append(rankings_path)
 
         with profile.measure("diagnóstico"):
-            diagnostic_payload = _export_diagnostics(
+            inequality_payload = _export_inequality_documents(
                 municipios=municipios,
-                cycle_module=calculations_2026,
-                shared=common,
-                errors=errors,
-                results_cache=results_cache,
                 generated_at=generated_at,
-                state_reference=state_reference_payloads["pne_2026_2036"],
-                indicator_details_payload=indicator_details_payload,
-                projections_payload=projections_payload,
-                planning_scenarios_payload=planning_scenarios_payload,
             )
-        diagnostic_path = (
-            EXPORT_DIR / "pne_2026_2036" / "diagnostico_por_municipio.json"
+        inequality_path = (
+            EXPORT_DIR / "pne_2026_2036" / "desigualdade_por_municipio.json"
         )
-        _write_json(diagnostic_path, diagnostic_payload, profile)
-        generated_files.append(diagnostic_path)
+        _write_json(inequality_path, inequality_payload, profile)
+        generated_files.append(inequality_path)
 
     if errors:
         _write_json(

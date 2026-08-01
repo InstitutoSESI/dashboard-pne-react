@@ -8,8 +8,8 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.municipal_diagnostic import (  # noqa: E402
-    build_municipal_diagnostic_v2,
+from src.municipal_inequality import (  # noqa: E402
+    build_document,
     build_urban_rural_integral_pilot,
 )
 
@@ -123,27 +123,33 @@ class MunicipalInequalityPilotTest(unittest.TestCase):
             build_urban_rural_integral_pilot(copy.deepcopy(rows)),
         )
 
-    def test_pilot_does_not_change_decision_summary_or_indicators(self):
-        common = {
-            "municipality_name": "Município de teste",
-            "municipality_id": "4300000",
-            "results": {},
-            "generated_at": "2026-07-20T12:00:00-03:00",
-        }
-        without_pilot = build_municipal_diagnostic_v2(**common)
-        with_pilot = build_municipal_diagnostic_v2(
-            **common,
-            inequality_pilot_rows=[row("urbana", 25, 100), row("rural", 30, 100)],
+    def test_compact_document_can_preserve_the_published_pilot(self):
+        pilot = build_urban_rural_integral_pilot(
+            [row("urbana", 25, 100), row("rural", 30, 100)]
         )
-        self.assertEqual(without_pilot["decisionSummary"], with_pilot["decisionSummary"])
-        self.assertEqual(without_pilot["indicators"], with_pilot["indicators"])
-        self.assertFalse(
-            with_pilot["generationMetadata"]["inequalityPilotAffectsDecisionSummary"]
+        document = build_document(
+            municipality_id="4300034",
+            municipality_name="Aceguá",
+            generated_at="2026-07-19T23:50:16-03:00",
+            inequality_pilot=pilot,
         )
-        self.assertTrue(
-            all(indicator["priorityScore"] is None for indicator in with_pilot["indicators"])
-        )
+        pilot["status"] = "changed-after-build"
+        self.assertEqual(document["schemaVersion"], "municipal-inequality-v1")
+        self.assertEqual(document["municipality"]["id"], "4300034")
+        self.assertEqual(document["inequalityPilot"]["status"], "available")
 
+    def test_document_rejects_rows_and_precomputed_pilot_together(self):
+        pilot = build_urban_rural_integral_pilot(
+            [row("urbana", 25, 100), row("rural", 30, 100)]
+        )
+        with self.assertRaisesRegex(ValueError, "nunca ambos"):
+            build_document(
+                municipality_id="4300034",
+                municipality_name="Aceguá",
+                generated_at="2026-07-19T23:50:16-03:00",
+                rows=[],
+                inequality_pilot=pilot,
+            )
 
 if __name__ == "__main__":
     unittest.main()

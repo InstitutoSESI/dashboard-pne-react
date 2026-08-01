@@ -16,7 +16,6 @@ from src.medio_tecnico_articulado import (  # noqa: E402
     calculate_subsequent_expansion_series,
 )
 from src.pne.common import _build_result, _select_reference_rows  # noqa: E402
-from src.pne.calculations_2026 import _fixed_baseline_result  # noqa: E402
 
 
 def row(**overrides):
@@ -386,6 +385,8 @@ class MedioTecnicoArticuladoTests(unittest.TestCase):
             self.assertEqual(point["valor"], expected)
 
     def test_subsequent_status_uses_unrounded_value(self):
+        from src.pne.calculations_2026 import _fixed_baseline_result
+
         result = _fixed_baseline_result(
             pd.DataFrame(
                 [

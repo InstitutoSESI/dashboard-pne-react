@@ -10,7 +10,8 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = DATA_PIPELINE_DIR.parent
 PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data"
 PIPELINE_EXPORT_DIR = DATA_PIPELINE_DIR / "export"
-PARTITIONED_DATA_DIR = PIPELINE_EXPORT_DIR / "data_partitioned"
+STATIC_PARTITIONED_DATA_DIR = PIPELINE_EXPORT_DIR / "static_partitioned"
+MUNICIPAL_FINANCE_EXPORT_DIR = PIPELINE_EXPORT_DIR / "municipal_finance"
 EDUCATION_DATA_DIR = PUBLIC_DATA_DIR / "educacao"
 SESI_DB_DIR = Path(
     os.environ.get("SESI_DB_DIR", REPO_ROOT.parent / "SESI" / "DB")

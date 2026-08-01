@@ -22,7 +22,9 @@ export function ExplorableIndicatorCardFrame({
     hideStatus = false,
     hideSupport = false,
     insight,
+    layout,
     leadingIcon,
+    metaLine,
     metadata,
     modifier,
     modifierExtras,
@@ -33,8 +35,9 @@ export function ExplorableIndicatorCardFrame({
     value,
     variant,
   } = viewModel
+  const isUniform = layout === 'uniform'
   const isEditorialCard = anatomy === 'education' || anatomy === 'financial'
-  const usesEducationReference = isEditorialCard
+  const usesEducationReference = isEditorialCard && !isUniform
   const statusTone = status?.tone ?? 'default'
   const valueLength = Array.from(String(value?.display ?? '')).length
   const denseValueLength = anatomy === 'financial' ? 11 : 9
@@ -54,7 +57,8 @@ export function ExplorableIndicatorCardFrame({
   const anatomyClass = anatomy ? ` indicator-card-shell--${anatomy}` : ''
   const referenceClass = usesEducationReference ? ' indicator-card-shell--education-reference' : ''
   const directionClass = isEditorialCard && status?.direction ? ` indicator-card-shell--direction-${status.direction}` : ''
-  const className = `${classContract.root} indicator-card-shell${anatomyClass}${referenceClass} indicator-card-shell--${statusTone}${directionClass} interaction-card--explorable ${classContract.statusModifier(statusTone)}${variantClass}${modifierClass}${isSelected ? ' is-selected' : ''}`
+  const uniformClass = isUniform ? ' indicator-card-shell--uniform' : ''
+  const className = `${classContract.root} indicator-card-shell${anatomyClass}${referenceClass} indicator-card-shell--${statusTone}${directionClass}${uniformClass} interaction-card--explorable ${classContract.statusModifier(statusTone)}${variantClass}${modifierClass}${isSelected ? ' is-selected' : ''}`
 
   return (
     <button
@@ -67,6 +71,32 @@ export function ExplorableIndicatorCardFrame({
       disabled={disabled}
       title={title}
     >
+      {isUniform ? (
+        <>
+          <span className={`${classContract.topline} indicator-card-shell__topline`}>
+            {!hideContext ? <span className={`${classContract.context} indicator-card-shell__context`}>{contextLabel}</span> : null}
+            {!hideStatus && status?.label ? (
+              <StatusBadge marker={status.marker} status={status.label} tone={statusTone} />
+            ) : null}
+          </span>
+          <span className={`${classContract.title} indicator-card-shell__title`}>{title}</span>
+          <span className={`${classContract.valueRow} indicator-card-shell__value-row${valueScaleClass}`}>
+            <strong>{value.display}</strong>
+            {value.metaLabel ? <span>{value.metaLabel}</span> : null}
+          </span>
+          {metaLine ? (
+            <span className="indicator-card-shell__metaline">
+              <strong>{metaLine.year}</strong>
+              {metaLine.change ? <span>{metaLine.change}</span> : null}
+            </span>
+          ) : null}
+          <span className={`${classContract.footer} indicator-card-shell__footer indicator-card-shell__footer--uniform`}>
+            <span className="indicator-card-shell__footer-action">{footer.actionLabel}</span>
+            <span className="indicator-card-shell__action" aria-hidden="true"><InteractionChevron /></span>
+          </span>
+        </>
+      ) : (
+      <>
       {leadingIcon ? (
         <span className="indicator-card-shell__leading-icon" aria-hidden="true">
           {leadingIcon}
@@ -215,6 +245,8 @@ export function ExplorableIndicatorCardFrame({
           <InteractionChevron />
         )}
       </span>
+      </>
+      )}
     </button>
   )
 }

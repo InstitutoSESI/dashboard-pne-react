@@ -67,7 +67,10 @@ export function SpecialEducationDetailView({
   const resolvedPoints = primarySeries.filter(
     (point): point is typeof point & { valor: number } => point.valor != null,
   )
-  const initialPoint = primarySeries.find((point) => point.ano === 2014 && point.valor != null)
+  const initialPoint = primarySeries.find(
+    (point): point is typeof point & { valor: number } =>
+      point.ano === 2014 && point.valor != null,
+  )
   const referenceSeriesPoint = primarySeries.find(
     (point): point is typeof point & { valor: number } =>
       point.ano === SPECIAL_EDUCATION_REFERENCE_YEAR && point.valor != null,

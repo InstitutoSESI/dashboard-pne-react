@@ -752,27 +752,49 @@ def _write_current_atomically(
     return validate_public_package(destination)
 
 
-def activate_release(
-    release_id: str,
+def prune_inactive_releases(
     destination: Path,
     *,
     check: bool = False,
 ) -> dict[str, Any]:
     target = validate_public_destination(destination)
-    if not _is_sha256(release_id):
-        raise ValueError("Hash de release inválido.")
-    release = validate_release_package(target / "releases" / release_id)
-    pointer = build_current_pointer(release["manifest"])
-    validate_current_pointer(pointer, target)
+    active = validate_public_package(target)
+    active_release_id = active["releaseId"]
+    releases_root = (target / "releases").resolve()
+    if releases_root.parent != target or not releases_root.is_dir():
+        raise ValueError("Diretório de releases inválido.")
+    inactive = [
+        path
+        for path in sorted(releases_root.iterdir())
+        if path.is_dir()
+        and _is_sha256(path.name)
+        and path.name != active_release_id
+        and path.resolve().parent == releases_root
+    ]
+    file_count = sum(
+        1 for root in inactive for path in root.rglob("*") if path.is_file()
+    )
+    byte_count = sum(
+        path.stat().st_size
+        for root in inactive
+        for path in root.rglob("*")
+        if path.is_file()
+    )
     report = {
-        "mode": "check-activate" if check else "activate",
+        "mode": "check-prune" if check else "prune",
         "destination": str(target),
-        "releaseId": release_id,
-        "semanticHash": release["semanticHash"],
+        "releaseId": active_release_id,
+        "inactiveReleaseCount": len(inactive),
+        "removedFileCount": file_count,
+        "removedBytes": byte_count,
     }
-    if check:
-        return report
-    return {**report, **_write_current_atomically(target, pointer)}
+    if not check:
+        for root in inactive:
+            shutil.rmtree(root)
+        remaining = [path for path in releases_root.iterdir() if path.is_dir()]
+        if [path.name for path in remaining] != [active_release_id]:
+            raise RuntimeError("A limpeza não preservou exclusivamente a release ativa.")
+    return report
 
 
 def promote(
@@ -814,48 +836,13 @@ def promote(
     activated = _write_current_atomically(
         target, build_current_pointer(release["manifest"])
     )
-    return {**report, **activated}
-
-
-def retire_legacy_root_municipalities(
-    destination: Path, release_id: str, *, check: bool = False
-) -> dict[str, Any]:
-    target = validate_public_destination(destination)
-    active = validate_public_package(target)
-    if active["releaseId"] != release_id:
-        raise ValueError("O release informado não está ativo.")
-    legacy_root = (target / SOURCE_MUNICIPAL_DIR).resolve()
-    expected_legacy_root = (PUBLIC_V3_DIR / SOURCE_MUNICIPAL_DIR).resolve()
-    if legacy_root != expected_legacy_root:
-        raise ValueError("Diretório legado fora do escopo permitido.")
-    if not legacy_root.exists():
-        return {"legacyMunicipalities": "absent"}
-    legacy_files = {
-        path.name: path.read_bytes()
-        for path in sorted(legacy_root.glob("*.json"))
-        if path.is_file()
-    }
-    release_files = {
-        path.name: path.read_bytes()
-        for path in sorted(
-            (target / "releases" / release_id / RELEASE_MUNICIPAL_DIR).glob(
-                "*.json"
-            )
-        )
-    }
-    if legacy_files != release_files or len(legacy_files) != EXPECTED_MUNICIPALITIES:
-        raise ValueError(
-            "Cópia municipal raiz diverge do release ativo; remoção bloqueada."
-        )
-    if check:
-        return {
-            "legacyMunicipalities": "verified",
-            "legacyFileCount": len(legacy_files),
-        }
-    shutil.rmtree(legacy_root)
+    cleanup = prune_inactive_releases(target)
     return {
-        "legacyMunicipalities": "removed",
-        "legacyFileCount": len(legacy_files),
+        **report,
+        **activated,
+        "inactiveReleaseCount": cleanup["inactiveReleaseCount"],
+        "removedFileCount": cleanup["removedFileCount"],
+        "removedBytes": cleanup["removedBytes"],
     }
 
 
@@ -867,37 +854,21 @@ def main() -> int:
     )
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--source-dir", type=Path)
-    action.add_argument("--activate-release")
+    action.add_argument("--prune-inactive", action="store_true")
     parser.add_argument("--destination-dir", required=True, type=Path)
     parser.add_argument(
         "--check",
         action="store_true",
         help="Valida sem criar release nem alterar current.json.",
     )
-    parser.add_argument(
-        "--retire-legacy-root-municipalities",
-        action="store_true",
-        help=(
-            "Após ativação validada, remove a cópia raiz municipalities "
-            "somente se ela for byte a byte igual ao release ativo."
-        ),
-    )
     args = parser.parse_args()
     if args.source_dir:
         report = promote(
             args.source_dir, args.destination_dir, check=args.check
         )
-        release_id = report["releaseId"]
     else:
-        release_id = args.activate_release
-        report = activate_release(
-            release_id, args.destination_dir, check=args.check
-        )
-    if args.retire_legacy_root_municipalities:
-        report.update(
-            retire_legacy_root_municipalities(
-                args.destination_dir, release_id, check=args.check
-            )
+        report = prune_inactive_releases(
+            args.destination_dir, check=args.check
         )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return 0

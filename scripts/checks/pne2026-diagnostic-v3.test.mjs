@@ -1,14 +1,10 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 import {
   PNE_2026_GOAL_INDICATOR_CONTRACT,
 } from '../../src/data/pne2026GoalIndicatorContract.js'
-import {
-  sanitizePne2026PublicDiagnostic,
-} from './support/pne2026DiagnosticV2Audit.mjs'
 import {
   PNE_2026_CONTRACT_HASH,
   PNE_2026_PRESENTATION_POLICY_HASH,
@@ -19,29 +15,16 @@ import {
 
 
 const REPO_ROOT = new URL('../../', import.meta.url)
-const contract = JSON.parse(execFileSync(
-  'git',
-  ['show', 'HEAD:public/data/municipios/4300034/diagnostico.json'],
-  { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
+const current = JSON.parse(await readFile(
+  new URL('public/data/pne2026-diagnostic-v3/current.json', REPO_ROOT),
+  'utf8',
 ))
-const pythonBuilder = [
-  'import json,sys',
-  'from data_pipeline.src.pne2026_public_diagnostic_v3 import build_pne2026_public_diagnostic_v3',
-  'from data_pipeline.scripts.materialize_pne2026_public_diagnostic_v3 import _goal_11b_results',
-  'payload=json.load(sys.stdin)',
-  'goal11b,_=_goal_11b_results()',
-  'municipality_id=str(payload["pne2026PublicDiagnosticV2"]["municipalityId"])',
-  'json.dump(build_pne2026_public_diagnostic_v3(payload,methodology_results=goal11b[municipality_id]),sys.stdout,ensure_ascii=False,allow_nan=False,separators=(",",":"))',
-].join(';')
-const v3 = JSON.parse(execFileSync(
-  'python',
-  ['-c', pythonBuilder],
-  {
-    cwd: REPO_ROOT,
-    input: JSON.stringify(contract),
-    encoding: 'utf8',
-    maxBuffer: 32 * 1024 * 1024,
-  },
+const v3 = JSON.parse(await readFile(
+  new URL(
+    `public/data/pne2026-diagnostic-v3/releases/${current.releaseId}/municipios/4300034.json`,
+    REPO_ROOT,
+  ),
+  'utf8',
 ))
 const relationsById = new Map(
   PNE_2026_GOAL_INDICATOR_CONTRACT.relations.map((relation) => [
@@ -178,15 +161,11 @@ test('basico_15_17 uses the canonical municipal reference without a relation-spe
     rawV3.value >= 100 ? /^Referência alcançada$/ : /^Abaixo da refer/,
   )
 
-  const fromV2 = flatten(sanitizePne2026PublicDiagnostic(
-    contract.pne2026PublicDiagnosticV2,
-  )).find((result) => result.relationId === 'relation.4.a.basico_15_17')
   const fromV3 = flatten(resolvePne2026PublicDiagnosticV3(v3))
     .find((result) => result.relationId === 'relation.4.a.basico_15_17')
-  assert.equal(fromV2.mode, 'tracking')
   assert.equal(fromV3.mode, 'tracking')
-  assert.equal(fromV2.current.value, fromV3.current.value)
-  assert.equal(fromV2.current.year, fromV3.current.year)
+  assert.equal(fromV3.current.value, rawV3.value)
+  assert.equal(fromV3.current.year, rawV3.year)
   assert.equal(fromV3.indicatorReference.value, 100)
   assert.equal(fromV3.indicatorReference.kind, 'municipal_monitoring_reference')
   assert.equal(fromV3.distance, rawV3.distance)
@@ -284,7 +263,6 @@ test('public loader is exclusively V3 while preserving the existing view-model c
   assert.match(loaderSource, /diagnosticSource: 'v3'/)
   assert.doesNotMatch(loaderSource, /v2-fallback|loadV2|allowDual/)
   assert.match(panelSource, /pne2026PublicDiagnostic/)
-  assert.doesNotMatch(panelSource, /pne2026PublicDiagnosticV2/)
   assert.doesNotMatch(panelSource, /PublicDiagnosticV3|diagnostic-v3/)
   assert.doesNotMatch(presentationSource, /PublicDiagnosticV3|diagnostic-v3/)
 })

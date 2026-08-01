@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -9,6 +9,7 @@ import { inflateRawSync } from 'node:zlib'
 import writeXlsxFile from 'write-excel-file/node'
 
 const output = mkdtempSync(path.join(tmpdir(), 'dashboard-pne-education-'))
+writeFileSync(path.join(output, 'package.json'), '{"type":"module"}\n')
 execFileSync(process.execPath, [
   path.resolve('node_modules/typescript/bin/tsc'),
   '--project',
@@ -1416,7 +1417,12 @@ test('interface de infraestrutura usa card composto, página conjunta e apoio re
   assert.doesNotMatch(cardSource, /onDimensionSelect|aria-pressed/)
   assert.match(cardSource, /indicator\.groupKey === 'equipamentos-recursos'/)
   assert.match(cardSource, /hideContext: isExploratory \|\| isPedagogicalResource/)
-  assert.match(cardSource, /modifier: isExploratory[\s\S]*\['panorama-entry', 'panorama-feature'\][\s\S]*isPedagogicalResource[\s\S]*'compact-copy'/)
+  // Cartão unificado: os indicadores padrão (inclusive os pedagógicos) usam a
+  // anatomia 'uniform'; apenas os cartões exploratórios mantêm os modifiers de
+  // panorama. O antigo modifier 'compact-copy' foi removido junto com a
+  // sobreposição título/descrição.
+  assert.match(cardSource, /modifier: isExploratory\s*\n\s*\? \['panorama-entry', 'panorama-feature'\]\s*\n\s*: null,/)
+  assert.match(cardSource, /layout: isExploratory \? undefined : 'uniform'/)
   assert.equal(
     cardSource.includes('Condições básicas, espaços escolares, conectividade e equipamentos disponíveis nas escolas.'),
     true,

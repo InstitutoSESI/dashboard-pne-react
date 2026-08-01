@@ -11,10 +11,6 @@ const generatedContractDocumentationPath = new URL(
   '../docs/generated/PNE_2026_CONTRACT.md',
   import.meta.url,
 )
-const presentationCatalogPath = new URL(
-  '../data_pipeline/src/data/pne2026_diagnostic_presentation_v2.json',
-  import.meta.url,
-)
 
 export const FORBIDDEN_PRESENTATION_FIELDS = new Set([
   'goalId',
@@ -50,17 +46,7 @@ const ALLOWED_RELATION_FIELDS = new Set([
   'narrativeTemplateId',
 ])
 const SUMMARY_PRIORITIES = new Set(['essential', 'standard'])
-const VALUE_POLICY_COMPATIBILITY = {
-  raw_accumulated_growth: 'accumulated_growth_from_minus_100',
-  raw_bounded_expected: 'bounded_percentage_0_100',
-  raw_comparative_ratio: 'comparative_ratio_above_100',
-  raw_enrolment_ratio: 'enrolment_ratio_above_100',
-  raw_mixed_territorial_basis: 'mixed_territorial_basis_above_100',
-  raw_net_expansion_share: 'net_expansion_share_unbounded',
-  raw_nonnegative_count: 'nonnegative_count',
-  raw_source_rounding: 'saeb_percentage_with_source_rounding',
-}
-const FREQUENCY_COMPATIBILITY = {
+const PUBLIC_FREQUENCY_LABELS = {
   annual: 'anual',
   biennial: 'bienal',
   decennial_irregular: 'decenal/irregular',
@@ -267,13 +253,6 @@ export function validateDiagnosticPresentationPolicy(policy, contract) {
   return policy
 }
 
-function relationType(relation) {
-  if (relation.mode === 'progress' && !relation.canDistance && !relation.canStatus) {
-    return 'contextual_proxy'
-  }
-  return relation.legacyCoverage === 'direta' ? 'direct' : 'partial_component'
-}
-
 function legalMilestones(contract, relation, { filterDimension = true } = {}) {
   const goal = contract.goals[relation.goalId]
   const referenceId = relation.referenceId
@@ -287,115 +266,6 @@ function legalMilestones(contract, relation, { filterDimension = true } = {}) {
       || milestone.dimension === relation.referenceDimension
     ))
     .sort((left, right) => left.year - right.year)
-}
-
-function projectedSources(contract, indicator) {
-  const sources = indicator.sourceIds.map((sourceId) => contract.sources[sourceId])
-  return sources.every((source) => ['official', 'official_snapshot'].includes(source?.status))
-    ? indicator.sourceIds
-    : []
-}
-
-function priorityOrder(entry) {
-  const match = /^summary-(\d{2})$/.exec(entry?.displayGroup ?? '')
-  return match ? Number(match[1]) : null
-}
-
-function projectPresentationCatalog(template, contract, policy) {
-  const relationsByPair = new Map(
-    contract.relations.map((relation) => [
-      `${relation.goalId}:${relation.indicatorId}`,
-      relation,
-    ]),
-  )
-  const policyByRelation = new Map(
-    policy.relations.map((entry) => [entry.relationId, entry]),
-  )
-  const projected = structuredClone(template)
-  projected.valuePolicies.net_expansion_share_unbounded = {
-    minimum: null,
-    maximum: null,
-    publicExplanation: 'A participação usa expansões líquidas desde 2025; pode ser negativa ou superar 100% e permanece sem truncamento quando a expansão total é positiva.',
-  }
-  projected.projectionMetadata = projectionMetadata(contract, policy)
-  projected.themes = policy.themes
-    .toSorted((left, right) => left.displayOrder - right.displayOrder)
-    .map(({ themeId, displayOrder, label }) => ({
-      id: themeId,
-      order: displayOrder,
-      label,
-    }))
-  projected.results = template.results.map((legacy) => {
-    const relation = relationsByPair.get(`${legacy.goalId}:${legacy.indicatorId}`)
-    if (!relation) throw new Error(`Resultado legado sem relação canônica: ${legacy.indicatorId}`)
-    const indicator = contract.indicators[relation.indicatorId]
-    const goal = contract.goals[relation.goalId]
-    const editorial = policyByRelation.get(relation.relationId)
-    if (relation.includeInDiagnostic && !editorial) {
-      throw new Error(`Relação elegível sem apresentação: ${relation.relationId}`)
-    }
-    const milestones = legalMilestones(contract, relation)
-    const firstMilestone = milestones[0]
-    const lastMilestone = milestones.at(-1)
-    const row = {
-      ...legacy,
-      goalId: relation.goalId,
-      indicatorId: relation.indicatorId,
-      publicName: relation.publicLabelOverride ?? indicator.publicTitle,
-      themeId: editorial?.themeId ?? legacy.themeId,
-      tier: editorial?.summaryPriority === 'essential' ? 'essential' : 'complementary',
-      priorityOrder: priorityOrder(editorial),
-      relationshipType: relationType(relation),
-      direction: firstMilestone ? goal.direction : null,
-      sourceIds: projectedSources(contract, indicator),
-      valuePolicy: VALUE_POLICY_COMPATIBILITY[indicator.valuePolicyId],
-    }
-    const projectedMode = relation.legacyV2Mode ?? relation.mode
-    if (projectedMode === 'progress') {
-      delete row.monitoringMode
-    } else {
-      row.monitoringMode = projectedMode
-    }
-    if (firstMilestone) {
-      row.indicatorReference = {
-        ...row.indicatorReference,
-        value: firstMilestone.value,
-        year: firstMilestone.year,
-      }
-      row.legalGoal = {
-        ...row.legalGoal,
-        deadline: lastMilestone.year,
-      }
-      if ('target' in row.legalGoal) row.legalGoal.target = lastMilestone.value
-      if (
-        milestones.length > 1
-        && lastMilestone.year !== firstMilestone.year
-      ) {
-        row.finalReference = {
-          value: lastMilestone.value,
-          year: lastMilestone.year,
-        }
-      }
-    }
-    return row
-  })
-  projected.methodologyOverrides = Object.fromEntries(
-    Object.entries(template.methodologyOverrides ?? {}).map(([indicatorId, override]) => {
-      const relation = projectionRelationForIndicator(contract, indicatorId)
-      const indicator = contract.indicators[indicatorId]
-      if (relation?.mode !== 'complementary' || !indicator?.publicDescription) {
-        return [indicatorId, override]
-      }
-      return [
-        indicatorId,
-        {
-          ...override,
-          publicReading: indicator.publicDescription,
-        },
-      ]
-    }),
-  )
-  return projected
 }
 
 function projectionRelationForIndicator(contract, indicatorId) {
@@ -477,7 +347,7 @@ function acceleratedIndicatorSeed(template, contract, indicatorId) {
     limits: methodology.limits,
     name: indicator.publicTitle,
     numerator: methodology.numerator,
-    periodicity: FREQUENCY_COMPATIBILITY[indicator.expectedFrequency]
+    periodicity: PUBLIC_FREQUENCY_LABELS[indicator.expectedFrequency]
       ?? indicator.expectedFrequency,
     sourceIds: indicator.sourceIds,
     targets: [],
@@ -518,12 +388,12 @@ function projectIndicatorCatalog(template, contract, policy) {
       )
     }
   }
-  projected.indicators = indicatorSeeds.map((legacy) => {
-    const indicator = contract.indicators[legacy.indicatorId]
+  projected.indicators = indicatorSeeds.map((catalogSeed) => {
+    const indicator = contract.indicators[catalogSeed.indicatorId]
     if (!indicator) {
-      // Oito indicadores informativos sem relação PNE 2026 ficam congelados para
-      // compatibilidade com o ciclo anterior até a migração dos consumidores em 2B2B.
-      return legacy
+      // Indicadores informativos fora do contrato PNE continuam fazendo parte
+      // do catálogo público atual.
+      return catalogSeed
     }
     const relation = projectionRelationForIndicator(contract, indicator.indicatorId)
     const goal = relation ? contract.goals[relation.goalId] : null
@@ -533,9 +403,9 @@ function projectIndicatorCatalog(template, contract, policy) {
     const formula = contract.formulas[indicator.formulaId]
     const methodology = formula?.catalogProjection
     return {
-      ...legacy,
+      ...catalogSeed,
       currentImplementation: {
-        ...legacy.currentImplementation,
+        ...catalogSeed.currentImplementation,
         tracksGoal: Boolean(
           ['progress', 'tracking'].includes(relation?.mode)
           && relation.canStatus,
@@ -556,7 +426,7 @@ function projectIndicatorCatalog(template, contract, policy) {
         : {}),
       indicatorId: indicator.indicatorId,
       legalGoalRefs: relation ? [relation.goalId] : [],
-      periodicity: FREQUENCY_COMPATIBILITY[indicator.expectedFrequency]
+      periodicity: PUBLIC_FREQUENCY_LABELS[indicator.expectedFrequency]
         ?? indicator.expectedFrequency,
       sourceIds: indicator.sourceIds,
       targets: milestones.map((milestone) => ({
@@ -620,21 +490,21 @@ export function projectPublicIndicatorCatalog(template, contract) {
 
   cycle.categories = cycle.categories.map((category) => ({
     ...category,
-    items: category.items.map((legacy) => {
-      const indicator = contract.indicators[legacy.key]
-      if (!indicator) return legacy
+    items: category.items.map((itemSeed) => {
+      const indicator = contract.indicators[itemSeed.key]
+      if (!indicator) return itemSeed
 
       const relation = projectionRelationForIndicator(contract, indicator.indicatorId)
       const formula = contract.formulas[indicator.formulaId]
       const reference = relationReferenceDescriptor(contract, relation)
       const methodology = formula?.catalogProjection
       const projectedItem = {
-        ...legacy,
+        ...itemSeed,
         label: relation?.publicLabelOverride ?? indicator.publicTitle,
         desc: relation?.publicDescriptionOverride
           ?? indicator.publicDescription
           ?? formula?.description
-          ?? legacy.desc,
+          ?? itemSeed.desc,
         formulaId: indicator.formulaId,
         formula: methodology?.formula ?? formula?.description ?? formula?.implementationKey,
         sourceIds: indicator.sourceIds,
@@ -749,20 +619,14 @@ export function renderPneContractDocumentation(contract) {
   ].join('\n')
 }
 
-export function projectDiagnosticCompatibilityArtifacts({
+export function projectDiagnosticArtifacts({
   contract,
   policy,
   indicatorCatalog,
-  presentationCatalog,
 }) {
   validateDiagnosticPresentationPolicy(policy, contract)
   return {
     indicatorCatalog: projectIndicatorCatalog(indicatorCatalog, contract, policy),
-    presentationCatalog: projectPresentationCatalog(
-      presentationCatalog,
-      contract,
-      policy,
-    ),
   }
 }
 
@@ -774,12 +638,10 @@ function run() {
   const publicIndicatorCatalog = readJson(publicIndicatorCatalogPath, {
     recoverTrailingOutput: !check,
   })
-  const presentationCatalog = readJson(presentationCatalogPath)
-  const projected = projectDiagnosticCompatibilityArtifacts({
+  const projected = projectDiagnosticArtifacts({
     contract,
     policy,
     indicatorCatalog,
-    presentationCatalog,
   })
   const outputs = [
     [indicatorCatalogPath, stableJson(projected.indicatorCatalog)],
@@ -791,8 +653,6 @@ function run() {
       generatedContractDocumentationPath,
       `${renderPneContractDocumentation(contract)}\n`,
     ],
-    // O catálogo V2 é um artefato congelado. A política ativa é projetada
-    // somente no contrato/catálogo V3 e não reescreve a saída V2.
   ]
   const stale = outputs.filter(([path, contents]) => (
     !fs.existsSync(path) || fs.readFileSync(path, 'utf8') !== contents

@@ -199,7 +199,7 @@ Uma família verde institucional sobre uma rampa de neutros tingida na mesma mat
 
 ### Named Rules
 
-**A Regra do Piso de 4,5.** Todo token de texto atinge no mínimo 4,5:1 sobre `bg-app` (#e2e8e5), a superfície mais escura em que texto assenta — não sobre o cartão, que é mais permissivo. `text-soft` e `text-faint` são apelidos históricos que apontam para `text-muted`; existem só para não quebrar CSS legado e **nunca** devem receber um cinza mais claro.
+**A Regra do Piso de 4,5.** Todo token de texto atinge no mínimo 4,5:1 sobre `bg-app` (#e2e8e5), a superfície mais escura em que texto assenta — não sobre o cartão, que é mais permissivo. `text-soft` e `text-faint` são aliases semânticos de `text-muted` no contrato visual atual e **nunca** devem receber um cinza mais claro.
 
 **A Regra do Não-Julgamento.** Vermelho, âmbar e verde nunca formam semáforo de mérito. Aprovação usa verde; reprovação e abandono usam neutros da mesma família. Variação positiva não significa bom, nem negativa significa ruim: o rótulo e o texto explicam o sentido do indicador.
 

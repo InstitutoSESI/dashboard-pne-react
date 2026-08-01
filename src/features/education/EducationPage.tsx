@@ -169,6 +169,7 @@ export function EducationPage({
   const educacaoIndigena = dados?.blocos?.educacao_indigena ?? {}
   const requestedDetailKey = navigationContext?.params.get('detalhe') ?? ''
   const requestedDimensionKey = navigationContext?.params.get('dimensao') ?? ''
+  const requestedSectionKey = navigationContext?.params.get('secao') ?? ''
 
   useEffect(() => {
     const isLegacyInfrastructureAlias =
@@ -177,11 +178,11 @@ export function EducationPage({
     replaceHashContext(navigationContext?.rawRoute || 'educacao', {
       secao: isLegacyInfrastructureAlias
         ? EDUCATION_SECTION_KEYS.infrastructure
-        : navigationContext?.params.get('secao') ?? resolveEducationSection({ detailKey: requestedDetailKey }),
+        : requestedSectionKey || resolveEducationSection({ detailKey: requestedDetailKey }),
       detalhe: isLegacyInfrastructureAlias ? 'infraestrutura-basica' : requestedDetailKey,
       dimensao: null,
     })
-  }, [navigationContext?.rawRoute, requestedDetailKey, requestedDimensionKey])
+  }, [navigationContext?.rawRoute, requestedDetailKey, requestedDimensionKey, requestedSectionKey])
   const hasSistemaS =
     Number(sistemaS.resumo_ultimo_ano?.total_escolas || 0) > 0 &&
     Number(sistemaS.ultimo_ano) === 2025
@@ -353,7 +354,11 @@ export function EducationPage({
     && specialEducationHasReferenceValue
     && specialEducationYears.length > 1
     ? `${specialEducationYears[0]}–${specialEducationYears[specialEducationYears.length - 1]}`
-    : String(activeIndicator?.currentYear ?? specialEducationYears.at(-1) ?? 2025)
+    : String(
+        activeIndicator?.currentYear
+        ?? specialEducationYears[specialEducationYears.length - 1]
+        ?? 2025,
+      )
 
   const standardHeader = isMunicipalOverviewRoute ? (
     <EducationCompactHeader

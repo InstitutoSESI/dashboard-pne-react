@@ -14,7 +14,7 @@ const legalSource =
 const orderedGoals = Object.values(PNE_2026_GOAL_INDICATOR_CONTRACT.goals)
   .toSorted((left, right) => left.legalOrder - right.legalOrder)
 
-function legacyLegalReference(relation) {
+function publicLegalReference(relation) {
   if (!relation.referenceId) return null
 
   const resolved = getPne2026RelationContext(
@@ -32,9 +32,9 @@ function legacyLegalReference(relation) {
   }
 }
 
-function legacyRelation(relation) {
+function projectPublicRelation(relation) {
   const indicator = getPne2026Indicator(relation.indicatorId)
-  const legalReference = legacyLegalReference(relation)
+  const legalReference = publicLegalReference(relation)
   const direction =
     legalReference?.milestones?.[0]?.direction ??
     PNE_2026_GOAL_INDICATOR_CONTRACT.goals[relation.goalId].direction
@@ -68,9 +68,9 @@ function legacyRelation(relation) {
   })
 }
 
-function buildLegacyGoal(goal) {
+function buildPublicGoal(goal) {
   const relatedIndicators = getPne2026RelationsForGoal(goal.goalId)
-    .map(legacyRelation)
+    .map(projectPublicRelation)
 
   return Object.freeze({
     legalGoalId: goal.goalId,
@@ -83,9 +83,9 @@ function buildLegacyGoal(goal) {
   })
 }
 
-// Adapter de compatibilidade: metas, relações e capacidades vêm do contrato.
+// Projeção pública única: metas, relações e capacidades vêm do contrato.
 export const PNE_2026_LEGAL_GOAL_INDICATOR_MAP = Object.freeze(
-  orderedGoals.map(buildLegacyGoal),
+  orderedGoals.map(buildPublicGoal),
 )
 
 export function getPne2026PublicLegalGoalRelations(goalId) {

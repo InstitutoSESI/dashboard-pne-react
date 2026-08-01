@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import sys
-import unittest
 from pathlib import Path
 
 import pandas as pd
@@ -312,41 +311,3 @@ def test_published_reference_municipalities():
         special = year(acegua, reference_year)["cuts"]["total"]["specialEducation"]
         assert special["exclusiveClassEnrollments"]["value"] == 0
         assert special["exclusiveClassEnrollments"]["state"] == "observed"
-
-
-class SpecialEducationMaterializationTests(unittest.TestCase):
-    def test_uses_sums_for_inclusion_and_distinct_schools(self):
-        test_uses_sums_for_inclusion_and_distinct_schools()
-
-    def test_missing_bilingual_column_is_unavailable_not_zero(self):
-        test_missing_bilingual_column_is_unavailable_not_zero()
-
-    def test_zero_denominator_is_not_applicable_and_88888_is_not_published(self):
-        test_zero_denominator_is_not_applicable_and_88888_is_not_published()
-
-    def test_empty_official_counts_are_structural_zero_without_partial_propagation(self):
-        test_empty_official_counts_are_structural_zero_without_partial_propagation()
-
-    def test_explicit_zero_and_all_structural_empty_counts_are_observed(self):
-        test_explicit_zero_and_all_structural_empty_counts_are_observed()
-
-    def test_aee_share_uses_only_schools_with_special_education_enrollments(self):
-        test_aee_share_uses_only_schools_with_special_education_enrollments()
-
-    def test_missing_flag_is_partial_only_inside_indicator_eligible_universe(self):
-        test_missing_flag_is_partial_only_inside_indicator_eligible_universe()
-
-    def test_genuinely_missing_eligible_quantitative_is_partial(self):
-        test_genuinely_missing_eligible_quantitative_is_partial()
-
-    def test_extreme_is_local_to_affected_metric(self):
-        test_extreme_is_local_to_affected_metric()
-
-    def test_all_contract_cuts_reconcile_with_structural_zeros(self):
-        test_all_contract_cuts_reconcile_with_structural_zeros()
-
-    def test_contract_serialization_is_byte_deterministic(self):
-        test_contract_serialization_is_byte_deterministic()
-
-    def test_published_reference_municipalities(self):
-        test_published_reference_municipalities()

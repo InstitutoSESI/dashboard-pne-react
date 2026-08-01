@@ -31,5 +31,11 @@ export interface MunicipalInequalityPilot {
 }
 
 export interface MunicipalInequalityDocument {
+  schemaVersion: 'municipal-inequality-v1'
+  generatedAt: string
+  municipality: {
+    id: string
+    name: string
+  }
   inequalityPilot: MunicipalInequalityPilot
 }

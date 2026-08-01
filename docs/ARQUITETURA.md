@@ -33,7 +33,7 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 | Entrada | `#home` | `src/pages/Home.jsx` | `municipios.json`, `municipios_index.json`, `indicadores.json` | `data_pipeline/scripts/export_static_data.py` | `test:app-routing`, E2E |
 | PNE institucional | `#pne-overview`, `#pne-legal-goals` | `PneOverviewPage`, `PneLegalGoalsPage` | catálogos de indicadores, textos e relações legais em `src/data` | `export_static_data.py`, `scripts/generate-diagnostic-catalog.mjs` | `test:unit`, `test:data-sources` |
 | Ciclos PNE | `#pne2014`, `#pne2026` | `src/pages/CyclePage.jsx` | `municipios/<ibge>/index.json`, `details.json`, referências estaduais por ciclo | `data_pipeline/src/pne`, `export_static_data.py` | `test:unit`, `test:python` |
-| Diagnóstico | `#diagnostico` | `src/pages/Diagnostico.jsx` | release imutável em `pne2026-diagnostic-v3` | `materialize_pne2026_public_diagnostic_v3.py`, `promote_pne2026_public_diagnostic_v3.py` | `test:diagnostic`, `test:python` |
+| Diagnóstico | `#diagnostico` | `src/pages/Diagnostico.jsx` | release ativa única em `pne2026-diagnostic-v3` | `materialize_pne2026_public_diagnostic_v3.py`, `promote_pne2026_public_diagnostic_v3.py` | `test:diagnostic`, `test:python` |
 | Educação | `#educacao` com `secao` | `src/features/education/EducationPage.tsx` | `municipios/<ibge>/index.json`, `educacao/visao-geral-municipal/<ibge>.json` | `export_education_indicators.py`, `materialize_municipal_education_overview.py` | `test:education`, `test:python` |
 | Panorama financeiro | `#financeiros-panorama` | `MunicipalFinancePanoramaPage` | `municipios/<ibge>/financeiro.json`, histórico anual da QSE | `generate_municipal_finance.py`, `generate_qse_annual.py` | `test:municipal-finance`, `test:python` |
 | Módulos financeiros | `#financeiros`, `#financeiros-*` | `src/pages/FinancialPage.jsx` | contrato municipal, catálogos e metadados de `src/data` | exportadores de Fundeb/PNATE e geradores financeiros | `test:municipal-finance`, `test:data-sources` |
@@ -44,9 +44,13 @@ Os arquivos globais pequenos (`municipios.json`, `municipios_index.json` e `indi
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 
+O arquivo municipal `diagnostico.json` preserva a URL pública, mas contém
+somente `municipal-inequality-v1`. O diagnóstico PNE completo é carregado da
+release ativa apontada por `pne2026-diagnostic-v3/current.json`.
+
 ## Pipeline
 
-As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
+As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, enquanto os contratos financeiros usam `data_pipeline/export/municipal_finance`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
 
 ## Publicação e segurança
 

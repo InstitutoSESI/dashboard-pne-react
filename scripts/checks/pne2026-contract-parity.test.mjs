@@ -27,15 +27,6 @@ import {
 } from '../../src/data/pne2026LegalGoalIndicatorMap.js'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
-const diagnosticCatalog = JSON.parse(
-  readFileSync(
-    resolve(
-      repositoryRoot,
-      'data_pipeline/src/data/pne2026_diagnostic_presentation_v2.json',
-    ),
-    'utf8',
-  ),
-)
 const indicatorCatalog = JSON.parse(
   readFileSync(
     resolve(repositoryRoot, 'src/data/diagnostic/indicatorCatalog.json'),
@@ -43,7 +34,7 @@ const indicatorCatalog = JSON.parse(
   ),
 )
 
-function legacyRelations() {
+function publishedRelations() {
   return PNE_2026_LEGAL_GOAL_INDICATOR_MAP.flatMap((goal) =>
     goal.relatedIndicators.map((relation) => ({
       ...relation,
@@ -159,7 +150,7 @@ test('attendance references, formulas, and population lineage are contract-deriv
 
 test('73 legal goal texts and canonical relations remain in parity', () => {
   assert.equal(PNE_2026_LEGAL_GOAL_INDICATOR_MAP.length, 73)
-  assert.equal(legacyRelations().length, 59)
+  assert.equal(publishedRelations().length, 59)
   assert.deepEqual(
     PNE_2026_LEGAL_GOAL_INDICATOR_MAP.map((goal) => goal.legalGoalId),
     Object.values(PNE_2026_GOAL_INDICATOR_CONTRACT.goals)
@@ -169,18 +160,18 @@ test('73 legal goal texts and canonical relations remain in parity', () => {
 
   for (const goal of PNE_2026_LEGAL_GOAL_INDICATOR_MAP) {
     const canonical = PNE_2026_GOAL_INDICATOR_CONTRACT.goals[goal.legalGoalId]
-    const legacyText = PNE_2026_GOAL_TEXTS[goal.legalGoalId]
+    const publishedText = PNE_2026_GOAL_TEXTS[goal.legalGoalId]
     assert.ok(canonical)
     assert.equal(canonical.objectiveId, goal.objectiveId)
-    assert.equal(canonical.publicTitle, legacyText.shortTitle)
-    assert.equal(canonical.legalText, legacyText.originalText)
-    assert.equal(canonical.legalText, legacyText.displayText)
-    assert.equal(canonical.dashboardText ?? undefined, legacyText.dashboardText)
+    assert.equal(canonical.publicTitle, publishedText.shortTitle)
+    assert.equal(canonical.legalText, publishedText.originalText)
+    assert.equal(canonical.legalText, publishedText.displayText)
+    assert.equal(canonical.dashboardText ?? undefined, publishedText.dashboardText)
     assert.equal(canonical.legalText, goal.legalText)
   }
 
-  for (const legacy of legacyRelations()) {
-    const canonical = getPne2026Relation(legacy.goalId, legacy.indicatorId)
+  for (const published of publishedRelations()) {
+    const canonical = getPne2026Relation(published.goalId, published.indicatorId)
     assert.ok(canonical)
     if (new Set([
       'relation.11.b.fundamental_concluido_18_mais',
@@ -192,24 +183,24 @@ test('73 legal goal texts and canonical relations remain in parity', () => {
       'relation.9.d.educacao_indigena_cobertura_estimada_4_17',
       'relation.10.b.aee_oferta_escolas_elegiveis',
     ]).has(canonical.relationId)) continue
-    assert.equal(canonical.mode, legacy.monitoringMode)
-    assert.equal(canonical.legacyCoverage, legacy.coverage)
-    assert.equal(canonical.internalNote, legacy.relationNote)
-    assert.equal(canonical.hasMunicipalResult, legacy.hasMunicipalResult)
-    assert.equal(canonical.canDistance, legacy.hasDistance)
-    assert.equal(canonical.canStatus, legacy.canStatus)
-    assert.equal(canonical.canProjection, legacy.hasProjection2036)
-    assert.equal(canonical.includeInCycleGoalRefs, legacy.includeInCycleGoalRefs)
-    assert.equal(canonical.referenceDimension, legacy.referenceDimension)
+    assert.equal(canonical.mode, published.monitoringMode)
+    assert.equal(canonical.legacyCoverage, published.coverage)
+    assert.equal(canonical.internalNote, published.relationNote)
+    assert.equal(canonical.hasMunicipalResult, published.hasMunicipalResult)
+    assert.equal(canonical.canDistance, published.hasDistance)
+    assert.equal(canonical.canStatus, published.canStatus)
+    assert.equal(canonical.canProjection, published.hasProjection2036)
+    assert.equal(canonical.includeInCycleGoalRefs, published.includeInCycleGoalRefs)
+    assert.equal(canonical.referenceDimension, published.referenceDimension)
     assert.equal(
       canonical.publicLabelOverride
         ?? PNE_2026_GOAL_INDICATOR_CONTRACT.indicators[canonical.indicatorId].publicTitle,
-      legacy.publicName,
+      published.publicName,
     )
     assert.equal(
       canonical.publicDescriptionOverride
         ?? PNE_2026_GOAL_INDICATOR_CONTRACT.indicators[canonical.indicatorId].publicDescription,
-      legacy.publicDescription,
+      published.publicDescription,
     )
     if (canonical.referenceId) {
       const context = getPne2026RelationContext(
@@ -217,10 +208,10 @@ test('73 legal goal texts and canonical relations remain in parity', () => {
         canonical.indicatorId,
         PNE_2026_GOAL_INDICATOR_CONTRACT.cycle.endYear,
       )
-      assert.equal(legacy.deadline, context.legalReference.targetYear)
-      assert.equal(legacy.direction, context.legalReference.milestone.direction)
-      assert.equal(legacy.unit, context.indicator.unit)
-      assert.equal(legacy.referenceId, context.legalReference.referenceId)
+      assert.equal(published.deadline, context.legalReference.targetYear)
+      assert.equal(published.direction, context.legalReference.milestone.direction)
+      assert.equal(published.unit, context.indicator.unit)
+      assert.equal(published.referenceId, context.legalReference.referenceId)
     }
   }
 })
@@ -307,55 +298,14 @@ test('compatibility adapters are contract-derived and the public selector exclud
   )
 })
 
-test('diagnostic compatibility catalog has 34 pairs and 31 public relations', () => {
-  assert.equal(diagnosticCatalog.results.length, 34)
-  const visible = []
-  const frozenMethodologyRelations = new Set([
-    'relation.11.b.fundamental_concluido_18_mais',
-    'relation.11.b.fundamental_concluido_15_mais',
-    'relation.12.a.medio_tecnico_articulado_percentual',
-    'relation.12.a.medio_tecnico_participacao_publica',
-    'relation.12.b.subsequente_expansao',
-    'relation.3.a.alfabetizacao',
-    'relation.9.d.educacao_indigena_cobertura_estimada_4_17',
-    'relation.10.b.aee_oferta_escolas_elegiveis',
-  ])
-  for (const definition of diagnosticCatalog.results) {
-    const relation = getPne2026Relation(
-      definition.goalId,
-      definition.indicatorId,
-    )
-    assert.ok(relation)
-    if (
-      !frozenMethodologyRelations.has(relation.relationId)
-      && relation.mode !== PNE_2026_RELATIONSHIP_MODES.TRACKING
-    ) {
-      assert.equal(definition.monitoringMode ?? 'progress', relation.mode)
-    }
-    if ((definition.monitoringMode ?? 'progress') !== 'hidden') visible.push(relation)
-    if (
-      relation.publicLabelOverride
-      && !frozenMethodologyRelations.has(relation.relationId)
-      && relation.mode !== PNE_2026_RELATIONSHIP_MODES.TRACKING
-    ) {
-      assert.equal(definition.publicName, relation.publicLabelOverride)
-    }
-  }
-  assert.equal(visible.length, 31)
-  assert.equal(
-    visible.filter((relation) => relation.mode === 'complementary').length,
-    2,
-  )
-})
-
-test('the frozen V2 registry recognizes canonical indicators except the V3-only macro package', () => {
+test('the runtime catalog covers locally calculated indicators', () => {
   const indicatorsById = Object.fromEntries(
     indicatorCatalog.indicators.map((indicator) => [
       indicator.indicatorId,
       indicator,
     ]),
   )
-  const v3OnlyIndicatorIds = new Set([
+  const releaseOnlyIndicatorIds = new Set([
     'eja_atendimento_18_mais',
     'graduacao_frequencia_18_24',
     'superior_completo_25_34',
@@ -371,7 +321,7 @@ test('the frozen V2 registry recognizes canonical indicators except the V3-only 
     'enade_licenciaturas_oferta_local',
   ])
   for (const indicator of Object.values(PNE_2026_GOAL_INDICATOR_CONTRACT.indicators)) {
-    if (v3OnlyIndicatorIds.has(indicator.indicatorId)) {
+    if (releaseOnlyIndicatorIds.has(indicator.indicatorId)) {
       assert.equal(indicatorsById[indicator.indicatorId], undefined)
       continue
     }

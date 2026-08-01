@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 import { pathToFileURL } from 'node:url'
 
 const temporaryOutput = mkdtempSync(path.join(tmpdir(), 'dashboard-pne-routing-'))
+writeFileSync(path.join(temporaryOutput, 'package.json'), '{"type":"module"}\n')
 execFileSync(
   process.execPath,
   [

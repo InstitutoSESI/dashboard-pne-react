@@ -307,8 +307,8 @@ test('real release preserves a valid EJA zero and never turns unavailable litera
   assert.equal(alegreteResults.alfabetizacao.end_value, undefined)
 })
 
-test('cycle treats V3 availability as authoritative over legacy results', () => {
-  const legacyResults = {
+test('cycle treats the current diagnostic as authoritative over base results', () => {
+  const baseResults = {
     basico_15_17: {
       available: true,
       end_value: 90,
@@ -326,7 +326,7 @@ test('cycle treats V3 availability as authoritative over legacy results', () => 
       end_value: 12,
     },
   }
-  const merged = mergePne2026DiagnosticResults(legacyResults, {
+  const merged = mergePne2026DiagnosticResults(baseResults, {
     goals: [{
       results: [{
         current: { unit: 'percent', value: 105, year: 2025 },
@@ -340,11 +340,11 @@ test('cycle treats V3 availability as authoritative over legacy results', () => 
   })
 
   assert.equal(merged.basico_15_17.end_value, 105)
-  assert.deepEqual(merged.basico_15_17.series, legacyResults.basico_15_17.series)
+  assert.deepEqual(merged.basico_15_17.series, baseResults.basico_15_17.series)
   assert.equal(merged.medio_tecnico_participacao_publica, undefined)
-  assert.equal(merged.temporarios, legacyResults.temporarios)
+  assert.equal(merged.temporarios, baseResults.temporarios)
   assert.equal(
-    mergePne2026DiagnosticResults(legacyResults, null)
+    mergePne2026DiagnosticResults(baseResults, null)
       .medio_tecnico_participacao_publica,
     undefined,
   )
@@ -374,7 +374,7 @@ test('the 2026 diagnostic adapter never removes results from the closed cycle', 
   )
 })
 
-test('canonical capabilities authorize tracking and reject complementary legacy flags', () => {
+test('canonical capabilities authorize tracking and reject contradictory local flags', () => {
   const result = {
     available: true,
     atingida: true,
@@ -400,11 +400,11 @@ test('canonical capabilities authorize tracking and reject complementary legacy 
 })
 
 test('closed-cycle comparability and copy remain isolated from the 2026 contract', () => {
-  const legacyItem = {
+  const closedCycleItem = {
     key: 'idade_regular_quinto',
     metaRef: '4.b',
   }
-  const legacyResult = {
+  const closedCycleResult = {
     available: true,
     atingida: false,
     distance: -2,
@@ -415,14 +415,14 @@ test('closed-cycle comparability and copy remain isolated from the 2026 contract
 
   assert.equal(isPneComparableIndicator({
     cycleId: PNE_2014_CYCLE,
-    indicatorKey: legacyItem.key,
-    item: legacyItem,
-    result: legacyResult,
+    indicatorKey: closedCycleItem.key,
+    item: closedCycleItem,
+    result: closedCycleResult,
   }), true)
   assert.equal(
     filterPneComparableCategories(
-      [{ key: 'legacy', items: [legacyItem] }],
-      { [legacyItem.key]: legacyResult },
+      [{ key: 'closed-cycle', items: [closedCycleItem] }],
+      { [closedCycleItem.key]: closedCycleResult },
       PNE_2014_CYCLE,
     )[0].items[0].cycleDisplayPolicy.state,
     PNE_CYCLE_PRESENTATION_STATES.CONCLUSIVE,
@@ -618,7 +618,7 @@ test('development reconciliation warnings are emitted only once per incompatibil
   assert.match(source, /emittedPne2026ReconciliationWarnings\.add\(warning\)/)
 })
 
-test('2026 consumers do not import the legacy methodology fallback adapter', () => {
+test('2026 consumers rely only on canonical relation capabilities', () => {
   const consumers = [
     '../../src/components/MetaCard.jsx',
     '../../src/components/IndicatorDetail.jsx',

@@ -9,14 +9,14 @@ const COMPARABLE_MODES = new Set([
   PNE_2026_RELATIONSHIP_MODES.TRACKING,
 ])
 
-export function resolvePneCycleMunicipalResults(cycleId, legacyResults, diagnostic) {
+export function resolvePneCycleMunicipalResults(cycleId, municipalResults, diagnostic) {
   return cycleId === 'pne_2026_2036'
-    ? mergePne2026DiagnosticResults(legacyResults, diagnostic)
-    : legacyResults
+    ? mergePne2026DiagnosticResults(municipalResults, diagnostic)
+    : municipalResults
 }
 
-export function mergePne2026DiagnosticResults(legacyResults, diagnostic) {
-  const merged = { ...(legacyResults ?? {}) }
+export function mergePne2026DiagnosticResults(municipalResults, diagnostic) {
+  const merged = { ...(municipalResults ?? {}) }
   for (const relation of PNE_2026_GOAL_INDICATOR_CONTRACT.relations) {
     if (
       COMPARABLE_MODES.has(relation.mode)
@@ -28,12 +28,12 @@ export function mergePne2026DiagnosticResults(legacyResults, diagnostic) {
   if (!diagnostic) return merged
 
   for (const result of diagnostic.goals.flatMap((goal) => goal.results ?? [])) {
-    const legacy = legacyResults?.[result.indicatorId] ?? {}
+    const baseResult = municipalResults?.[result.indicatorId] ?? {}
     if (result.mode === PNE_2026_RELATIONSHIP_MODES.HIDDEN) continue
     const dataStatus = result.dataStatus ?? 'available'
     if (dataStatus !== 'available') {
       merged[result.indicatorId] = {
-        ...legacy,
+        ...baseResult,
         available: false,
         dataStatus,
         dataStatusLabel: result.dataStatusLabel,
@@ -47,7 +47,7 @@ export function mergePne2026DiagnosticResults(legacyResults, diagnostic) {
 
     if (result.mode === PNE_2026_RELATIONSHIP_MODES.COMPLEMENTARY) {
       merged[result.indicatorId] = {
-        ...legacy,
+        ...baseResult,
         available: true,
         dataStatus,
         end_value: result.current.value,
@@ -69,7 +69,7 @@ export function mergePne2026DiagnosticResults(legacyResults, diagnostic) {
     ) continue
 
     merged[result.indicatorId] = {
-      ...legacy,
+      ...baseResult,
       available: true,
       dataStatus,
       end_value: result.current.value,
@@ -89,7 +89,7 @@ export function mergePne2026DiagnosticResults(legacyResults, diagnostic) {
       monitoringMode: result.mode,
       monitoring_mode: result.mode,
       display: {
-        ...legacy.display,
+        ...baseResult.display,
         status: result.status,
       },
     }

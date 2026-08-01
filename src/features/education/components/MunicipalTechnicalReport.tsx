@@ -610,9 +610,10 @@ export function MunicipalTechnicalReport({
       <header className="municipal-technical-report__hero">
         <div className="municipal-technical-report__hero-main">
           <div className="municipal-technical-report__hero-copy">
-            <span className="eyebrow">Documento municipal</span>
+            <span className="eyebrow">Documento técnico municipal · Ano-base {mainPeriod}</span>
             <h1>Relatório Técnico Municipal</h1>
-            <p>Síntese das condições educacionais do município, elaborada a partir das bases públicas oficiais mais recentes.</p>
+            <span className="municipal-technical-report__hero-subject">{municipalityName} · Rio Grande do Sul</span>
+            <p>As seções exigidas para o diagnóstico educacional do município, geradas a partir das bases públicas oficiais — prontas para leitura, impressão e entrega, sem preenchimento manual.</p>
           </div>
           <div className="municipal-technical-report__hero-actions">
             <button
@@ -646,9 +647,6 @@ export function MunicipalTechnicalReport({
           <div><dt>Ano-base principal</dt><dd>{mainPeriod}</dd></div>
           <div><dt>Data de geração</dt><dd>{emissionDate}</dd></div>
         </dl>
-        <p className="municipal-technical-report__hero-note">
-          Relatório elaborado a partir de bases públicas oficiais para apoiar o diagnóstico e o planejamento municipal.
-        </p>
       </header>
 
       <nav className="municipal-technical-report__quick-navigation" aria-label="Navegação rápida do relatório">

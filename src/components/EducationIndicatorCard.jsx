@@ -142,6 +142,18 @@ export function EducationIndicatorCard({
         display: currentDisplay,
         metaLabel: unitLabel,
       }
+  const metaLine = !isExploratory && hasCurrentValue
+    ? {
+        year: String(currentYear ?? 'Ano indisponível'),
+        change: comparison
+          ? comparison.difference === 0
+            ? `sem variação desde ${comparison.year}`
+            : `${variationDisplay} desde ${comparison.year}`
+          : seriesPeriod?.initialYear
+            ? `série desde ${seriesPeriod.initialYear}`
+            : null,
+      }
+    : null
   const ariaLabel = isExploratory
     ? [
         `Abrir panorama da infraestrutura escolar. ${title}.`,
@@ -162,6 +174,8 @@ export function EducationIndicatorCard({
     ariaLabel,
     contextLabel,
     description,
+    layout: isExploratory ? undefined : 'uniform',
+    metaLine,
     footer: {
       icon: null,
       primary: isExploratory ? footerLabel : footerContext,
@@ -211,9 +225,7 @@ export function EducationIndicatorCard({
     value,
     modifier: isExploratory
       ? ['panorama-entry', 'panorama-feature']
-      : isPedagogicalResource
-        ? 'compact-copy'
-        : null,
+      : null,
     variant: indicator.cardVariant,
   }
 

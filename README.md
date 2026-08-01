@@ -21,6 +21,7 @@ O servidor local usa `http://127.0.0.1:5173` por padrão. O frontend não precis
 ```powershell
 npm run typecheck
 npm run lint
+npm run check:fast
 npm run build
 npm run test:unit
 npm run test:education
@@ -34,6 +35,8 @@ npm run check:hygiene
 
 Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.0.0.1 --port 5173` em um terminal e `npm run test:e2e` em outro. Defina `BASE_URL` para testar outro endereço.
 
+`npm run test:python` usa o `pytest` como coletor único para toda a suíte Python.
+
 ## Dados estáticos
 
 `public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
@@ -42,11 +45,17 @@ Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.
 npm run update:data
 ```
 
-Ele exporta e particiona os dados, sincroniza `public/data`, atualiza o piloto de desigualdades e o conjunto especializado de Educação, valida os detalhes e executa o build. Para omitir apenas o build:
+Ele exporta e particiona os dados, atualiza Educação, materializa o documento
+compacto de desigualdade, sincroniza `public/data`, valida os detalhes e executa
+o build. Para omitir apenas o build:
 
 ```powershell
 npm run update:data:skip-build
 ```
+
+Para validar rapidamente somente o código da aplicação, sem copiar a árvore
+versionada de dados para `dist`, execute `npm run check:fast` ou apenas
+`npm run build:app`. A publicação continua exigindo `npm run build`.
 
 Para validar um indicador sem publicar dados:
 

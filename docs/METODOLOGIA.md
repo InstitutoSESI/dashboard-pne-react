@@ -58,8 +58,9 @@ Não são projeções estatísticas. Valores financeiros futuros identificados c
 `official_estimate` são importados da publicação oficial e não calculados pela
 plataforma.
 
-O inventário completo, o backtesting e as limitações estão documentados em
-[AUDITORIA_PROJECOES.md](AUDITORIA_PROJECOES.md).
+Os parâmetros, janelas de backtesting e limitações são versionados junto às
+fontes e aos contratos de cálculo em `data_pipeline/src` e
+`data_pipeline/data`.
 
 ## Diagnóstico municipal
 
@@ -103,9 +104,8 @@ percentual e a referência estadual é razão de somas. Não há série 2010–2
 interpolação, tendência ou projeção. O indicador 18+ permanece disponível em
 outros contextos, mas sua relação pública com a Meta 11.b é oculta.
 
-Os arquivos brutos, componentes e hashes estão em
-`data_pipeline/data/pne_goal_11b_census_2022`; a auditoria completa está em
-`docs/PNE_GOAL_11B_15MAIS_AUDIT.md`.
+Os arquivos brutos, componentes, manifesto e hashes estão em
+`data_pipeline/data/pne_goal_11b_census_2022`.
 
 ## PNE 2026 — Metas 12.a e 12.b
 

@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 from typing import Any, Iterable, Mapping
@@ -55,10 +54,7 @@ from src.pne2026_public_diagnostic_v3 import (  # noqa: E402
     PRESENTATION_POLICY_HASH,
     PRESENTATION_POLICY_VERSION,
     PUBLIC_V3_SCHEMA_VERSION,
-    build_pne2026_public_diagnostic_v3,
-    flatten_v2_results,
     rebase_pne2026_public_diagnostic_v3,
-    v2_result_field_inventory,
 )
 from src.pne_macro_round import (  # noqa: E402
     MACRO_RELATION_IDS,
@@ -116,50 +112,24 @@ PROJECTION_MIGRATION_RELATION_IDS = frozenset(
     }
 )
 
-_RELATIONS_BY_ID = {
-    relation["relationId"]: relation for relation in CONTRACT["relations"]
-}
-_RELATIONS_BY_PAIR = {
-    (relation["goalId"], relation["indicatorId"]): relation
-    for relation in CONTRACT["relations"]
-}
 _POLICY_BY_RELATION_ID = {
     entry["relationId"]: entry for entry in POLICY["relations"]
 }
 
 
-class GitBlobSnapshot:
-    def __init__(self, ref: str = "HEAD") -> None:
-        self.ref = ref
-        self.process: subprocess.Popen[bytes] | None = None
+class WorktreeSnapshot:
+    """Leitor uniforme das entradas correntes, sem depender do estado do Git."""
 
-    def __enter__(self) -> "GitBlobSnapshot":
-        self.process = subprocess.Popen(
-            ["git", "cat-file", "--batch"],
-            cwd=REPO_ROOT,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
+    def __enter__(self) -> "WorktreeSnapshot":
         return self
 
     def read_bytes(self, path: str) -> bytes:
-        if (
-            self.process is None
-            or self.process.stdin is None
-            or self.process.stdout is None
-        ):
-            raise RuntimeError("Snapshot Git não inicializado.")
-        self.process.stdin.write(f"{self.ref}:{path}\n".encode("utf-8"))
-        self.process.stdin.flush()
-        header = self.process.stdout.readline().decode("utf-8").strip()
-        if header.endswith(" missing"):
-            raise FileNotFoundError(f"{self.ref}:{path}")
-        _, object_type, size_text = header.split()
-        if object_type != "blob":
-            raise TypeError(f"{self.ref}:{path} não é blob: {header}")
-        payload = self.process.stdout.read(int(size_text))
-        self.process.stdout.read(1)
-        return payload
+        source = (REPO_ROOT / path).resolve()
+        try:
+            source.relative_to(REPO_ROOT.resolve())
+        except ValueError as exc:
+            raise ValueError(f"Entrada fora do repositório: {path}.") from exc
+        return source.read_bytes()
 
     def read_json(self, path: str) -> dict[str, Any]:
         payload = json.loads(self.read_bytes(path))
@@ -168,13 +138,7 @@ class GitBlobSnapshot:
         return payload
 
     def __exit__(self, *_: Any) -> None:
-        if self.process is None:
-            return
-        if self.process.stdin is not None:
-            self.process.stdin.close()
-        if self.process.stdout is not None:
-            self.process.stdout.close()
-        self.process.wait()
+        return None
 
 
 def _serialized(payload: Mapping[str, Any]) -> bytes:
@@ -311,21 +275,7 @@ def validate_staging_output_path(output_dir: Path) -> Path:
     return resolved
 
 
-def _relation_for_v2_result(result: Mapping[str, Any]) -> Mapping[str, Any]:
-    relation_id = result.get("relationId")
-    if relation_id is not None:
-        relation = _RELATIONS_BY_ID.get(str(relation_id))
-        if relation is None:
-            raise RuntimeError(f"relationId V2 desconhecido: {relation_id}.")
-        return relation
-    pair = (str(result.get("goalId")), str(result.get("indicatorId")))
-    relation = _RELATIONS_BY_PAIR.get(pair)
-    if relation is None:
-        raise RuntimeError(f"Relação V2 ausente para {pair[0]} × {pair[1]}.")
-    return relation
-
-
-def _registry(snapshot: GitBlobSnapshot) -> list[dict[str, Any]]:
+def _registry(snapshot: WorktreeSnapshot) -> list[dict[str, Any]]:
     registry = snapshot.read_json("public/data/municipios_index.json")
     entries = list(registry.get("municipios") or [])
     if (
@@ -343,9 +293,7 @@ def _registry(snapshot: GitBlobSnapshot) -> list[dict[str, Any]]:
 def _build_manifest(
     payloads: list[dict[str, Any]],
     municipal_files: Mapping[str, bytes],
-    hidden_excluded: int,
     duplicate_count: int,
-    inventory: Mapping[str, Any],
 ) -> dict[str, Any]:
     result_counts = [len(payload["results"]) for payload in payloads]
     mode_counts: Counter[str] = Counter()
@@ -427,14 +375,13 @@ def _build_manifest(
         "maximumResultsPerMunicipality": max(result_counts, default=0),
         "percentValuesAbove100Count": above_100_by_unit["percent"],
         "countValuesAbove100Count": above_100_by_unit["count"],
-        "hiddenExcludedCount": hidden_excluded,
+        "hiddenExcludedCount": 0,
         "invalidFileCount": 0,
         "duplicateRelationCount": duplicate_count,
         "orphanFileCount": 0,
         "generationHash": _aggregate_hash(
             [*municipal_files.items(), _release_identity_block()]
         ),
-        "v2FieldInventory": inventory,
     }
 
 
@@ -948,11 +895,9 @@ def _consolidated_round_results() -> tuple[
     }
 
 
-def prepare_staging(git_ref: str = "HEAD") -> dict[str, Any]:
+def prepare_staging() -> dict[str, Any]:
     payloads: list[dict[str, Any]] = []
     municipal_files: dict[str, bytes] = {}
-    public_v2_payloads: list[Mapping[str, Any]] = []
-    hidden_excluded = 0
     duplicate_count = 0
     current, active_manifest, active_release_root = _active_release()
     (
@@ -1016,23 +961,10 @@ def prepare_staging(git_ref: str = "HEAD") -> dict[str, Any]:
     changed_non_package_record_count = 0
     changed_tracking_record_count = 0
     changed_projection_record_count = 0
-    with GitBlobSnapshot(git_ref) as snapshot:
+    with WorktreeSnapshot() as snapshot:
         entries = _registry(snapshot)
         for entry in entries:
             municipality_id = str(entry["id_municipio"])
-            diagnostic = snapshot.read_json(
-                f"public/data/municipios/{municipality_id}/diagnostico.json"
-            )
-            public_v2 = diagnostic.get("pne2026PublicDiagnosticV2")
-            if not isinstance(public_v2, Mapping):
-                raise RuntimeError(f"{municipality_id}: bloco V2 ausente.")
-            public_v2_payloads.append(public_v2)
-            raw_results = flatten_v2_results(public_v2)
-            hidden_excluded += sum(
-                _relation_for_v2_result(result)["mode"] == "hidden"
-                for result in raw_results
-            )
-
             special_path = (
                 SPECIAL_EDUCATION_DIR
                 / "municipios"
@@ -1174,13 +1106,10 @@ def prepare_staging(git_ref: str = "HEAD") -> dict[str, Any]:
             municipal_files[relative_path] = _serialized(payload)
             payloads.append(payload)
 
-    inventory = v2_result_field_inventory(public_v2_payloads)
     manifest = _build_manifest(
         payloads,
         municipal_files,
-        hidden_excluded,
         duplicate_count,
-        inventory,
     )
     _assert_manifest_invariants(manifest)
     contents = dict(municipal_files)
@@ -1217,7 +1146,7 @@ def prepare_staging(git_ref: str = "HEAD") -> dict[str, Any]:
                 },
                 "indigenousEducation": {
                     "populationReferenceYear": 2022,
-                    "snapshotGitRef": git_ref,
+                    "sourceState": "worktree",
                     "municipalityCount": EXPECTED_MUNICIPALITIES,
                 },
                 "macroRound": macro_source_metadata,
@@ -1344,13 +1273,8 @@ def main() -> int:
         required=True,
         help="Diretório explícito fora de public/data.",
     )
-    parser.add_argument(
-        "--git-ref",
-        default="HEAD",
-        help="Snapshot Git versionado usado como entrada (padrão: HEAD).",
-    )
     args = parser.parse_args()
-    prepared = prepare_staging(args.git_ref)
+    prepared = prepare_staging()
     output = write_staging(args.output_dir, prepared)
     report = {
         "output": str(output),

@@ -196,6 +196,13 @@ class Pne2026GoalIndicatorContractTests(unittest.TestCase):
         )
         self.assertEqual(len(context["legalReference"]["milestonesAtYear"]), 1)
 
+        profile = get_indicator_reference_profile(
+            "saeb_matematica_anos_iniciais",
+            2030,
+        )
+        self.assertEqual(profile["value"], 70)
+        self.assertEqual(profile["year"], 2031)
+
     def test_normalization_and_hash_are_deterministic(self):
         self.assertEqual(stable_contract_json(), stable_contract_json())
         self.assertEqual(

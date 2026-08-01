@@ -110,59 +110,8 @@ PROJECTION_FIELDS = frozenset(
         "uncertaintyReading",
     }
 )
-_LEGACY_ATTENDANCE_PROJECTION_INDICATORS = frozenset(
-    {"creche", "pre_escola", "basico_6_17"}
-)
-
-DEPRECATED_V2_RESULT_FIELDS = frozenset(
-    {
-        "tracksGoal",
-        "tracks_goal",
-        "hasDistance",
-        "relationshipType",
-        "linkType",
-        "classificationPolicy",
-        "valuePolicy",
-        "tier",
-        "priorityOrder",
-        "summaryPriority",
-        "displayOrder",
-        "resultOrder",
-        "themeId",
-        "displayGroup",
-        "mode",
-        "canDistance",
-        "canStatus",
-        "canProjection",
-        "includeInDiagnostic",
-        "includeInReferenceSummary",
-        "target",
-        "meta",
-        "metaLabel",
-        "meta_label",
-        "deadline",
-        "direction",
-        "formulaId",
-        "sourceIds",
-        "territoriality",
-        "publicName",
-        "publicDescription",
-        "relationshipReading",
-        "legalGoal",
-        "indicatorReference",
-        "finalReference",
-        "methodology",
-        "source",
-        "current",
-    }
-)
-
 _RELATIONS_BY_ID = {
     relation["relationId"]: relation for relation in CONTRACT["relations"]
-}
-_RELATIONS_BY_PAIR = {
-    (relation["goalId"], relation["indicatorId"]): relation
-    for relation in CONTRACT["relations"]
 }
 _POLICY_BY_RELATION_ID = {
     entry["relationId"]: entry for entry in POLICY["relations"]
@@ -184,18 +133,6 @@ def _is_finite_number(value: Any) -> bool:
         and not isinstance(value, bool)
         and math.isfinite(float(value))
     )
-
-
-def _copy_if_present(
-    destination: dict[str, Any],
-    source: Mapping[str, Any],
-    source_field: str,
-    destination_field: str | None = None,
-) -> None:
-    if source_field in source and source[source_field] is not None:
-        destination[destination_field or source_field] = deepcopy(
-            source[source_field]
-        )
 
 
 def _component_labels(relation: Mapping[str, Any]) -> tuple[str | None, str | None]:
@@ -238,126 +175,6 @@ def _set_component_fields(
         projected["numeratorValue"] = float(numerator)
     if _is_finite_number(denominator):
         projected["denominatorValue"] = float(denominator)
-
-
-def _normalize_result_for_relation(
-    relation: Mapping[str, Any],
-    projected: dict[str, Any],
-) -> dict[str, Any]:
-    legacy_numerator = projected.pop("numerator", None)
-    legacy_denominator = projected.pop("denominator", None)
-    _set_component_fields(
-        projected,
-        relation,
-        numerator=projected.get("numeratorValue", legacy_numerator),
-        denominator=projected.get("denominatorValue", legacy_denominator),
-        numerator_field=(
-            projected.get("numeratorField")
-            if projected.get("numeratorField") is not None
-            else legacy_numerator
-        ),
-        denominator_field=(
-            projected.get("denominatorField")
-            if projected.get("denominatorField") is not None
-            else legacy_denominator
-        ),
-    )
-    status = str(projected.get("dataStatus") or "available")
-    projected["dataStatus"] = status
-    if status != "available":
-        for field in (
-            "year",
-            "value",
-            "numeratorValue",
-            "denominatorValue",
-            "resolvedReferenceId",
-            "distance",
-            "remainingGap",
-            "favorableDifference",
-            "status",
-            "classification",
-            "publicReading",
-            "stateComparison",
-            "statewidePosition",
-            "similarMunicipalityComparison",
-            "trend",
-            "projection",
-        ):
-            projected.pop(field, None)
-        return projected
-    if relation["mode"] == "complementary":
-        for field in (
-            "resolvedReferenceId",
-            "distance",
-            "remainingGap",
-            "favorableDifference",
-            "status",
-            "classification",
-            "trend",
-            "projection",
-        ):
-            projected.pop(field, None)
-        projected["publicReading"] = (
-            "Resultado municipal disponível para consulta, sem referência "
-            "municipal."
-        )
-        return projected
-    if relation["mode"] == "progress" and _is_finite_number(
-        projected.get("value")
-    ):
-        reference = resolve_legal_reference(
-            str(relation["goalId"]),
-            str(relation["indicatorId"]),
-            projected.get("year"),
-        )
-        milestone = (reference or {}).get("milestone") or {}
-        if _is_finite_number(milestone.get("value")):
-            value = float(projected["value"])
-            target = float(milestone["value"])
-            direction = str(milestone.get("direction") or "at_least")
-            projected["status"] = (
-                "Dentro do limite"
-                if direction == "at_most" and value <= target
-                else "Acima do limite"
-                if direction == "at_most"
-                else "Referência alcançada"
-                if value >= target
-                else "Abaixo da referência"
-            )
-    return _apply_tracking_comparison(relation, projected)
-
-
-def _resolve_relation(goal_id: str, result: Mapping[str, Any]) -> Mapping[str, Any]:
-    relation_id = result.get("relationId")
-    pair = (str(goal_id), str(result.get("indicatorId")))
-    pair_relation = _RELATIONS_BY_PAIR.get(pair)
-    if relation_id is not None:
-        relation = _RELATIONS_BY_ID.get(str(relation_id))
-        _require(relation is not None, f"relationId desconhecido: {relation_id}.")
-        _require(
-            pair_relation is not None
-            and pair_relation["relationId"] == relation["relationId"],
-            (
-                f"{relation_id} não corresponde a "
-                f"{goal_id} × {result.get('indicatorId')}."
-            ),
-        )
-        return relation
-    _require(
-        pair_relation is not None,
-        f"Relação ausente para {goal_id} × {result.get('indicatorId')}.",
-    )
-    return pair_relation
-
-
-def _technical_index(
-    diagnostic_contract: Mapping[str, Any],
-) -> dict[str, Mapping[str, Any]]:
-    return {
-        str(item["indicatorId"]): item
-        for item in diagnostic_contract.get("indicators") or []
-        if item.get("indicatorId")
-    }
 
 
 def _tracking_public_reading(
@@ -443,87 +260,82 @@ def _apply_tracking_comparison(
     return projected
 
 
-def _project_result(
+def _normalize_result_for_relation(
     relation: Mapping[str, Any],
     result: Mapping[str, Any],
-    technical: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    current = result.get("current") or {}
-    data_status = str(result.get("dataStatus") or "available")
-    projected: dict[str, Any] = {
-        "relationId": relation["relationId"],
-        "goalId": relation["goalId"],
-        "indicatorId": relation["indicatorId"],
-        "dataStatus": data_status,
-    }
-    if data_status == "available":
-        projected["year"] = current.get("year")
-        projected["value"] = current.get("value")
-    if result.get("reasonCode"):
-        projected["reasonCode"] = str(result["reasonCode"])
-
-    methodology = (technical or {}).get("methodology") or {}
+    projected = deepcopy(dict(result))
     _set_component_fields(
         projected,
         relation,
-        numerator=(
-            result.get("numerator")
-            if _is_finite_number(result.get("numerator"))
-            else current.get("numerator")
-        ),
-        denominator=(
-            result.get("denominator")
-            if _is_finite_number(result.get("denominator"))
-            else current.get("denominator")
-        ),
-        numerator_field=methodology.get("numerator"),
-        denominator_field=methodology.get("denominator"),
+        numerator=projected.get("numeratorValue"),
+        denominator=projected.get("denominatorValue"),
+        numerator_field=projected.get("numeratorField"),
+        denominator_field=projected.get("denominatorField"),
     )
-
-    if (
-        relation["mode"] == "progress"
-        and relation.get("referenceId")
-        and result.get("indicatorReference")
-    ):
-        projected["resolvedReferenceId"] = relation["referenceId"]
-    if relation.get("canDistance"):
-        for field in ("distance", "remainingGap", "favorableDifference"):
-            _copy_if_present(projected, result, field)
-    if relation.get("canStatus"):
-        if "classification" in result:
-            projected["classification"] = result.get("classification")
-        _copy_if_present(projected, result, "status")
-    _copy_if_present(projected, result, "publicReading")
-
-    if relation.get("stateReferencePolicy") != "none":
-        _copy_if_present(projected, result, "stateComparison")
-        _copy_if_present(projected, result, "statewidePosition")
-        _copy_if_present(
-            projected,
-            result,
-            "similarMunicipalities",
+    status = str(projected.get("dataStatus") or "available")
+    projected["dataStatus"] = status
+    if status != "available":
+        for field in (
+            "year",
+            "value",
+            "numeratorValue",
+            "denominatorValue",
+            "resolvedReferenceId",
+            "distance",
+            "remainingGap",
+            "favorableDifference",
+            "status",
+            "classification",
+            "publicReading",
+            "stateComparison",
+            "statewidePosition",
             "similarMunicipalityComparison",
+            "trend",
+            "projection",
+        ):
+            projected.pop(field, None)
+        return projected
+    if relation["mode"] == "complementary":
+        for field in (
+            "resolvedReferenceId",
+            "distance",
+            "remainingGap",
+            "favorableDifference",
+            "status",
+            "classification",
+            "trend",
+            "projection",
+        ):
+            projected.pop(field, None)
+        projected["publicReading"] = (
+            "Resultado municipal disponível para consulta, sem referência "
+            "municipal."
         )
-
-    if relation.get("canProjection") and isinstance(
-        result.get("trajectory"), Mapping
+        return projected
+    if relation["mode"] == "progress" and _is_finite_number(
+        projected.get("value")
     ):
-        trajectory = result["trajectory"]
-        trend = {
-            key: deepcopy(trajectory[key])
-            for key in TREND_FIELDS
-            if trajectory.get(key) is not None
-        }
-        projection = {
-            key: deepcopy(trajectory[key])
-            for key in PROJECTION_FIELDS
-            if trajectory.get(key) is not None
-        }
-        if trend:
-            projected["trend"] = trend
-        if projection:
-            projected["projection"] = projection
-    return _normalize_result_for_relation(relation, projected)
+        reference = resolve_legal_reference(
+            str(relation["goalId"]),
+            str(relation["indicatorId"]),
+            projected.get("year"),
+        )
+        milestone = (reference or {}).get("milestone") or {}
+        if _is_finite_number(milestone.get("value")):
+            value = float(projected["value"])
+            target = float(milestone["value"])
+            direction = str(milestone.get("direction") or "at_least")
+            projected["status"] = (
+                "Dentro do limite"
+                if direction == "at_most" and value <= target
+                else "Acima do limite"
+                if direction == "at_most"
+                else "Referência alcançada"
+                if value >= target
+                else "Abaixo da referência"
+            )
+    return _apply_tracking_comparison(relation, projected)
 
 
 def _project_methodology_result(
@@ -664,93 +476,6 @@ def build_v3_summary(results: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
-def build_pne2026_public_diagnostic_v3(
-    diagnostic_contract: Mapping[str, Any],
-    *,
-    methodology_results: Mapping[str, Mapping[str, Any]] | None = None,
-) -> dict[str, Any]:
-    public_v2 = diagnostic_contract.get("pne2026PublicDiagnosticV2")
-    _require(isinstance(public_v2, Mapping), "Bloco municipal V2 ausente.")
-    technical_by_indicator = _technical_index(diagnostic_contract)
-    results: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    methodology_results = dict(methodology_results or {})
-    for goal in public_v2.get("goals") or []:
-        goal_id = str(goal.get("goalId"))
-        for raw_result in goal.get("results") or []:
-            relation = _resolve_relation(goal_id, raw_result)
-            if relation["relationId"] in methodology_results:
-                continue
-            if (
-                relation["mode"] == "hidden"
-                or relation.get("includeInDiagnostic") is not True
-            ):
-                continue
-            policy = get_presentation_entry(relation["relationId"])
-            _require(
-                policy is not None,
-                f"Política editorial ausente: {relation['relationId']}.",
-            )
-            _require(
-                relation["relationId"] not in seen,
-                f"relationId duplicado: {relation['relationId']}.",
-            )
-            seen.add(relation["relationId"])
-            results.append(
-                _project_result(
-                    relation,
-                    raw_result,
-                    technical_by_indicator.get(relation["indicatorId"]),
-                )
-            )
-    for relation_id, methodology_result in methodology_results.items():
-        relation = _RELATIONS_BY_ID.get(str(relation_id))
-        _require(relation is not None, f"relationId desconhecido: {relation_id}.")
-        if (
-            relation["mode"] == "hidden"
-            or relation.get("includeInDiagnostic") is not True
-        ):
-            continue
-        policy = get_presentation_entry(relation["relationId"])
-        _require(
-            policy is not None,
-            f"Política editorial ausente: {relation['relationId']}.",
-        )
-        _require(
-            relation["relationId"] not in seen,
-            f"relationId duplicado: {relation['relationId']}.",
-        )
-        projected = _project_methodology_result(relation, methodology_result)
-        seen.add(relation["relationId"])
-        results.append(projected)
-    _append_missing_eligible_results(results, seen)
-    results.sort(
-        key=lambda result: _POLICY_BY_RELATION_ID[result["relationId"]][
-            "displayOrder"
-        ]
-    )
-    payload = {
-        "schemaVersion": PUBLIC_V3_SCHEMA_VERSION,
-        "contractVersion": CONTRACT_VERSION,
-        "contractHash": contract_hash(),
-        "presentationPolicyVersion": str(POLICY["policyVersion"]),
-        "presentationPolicyHash": policy_hash(),
-        "municipality": {
-            "id": str(
-                public_v2.get("municipalityId")
-                or diagnostic_contract.get("municipalityId")
-            ),
-            "name": str(
-                public_v2.get("municipalityName")
-                or diagnostic_contract.get("municipalityName")
-            ),
-        },
-        "summary": build_v3_summary(results),
-        "results": results,
-    }
-    return validate_pne2026_public_diagnostic_v3(payload)
-
-
 def rebase_pne2026_public_diagnostic_v3(
     active_payload: Mapping[str, Any],
     *,
@@ -818,11 +543,10 @@ def rebase_pne2026_public_diagnostic_v3(
             f"Política editorial ausente: {relation_id}.",
         )
         seen.add(relation_id)
-        migrated_result = _upgrade_legacy_attendance_projection(raw_result)
         results.append(
             _normalize_result_for_relation(
                 relation,
-                migrated_result,
+                raw_result,
             )
         )
 
@@ -858,44 +582,6 @@ def rebase_pne2026_public_diagnostic_v3(
         "results": results,
     }
     return validate_pne2026_public_diagnostic_v3(payload)
-
-
-def _upgrade_legacy_attendance_projection(
-    raw_result: Mapping[str, Any],
-) -> dict[str, Any]:
-    result = deepcopy(dict(raw_result))
-    projection = result.get("projection")
-    if (
-        result.get("indicatorId") not in _LEGACY_ATTENDANCE_PROJECTION_INDICATORS
-        or not isinstance(projection, Mapping)
-    ):
-        return result
-    uses_state_enrollment_trend = result.get("indicatorId") == "pre_escola"
-    result["projection"] = {
-        "modelReading": (
-            (
-                "Cenário em que o nível municipal parte da última matrícula e "
-                "acompanha a tendência estadual amortecida das matrículas, "
-                "selecionada por validação fora da amostra."
-            )
-            if uses_state_enrollment_trend
-            else (
-                "Linha de base que mantém o número de matrículas observado mais "
-                "recente; alternativas tendenciais foram testadas, mas não "
-                "reduziram o erro de forma robusta."
-            )
-        ),
-        "denominatorReading": (
-            "O denominador parte da população municipal observada e acompanha "
-            "a variação etária projetada para o Rio Grande do Sul."
-        ),
-        "uncertaintyReading": (
-            "O teste retrospectivo cobre horizontes de um a cinco anos. O "
-            "cenário não possui intervalo probabilístico até 2036 e não é uma "
-            "previsão oficial; por isso, não é divulgado um ano exato de alcance."
-        ),
-    }
-    return result
 
 
 def _validate_exact_fields(
@@ -1195,51 +881,15 @@ def validate_pne2026_public_diagnostic_v3(
     return deepcopy(dict(candidate))
 
 
-def flatten_v2_results(public_v2: Mapping[str, Any]) -> list[dict[str, Any]]:
-    return [
-        {"goalId": str(goal["goalId"]), **dict(result)}
-        for goal in public_v2.get("goals") or []
-        for result in goal.get("results") or []
-    ]
-
-
-def v2_result_field_inventory(
-    public_payloads: Iterable[Mapping[str, Any]],
-) -> dict[str, list[str]]:
-    top: set[str] = set()
-    summary: set[str] = set()
-    result: set[str] = set()
-    current: set[str] = set()
-    for public_v2 in public_payloads:
-        top.update(public_v2)
-        summary.update((public_v2.get("summary") or {}).keys())
-        for item in flatten_v2_results(public_v2):
-            result.update(item)
-            current.update((item.get("current") or {}).keys())
-    return {
-        "topLevel": sorted(top),
-        "summary": sorted(summary),
-        "result": sorted(result),
-        "current": sorted(current),
-        "deprecatedResultFieldsPresent": sorted(
-            result & DEPRECATED_V2_RESULT_FIELDS
-        ),
-    }
-
-
 __all__ = [
     "CONTRACT_HASH",
-    "DEPRECATED_V2_RESULT_FIELDS",
     "PRESENTATION_POLICY_HASH",
     "PRESENTATION_POLICY_VERSION",
     "PUBLIC_V3_SCHEMA_VERSION",
     "Pne2026PublicDiagnosticV3Error",
     "RESULT_FIELDS",
     "TOP_LEVEL_FIELDS",
-    "build_pne2026_public_diagnostic_v3",
     "build_v3_summary",
-    "flatten_v2_results",
     "rebase_pne2026_public_diagnostic_v3",
     "validate_pne2026_public_diagnostic_v3",
-    "v2_result_field_inventory",
 ]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -12,10 +13,27 @@ from pathlib import Path
 DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.config import PARTITIONED_DATA_DIR, PUBLIC_DATA_DIR, REPO_ROOT  # noqa: E402
+from src.config import (  # noqa: E402
+    PUBLIC_DATA_DIR,
+    REPO_ROOT,
+    STATIC_PARTITIONED_DATA_DIR,
+)
 
 PYTHON = sys.executable
 NPM = "npm.cmd" if os.name == "nt" else "npm"
+EXPECTED_MUNICIPALITIES = 497
+ROOT_STATIC_FILES = frozenset(
+    {"indicadores.json", "municipios.json", "municipios_index.json"}
+)
+CYCLE_STATIC_FILES = frozenset(
+    {
+        "pne_2014_2024/referencia_estadual.json",
+        "pne_2026_2036/referencia_estadual.json",
+    }
+)
+MUNICIPAL_STATIC_FILES = frozenset(
+    {"details.json", "diagnostico.json", "index.json"}
+)
 
 try:
     sys.stdout.reconfigure(line_buffering=True)
@@ -28,6 +46,14 @@ class StepResult:
     name: str
     status: str
     duration: float | None = None
+
+
+@dataclass(frozen=True)
+class SyncStats:
+    created: int
+    updated: int
+    preserved: int
+    removed: int
 
 
 def format_command(command: list[str]) -> str:
@@ -100,57 +126,170 @@ def iter_files(root: Path) -> list[Path]:
     return sorted(path for path in root.rglob("*") if path.is_file())
 
 
-def sync_partitioned_to_public(results: list[StepResult]) -> None:
+def is_managed_static_path(relative: Path) -> bool:
+    normalized = relative.as_posix()
+    if normalized in ROOT_STATIC_FILES or normalized in CYCLE_STATIC_FILES:
+        return True
+    return (
+        len(relative.parts) == 3
+        and relative.parts[0] == "municipios"
+        and len(relative.parts[1]) == 7
+        and relative.parts[1].isdigit()
+        and relative.parts[2] in MUNICIPAL_STATIC_FILES
+    )
+
+
+def validate_static_partition(
+    source_root: Path,
+    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
+) -> list[Path]:
+    source_files = iter_files(source_root)
+    unexpected = [
+        path.relative_to(source_root).as_posix()
+        for path in source_files
+        if not is_managed_static_path(path.relative_to(source_root))
+    ]
+    if unexpected:
+        preview = ", ".join(unexpected[:5])
+        raise RuntimeError(
+            "[update-data] Staging estatico contem arquivos fora do contrato: "
+            f"{preview}."
+        )
+
+    required = ROOT_STATIC_FILES | CYCLE_STATIC_FILES
+    available = {path.relative_to(source_root).as_posix() for path in source_files}
+    missing = sorted(required - available)
+    if missing:
+        raise RuntimeError(
+            "[update-data] Staging estatico incompleto; ausentes: " + ", ".join(missing)
+        )
+
+    municipal_contracts: dict[str, set[str]] = {}
+    for path in source_files:
+        relative = path.relative_to(source_root)
+        if len(relative.parts) == 3 and relative.parts[0] == "municipios":
+            municipal_contracts.setdefault(relative.parts[1], set()).add(path.name)
+
+    if len(municipal_contracts) != expected_municipalities:
+        raise RuntimeError(
+            "[update-data] Staging estatico contem "
+            f"{len(municipal_contracts)} municipios; esperado {expected_municipalities}."
+        )
+
+    incomplete = {
+        municipality_id: sorted(MUNICIPAL_STATIC_FILES - filenames)
+        for municipality_id, filenames in municipal_contracts.items()
+        if filenames != MUNICIPAL_STATIC_FILES
+    }
+    if incomplete:
+        preview = ", ".join(
+            f"{municipality_id}: {','.join(missing)}"
+            for municipality_id, missing in sorted(incomplete.items())[:5]
+        )
+        raise RuntimeError(
+            "[update-data] Staging estatico contem contratos municipais "
+            f"incompletos: {preview}."
+        )
+
+    return source_files
+
+
+def iter_managed_public_files(public_root: Path) -> list[Path]:
+    managed: list[Path] = []
+    for relative in sorted(ROOT_STATIC_FILES | CYCLE_STATIC_FILES):
+        path = public_root / Path(relative)
+        if path.is_file():
+            managed.append(path)
+
+    municipal_root = public_root / "municipios"
+    if municipal_root.is_dir():
+        for directory in sorted(path for path in municipal_root.iterdir() if path.is_dir()):
+            for filename in sorted(MUNICIPAL_STATIC_FILES):
+                path = directory / filename
+                if path.is_file():
+                    managed.append(path)
+    return managed
+
+
+def files_match(source: Path, target: Path) -> bool:
+    if not target.is_file():
+        return False
+    source_stat = source.stat()
+    target_stat = target.stat()
+    if source_stat.st_size != target_stat.st_size:
+        return False
+    if source_stat.st_mtime_ns == target_stat.st_mtime_ns:
+        return True
+
+    chunk_size = 1024 * 1024
+    with source.open("rb") as source_file, target.open("rb") as target_file:
+        while True:
+            source_chunk = source_file.read(chunk_size)
+            target_chunk = target_file.read(chunk_size)
+            if source_chunk != target_chunk:
+                return False
+            if not source_chunk:
+                return True
+
+
+def copy_file_atomically(source: Path, target: Path) -> None:
+    temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    try:
+        shutil.copy2(source, temporary)
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def sync_partitioned_to_public(
+    results: list[StepResult],
+    source_root: Path = STATIC_PARTITIONED_DATA_DIR,
+    public_root: Path = PUBLIC_DATA_DIR,
+    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
+) -> SyncStats:
     name = "sync"
-    print(f"[update-data] Iniciando {name}: {PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}")
+    print(f"[update-data] Iniciando {name}: {source_root} -> {public_root}")
     start = time.perf_counter()
 
-    if not PARTITIONED_DATA_DIR.exists():
-        raise SystemExit(f"[update-data] Diretorio particionado nao encontrado: {PARTITIONED_DATA_DIR}")
-    if not PUBLIC_DATA_DIR.exists():
-        raise SystemExit(f"[update-data] Diretorio public/data nao encontrado: {PUBLIC_DATA_DIR}")
+    if not source_root.exists():
+        raise RuntimeError(f"[update-data] Diretorio particionado nao encontrado: {source_root}")
+    if not public_root.exists():
+        raise RuntimeError(f"[update-data] Diretorio public/data nao encontrado: {public_root}")
 
-    source_files = iter_files(PARTITIONED_DATA_DIR)
+    source_files = validate_static_partition(source_root, expected_municipalities)
     expected_targets: set[Path] = set()
     created = updated = preserved = removed = 0
 
     for source in source_files:
-        relative = source.relative_to(PARTITIONED_DATA_DIR)
-        target = PUBLIC_DATA_DIR / relative
+        relative = source.relative_to(source_root)
+        target = public_root / relative
         expected_targets.add(target.resolve())
         target.parent.mkdir(parents=True, exist_ok=True)
 
-        source_bytes = source.read_bytes()
-        if target.exists():
-            if target.read_bytes() == source_bytes:
-                preserved += 1
-                continue
-            action = "updated"
-        else:
-            action = "created"
+        if files_match(source, target):
+            preserved += 1
+            continue
+        action = "updated" if target.exists() else "created"
 
-        target.write_bytes(source_bytes)
+        copy_file_atomically(source, target)
         if action == "created":
             created += 1
         else:
             updated += 1
 
-    preserved_roots = {(PUBLIC_DATA_DIR / "educacao").resolve()}
-
-    for target in iter_files(PUBLIC_DATA_DIR):
-        if target.suffix.lower() != ".json":
-            continue
-        if any(root in target.resolve().parents for root in preserved_roots):
-            continue
+    for target in iter_managed_public_files(public_root):
         if target.resolve() not in expected_targets:
             target.unlink()
             removed += 1
 
-    for directory in sorted(
-        (path for path in PUBLIC_DATA_DIR.rglob("*") if path.is_dir()),
-        key=lambda path: len(path.parts),
-        reverse=True,
-    ):
+    municipal_root = public_root / "municipios"
+    directories = (
+        [path for path in municipal_root.iterdir() if path.is_dir()]
+        if municipal_root.is_dir()
+        else []
+    )
+    for directory in sorted(directories):
         try:
             directory.rmdir()
         except OSError:
@@ -158,11 +297,13 @@ def sync_partitioned_to_public(results: list[StepResult]) -> None:
 
     duration = time.perf_counter() - start
     results.append(StepResult(name, "ok", duration))
+    stats = SyncStats(created, updated, preserved, removed)
     print(f"[update-data] {name} concluido em {duration:.1f}s.")
-    print(f"[update-data] sync criados: {created}")
-    print(f"[update-data] sync atualizados: {updated}")
-    print(f"[update-data] sync preservados: {preserved}")
-    print(f"[update-data] sync removidos: {removed}")
+    print(f"[update-data] sync criados: {stats.created}")
+    print(f"[update-data] sync atualizados: {stats.updated}")
+    print(f"[update-data] sync preservados: {stats.preserved}")
+    print(f"[update-data] sync removidos: {stats.removed}")
+    return stats
 
 
 def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_build: bool) -> None:
@@ -171,10 +312,20 @@ def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_bui
     status = run_git_status()
     print(status or "[update-data] Git status atual: limpo.")
 
+    sync_printed = False
     for name, command in commands:
         print(f"[update-data] Rodaria {name}: {format_command(command)}")
-    if run_sync:
-        print(f"[update-data] Rodaria sync: {PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}")
+        if name == "inequality" and run_sync:
+            print(
+                "[update-data] Rodaria sync: "
+                f"{STATIC_PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}"
+            )
+            sync_printed = True
+    if run_sync and not sync_printed:
+        print(
+            "[update-data] Rodaria sync: "
+            f"{STATIC_PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}"
+        )
     if run_build:
         print(f"[update-data] Rodaria build: {format_command([NPM, 'run', 'build'])}")
 
@@ -258,10 +409,6 @@ def main() -> int:
         PYTHON,
         "data_pipeline/scripts/export_education_indicators.py",
     ]
-    inequality_pilot_command = [
-        PYTHON,
-        "data_pipeline/scripts/refresh_municipal_inequality_pilot.py",
-    ]
     validate_command = [NPM, "run", "validate:details"]
     build_command = [NPM, "run", "build"]
 
@@ -283,17 +430,29 @@ def main() -> int:
     run_partition = not args.skip_partition and not args.education_only
     run_sync = run_partition
     run_education = not args.skip_education
+    run_inequality = run_partition or run_education
     run_build = not args.skip_build
+    inequality_output_root = (
+        STATIC_PARTITIONED_DATA_DIR / "municipios"
+        if run_partition
+        else PUBLIC_DATA_DIR / "municipios"
+    )
+    inequality_command = [
+        PYTHON,
+        "data_pipeline/scripts/materialize_municipal_inequality.py",
+        "--output-root",
+        str(inequality_output_root),
+    ]
 
     planned_commands: list[tuple[str, list[str]]] = []
     if run_export:
         planned_commands.append(("export", export_command))
     if run_partition:
         planned_commands.append(("partition", partition_command))
-    if run_export or run_partition:
-        planned_commands.append(("inequality-pilot", inequality_pilot_command))
     if run_education:
         planned_commands.append(("education", education_command))
+    if run_inequality:
+        planned_commands.append(("inequality", inequality_command))
     planned_commands.append(("validate", validate_command))
 
     if args.dry_run:
@@ -310,19 +469,21 @@ def main() -> int:
 
     if run_partition:
         run_command("partition", partition_command, results)
-        sync_partitioned_to_public(results)
     else:
         skipped.extend(["partition", "sync"])
-
-    if run_export or run_partition:
-        run_command("inequality-pilot", inequality_pilot_command, results)
-    else:
-        skipped.append("inequality-pilot")
 
     if run_education:
         run_command("education", education_command, results)
     else:
         skipped.append("education")
+
+    if run_inequality:
+        run_command("inequality", inequality_command, results)
+    else:
+        skipped.append("inequality")
+
+    if run_sync:
+        sync_partitioned_to_public(results)
 
     run_command("validate", validate_command, results)
     validate_ok = True

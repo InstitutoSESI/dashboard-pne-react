@@ -7,7 +7,7 @@ import '@fontsource/public-sans/latin-700.css'
 import '@fontsource/source-serif-4/latin-600.css'
 import '@fontsource/source-serif-4/latin-700.css'
 import './index.css'
-import App from './App.jsx'
+import App from './App'
 import './styles/institutional-refresh.css'
 
 createRoot(document.getElementById('root')).render(

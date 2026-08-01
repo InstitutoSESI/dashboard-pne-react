@@ -6,7 +6,6 @@ import time
 
 import pandas as pd
 
-from src.pne2026_public_diagnostic_v2 import apply_pne2026_diagnostic_presentation
 
 from src.data_loader import get_data_cache_ttl_seconds, load_adequacao_docente_data, load_atendimento_educacional_especializado_data, load_basico_15_17_data, load_basico_6_17_data, load_basico_integral_data, load_censo_populacao_alfabetizacao_data, load_censo_populacao_ensino_fundamental_concluido_15_29_data, load_censo_populacao_ensino_fundamental_concluido_15_mais_data, load_censo_populacao_ensino_fundamental_concluido_18_mais_data, load_censo_populacao_ensino_medio_concluido_18_29_data, load_censo_populacao_ensino_medio_concluido_18_mais_data, load_docentes_pos_graduacao_data, load_docentes_temporarios_data, load_eja_integrada_educacao_profissional_data, load_escolas_integral_data, load_ept_nivel_medio_data, load_infraestrutura_escolar_data, load_medio_tecnico_articulado_data, load_pne_data, load_pne_2026_2036_metricas_data, load_pre_escola_data, load_rendimento_professores_data, load_saeb_proficiencia_data, load_taxa_alfabetizacao_data, load_distorcao_idade_serie_data
 from src.data_loader import load_school_infrastructure_contract
@@ -160,36 +159,33 @@ META_MEDIO_CONCLUIDO_18_29 = _contract_reference_value(
 META_ALFABETIZACAO = _contract_milestone_value("alfabetizacao", -1)
 
 META_SAEB_ADEQUADO = {
-    "anos_iniciais": _contract_milestone_value(
-        "saeb_matematica_anos_iniciais",
-        0,
+    "anos_iniciais": _contract_reference_value(
+        "saeb_matematica_anos_iniciais"
     ),
-    "anos_finais": _contract_milestone_value(
-        "saeb_matematica_anos_finais",
-        0,
+    "anos_finais": _contract_reference_value(
+        "saeb_matematica_anos_finais"
     ),
-    "ensino_medio": _contract_milestone_value(
-        "saeb_matematica_ensino_medio",
-        0,
+    "ensino_medio": _contract_reference_value(
+        "saeb_matematica_ensino_medio"
     ),
 }
 
 META_SAEB_BASICO = {
     "anos_iniciais": _contract_goal_milestone_value(
         "5.a",
-        "reference.5.a.saeb_anos_iniciais",
+        "reference.5.a.saeb_matematica_anos_iniciais",
         0,
         dimension="basic_or_higher",
     ),
     "anos_finais": _contract_goal_milestone_value(
         "5.b",
-        "reference.5.b.saeb_anos_finais",
+        "reference.5.b.saeb_matematica_anos_finais",
         0,
         dimension="basic_or_higher",
     ),
     "ensino_medio": _contract_goal_milestone_value(
         "5.d",
-        "reference.5.d.saeb_ensino_medio",
+        "reference.5.d.saeb_matematica_ensino_medio",
         0,
         dimension="basic_or_higher",
     ),
@@ -1771,10 +1767,16 @@ def _apply_canonical_indicator_catalog():
                 if relation.get("mode") in {"complementary", "hidden"}:
                     item.pop("meta_label", None)
                     item["tracks_goal"] = False
+            context = get_relation_context_for_indicator(item["key"])
+            relation = (context or {}).get("relation") or {}
+            if relation:
+                item["goalId"] = relation["goalId"]
+                item["monitoring_mode"] = relation["mode"]
+                if relation["mode"] != "progress":
+                    item["include_in_cycle_summary"] = False
 
 
 _apply_canonical_indicator_catalog()
-apply_pne2026_diagnostic_presentation(INDICADORES)
 
 CATEGORY_ORDER = [
     "atendimento",

@@ -1,6 +1,6 @@
 import { PNE_2026_GOAL_INDICATOR_CONTRACT } from './pne2026GoalIndicatorContract.js'
 
-// Adapter de compatibilidade: a definição autoral permanece no contrato canônico.
+// Leitura pública derivada diretamente do contrato canônico.
 export const PNE_2026_GOAL_TEXTS = Object.freeze(
   Object.fromEntries(
     Object.values(PNE_2026_GOAL_INDICATOR_CONTRACT.goals)
