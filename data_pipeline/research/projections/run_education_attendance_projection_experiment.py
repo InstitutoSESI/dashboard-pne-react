@@ -8,13 +8,13 @@ import sys
 from pathlib import Path
 
 
-DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
+DATA_PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.config import PIPELINE_EXPORT_DIR, POPULATION_PROJECTION_SOURCE_PATH  # noqa: E402
 from src.data.repository import get_local_postgres_engine  # noqa: E402
-from src.education_attendance_projection_experiment import (  # noqa: E402
+from research.projections.education_attendance_projection_experiment import (  # noqa: E402
     DEFAULT_SEED,
     load_enrollment_panel,
     load_population_panel,
@@ -67,4 +67,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

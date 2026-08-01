@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 
 
-DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
+DATA_PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.education_attendance_projection_experiment import (  # noqa: E402
+from research.projections.education_attendance_projection_experiment import (  # noqa: E402
     Candidate,
     ForecastEngine,
     _theil_sen_log_slope,

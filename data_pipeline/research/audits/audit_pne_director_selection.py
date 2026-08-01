@@ -11,7 +11,7 @@ import sys
 import openpyxl
 
 
-DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
+DATA_PIPELINE_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.pne_macro_ingestion import (  # noqa: E402

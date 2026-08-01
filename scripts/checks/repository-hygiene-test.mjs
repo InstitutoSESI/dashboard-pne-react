@@ -11,6 +11,15 @@ const tracked = execFileSync('git', ['ls-files', '-z'], {
   maxBuffer: 16 * 1024 * 1024,
 }).split('\0').filter(Boolean)
 
+const retiredFinanceContractName = ['MunicipalFinance', 'PrototypeDocumentV1'].join('')
+const retiredFinanceMethodology = ['municipal-finance', 'p5a-v1'].join('-')
+const retiredOperationalResearchPaths = [
+  ['data_pipeline', 'scripts', 'audit_pne_director_selection.py'].join('/'),
+  ['data_pipeline', 'scripts', 'audit_pne_inec_connectivity.py'].join('/'),
+  ['data_pipeline', 'src', 'education_attendance_projection_experiment.py'].join('/'),
+  ['data_pipeline', 'scripts', 'run_education_attendance_projection_experiment.py'].join('/'),
+]
+
 const forbiddenTracked = [
   /^(?:artifacts|outputs|dist|coverage|playwright-report|test-results|screenshots|inspection)\//i,
   /^data_pipeline\/(?:cache|export)\//i,
@@ -24,6 +33,69 @@ assert.deepEqual(violations, [], `Arquivos temporários rastreados:\n${violation
 assert.ok(
   !existsSync(resolve(repoRoot, 'public/data/municipios.json')),
   'O agregado municipal interno não pode voltar ao contrato público.',
+)
+
+const productionCodeFiles = tracked.filter((path) => (
+  (
+    path.startsWith('src/')
+    || path.startsWith('data_pipeline/src/')
+    || path.startsWith('data_pipeline/scripts/')
+    || path.startsWith('scripts/checks/')
+  )
+  && ['.py', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'].includes(extname(path))
+  && path !== 'scripts/checks/repository-hygiene-test.mjs'
+))
+const repositoryCodeFiles = tracked.filter((path) => (
+  ['.py', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'].includes(extname(path))
+  && path !== 'scripts/checks/repository-hygiene-test.mjs'
+))
+const retiredFinanceContractReferences = repositoryCodeFiles.filter((path) => {
+  const source = readFileSync(resolve(repoRoot, path), 'utf8')
+  return source.includes(retiredFinanceContractName)
+    || source.includes(retiredFinanceMethodology)
+})
+assert.deepEqual(
+  retiredFinanceContractReferences,
+  [],
+  `Contrato financeiro P5-A aposentado voltou ao código de produção:\n${retiredFinanceContractReferences.join('\n')}`,
+)
+
+const trackedRetiredResearchPaths = retiredOperationalResearchPaths.filter((path) => (
+  tracked.includes(path)
+))
+assert.deepEqual(
+  trackedRetiredResearchPaths,
+  [],
+  `Caminhos operacionais aposentados voltaram a ser rastreados:\n${trackedRetiredResearchPaths.join('\n')}`,
+)
+
+const researchDependencyPattern = /(?:\b(?:from|import)\s+(?:data_pipeline\.)?research\b|\b(?:data_pipeline\.)?research\.(?:projections|audits)\b|(?:data_pipeline[\\/])?research[\\/](?:projections|audits)\b)/m
+const productionResearchReferences = productionCodeFiles.filter((path) => (
+  researchDependencyPattern.test(readFileSync(resolve(repoRoot, path), 'utf8'))
+))
+assert.deepEqual(
+  productionResearchReferences,
+  [],
+  `Produção não pode importar nem executar código de pesquisa:\n${productionResearchReferences.join('\n')}`,
+)
+
+const researchFileNames = new Set([
+  'audit_pne_director_selection.py',
+  'audit_pne_inec_connectivity.py',
+  'education_attendance_projection_experiment.py',
+  'run_education_attendance_projection_experiment.py',
+])
+const publicResearchFiles = tracked.filter((path) => (
+  path.startsWith('public/data/')
+  && (
+    /(?:^|\/)research(?:\/|$)/.test(path)
+    || researchFileNames.has(path.split('/').at(-1))
+  )
+))
+assert.deepEqual(
+  publicResearchFiles,
+  [],
+  `Arquivos de pesquisa não podem ser publicados em public/data:\n${publicResearchFiles.join('\n')}`,
 )
 
 const productionSourceFiles = tracked.filter(
@@ -78,6 +150,17 @@ assert.doesNotMatch(
   'package.json não pode declarar municipios.json como catálogo público.',
 )
 const packageJson = JSON.parse(packageJsonSource)
+const researchUpdateScripts = Object.entries(packageJson.scripts ?? {})
+  .filter(([name, command]) => (
+    /^update(?::|$)/.test(name)
+    && researchDependencyPattern.test(String(command))
+  ))
+  .map(([name]) => name)
+assert.deepEqual(
+  researchUpdateScripts,
+  [],
+  `Scripts de atualização do package.json não podem executar pesquisa:\n${researchUpdateScripts.join('\n')}`,
+)
 const missingScriptFiles = []
 for (const [name, command] of Object.entries(packageJson.scripts ?? {})) {
   const candidates = String(command).match(/[A-Za-z0-9_./-]+\.(?:cjs|mjs|js|py)(?=\s|$)/g) ?? []
@@ -209,6 +292,11 @@ assert.doesNotMatch(
 const updateSource = readFileSync(
   resolve(repoRoot, 'data_pipeline/scripts/update_static_data.py'),
   'utf8',
+)
+assert.doesNotMatch(
+  updateSource,
+  researchDependencyPattern,
+  'update_static_data.py não pode importar nem executar código de pesquisa.',
 )
 const municipalContract = updateSource.match(
   /MUNICIPAL_STATIC_FILES\s*=\s*frozenset\(\s*\{([\s\S]*?)\}\s*\)/,
