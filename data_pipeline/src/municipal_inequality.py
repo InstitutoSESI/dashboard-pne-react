@@ -202,7 +202,7 @@ def build_document(
     rows: Sequence[Mapping[str, Any]] | None = None,
     inequality_pilot: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Produz o único contrato publicado no arquivo municipal de desigualdade."""
+    """Produz o contrato incorporado aos detalhes municipais compartilhados."""
 
     if len(municipality_id) != 7 or not municipality_id.isdigit():
         raise ValueError(f"Código municipal inválido: {municipality_id!r}.")

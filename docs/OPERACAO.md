@@ -24,7 +24,7 @@ O comando executa, nesta ordem:
 1. exportação dos agregados;
 2. particionamento em `data_pipeline/export/static_partitioned`;
 3. atualização dos documentos de Educação;
-4. materialização do recorte municipal de desigualdade no staging;
+4. incorporação do recorte municipal de desigualdade em `details.json` no staging;
 5. sincronização atômica do conjunto estático administrado;
 6. validação dos detalhes;
 7. build da aplicação.
@@ -49,11 +49,15 @@ python data_pipeline/scripts/update_static_data.py --dry-run --profile
 npm run check:fast
 ```
 
-## Artefato municipal de desigualdade
+## Conteúdo municipal compartilhado
 
-`public/data/municipios/<IBGE>/diagnostico.json` é mantido como URL estável,
-mas contém somente o contrato `municipal-inequality-v1`, que é o único conteúdo
-desse arquivo consumido pela aplicação atual. A geração é feita por:
+`public/data/municipios/<IBGE>/details.json` contém detalhes dos indicadores e
+conteúdos compartilhados sob `_shared`. O piloto de desigualdade usa o contrato
+completo `municipal-inequality-v1` em `_shared.municipal_inequality`. O antigo
+`public/data/municipios/<IBGE>/diagnostico.json` foi aposentado; isso não altera
+a publicação do Diagnóstico PNE completo em `pne2026-diagnostic-v3`.
+
+A geração após a atualização de Educação é feita por:
 
 ```powershell
 python data_pipeline/scripts/materialize_municipal_inequality.py `
@@ -61,7 +65,10 @@ python data_pipeline/scripts/materialize_municipal_inequality.py `
 ```
 
 O materializador lê os documentos educacionais atuais, aplica supressão de
-células pequenas e grava apenas quando o conteúdo mudou.
+células pequenas, preserva os demais campos de `details.json` — inclusive
+`_shared.privadas_conveniadas` — e grava apenas quando o conteúdo semântico
+mudou. O particionamento e a sincronização administram somente `index.json` e
+`details.json` em cada diretório municipal.
 
 ## Publicação do diagnóstico PNE
 

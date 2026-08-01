@@ -33,8 +33,9 @@ CYCLE_STATIC_FILES = frozenset(
     }
 )
 MUNICIPAL_STATIC_FILES = frozenset(
-    {"details.json", "diagnostico.json", "index.json"}
+    {"details.json", "index.json"}
 )
+RETIRED_MUNICIPAL_STATIC_FILES = frozenset({"diagnostico.json"})
 
 try:
     sys.stdout.reconfigure(line_buffering=True)
@@ -211,6 +212,11 @@ def iter_managed_public_files(public_root: Path) -> list[Path]:
                 path = directory / filename
                 if path.is_file():
                     managed.append(path)
+            if len(directory.name) == 7 and directory.name.isdigit():
+                for filename in sorted(RETIRED_MUNICIPAL_STATIC_FILES):
+                    path = directory / filename
+                    if path.is_file():
+                        managed.append(path)
     return managed
 
 
@@ -285,18 +291,6 @@ def sync_partitioned_to_public(
         if target.resolve() not in expected_targets:
             target.unlink()
             removed += 1
-
-    municipal_root = public_root / "municipios"
-    directories = (
-        [path for path in municipal_root.iterdir() if path.is_dir()]
-        if municipal_root.is_dir()
-        else []
-    )
-    for directory in sorted(directories):
-        try:
-            directory.rmdir()
-        except OSError:
-            pass
 
     duration = time.perf_counter() - start
     results.append(StepResult(name, "ok", duration))
@@ -445,6 +439,8 @@ def main() -> int:
         "data_pipeline/scripts/materialize_municipal_inequality.py",
         "--output-root",
         str(inequality_output_root),
+        "--education-root",
+        str(PUBLIC_DATA_DIR / "educacao" / "municipios"),
     ]
 
     planned_commands: list[tuple[str, list[str]]] = []

@@ -193,6 +193,13 @@ class ExportStaticDataTests(unittest.TestCase):
         self.assertEqual(selected, modules)
         self.assertEqual(indicators, {"pne_2014_2024": None, "pne_2026_2036": None})
 
+    def test_exporter_does_not_generate_the_retired_inequality_placeholder(self):
+        source = (DATA_PIPELINE_DIR / "scripts" / "export_static_data.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("desigualdade_por_municipio.json", source)
+        self.assertNotIn("_export_inequality_documents", source)
+
 
 if __name__ == "__main__":
     unittest.main()

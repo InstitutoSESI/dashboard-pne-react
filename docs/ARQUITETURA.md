@@ -44,8 +44,12 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 
-O arquivo municipal `diagnostico.json` preserva a URL pública, mas contém
-somente `municipal-inequality-v1`. O diagnóstico PNE completo é carregado da
+Os contratos municipais estáticos administrados pelo particionamento são
+`municipios/<IBGE>/index.json` e `municipios/<IBGE>/details.json`. O segundo
+contém os detalhes dos indicadores e conteúdos municipais compartilhados em
+`_shared`; o piloto `municipal-inequality-v1` fica em
+`_shared.municipal_inequality`. O antigo `diagnostico.json` municipal foi
+aposentado. O Diagnóstico PNE completo permanece separado e é carregado da
 release ativa apontada por `pne2026-diagnostic-v3/current.json`.
 
 ## Pipeline

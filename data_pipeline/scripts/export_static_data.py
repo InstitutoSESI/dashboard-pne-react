@@ -22,12 +22,6 @@ EXPORT_DIR = BASE_DIR / "export" / "data"
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from src.municipal_inequality import (  # noqa: E402
-    DOCUMENT_SCHEMA_VERSION as INEQUALITY_SCHEMA_VERSION,
-    build_urban_rural_integral_pilot,
-)
-
-
 def _generated_at() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -633,27 +627,6 @@ def _export_cycle_rankings(
     }
 
 
-def _export_inequality_documents(
-    *, municipios: list[str], generated_at: str
-) -> dict[str, Any]:
-    """Gera o envelope mínimo; os recortes são materializados após Educação."""
-
-    return {
-        "schemaVersion": INEQUALITY_SCHEMA_VERSION,
-        "generated_at": generated_at,
-        "total_municipios": len(municipios),
-        "municipios": {
-            municipio: {
-                "schemaVersion": INEQUALITY_SCHEMA_VERSION,
-                "generatedAt": generated_at,
-                "municipalityName": municipio,
-                "inequalityPilot": build_urban_rural_integral_pilot(None),
-            }
-            for municipio in municipios
-        },
-    }
-
-
 def _export_fundeb_data(
     municipios: list[str],
     errors: list[dict[str, Any]],
@@ -891,7 +864,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-derived",
         action="store_true",
-        help="Exporta também rankings por município e diagnóstico.",
+        help="Exporta também rankings por município.",
     )
     parser.add_argument(
         "--cycle",
@@ -1290,17 +1263,6 @@ def main() -> int:
             rankings_path = EXPORT_DIR / cycle_key / "rankings_por_municipio.json"
             _write_json(rankings_path, rankings_payload, profile)
             generated_files.append(rankings_path)
-
-        with profile.measure("diagnóstico"):
-            inequality_payload = _export_inequality_documents(
-                municipios=municipios,
-                generated_at=generated_at,
-            )
-        inequality_path = (
-            EXPORT_DIR / "pne_2026_2036" / "desigualdade_por_municipio.json"
-        )
-        _write_json(inequality_path, inequality_payload, profile)
-        generated_files.append(inequality_path)
 
     if errors:
         _write_json(

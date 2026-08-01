@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -46,6 +47,71 @@ class PartitionStaticDataPublicationTests(unittest.TestCase):
                 (output_root / "indicadores.json").read_text(encoding="utf-8"),
                 "indicators\n",
             )
+
+    def test_municipal_partition_writes_only_index_and_details(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source_root = root / "source"
+            output_root = root / "static_partitioned"
+            source_root.mkdir()
+            (source_root / "indicadores.json").write_text("{}\n", encoding="utf-8")
+            municipalities = {"Aceguá": "4300034", "Água Santa": "4300059"}
+            payloads = {
+                "municipios": {
+                    "generated_at": "2026-08-01T00:00:00+00:00",
+                    "municipios": list(municipalities),
+                },
+                "indicator_details": {
+                    "municipios": {
+                        name: {"indicator_details": {"sample": {"title": name}}}
+                        for name in municipalities
+                    }
+                },
+                "fundeb": {},
+            }
+            argv = [
+                "partition_static_data.py",
+                "--source-dir",
+                str(source_root),
+                "--output-dir",
+                str(output_root),
+            ]
+
+            with (
+                patch.object(sys, "argv", argv),
+                patch.object(partition, "PIPELINE_EXPORT_DIR", output_root.parent),
+                patch.object(partition, "EXPECTED_MUNICIPALITIES", len(municipalities)),
+                patch.object(partition, "load_aggregate_payloads", return_value=payloads),
+                patch.object(partition, "validate_fundeb_payload"),
+                patch.object(partition, "validate_pnate_payload"),
+                patch.object(partition, "validate_planning_scenarios_payload"),
+                patch.object(
+                    partition,
+                    "extract_fundeb_id",
+                    side_effect=lambda _payload, name: municipalities[name],
+                ),
+                patch.object(
+                    partition,
+                    "build_municipio_payload",
+                    side_effect=lambda _payloads, name, slug, municipality_id: {
+                        "id_municipio": municipality_id,
+                        "municipio": name,
+                        "slug": slug,
+                    },
+                ),
+            ):
+                self.assertEqual(partition.main(), 0)
+
+            registry = json.loads(
+                (output_root / "municipios_index.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(registry["total_municipios"], len(municipalities))
+            for municipality_id in municipalities.values():
+                files = {
+                    path.name
+                    for path in (output_root / "municipios" / municipality_id).iterdir()
+                }
+                self.assertEqual(files, {"index.json", "details.json"})
 
 
 if __name__ == "__main__":

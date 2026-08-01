@@ -38,6 +38,38 @@ assert.deepEqual(
   `Código de produção carrega /data/municipios.json:\n${retiredMunicipalityLoaderReferences.join('\n')}`,
 )
 
+const retiredInequalityLoaderReferences = productionSourceFiles.filter((path) => {
+  const source = readFileSync(resolve(repoRoot, path), 'utf8')
+  return /\bloadMunicipioInequality\b/.test(source)
+    || /\/data\/municipios\/[^\s'"`]+\/diagnostico\.json/.test(source)
+})
+assert.deepEqual(
+  retiredInequalityLoaderReferences,
+  [],
+  `Código de produção usa o loader municipal de desigualdade aposentado:\n${retiredInequalityLoaderReferences.join('\n')}`,
+)
+
+const cyclePageSource = readFileSync(resolve(repoRoot, 'src/pages/CyclePage.jsx'), 'utf8')
+assert.match(
+  cyclePageSource,
+  /municipioDetails\?\._shared\?\.municipal_inequality/,
+  'CyclePage deve obter o piloto do details.json já carregado.',
+)
+assert.match(
+  cyclePageSource,
+  /inequalityPilotLoading[\s\S]*municipioDetailsLoading/,
+  'O piloto deve reutilizar o estado de carregamento de details.json.',
+)
+const indicatorDetailSource = readFileSync(
+  resolve(repoRoot, 'src/components/IndicatorDetail.jsx'),
+  'utf8',
+)
+assert.match(
+  indicatorDetailSource,
+  /item\?\.key === 'basico_integral'[\s\S]*InequalityPilotSection/,
+  'basico_integral deve continuar renderizando os estados do piloto.',
+)
+
 const packageJsonSource = readFileSync(resolve(repoRoot, 'package.json'), 'utf8')
 const packageJsonWithoutCurrentCatalog = packageJsonSource.replaceAll('municipios_index.json', '')
 assert.doesNotMatch(
@@ -117,25 +149,76 @@ const municipalityIds = readdirSync(municipalRoot, { withFileTypes: true })
   .map((entry) => entry.name)
   .toSorted()
 assert.equal(municipalityIds.length, 497, 'Publicação municipal deve conter 497 municípios.')
+const trackedMunicipalDiagnostics = tracked.filter((path) => (
+  /^public\/data\/municipios\/\d{7}\/diagnostico\.json$/.test(path)
+  && existsSync(resolve(repoRoot, path))
+))
+assert.deepEqual(
+  trackedMunicipalDiagnostics,
+  [],
+  `diagnostico.json municipal aposentado ainda está rastreado:\n${trackedMunicipalDiagnostics.join('\n')}`,
+)
 for (const municipalityId of municipalityIds) {
-  const diagnostic = JSON.parse(
-    readFileSync(
-      resolve(municipalRoot, municipalityId, 'diagnostico.json'),
-      'utf8',
-    ),
+  assert.ok(
+    !existsSync(resolve(municipalRoot, municipalityId, 'diagnostico.json')),
+    `${municipalityId}: diagnostico.json municipal aposentado ainda existe.`,
   )
+  const details = JSON.parse(
+    readFileSync(resolve(municipalRoot, municipalityId, 'details.json'), 'utf8'),
+  )
+  assert.ok(
+    details._shared?.privadas_conveniadas,
+    `${municipalityId}: _shared.privadas_conveniadas ausente.`,
+  )
+  const diagnostic = details._shared?.municipal_inequality
   assert.equal(
-    diagnostic.schemaVersion,
+    diagnostic?.schemaVersion,
     'municipal-inequality-v1',
-    `${municipalityId}: diagnóstico municipal fora do contrato compacto.`,
+    `${municipalityId}: desigualdade municipal incorporada fora do contrato.`,
   )
   assert.deepEqual(
     Object.keys(diagnostic).toSorted(),
     ['generatedAt', 'inequalityPilot', 'municipality', 'schemaVersion'],
-    `${municipalityId}: diagnóstico municipal contém blocos obsoletos.`,
+    `${municipalityId}: documento municipal incorporado contém blocos inesperados.`,
   )
   assert.equal(diagnostic.municipality?.id, municipalityId)
+  assert.ok(diagnostic.municipality?.name)
+  assert.equal(diagnostic.inequalityPilot?.indicatorId, 'basico_integral')
 }
+
+const partitionSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/partition_static_data.py'),
+  'utf8',
+)
+assert.doesNotMatch(
+  partitionSource,
+  /diagnostico\.json|desigualdade_por_municipio\.json|build_partitioned_inequality_document/,
+  'O particionamento não pode recriar o artefato municipal aposentado.',
+)
+
+const exportSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/export_static_data.py'),
+  'utf8',
+)
+assert.doesNotMatch(
+  exportSource,
+  /desigualdade_por_municipio\.json|_export_inequality_documents/,
+  'O exportador não pode recriar o placeholder municipal aposentado.',
+)
+
+const updateSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/update_static_data.py'),
+  'utf8',
+)
+const municipalContract = updateSource.match(
+  /MUNICIPAL_STATIC_FILES\s*=\s*frozenset\(\s*\{([\s\S]*?)\}\s*\)/,
+)
+assert.ok(municipalContract, 'Contrato municipal estático não encontrado no sincronizador.')
+assert.doesNotMatch(
+  municipalContract[1],
+  /diagnostico\.json/,
+  'O contrato municipal administrado não pode voltar a exigir diagnostico.json.',
+)
 
 const forbiddenReferences = [
   ['data_pipeline/app.py', /data_pipeline\/app\.py/],

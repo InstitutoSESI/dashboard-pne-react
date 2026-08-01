@@ -7,6 +7,12 @@ import type { MunicipalInequalityDocument } from '../types/municipalInequality'
 
 type JsonObject = Record<string, unknown>
 
+export type MunicipioDetails = JsonObject & {
+  _shared?: JsonObject & {
+    municipal_inequality?: MunicipalInequalityDocument
+  }
+}
+
 const dataCache = new Map<string, unknown>()
 const pendingCache = new Map<string, Promise<unknown>>()
 
@@ -57,13 +63,9 @@ export function loadMunicipioData(idMunicipio: string): Promise<MunicipioData> {
   return loadJson<MunicipioData>(`/data/municipios/${idMunicipio}/index.json`)
 }
 
-export function loadMunicipioInequality(idMunicipio: string): Promise<MunicipalInequalityDocument> {
-  return loadJson<MunicipalInequalityDocument>(`/data/municipios/${idMunicipio}/diagnostico.json`)
-}
-
-export function loadMunicipioDetails(idMunicipio: string): Promise<JsonObject> {
+export function loadMunicipioDetails(idMunicipio: string): Promise<MunicipioDetails> {
   if (!idMunicipio) return Promise.resolve({})
-  return loadJson<JsonObject>(`/data/municipios/${idMunicipio}/details.json`).catch(() => ({}))
+  return loadJson<MunicipioDetails>(`/data/municipios/${idMunicipio}/details.json`).catch(() => ({}))
 }
 
 export function loadIndicatorDetail(idMunicipio: string, indicatorKey: string): Promise<unknown | null> {

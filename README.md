@@ -45,9 +45,9 @@ Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.
 npm run update:data
 ```
 
-Ele exporta e particiona os dados, atualiza Educação, materializa o documento
-compacto de desigualdade, sincroniza `public/data`, valida os detalhes e executa
-o build. Para omitir apenas o build:
+Ele exporta e particiona os dados, atualiza Educação, incorpora o documento
+municipal de desigualdade em `details.json`, sincroniza `public/data`, valida os
+detalhes e executa o build. Para omitir apenas o build:
 
 ```powershell
 npm run update:data:skip-build

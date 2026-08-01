@@ -5,6 +5,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from data_pipeline.src.config import (
     MUNICIPAL_FINANCE_EXPORT_DIR,
@@ -75,6 +77,15 @@ class StaticDataSyncTests(unittest.TestCase):
             self.write(retired_catalog, "outdated\n")
             orphan = public_root / "municipios" / "legacy-slug" / "index.json"
             self.write(orphan, "obsolete\n")
+            legacy_diagnostic = (
+                public_root
+                / "municipios"
+                / self.municipality_ids[0]
+                / "diagnostico.json"
+            )
+            self.write(legacy_diagnostic, "legacy\n")
+            diagnostic_lookalike = legacy_diagnostic.with_name("diagnostico.json.bak")
+            self.write(diagnostic_lookalike, "keep\n")
             results: list[update.StepResult] = []
 
             stats = update.sync_partitioned_to_public(
@@ -84,10 +95,13 @@ class StaticDataSyncTests(unittest.TestCase):
                 expected_municipalities=len(self.municipality_ids),
             )
 
-            self.assertEqual(stats.removed, 2)
+            self.assertEqual(stats.removed, 3)
             self.assertEqual(stats.updated, 0)
             self.assertFalse(orphan.exists())
+            self.assertTrue(orphan.parent.is_dir())
             self.assertFalse(retired_catalog.exists())
+            self.assertFalse(legacy_diagnostic.exists())
+            self.assertEqual(diagnostic_lookalike.read_text(encoding="utf-8"), "keep\n")
             self.assertEqual([result.name for result in results], ["sync"])
             for path, content in unrelated.items():
                 self.assertEqual(path.read_text(encoding="utf-8"), content)
@@ -122,6 +136,24 @@ class StaticDataSyncTests(unittest.TestCase):
             source_root = Path(temporary) / "static_partitioned"
             self.build_complete_source(source_root)
             self.write(source_root / "municipios.json", "legacy\n")
+
+            with self.assertRaisesRegex(RuntimeError, "fora do contrato"):
+                update.validate_static_partition(
+                    source_root,
+                    expected_municipalities=len(self.municipality_ids),
+                )
+
+    def test_legacy_diagnostic_is_rejected_from_publication_staging(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source_root = Path(temporary) / "static_partitioned"
+            self.build_complete_source(source_root)
+            self.write(
+                source_root
+                / "municipios"
+                / self.municipality_ids[0]
+                / "diagnostico.json",
+                "legacy\n",
+            )
 
             with self.assertRaisesRegex(RuntimeError, "fora do contrato"):
                 update.validate_static_partition(
@@ -172,6 +204,68 @@ class StaticDataSyncTests(unittest.TestCase):
                     public_root=public_root,
                     expected_municipalities=len(self.municipality_ids),
                 )
+
+    def test_education_only_keeps_the_embedded_materializer_on_public_details(self) -> None:
+        args = SimpleNamespace(
+            dry_run=True,
+            skip_export=False,
+            skip_partition=False,
+            skip_education=False,
+            education_only=True,
+            skip_build=True,
+            validate_only=False,
+            no_include_derived=False,
+            profile=False,
+        )
+        with (
+            patch.object(update, "parse_args", return_value=args),
+            patch.object(update, "print_dry_run") as print_dry_run,
+        ):
+            self.assertEqual(update.main(), 0)
+
+        commands = print_dry_run.call_args.args[0]
+        self.assertEqual([name for name, _command in commands], ["education", "inequality", "validate"])
+        inequality_command = dict(commands)["inequality"]
+        self.assertIn(str(update.PUBLIC_DATA_DIR / "municipios"), inequality_command)
+        self.assertIn(
+            str(update.PUBLIC_DATA_DIR / "educacao" / "municipios"),
+            inequality_command,
+        )
+        self.assertFalse(print_dry_run.call_args.kwargs["run_sync"])
+
+    def test_full_update_materializes_staging_from_current_education_output(self) -> None:
+        args = SimpleNamespace(
+            dry_run=True,
+            skip_export=False,
+            skip_partition=False,
+            skip_education=False,
+            education_only=False,
+            skip_build=True,
+            validate_only=False,
+            no_include_derived=False,
+            profile=False,
+        )
+        with (
+            patch.object(update, "parse_args", return_value=args),
+            patch.object(update, "print_dry_run") as print_dry_run,
+        ):
+            self.assertEqual(update.main(), 0)
+
+        commands = print_dry_run.call_args.args[0]
+        self.assertEqual(
+            [name for name, _command in commands],
+            ["export", "partition", "education", "inequality", "validate"],
+        )
+        inequality_command = dict(commands)["inequality"]
+        self.assertIn(
+            str(update.STATIC_PARTITIONED_DATA_DIR / "municipios"),
+            inequality_command,
+        )
+        self.assertIn(
+            str(update.PUBLIC_DATA_DIR / "educacao" / "municipios"),
+            inequality_command,
+        )
+        self.assertTrue(print_dry_run.call_args.kwargs["run_sync"])
 
 
 if __name__ == "__main__":

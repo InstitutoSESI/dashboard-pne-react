@@ -171,9 +171,6 @@ def load_aggregate_payloads() -> dict[str, dict]:
             SOURCE_DIR / cycle / "rankings_por_municipio.json"
         )
 
-    payloads["inequality"] = load_json(
-        SOURCE_DIR / "pne_2026_2036" / "desigualdade_por_municipio.json"
-    )
     payloads["indicator_details"] = load_json(
         SOURCE_DIR / "indicator_details_por_municipio.json"
     )
@@ -335,35 +332,6 @@ def extract_rankings(payload: dict, municipio: str) -> dict:
     return payload.get("municipios", {}).get(municipio, {}).get("categories", {})
 
 
-def validate_inequality_payload(
-    payloads: dict[str, dict], municipios: list[str]
-) -> None:
-    payload = payloads.get("inequality") or {}
-    documents = payload.get("municipios")
-    problems: list[str] = []
-    if payload.get("schemaVersion") != "municipal-inequality-v1":
-        problems.append("schemaVersion inválida")
-    if not isinstance(documents, dict) or len(documents) != EXPECTED_MUNICIPALITIES:
-        problems.append("cobertura municipal incompleta")
-    else:
-        for municipio in municipios:
-            document = documents.get(municipio)
-            if not isinstance(document, dict):
-                problems.append(f"documento ausente para {municipio}")
-                break
-            if (
-                document.get("schemaVersion") != "municipal-inequality-v1"
-                or document.get("municipalityName") != municipio
-                or not isinstance(document.get("inequalityPilot"), dict)
-            ):
-                problems.append(f"documento inválido para {municipio}")
-                break
-    if problems:
-        raise RuntimeError(
-            "[partition] Desigualdade municipal inválida: " + "; ".join(problems)
-        )
-
-
 def extract_indicator_details(payload: dict, municipio: str) -> dict:
     return payload.get("municipios", {}).get(municipio, {}).get("indicator_details", {})
 
@@ -445,32 +413,6 @@ def build_municipio_payload(
     return payload
 
 
-def build_partitioned_inequality_document(
-    payloads: dict[str, dict],
-    municipio: str,
-    id_municipio: str | None,
-) -> dict:
-    source = (
-        (payloads.get("inequality") or {})
-        .get("municipios", {})
-        .get(municipio)
-    )
-    if not isinstance(source, dict):
-        raise RuntimeError(f"Desigualdade municipal ausente para {municipio}.")
-    municipality_id = str(id_municipio or "")
-    if len(municipality_id) != 7 or not municipality_id.isdigit():
-        raise RuntimeError(f"Código municipal inválido para {municipio}.")
-    return {
-        "schemaVersion": "municipal-inequality-v1",
-        "generatedAt": str(source.get("generatedAt") or ""),
-        "municipality": {
-            "id": municipality_id,
-            "name": municipio,
-        },
-        "inequalityPilot": source["inequalityPilot"],
-    }
-
-
 def format_size(bytes_count: int) -> str:
     units = ("B", "KB", "MB", "GB")
     size = float(bytes_count)
@@ -518,7 +460,6 @@ def main() -> int:
     validate_fundeb_payload(payloads, municipios)
     validate_pnate_payload(payloads, municipios)
     validate_planning_scenarios_payload(payloads, municipios)
-    validate_inequality_payload(payloads, municipios)
     slug_map = unique_slugs(municipios)
     id_map = {
         municipio: extract_fundeb_id(payloads["fundeb"], municipio)
@@ -574,18 +515,9 @@ def main() -> int:
                 slug,
                 id_municipio,
             )
-            inequality_document = build_partitioned_inequality_document(
-                payloads, municipio, id_municipio
-            )
             write_json(
                 OUTPUT_DIR / "municipios" / canonical_id / "index.json",
                 municipio_payload,
-                stats,
-                expected_paths,
-            )
-            write_json(
-                OUTPUT_DIR / "municipios" / canonical_id / "diagnostico.json",
-                inequality_document,
                 stats,
                 expected_paths,
             )
