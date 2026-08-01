@@ -2,7 +2,6 @@ import type {
   IndicadoresPayload,
   MunicipioData,
   MunicipiosIndexPayload,
-  MunicipiosPayload,
 } from '../types/data'
 import type { MunicipalInequalityDocument } from '../types/municipalInequality'
 
@@ -44,10 +43,6 @@ export function loadJson<T>(path: string, validate?: (data: T) => unknown): Prom
 
   pendingCache.set(path, promise)
   return promise
-}
-
-export function loadMunicipios(): Promise<MunicipiosPayload> {
-  return loadJson<MunicipiosPayload>('/data/municipios.json')
 }
 
 export function loadIndicadores(): Promise<IndicadoresPayload> {

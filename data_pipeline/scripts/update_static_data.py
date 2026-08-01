@@ -23,8 +23,9 @@ PYTHON = sys.executable
 NPM = "npm.cmd" if os.name == "nt" else "npm"
 EXPECTED_MUNICIPALITIES = 497
 ROOT_STATIC_FILES = frozenset(
-    {"indicadores.json", "municipios.json", "municipios_index.json"}
+    {"indicadores.json", "municipios_index.json"}
 )
+RETIRED_PUBLIC_ROOT_FILES = frozenset({"municipios.json"})
 CYCLE_STATIC_FILES = frozenset(
     {
         "pne_2014_2024/referencia_estadual.json",
@@ -196,7 +197,9 @@ def validate_static_partition(
 
 def iter_managed_public_files(public_root: Path) -> list[Path]:
     managed: list[Path] = []
-    for relative in sorted(ROOT_STATIC_FILES | CYCLE_STATIC_FILES):
+    for relative in sorted(
+        ROOT_STATIC_FILES | CYCLE_STATIC_FILES | RETIRED_PUBLIC_ROOT_FILES
+    ):
         path = public_root / Path(relative)
         if path.is_file():
             managed.append(path)

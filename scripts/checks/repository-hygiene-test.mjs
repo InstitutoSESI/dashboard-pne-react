@@ -21,7 +21,31 @@ const forbiddenTracked = [
 const violations = tracked.filter((path) => forbiddenTracked.some((pattern) => pattern.test(path)))
 assert.deepEqual(violations, [], `Arquivos temporários rastreados:\n${violations.join('\n')}`)
 
-const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'))
+assert.ok(
+  !existsSync(resolve(repoRoot, 'public/data/municipios.json')),
+  'O agregado municipal interno não pode voltar ao contrato público.',
+)
+
+const productionSourceFiles = tracked.filter(
+  (path) => path.startsWith('src/') && ['.js', '.jsx', '.ts', '.tsx'].includes(extname(path)),
+)
+const retiredMunicipalityLoaderReferences = productionSourceFiles.filter((path) => (
+  /\/data\/municipios\.json/.test(readFileSync(resolve(repoRoot, path), 'utf8'))
+))
+assert.deepEqual(
+  retiredMunicipalityLoaderReferences,
+  [],
+  `Código de produção carrega /data/municipios.json:\n${retiredMunicipalityLoaderReferences.join('\n')}`,
+)
+
+const packageJsonSource = readFileSync(resolve(repoRoot, 'package.json'), 'utf8')
+const packageJsonWithoutCurrentCatalog = packageJsonSource.replaceAll('municipios_index.json', '')
+assert.doesNotMatch(
+  packageJsonWithoutCurrentCatalog,
+  /municipios\.json/,
+  'package.json não pode declarar municipios.json como catálogo público.',
+)
+const packageJson = JSON.parse(packageJsonSource)
 const missingScriptFiles = []
 for (const [name, command] of Object.entries(packageJson.scripts ?? {})) {
   const candidates = String(command).match(/[A-Za-z0-9_./-]+\.(?:cjs|mjs|js|py)(?=\s|$)/g) ?? []
@@ -45,10 +69,18 @@ const canonicalDocs = [
   'docs/OPERACAO.md',
 ]
 const brokenLinks = []
+const retiredCatalogDocDeclarations = []
 for (const document of canonicalDocs) {
   const absoluteDocument = resolve(repoRoot, document)
   assert.ok(existsSync(absoluteDocument), `Documento canônico ausente: ${document}`)
   const markdown = readFileSync(absoluteDocument, 'utf8')
+  for (const paragraph of markdown.split(/\r?\n\s*\r?\n/)) {
+    const withoutCurrentCatalog = paragraph.replaceAll('municipios_index.json', '')
+    if (!/municipios\.json/i.test(withoutCurrentCatalog)) continue
+    if (!/(?:staging|agregado interno|catálogo interno|não faz parte do contrato público)/i.test(paragraph)) {
+      retiredCatalogDocDeclarations.push(document)
+    }
+  }
   for (const match of markdown.matchAll(/\[[^\]]*]\(([^)]+)\)/g)) {
     const rawTarget = match[1].trim().replace(/^<|>$/g, '').split('#', 1)[0]
     if (!rawTarget || /^(?:https?:|mailto:)/i.test(rawTarget)) continue
@@ -57,6 +89,11 @@ for (const document of canonicalDocs) {
   }
 }
 assert.deepEqual(brokenLinks, [], `Links locais quebrados:\n${brokenLinks.join('\n')}`)
+assert.deepEqual(
+  retiredCatalogDocDeclarations,
+  [],
+  `Documentos canônicos tratam municipios.json como catálogo público:\n${retiredCatalogDocDeclarations.join('\n')}`,
+)
 
 const pnePublicationRoot = resolve(repoRoot, 'public/data/pne2026-diagnostic-v3')
 const activePointer = JSON.parse(

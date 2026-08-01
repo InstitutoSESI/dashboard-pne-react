@@ -7,12 +7,6 @@ export interface MunicipioIndexEntry {
   path?: string
 }
 
-export interface MunicipiosPayload {
-  generated_at?: string
-  total_municipios?: number
-  municipios: MunicipioName[]
-}
-
 export interface MunicipiosIndexPayload {
   generated_at?: string
   total_municipios?: number

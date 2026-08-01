@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { loadIndicadores, loadMunicipios, loadMunicipiosIndex } from '../data/staticData'
+import { loadIndicadores, loadMunicipiosIndex } from '../data/staticData'
 import type { InitialAppData } from '../types/data'
 
 const INITIAL_APP_DATA: InitialAppData = {
@@ -19,10 +19,10 @@ export function useInitialAppData(): InitialAppData {
 
     async function loadInitialData(): Promise<void> {
       try {
-        const [municipiosPayload, indicadoresPayload, municipiosIndexPayload] =
-          await Promise.all([loadMunicipios(), loadIndicadores(), loadMunicipiosIndex()])
-        const municipios = municipiosPayload.municipios ?? []
+        const [indicadoresPayload, municipiosIndexPayload] =
+          await Promise.all([loadIndicadores(), loadMunicipiosIndex()])
         const municipiosIndex = municipiosIndexPayload.municipios ?? []
+        const municipios = municipiosIndex.map((item) => item.nome)
 
         if (!cancelled) {
           setInitialData({

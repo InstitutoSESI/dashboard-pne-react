@@ -20,6 +20,7 @@ OUTPUT_DIR = STATIC_PARTITIONED_DATA_DIR
 
 CYCLES = ("pne_2014_2024", "pne_2026_2036")
 EXPECTED_MUNICIPALITIES = 497
+COPIED_ROOT_STATIC_FILES = ("indicadores.json",)
 
 
 def slugify(value: str, fallback: str = "municipio") -> str:
@@ -108,6 +109,19 @@ def copy_file_if_changed(
 
     destination.write_bytes(content)
     stats[action] += 1
+
+
+def copy_root_static_files(
+    stats: dict[str, int],
+    expected_paths: set[Path],
+) -> None:
+    for filename in COPIED_ROOT_STATIC_FILES:
+        copy_file_if_changed(
+            SOURCE_DIR / filename,
+            OUTPUT_DIR / filename,
+            stats,
+            expected_paths,
+        )
 
 
 def safe_prepare_output_dir() -> None:
@@ -515,18 +529,7 @@ def main() -> int:
 
     safe_prepare_output_dir()
 
-    copy_file_if_changed(
-        SOURCE_DIR / "municipios.json",
-        OUTPUT_DIR / "municipios.json",
-        stats,
-        expected_paths,
-    )
-    copy_file_if_changed(
-        SOURCE_DIR / "indicadores.json",
-        OUTPUT_DIR / "indicadores.json",
-        stats,
-        expected_paths,
-    )
+    copy_root_static_files(stats, expected_paths)
     for cycle in CYCLES:
         state_reference_path = SOURCE_DIR / cycle / "referencia_estadual.json"
         if state_reference_path.exists():
