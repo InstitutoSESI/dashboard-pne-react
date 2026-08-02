@@ -23,6 +23,11 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from src.pne.indicator_details import build_indicator_details  # noqa: E402
+from src.pipeline_profiling import (  # noqa: E402
+    get_active_profile_session,
+    profile_operation,
+    profiled_main_from_environment,
+)
 
 
 def _generated_at() -> str:
@@ -88,16 +93,30 @@ class TimingProfile:
         self.durations: dict[str, float] = {}
 
     @contextmanager
-    def measure(self, name: str):
+    def measure(
+        self,
+        name: str,
+        *,
+        category: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+    ):
         if not self.enabled:
             yield
             return
-        start = time.perf_counter()
+        event_category = category or (
+            "validation" if "valida" in name.casefold() else "compute"
+        )
+        start_ns = time.perf_counter_ns()
         try:
-            yield
+            with profile_operation(
+                event_category,
+                f"export.{name}",
+                metadata=metadata,
+            ) as operation:
+                yield operation
         finally:
             self.durations[name] = self.durations.get(name, 0.0) + (
-                time.perf_counter() - start
+                (time.perf_counter_ns() - start_ns) / 1_000_000_000
             )
 
     def print_summary(self) -> None:
@@ -130,14 +149,38 @@ class ResultsCache:
         indicator_keys: tuple[str, ...] | None,
     ) -> Mapping[str, Any]:
         cache_key = (cycle_key, municipio, indicator_keys)
-        if cache_key not in self._results:
-            if indicator_keys is None:
-                self._results[cache_key] = cycle_module._calculate_results(municipio)
-            else:
-                self._results[cache_key] = cycle_module._calculate_results_for_indicators(
-                    municipio, indicator_keys
+        hit = cache_key in self._results
+        session = get_active_profile_session()
+        started_ns = time.perf_counter_ns() if session is not None else 0
+        failed = False
+        try:
+            if not hit:
+                if indicator_keys is None:
+                    self._results[cache_key] = cycle_module._calculate_results(municipio)
+                else:
+                    self._results[cache_key] = cycle_module._calculate_results_for_indicators(
+                        municipio, indicator_keys
+                    )
+            return self._results[cache_key]
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            if session is not None:
+                session.accumulate_event(
+                    category="cache",
+                    name="export.results_cache",
+                    duration_ns=time.perf_counter_ns() - started_ns,
+                    counters={
+                        "hits": int(hit),
+                        "misses": int(not hit),
+                        "errors": int(failed),
+                    },
+                    metadata={
+                        "cycle": cycle_key,
+                        "indicatorScope": "all" if indicator_keys is None else "targeted",
+                    },
                 )
-        return self._results[cache_key]
 
 
 def _write_json(path: Path, payload: Any, profile: TimingProfile | None = None) -> None:
@@ -148,11 +191,23 @@ def _write_json(path: Path, payload: Any, profile: TimingProfile | None = None) 
             encoding="utf-8",
         )
     else:
-        with profile.measure("serialização"):
-            path.write_text(
-                json.dumps(_json_safe(payload), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+        with profile.measure(
+            "serialização",
+            category="serialization",
+            metadata={"format": "json"},
+        ) as serialization_event:
+            content = json.dumps(_json_safe(payload), ensure_ascii=False, indent=2)
+            rendered_bytes = len(content.encode("utf-8"))
+            serialization_event.add_counter("payloads", 1)
+            serialization_event.add_counter("bytesRendered", rendered_bytes)
+        with profile.measure(
+            "escrita JSON",
+            category="write",
+            metadata={"path": path},
+        ) as write_event:
+            path.write_text(content, encoding="utf-8")
+            write_event.add_counter("filesWritten", 1)
+            write_event.add_counter("bytesWritten", rendered_bytes)
     try:
         display_path = path.relative_to(BASE_DIR)
     except ValueError:
@@ -1008,11 +1063,27 @@ def _check_connection(load_municipios: Any) -> int:
     return 0
 
 
+@profiled_main_from_environment("export")
 def main() -> int:
     global EXPORT_DIR
 
     args = _parse_args()
-    profile = TimingProfile(args.profile)
+    profile = TimingProfile(args.profile or get_active_profile_session() is not None)
+    with profile_operation(
+        "orchestration",
+        "export.configuration",
+        metadata={
+            "profileRequested": args.profile,
+            "includeDerived": args.include_derived,
+            "requestedCycles": args.cycle or [],
+            "requestedIndicatorCount": len(args.indicator or []),
+            "requestedMunicipalityCount": len(args.municipio or []),
+            "limitRequested": args.limit,
+        },
+    ) as configuration_event:
+        configuration_event.add_counter("requestedCycles", len(args.cycle or []))
+        configuration_event.add_counter("requestedIndicators", len(args.indicator or []))
+        configuration_event.add_counter("requestedMunicipalities", len(args.municipio or []))
     is_targeted_export = bool(args.cycle or args.indicator)
     is_partial_export = args.limit is not None or bool(args.municipio) or is_targeted_export
     if is_partial_export:
@@ -1079,6 +1150,7 @@ def main() -> int:
         print(f"  falha ao carregar municípios; veja {EXPORT_DIR / 'export_errors.json'}")
         return 1
 
+    queried_municipality_count = len(municipios)
     try:
         municipios, missing = _select_municipios(
             available=municipios,
@@ -1103,6 +1175,20 @@ def main() -> int:
     if is_targeted_export and not municipios:
         print("Nenhum município selecionado para a exportação rápida.")
         return 2
+
+    with profile_operation(
+        "orchestration",
+        "export.municipality_filters",
+        metadata={
+            "filterApplication": "local_after_query",
+            "broadQuery": True,
+            "requestedNames": len(args.municipio or []),
+            "limitApplied": args.limit is not None,
+        },
+    ) as filter_event:
+        filter_event.add_counter("municipalitiesQueried", queried_municipality_count)
+        filter_event.add_counter("municipalitiesSelected", len(municipios))
+        filter_event.add_counter("municipalitiesMissing", len(missing))
 
     print(f"Municípios carregados para exportação: {len(municipios)}")
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -1282,6 +1368,18 @@ def main() -> int:
     print("  arquivos gerados:")
     for path in generated_files:
         print(f"    - {path}")
+
+    with profile_operation(
+        "orchestration",
+        "export.result",
+        counters={
+            "municipalities": len(municipios),
+            "errors": len(errors),
+            "files": len(generated_files),
+        },
+        metadata={"partialExport": is_partial_export},
+    ):
+        pass
 
     profile.print_summary()
     return 0

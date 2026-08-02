@@ -57,6 +57,13 @@ from src.education_transactional_publication import (  # noqa: E402
     render_education_json,
     validate_education_staging,
 )
+from src.pipeline_profiling import (  # noqa: E402
+    get_active_profile_session,
+    profile_operation,
+    profile_query,
+    profiled_main_from_environment,
+    record_tabular_result,
+)
 
 # ── Logging ────────────────────────────────────────────────────────────────
 
@@ -79,11 +86,17 @@ class Timer:
     def __enter__(self):
         self.start = time.time()
         log(f"Iniciando {self.label}...")
+        self.profile_operation = profile_operation(
+            "compute",
+            f"education.{self.label}",
+        )
+        self.profile_operation.__enter__()
         return self
 
     def __exit__(self, *args):
         elapsed = time.time() - self.start
         log(f"{self.label} concluido em {elapsed:.2f}s")
+        return self.profile_operation.__exit__(*args)
 
 
 # ── Caminhos ─────────────────────────────────────────────────────────────
@@ -555,19 +568,57 @@ def safe_json_dump(data, path):
         return obj
 
     data = clean(data)
+    session = get_active_profile_session()
+    serialization_started_ns = time.perf_counter_ns() if session is not None else 0
     serialized = render_education_json(data)
+    if session is not None:
+        session.accumulate_event(
+            category="serialization",
+            name="education.render_json",
+            duration_ns=time.perf_counter_ns() - serialization_started_ns,
+            counters={"payloads": 1, "bytesRendered": len(serialized)},
+            metadata={"format": "json"},
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_suffix(".tmp")
     try:
+        write_started_ns = time.perf_counter_ns() if session is not None else 0
         with open(temp_path, "wb") as f:
             f.write(serialized)
             f.flush()
+        if session is not None:
+            session.accumulate_event(
+                category="write",
+                name="education.staging_writes",
+                duration_ns=time.perf_counter_ns() - write_started_ns,
+                counters={"filesWritten": 1, "bytesWritten": len(serialized)},
+            )
         # Validar serializacao antes de substituir o arquivo do staging.
+        validation_started_ns = time.perf_counter_ns() if session is not None else 0
         with open(temp_path, encoding="utf-8") as f:
             json.load(f, parse_constant=lambda value: (_ for _ in ()).throw(
                 ValueError(f"Constante JSON nao finita: {value}")
             ))
+        if session is not None:
+            session.accumulate_event(
+                category="validation",
+                name="education.serialization_validation",
+                duration_ns=time.perf_counter_ns() - validation_started_ns,
+                counters={
+                    "payloadsVerified": 1,
+                    "filesRead": 1,
+                    "bytesRead": len(serialized),
+                },
+            )
+        promotion_started_ns = time.perf_counter_ns() if session is not None else 0
         temp_path.replace(path)
+        if session is not None:
+            session.accumulate_event(
+                category="promotion",
+                name="education.staging_file_promotion",
+                duration_ns=time.perf_counter_ns() - promotion_started_ns,
+                counters={"filesPromoted": 1, "bytesPromoted": len(serialized)},
+            )
     except Exception:
         if temp_path.exists():
             temp_path.unlink()
@@ -760,16 +811,30 @@ def carregar_municipios(
         "WHERE sigla_uf = :state_code "
         "AND id_municipio IN :municipality_ids"
     ).bindparams(bindparam("municipality_ids", expanding=True))
-    frame = pd.read_sql_query(
-        query,
-        engine,
-        params={
-            "state_code": state_config.state_code,
-            "municipality_ids": tuple(
-                record.ibge_code for record in registry.ordered_records
-            ),
+    with profile_query(
+        "education.municipalities",
+        metadata={
+            "datasetId": "municipalities",
+            "backend": "postgres_local",
+            "parametersBound": True,
+            "municipalityFilter": "database",
         },
-    )
+    ) as query_event:
+        frame = pd.read_sql_query(
+            query,
+            engine,
+            params={
+                "state_code": state_config.state_code,
+                "municipality_ids": tuple(
+                    record.ibge_code for record in registry.ordered_records
+                ),
+            },
+        )
+        record_tabular_result(query_event, frame)
+        query_event.add_counter(
+            "municipalitiesRequested", registry.municipality_count
+        )
+        query_event.add_counter("municipalitiesQueried", len(frame))
     _validate_municipality_codes(
         frame,
         registry,
@@ -817,11 +882,28 @@ def carregar_view(
     query = text(
         f"SELECT * FROM {view} WHERE id_municipio IN :municipality_ids"
     ).bindparams(bindparam("municipality_ids", expanding=True))
-    frame = pd.read_sql_query(
-        query,
-        engine,
-        params={"municipality_ids": tuple(municipality_ids)},
-    )
+    with profile_query(
+        f"education.view.{view}",
+        metadata={
+            "datasetId": view,
+            "backend": "postgres_local",
+            "parametersBound": True,
+            "municipalityFilter": "database",
+        },
+    ) as query_event:
+        frame = pd.read_sql_query(
+            query,
+            engine,
+            params={"municipality_ids": tuple(municipality_ids)},
+        )
+        record_tabular_result(query_event, frame)
+        query_event.add_counter("municipalitiesRequested", len(municipality_ids))
+        queried = (
+            frame["id_municipio"].nunique()
+            if "id_municipio" in frame.columns
+            else 0
+        )
+        query_event.add_counter("municipalitiesQueried", int(queried))
     _validate_municipality_codes(frame, registry, source=view)
     return frame
 
@@ -2570,7 +2652,7 @@ def _bloco_vazio(nome, dimensoes, avisos=None):
 # ── Exportacao municipal ─────────────────────────────────────────────────
 
 
-def exportar_municipios(
+def _exportar_municipios_impl(
     mun_rs,
     dfs_views,
     progress_every=0,
@@ -2689,6 +2771,37 @@ def exportar_municipios(
             log(f"  {id_mun} {nome}: {err}")
 
     return gerados, falhas, arquivos_escritos, tamanhos
+
+
+def exportar_municipios(
+    mun_rs,
+    dfs_views,
+    progress_every=0,
+):
+    with profile_operation(
+        "compute",
+        "education.municipal_materialization",
+        metadata={
+            "eventGranularity": "aggregate",
+            "perMunicipalityEvents": False,
+        },
+    ) as operation:
+        result = _exportar_municipios_impl(
+            mun_rs,
+            dfs_views,
+            progress_every,
+        )
+        generated, failures, written, sizes = result
+        rendered_bytes = sum(size for _municipality_id, _name, size in sizes)
+        operation.add_counters(
+            municipalitiesRequested=len(mun_rs),
+            municipalitiesCompleted=generated,
+            errors=len(failures),
+            filesWritten=len(written),
+            bytesRendered=rendered_bytes,
+            bytesWritten=rendered_bytes,
+        )
+        return result
 
 
 class EducationMunicipalityBatchError(EducationPublicationError):
@@ -3186,6 +3299,7 @@ def diagnosticar_jsons(gerados_mun):
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
+@profiled_main_from_environment("education")
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description=(
@@ -3253,13 +3367,21 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
-        state_code = normalize_state_code(args.state)
-        state_config = load_state_config(state_code)
-        registry = load_municipality_registry(state_config)
-        route_compatibility = load_education_municipality_route_compatibility(
-            state_config,
-            registry,
-        )
+        with profile_operation(
+            "validation",
+            "education.configuration",
+            metadata={"requestedState": args.state},
+        ) as configuration_event:
+            state_code = normalize_state_code(args.state)
+            state_config = load_state_config(state_code)
+            registry = load_municipality_registry(state_config)
+            route_compatibility = load_education_municipality_route_compatibility(
+                state_config,
+                registry,
+            )
+            configuration_event.add_counter(
+                "municipalities", registry.municipality_count
+            )
     except (
         FileNotFoundError,
         StateConfigError,
@@ -3298,6 +3420,16 @@ def main(argv=None):
         print(f"[education] Destino após validação integral: {public_root}.")
         if args.no_promote:
             print("[education] Promoção: desativada por --no-promote.")
+        with profile_operation(
+            "orchestration",
+            "education.plan",
+            counters={
+                "municipalitiesPlanned": registry.municipality_count,
+                "processesStarted": 0,
+            },
+            metadata={"dryRun": True, "stagingCreated": False},
+        ):
+            pass
         return 0
 
     generation_summary = {}
@@ -3412,6 +3544,27 @@ def main(argv=None):
         )
         for path in generation_summary.get("written", []):
             log(f"  {path}")
+    sizes = generation_summary.get("sizes", [])
+    rendered_bytes = sum(size for _municipality_id, _name, size in sizes)
+    result_counters = {
+        "municipalities": result.validation.municipality_count,
+        "filesValidated": len(result.validation.files),
+        "bytesRendered": rendered_bytes,
+    }
+    if result.stats is not None:
+        result_counters.update(
+            created=result.stats.created,
+            updated=result.stats.updated,
+            preserved=result.stats.preserved,
+            removed=result.stats.removed,
+        )
+    with profile_operation(
+        "orchestration",
+        "education.result",
+        counters=result_counters,
+        metadata={"promoted": result.stats is not None},
+    ):
+        pass
     elapsed = time.time() - _START_TIME
     log(f"Tempo total: {elapsed:.1f}s")
     return 0

@@ -10,6 +10,13 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
+from ..pipeline_profiling import (
+    profile_query,
+    profiled_cache_call,
+    profiled_query_call,
+    record_tabular_result,
+)
+
 if TYPE_CHECKING:
     from supabase import Client
 
@@ -403,26 +410,40 @@ def get_local_postgres_engine() -> Engine:
 
 
 def _fetch_supabase_table_uncached(client: "Client", table_name: str) -> pd.DataFrame:
-    all_data = []
-    limit = 1000
-    offset = 0
+    with profile_query(
+        f"repository.supabase.{table_name}",
+        metadata={
+            "datasetId": table_name,
+            "backend": "supabase",
+            "broadQuery": True,
+            "municipalityFilter": "local_after_query",
+        },
+    ) as operation:
+        all_data = []
+        limit = 1000
+        offset = 0
+        pages = 0
 
-    while True:
-        response = (
-            client.table(table_name)
-            .select("*")
-            .range(offset, offset + limit - 1)
-            .execute()
-        )
-        data = getattr(response, "data", [])
-        if not data:
-            break
-        all_data.extend(data)
-        if len(data) < limit:
-            break
-        offset += limit
+        while True:
+            response = (
+                client.table(table_name)
+                .select("*")
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+            pages += 1
+            data = getattr(response, "data", [])
+            if not data:
+                break
+            all_data.extend(data)
+            if len(data) < limit:
+                break
+            offset += limit
 
-    return pd.DataFrame(all_data)
+        frame = pd.DataFrame(all_data)
+        operation.add_counter("pages", pages)
+        record_tabular_result(operation, frame)
+        return frame
 
 
 @lru_cache(maxsize=32)
@@ -434,7 +455,12 @@ def _get_table_frame(table_name: str) -> pd.DataFrame:
     ttl_seconds = get_data_cache_ttl_seconds()
     if ttl_seconds <= 0:
         return _fetch_supabase_table_uncached(get_supabase_client(), table_name)
-    return _fetch_table_cached(table_name, _current_cache_bucket())
+    return profiled_cache_call(
+        "repository.raw_table_cache",
+        lambda: _fetch_table_cached(table_name, _current_cache_bucket()),
+        _fetch_table_cached.cache_info,
+        metadata={"datasetId": table_name, "backend": "supabase"},
+    )
 
 
 def _build_supabase_dataset(spec: DatasetSpec) -> pd.DataFrame:
@@ -470,7 +496,16 @@ def _read_local_query_table(table_name: str) -> pd.DataFrame:
 
     query = query_path.read_text(encoding="utf-8")
     try:
-        return pd.read_sql_query(text(query), get_local_postgres_engine())
+        return profiled_query_call(
+            f"repository.postgres.{table_name}",
+            lambda: pd.read_sql_query(text(query), get_local_postgres_engine()),
+            metadata={
+                "datasetId": table_name,
+                "backend": "postgres_local",
+                "broadQuery": True,
+                "municipalityFilter": "local_after_query",
+            },
+        )
     except Exception as exc:
         message = str(exc)
         if (
@@ -482,10 +517,23 @@ def _read_local_query_table(table_name: str) -> pd.DataFrame:
         raise
 
 
-def _read_local_sql(query: str, params: dict | None = None) -> pd.DataFrame:
+def _read_local_sql(
+    query: str,
+    params: dict | None = None,
+    *,
+    query_id: str = "repository.local_sql",
+) -> pd.DataFrame:
     try:
-        return pd.read_sql_query(
-            text(query), get_local_postgres_engine(), params=params
+        return profiled_query_call(
+            query_id,
+            lambda: pd.read_sql_query(
+                text(query), get_local_postgres_engine(), params=params
+            ),
+            metadata={
+                "datasetId": query_id,
+                "backend": "postgres_local",
+                "parametersBound": bool(params),
+            },
         )
     except Exception as exc:
         message = str(exc)
@@ -499,27 +547,40 @@ def _read_local_sql(query: str, params: dict | None = None) -> pd.DataFrame:
 
 
 def _fetch_supabase_columns_uncached(table_name: str, columns: str) -> pd.DataFrame:
-    all_data = []
-    limit = 1000
-    offset = 0
-    client = get_supabase_client()
+    with profile_query(
+        f"repository.supabase.{table_name}.columns",
+        metadata={
+            "datasetId": table_name,
+            "backend": "supabase",
+            "columnSelection": "explicit",
+        },
+    ) as operation:
+        all_data = []
+        limit = 1000
+        offset = 0
+        pages = 0
+        client = get_supabase_client()
 
-    while True:
-        response = (
-            client.table(table_name)
-            .select(columns)
-            .range(offset, offset + limit - 1)
-            .execute()
-        )
-        data = getattr(response, "data", [])
-        if not data:
-            break
-        all_data.extend(data)
-        if len(data) < limit:
-            break
-        offset += limit
+        while True:
+            response = (
+                client.table(table_name)
+                .select(columns)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+            pages += 1
+            data = getattr(response, "data", [])
+            if not data:
+                break
+            all_data.extend(data)
+            if len(data) < limit:
+                break
+            offset += limit
 
-    return pd.DataFrame(all_data)
+        frame = pd.DataFrame(all_data)
+        operation.add_counter("pages", pages)
+        record_tabular_result(operation, frame)
+        return frame
 
 
 def _build_local_dataset(spec: DatasetSpec) -> pd.DataFrame:
@@ -600,11 +661,21 @@ def _load_dataset_frame(dataset_name: str, cache_bucket: int | None) -> pd.DataF
     if backend == "supabase":
         if cache_bucket is None:
             return _build_supabase_dataset(spec)
-        return _load_supabase_dataset_cached(dataset_name, cache_bucket)
+        return profiled_cache_call(
+            "repository.dataset_cache",
+            lambda: _load_supabase_dataset_cached(dataset_name, cache_bucket),
+            _load_supabase_dataset_cached.cache_info,
+            metadata={"datasetId": dataset_name, "backend": backend},
+        )
 
     if cache_bucket is None:
         return _build_local_dataset(spec)
-    return _load_local_dataset_cached(dataset_name, cache_bucket)
+    return profiled_cache_call(
+        "repository.dataset_cache",
+        lambda: _load_local_dataset_cached(dataset_name, cache_bucket),
+        _load_local_dataset_cached.cache_info,
+        metadata={"datasetId": dataset_name, "backend": backend},
+    )
 
 
 def _build_atendimento_overview_frames(cache_bucket: int | None) -> list[pd.DataFrame]:
@@ -744,7 +815,8 @@ def _load_municipios_cached(cache_bucket: int) -> tuple[str, ...]:
               ON c.id_municipio::text = m.id_municipio::text
             WHERE m.municipio IS NOT NULL
             ORDER BY m.municipio
-            """
+            """,
+            query_id="repository.postgres.municipalities",
         )
 
     if df.empty or "municipio" not in df.columns:
@@ -759,7 +831,15 @@ def load_municipios() -> list[str]:
     ttl_seconds = get_data_cache_ttl_seconds()
     if ttl_seconds <= 0:
         return list(_load_municipios_cached.__wrapped__(-1))
-    return list(_load_municipios_cached(_current_cache_bucket()))
+    bucket = _current_cache_bucket()
+    return list(
+        profiled_cache_call(
+            "repository.municipalities_cache",
+            lambda: _load_municipios_cached(bucket),
+            _load_municipios_cached.cache_info,
+            metadata={"datasetId": "municipalities"},
+        )
+    )
 
 
 def load_atendimento_overview_data() -> pd.DataFrame:
@@ -768,7 +848,13 @@ def load_atendimento_overview_data() -> pd.DataFrame:
         return _merge_atendimento_overview_frames(
             _build_atendimento_overview_frames(None)
         ).copy()
-    return _load_atendimento_overview_cached(_current_cache_bucket()).copy()
+    bucket = _current_cache_bucket()
+    return profiled_cache_call(
+        "repository.overview_cache",
+        lambda: _load_atendimento_overview_cached(bucket),
+        _load_atendimento_overview_cached.cache_info,
+        metadata={"datasetId": "education_attendance_overview"},
+    ).copy()
 
 
 def clear_data_cache() -> None:

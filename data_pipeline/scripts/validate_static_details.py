@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import sys
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,11 @@ from src.state_config import (  # noqa: E402
     DEFAULT_STATE_CODE,
     StateConfigError,
     load_state_config,
+)
+from src.pipeline_profiling import (  # noqa: E402
+    get_active_profile_session,
+    profile_operation,
+    profiled_main_from_environment,
 )
 
 
@@ -77,6 +83,40 @@ class Problem:
     severity: str
     path: Path
     message: str
+
+
+def _record_profile_read(path: Path, started_ns: int, *, failed: bool = False) -> None:
+    session = get_active_profile_session()
+    if session is None:
+        return
+    session.accumulate_event(
+        category="read",
+        name="validation.file_reads",
+        duration_ns=time.perf_counter_ns() - started_ns,
+        counters={
+            "filesRead": int(not failed),
+            "bytesRead": path.stat().st_size if path.is_file() else 0,
+            "errors": int(failed),
+        },
+        metadata={"format": "json"},
+    )
+
+
+def _warning_categories(problems: list[Problem]) -> dict[str, int]:
+    categories: dict[str, int] = {}
+    for problem in problems:
+        if problem.severity != "WARNING":
+            continue
+        message = problem.message.casefold()
+        category = (
+            "dependency"
+            if "depend" in message
+            else "series"
+            if "series" in message
+            else "contract"
+        )
+        categories[category] = categories.get(category, 0) + 1
+    return categories
 
 
 def parse_args() -> argparse.Namespace:
@@ -670,15 +710,20 @@ def validate_detail_file(
     *,
     municipality_name: str | None = None,
 ) -> int:
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
     try:
         with path.open("r", encoding="utf-8") as file:
             payload = json.load(file)
     except json.JSONDecodeError as exc:
+        _record_profile_read(path, started_ns, failed=True)
         add_problem(problems, "ERROR", path, f"invalid JSON: {exc}")
         return 0
     except OSError as exc:
+        _record_profile_read(path, started_ns, failed=True)
         add_problem(problems, "ERROR", path, f"could not read file: {exc}")
         return 0
+    _record_profile_read(path, started_ns)
 
     if not isinstance(payload, dict):
         add_problem(problems, "ERROR", path, "top-level payload must be an object.")
@@ -754,11 +799,15 @@ def _validate_shared_coverage(
         parent_name = path.parent.name
         seen_ids.add(parent_name)
 
+        session = get_active_profile_session()
+        started_ns = time.perf_counter_ns() if session is not None else 0
         try:
             with path.open("r", encoding="utf-8") as f:
                 payload = json.load(f)
         except (json.JSONDecodeError, OSError):
+            _record_profile_read(path, started_ns, failed=True)
             continue
+        _record_profile_read(path, started_ns)
 
         shared = payload.get("_shared") if isinstance(payload, dict) else None
         if isinstance(shared, dict):
@@ -817,14 +866,19 @@ def validate_municipal_index_identity(
     problems: list[Problem],
 ) -> None:
     path = data_dir / "municipios" / record.ibge_code / "index.json"
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
+        _record_profile_read(path, started_ns, failed=True)
         add_problem(problems, "ERROR", path, "municipal index.json is missing.")
         return
     except (json.JSONDecodeError, OSError) as exc:
+        _record_profile_read(path, started_ns, failed=True)
         add_problem(problems, "ERROR", path, f"could not read municipal index: {exc}")
         return
+    _record_profile_read(path, started_ns)
     if not isinstance(payload, dict):
         add_problem(problems, "ERROR", path, "municipal index must be an object.")
         return
@@ -843,41 +897,56 @@ def validate_municipal_index_identity(
         )
 
 
+@profiled_main_from_environment("validate")
 def main() -> int:
     args = parse_args()
     try:
-        state_config = load_state_config(args.state)
-        registry = load_municipality_registry(state_config)
+        with profile_operation(
+            "validation",
+            "validation.configuration",
+            metadata={"state": args.state},
+        ) as configuration_event:
+            state_config = load_state_config(args.state)
+            registry = load_municipality_registry(state_config)
+            configuration_event.add_counter(
+                "municipalities", registry.municipality_count
+            )
     except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
         print(f"State configuration validation failed: {exc}", file=sys.stderr)
         return 2
     data_dir = Path(args.data_dir).resolve()
     problems: list[Problem] = []
     municipal_root = data_dir / "municipios"
-    physical_directories = (
-        {path.name for path in municipal_root.iterdir() if path.is_dir()}
-        if municipal_root.is_dir()
-        else set()
-    )
-    if physical_directories != registry.ids:
-        missing = sorted(registry.ids - physical_directories)
-        extra = sorted(physical_directories - registry.ids)
-        add_problem(
-            problems,
-            "ERROR",
-            municipal_root,
-            "municipal directory set diverges from registry; "
-            f"missing={missing[:5]}, extra={extra[:5]}.",
+    with profile_operation(
+        "validation",
+        "validation.municipal_identity",
+    ) as identity_event:
+        physical_directories = (
+            {path.name for path in municipal_root.iterdir() if path.is_dir()}
+            if municipal_root.is_dir()
+            else set()
         )
+        if physical_directories != registry.ids:
+            missing = sorted(registry.ids - physical_directories)
+            extra = sorted(physical_directories - registry.ids)
+            add_problem(
+                problems,
+                "ERROR",
+                municipal_root,
+                "municipal directory set diverges from registry; "
+                f"missing={missing[:5]}, extra={extra[:5]}.",
+            )
 
-    detail_files: list[Path] = []
-    for record in registry.ordered_records:
-        validate_municipal_index_identity(data_dir, record, problems)
-        details_path = municipal_root / record.ibge_code / "details.json"
-        if details_path.is_file():
-            detail_files.append(details_path)
-        else:
-            add_problem(problems, "ERROR", details_path, "details.json is missing.")
+        detail_files: list[Path] = []
+        for record in registry.ordered_records:
+            validate_municipal_index_identity(data_dir, record, problems)
+            details_path = municipal_root / record.ibge_code / "details.json"
+            if details_path.is_file():
+                detail_files.append(details_path)
+            else:
+                add_problem(problems, "ERROR", details_path, "details.json is missing.")
+        identity_event.add_counter("directories", len(physical_directories))
+        identity_event.add_counter("detailFiles", len(detail_files))
 
     if not detail_files:
         add_problem(
@@ -887,20 +956,57 @@ def main() -> int:
             f"no details JSON files found with glob {DEFAULT_DETAILS_GLOB!r}.",
         )
         print_summary(0, problems, args.max_problems)
+        with profile_operation(
+            "validation",
+            "validation.result",
+            counters={
+                "filesRead": 0,
+                "payloadsVerified": 0,
+                "errors": sum(problem.severity == "ERROR" for problem in problems),
+                "warnings": sum(problem.severity == "WARNING" for problem in problems),
+            },
+            metadata={"warningCategories": _warning_categories(problems)},
+        ):
+            pass
         return 1
 
     total_files = 0
-    for path in detail_files:
-        record = registry.get_by_id(path.parent.name)
-        total_files += validate_detail_file(
-            path,
-            problems,
-            municipality_name=record.name,
-        )
+    with profile_operation(
+        "validation",
+        "validation.detail_contracts",
+        metadata={"eventGranularity": "aggregate"},
+    ) as details_event:
+        for path in detail_files:
+            record = registry.get_by_id(path.parent.name)
+            total_files += validate_detail_file(
+                path,
+                problems,
+                municipality_name=record.name,
+            )
+        details_event.add_counter("files", len(detail_files))
+        details_event.add_counter("payloadsVerified", total_files)
 
-    _validate_shared_coverage(detail_files, data_dir, problems, registry)
+    with profile_operation(
+        "validation",
+        "validation.shared_coverage",
+    ):
+        _validate_shared_coverage(detail_files, data_dir, problems, registry)
 
     print_summary(total_files, problems, args.max_problems)
+    errors = sum(problem.severity == "ERROR" for problem in problems)
+    warnings = sum(problem.severity == "WARNING" for problem in problems)
+    with profile_operation(
+        "validation",
+        "validation.result",
+        counters={
+            "files": len(detail_files),
+            "payloadsVerified": total_files,
+            "errors": errors,
+            "warnings": warnings,
+        },
+        metadata={"warningCategories": _warning_categories(problems)},
+    ):
+        pass
     return 1 if any(problem.severity == "ERROR" for problem in problems) else 0
 
 

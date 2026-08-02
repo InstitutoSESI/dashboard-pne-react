@@ -167,6 +167,32 @@ diretas ficam em `data_pipeline/pyproject.toml` e a resolução reproduzível em
 Python por `uv run --project data_pipeline`; a pesquisa usa o mesmo ambiente,
 mas permanece fora do pipeline automático.
 
+### Perfil de desempenho do pipeline
+
+`data_pipeline/src/pipeline_profiling.py` fornece a instrumentação opt-in comum.
+Uma `ProfileSession` identifica o run, estado, comando, processo, parâmetros
+sanitizados e ambiente mínimo. `ProfileEvent` registra hierarquia, categoria,
+status, timestamps UTC e duração monotônica por `perf_counter_ns`; counters
+finitos carregam linhas, colunas, arquivos, bytes e resultados funcionais sem
+misturá-los com a duração. As categorias versionadas são `orchestration`,
+`subprocess`, `query`, `compute`, `serialization`, `read`, `write`,
+`validation`, `promotion`, `cache` e `build`.
+
+O orquestrador cria um evento de subprocesso e propaga somente IDs controlados,
+estado, diretório e parâmetros sanitizados. Cada processo Python escreve um
+fragmento atômico próprio; o pai valida os schemas, IDs e relações e consolida
+os fragmentos deterministicamente em `profile.json` e `summary.json`. Não há
+arquivo global escrito concorrentemente. Operações repetidas de cache e de
+arquivo são agregadas para não criar eventos por município, linha ou célula.
+
+Os relatórios ficam em `data_pipeline/export/profiles/<run-id>/`, fora de
+`public/data` e ignorados pelo Git. Eles não incluem dataset analítico, SQL com
+valores vinculados, credenciais, ambiente completo ou paths pessoais
+desnecessários. O profile mede o pipeline atual e orienta as Etapas 5D2–5D5;
+não cria fingerprint, cache persistente, changed-only ou qualquer execução
+incremental. Sem `--profile`, não há sessão, timers internos, serialização,
+fragmentos ou diretório de relatório.
+
 ## Publicação e segurança
 
 O artefato publicável é `dist`. `npm run build` continua sendo o build completo:

@@ -13,6 +13,7 @@ from src.data.repository import (
     load_municipios,
 )
 from src.school_infrastructure_materialization import build_contracts
+from src.pipeline_profiling import profiled_cache_call
 
 
 def fetch_supabase_table(_client, table_name: str):
@@ -151,7 +152,12 @@ def load_taxa_alfabetizacao_data(*, cycle=None):
     if cycle == "pne_2014_2024":
         from src.pne_2014_child_literacy import load_dataframe
 
-        return load_dataframe()
+        return profiled_cache_call(
+            "data_loader.child_literacy_snapshot_cache",
+            load_dataframe,
+            load_dataframe.cache_info,
+            metadata={"datasetId": "pne_2014_child_literacy"},
+        )
     return load_dataset("taxa_alfabetizacao_data")
 
 
@@ -260,7 +266,12 @@ def _load_school_infrastructure_contracts_cached(cache_bucket: int):
 def load_school_infrastructure_contract(municipio):
     ttl = get_data_cache_ttl_seconds()
     bucket = time.time_ns() if ttl <= 0 else int(time.time() // ttl)
-    contracts, code_by_name = _load_school_infrastructure_contracts_cached(bucket)
+    contracts, code_by_name = profiled_cache_call(
+        "data_loader.school_infrastructure_contracts_cache",
+        lambda: _load_school_infrastructure_contracts_cached(bucket),
+        _load_school_infrastructure_contracts_cached.cache_info,
+        metadata={"datasetId": "school_infrastructure_contracts"},
+    )
     code = code_by_name.get(municipio, str(municipio))
     return contracts.get(code)
 

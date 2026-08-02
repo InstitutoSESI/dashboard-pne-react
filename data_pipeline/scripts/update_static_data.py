@@ -29,6 +29,18 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
 )
+from src.pipeline_profiling import (  # noqa: E402
+    ProfileError,
+    ProfileOutputError,
+    ProfileSession,
+    activate_profile_session,
+    get_active_profile_session,
+    profile_operation,
+    profile_step,
+    sanitize_profile_path,
+    validate_profile_output_path,
+    write_profile_report,
+)
 
 PYTHON = sys.executable
 NPM = "npm.cmd" if os.name == "nt" else "npm"
@@ -66,6 +78,10 @@ class SyncStats:
     updated: int
     preserved: int
     removed: int
+    files_evaluated: int = 0
+    bytes_compared: int = 0
+    bytes_copied: int = 0
+    directories_examined: int = 0
 
 
 def format_command(command: list[str]) -> str:
@@ -123,6 +139,67 @@ def ensure_git_update_safe() -> None:
 
 def run_command(name: str, command: list[str], results: list[StepResult]) -> None:
     print(f"[update-data] Iniciando {name}: {format_command(command)}")
+    profile_session = get_active_profile_session()
+    if profile_session is not None:
+        step_category = "build" if name == "build" else "orchestration"
+        operation: object | None = None
+        try:
+            with profile_step(
+                f"step.{name}",
+                session=profile_session,
+                category=step_category,
+                metadata={"step": name},
+            ) as step:
+                with profile_operation(
+                    "subprocess",
+                    name,
+                    session=profile_session,
+                    metadata={
+                        "command": command,
+                        "workingDirectory": REPO_ROOT,
+                    },
+                ) as operation:
+                    environment = os.environ.copy()
+                    child = None
+                    if name != "build":
+                        child = profile_session.child_context(
+                            parent_event_id=operation.event_id,
+                            command=name,
+                            parameters={"step": name},
+                        )
+                        environment.update(child.environment)
+                    completed = subprocess.run(
+                        command,
+                        cwd=REPO_ROOT,
+                        check=False,
+                        env=environment,
+                    )
+                    operation.add_counter("exitCode", completed.returncode)
+                    operation.add_counter("processesStarted", 1)
+                    if child is not None:
+                        operation.add_metadata(childRunId=child.run_id)
+                    if completed.returncode != 0:
+                        operation.mark_error(
+                            "SubprocessExitError",
+                            f"{name} encerrou com codigo {completed.returncode}",
+                        )
+                        step.mark_error(
+                            "SubprocessExitError",
+                            f"{name} encerrou com codigo {completed.returncode}",
+                        )
+            duration = operation.duration_ns / 1_000_000_000
+        except BaseException:
+            duration_ns = getattr(operation, "duration_ns", 0) if operation else 0
+            results.append(StepResult(name, "erro", duration_ns / 1_000_000_000))
+            raise
+        if completed.returncode != 0:
+            results.append(StepResult(name, "erro", duration))
+            print(f"[update-data] ERRO em {name} apos {duration:.1f}s.")
+            raise SystemExit(completed.returncode)
+        results.append(StepResult(name, "ok", duration))
+        print(f"[update-data] {name} concluido em {duration:.1f}s.")
+        return
+
     start = time.perf_counter()
     completed = subprocess.run(command, cwd=REPO_ROOT, check=False)
     duration = time.perf_counter() - start
@@ -275,7 +352,10 @@ def validate_static_partition(
     return source_files
 
 
-def iter_managed_public_files(public_root: Path) -> list[Path]:
+def iter_managed_public_files(
+    public_root: Path,
+    metrics: dict[str, int] | None = None,
+) -> list[Path]:
     managed: list[Path] = []
     for relative in sorted(
         ROOT_STATIC_FILES | CYCLE_STATIC_FILES | RETIRED_PUBLIC_ROOT_FILES
@@ -286,7 +366,10 @@ def iter_managed_public_files(public_root: Path) -> list[Path]:
 
     municipal_root = public_root / "municipios"
     if municipal_root.is_dir():
-        for directory in sorted(path for path in municipal_root.iterdir() if path.is_dir()):
+        directories = sorted(path for path in municipal_root.iterdir() if path.is_dir())
+        if metrics is not None:
+            metrics["directories_examined"] += len(directories) + 1
+        for directory in directories:
             for filename in sorted(MUNICIPAL_STATIC_FILES):
                 path = directory / filename
                 if path.is_file():
@@ -299,7 +382,11 @@ def iter_managed_public_files(public_root: Path) -> list[Path]:
     return managed
 
 
-def files_match(source: Path, target: Path) -> bool:
+def files_match(
+    source: Path,
+    target: Path,
+    metrics: dict[str, int] | None = None,
+) -> bool:
     if not target.is_file():
         return False
     source_stat = source.stat()
@@ -314,17 +401,25 @@ def files_match(source: Path, target: Path) -> bool:
         while True:
             source_chunk = source_file.read(chunk_size)
             target_chunk = target_file.read(chunk_size)
+            if metrics is not None:
+                metrics["bytes_compared"] += len(source_chunk) + len(target_chunk)
             if source_chunk != target_chunk:
                 return False
             if not source_chunk:
                 return True
 
 
-def copy_file_atomically(source: Path, target: Path) -> None:
+def copy_file_atomically(
+    source: Path,
+    target: Path,
+    metrics: dict[str, int] | None = None,
+) -> None:
     temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
     try:
         shutil.copy2(source, temporary)
         os.replace(temporary, target)
+        if metrics is not None:
+            metrics["bytes_copied"] += source.stat().st_size
     finally:
         if temporary.exists():
             temporary.unlink()
@@ -340,6 +435,14 @@ def sync_partitioned_to_public(
     name = "sync"
     print(f"[update-data] Iniciando {name}: {source_root} -> {public_root}")
     start = time.perf_counter()
+    profile_session = get_active_profile_session()
+    profile_metrics = {
+        "bytes_compared": 0,
+        "bytes_copied": 0,
+        "directories_examined": 0,
+    }
+    comparison_duration_ns = 0
+    promotion_duration_ns = 0
 
     if not source_root.exists():
         raise RuntimeError(f"[update-data] Diretorio particionado nao encontrado: {source_root}")
@@ -349,7 +452,22 @@ def sync_partitioned_to_public(
     if registry is None:
         state_config = load_state_config(state_code)
         registry = load_municipality_registry(state_config)
-    source_files = validate_static_partition(source_root, registry)
+    with profile_operation(
+        "validation",
+        "sync.staging_validation",
+        session=profile_session,
+        metadata={"sourceRoot": source_root},
+    ) as validation_event:
+        source_files = validate_static_partition(source_root, registry)
+        validation_event.add_counter("files", len(source_files))
+        if profile_session is not None:
+            profile_metrics["directories_examined"] += len(
+                {path.parent.resolve() for path in source_files}
+            ) + 1
+            validation_event.add_counter(
+                "bytesRead",
+                sum(path.stat().st_size for path in source_files),
+            )
     expected_targets: set[Path] = set()
     created = updated = preserved = removed = 0
 
@@ -359,25 +477,81 @@ def sync_partitioned_to_public(
         expected_targets.add(target.resolve())
         target.parent.mkdir(parents=True, exist_ok=True)
 
-        if files_match(source, target):
+        comparison_started_ns = (
+            time.perf_counter_ns() if profile_session is not None else 0
+        )
+        matches = files_match(
+            source,
+            target,
+            profile_metrics if profile_session is not None else None,
+        )
+        if profile_session is not None:
+            comparison_duration_ns += time.perf_counter_ns() - comparison_started_ns
+        if matches:
             preserved += 1
             continue
         action = "updated" if target.exists() else "created"
 
-        copy_file_atomically(source, target)
+        promotion_started_ns = (
+            time.perf_counter_ns() if profile_session is not None else 0
+        )
+        copy_file_atomically(
+            source,
+            target,
+            profile_metrics if profile_session is not None else None,
+        )
+        if profile_session is not None:
+            promotion_duration_ns += time.perf_counter_ns() - promotion_started_ns
         if action == "created":
             created += 1
         else:
             updated += 1
 
-    for target in iter_managed_public_files(public_root):
+    removal_started_ns = time.perf_counter_ns() if profile_session is not None else 0
+    for target in iter_managed_public_files(
+        public_root,
+        profile_metrics if profile_session is not None else None,
+    ):
         if target.resolve() not in expected_targets:
             target.unlink()
             removed += 1
+    if profile_session is not None:
+        promotion_duration_ns += time.perf_counter_ns() - removal_started_ns
+        profile_session.record_aggregate_event(
+            category="read",
+            name="sync.comparison",
+            duration_ns=comparison_duration_ns,
+            counters={
+                "filesEvaluated": len(source_files),
+                "bytesCompared": profile_metrics["bytes_compared"],
+            },
+        )
+        profile_session.record_aggregate_event(
+            category="promotion",
+            name="sync.promotion",
+            duration_ns=promotion_duration_ns,
+            counters={
+                "created": created,
+                "updated": updated,
+                "preserved": preserved,
+                "removed": removed,
+                "bytesCopied": profile_metrics["bytes_copied"],
+                "directoriesExamined": profile_metrics["directories_examined"],
+            },
+        )
 
     duration = time.perf_counter() - start
     results.append(StepResult(name, "ok", duration))
-    stats = SyncStats(created, updated, preserved, removed)
+    stats = SyncStats(
+        created,
+        updated,
+        preserved,
+        removed,
+        files_evaluated=len(source_files),
+        bytes_compared=profile_metrics["bytes_compared"],
+        bytes_copied=profile_metrics["bytes_copied"],
+        directories_examined=profile_metrics["directories_examined"],
+    )
     print(f"[update-data] {name} concluido em {duration:.1f}s.")
     print(f"[update-data] sync criados: {stats.created}")
     print(f"[update-data] sync atualizados: {stats.updated}")
@@ -387,14 +561,30 @@ def sync_partitioned_to_public(
 
 
 def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_build: bool) -> None:
+    profile_session = get_active_profile_session()
     print("[update-data] Dry run: nenhum comando que altera arquivos sera executado.")
     print("[update-data] Checagem segura: git status --short")
-    status = run_git_status()
+    with profile_operation(
+        "validation",
+        "dry_run.git_status",
+        session=profile_session,
+        metadata={"readOnly": True},
+    ) as validation_event:
+        status = run_git_status()
+        validation_event.add_counter("dirtyPaths", len(status_paths(status)))
     print(status or "[update-data] Git status atual: limpo.")
 
     sync_printed = False
     for name, command in commands:
         print(f"[update-data] Rodaria {name}: {format_command(command)}")
+        with profile_operation(
+            "orchestration",
+            f"plan.{name}",
+            session=profile_session,
+            metadata={"planned": True, "executed": False, "command": command},
+        ) as planned_event:
+            planned_event.add_counter("processesPlanned", 1)
+            planned_event.add_counter("processesStarted", 0)
         if name == "inequality" and run_sync:
             print(
                 "[update-data] Rodaria sync: "
@@ -406,9 +596,25 @@ def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_bui
             "[update-data] Rodaria sync: "
             f"{STATIC_PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}"
         )
+    if run_sync:
+        with profile_operation(
+            "orchestration",
+            "plan.sync",
+            session=profile_session,
+            metadata={"planned": True, "executed": False},
+        ):
+            pass
     if run_build:
         print(f"[update-data] Rodaria build: {format_command([NPM, 'run', 'build'])}")
         print("[update-data] build: planejado, não executado por dry-run")
+        with profile_operation(
+            "build",
+            "plan.build",
+            session=profile_session,
+            metadata={"planned": True, "executed": False},
+        ) as build_event:
+            build_event.add_counter("processesPlanned", 1)
+            build_event.add_counter("processesStarted", 0)
 
 
 def print_summary(
@@ -478,7 +684,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--profile",
         action="store_true",
-        help="Mostra o perfil das etapas do export, partition, sync, validação e build.",
+        help=(
+            "Gera profile.json e summary.json com as etapas do pipeline; "
+            "sem esta flag nenhum relatorio e criado."
+        ),
+    )
+    parser.add_argument(
+        "--profile-output",
+        type=Path,
+        default=None,
+        help=(
+            "Diretorio seguro para o relatorio; requer --profile. "
+            "O padrao e data_pipeline/export/profiles/<run-id>."
+        ),
     )
     parser.add_argument(
         "--state",
@@ -488,16 +706,32 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if args.validate_only and args.build:
         parser.error("--validate-only nao pode ser combinado com --build.")
+    if args.profile_output is not None and not args.profile:
+        parser.error("--profile-output requer --profile.")
+    if args.profile_output is not None:
+        try:
+            validate_profile_output_path(args.profile_output, run_id="validation")
+        except ProfileOutputError as exc:
+            parser.error(str(exc))
     return args
 
 
-def main() -> int:
-    args = parse_args()
+def run_pipeline(args: argparse.Namespace) -> int:
     if args.education_only and args.skip_education:
         raise SystemExit("--education-only e --skip-education sao mutuamente exclusivos.")
     try:
-        state_config = load_state_config(args.state)
-        registry = load_municipality_registry(state_config)
+        with profile_operation(
+            "validation",
+            "initial_configuration",
+            metadata={"requestedState": args.state},
+        ) as validation_event:
+            state_config = load_state_config(args.state)
+            registry = load_municipality_registry(state_config)
+            if get_active_profile_session() is not None:
+                validation_event.add_counter(
+                    "municipalities",
+                    registry.municipality_count,
+                )
     except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
         print(f"[update-data] Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
@@ -601,7 +835,12 @@ def main() -> int:
     build_started = False
     try:
         if run_export or run_partition or run_sync or run_education:
-            ensure_git_update_safe()
+            with profile_operation(
+                "validation",
+                "git_update_safety",
+                metadata={"allowedRoot": "public/data"},
+            ):
+                ensure_git_update_safe()
 
         if run_export:
             run_command("export", export_command, results)
@@ -624,7 +863,19 @@ def main() -> int:
             skipped.append("inequality")
 
         if run_sync:
-            sync_partitioned_to_public(results, registry=registry)
+            with profile_step("step.sync", metadata={"step": "sync"}) as sync_event:
+                sync_stats = sync_partitioned_to_public(results, registry=registry)
+                if get_active_profile_session() is not None and sync_stats is not None:
+                    sync_event.add_counters(
+                        created=sync_stats.created,
+                        updated=sync_stats.updated,
+                        preserved=sync_stats.preserved,
+                        removed=sync_stats.removed,
+                        filesEvaluated=sync_stats.files_evaluated,
+                        bytesCompared=sync_stats.bytes_compared,
+                        bytesCopied=sync_stats.bytes_copied,
+                        directoriesExamined=sync_stats.directories_examined,
+                    )
 
         run_command("validate", validate_command, results)
         validate_ok = True
@@ -656,6 +907,88 @@ def main() -> int:
         profile=args.profile,
     )
     return 0
+
+
+def _profile_parameters(args: argparse.Namespace) -> dict[str, object]:
+    return {
+        "state": args.state,
+        "dryRun": args.dry_run,
+        "buildRequested": args.build,
+        "validateOnly": args.validate_only,
+        "educationOnly": args.education_only,
+        "skipExport": args.skip_export,
+        "skipPartition": args.skip_partition,
+        "skipEducation": args.skip_education,
+        "includeDerived": not args.no_include_derived,
+    }
+
+
+def _write_root_profile(session: ProfileSession) -> tuple[Path, Path] | None:
+    try:
+        paths = write_profile_report(session)
+    except ProfileError as exc:
+        print(f"[profile] Falha ao escrever o relatorio: {exc}", file=sys.stderr)
+        return None
+    print(
+        "[profile] Relatorios gerados: "
+        f"{sanitize_profile_path(paths[0])}, {sanitize_profile_path(paths[1])}"
+    )
+    return paths
+
+
+def main() -> int:
+    args = parse_args()
+    if not args.profile:
+        return run_pipeline(args)
+
+    try:
+        session = ProfileSession.create_root(
+            state_code=args.state,
+            command="update_static_data",
+            parameters=_profile_parameters(args),
+            requested_output=args.profile_output,
+        )
+    except ProfileOutputError as exc:
+        print(f"[profile] Diretorio recusado: {exc}", file=sys.stderr)
+        return 2
+
+    result = 1
+    with activate_profile_session(session):
+        try:
+            with profile_step(
+                "pipeline.total",
+                session=session,
+                metadata={
+                    "dryRun": args.dry_run,
+                    "buildRequested": args.build,
+                },
+            ) as total_event:
+                try:
+                    result = run_pipeline(args)
+                finally:
+                    total_event.add_counter(
+                        "processesStarted",
+                        sum(
+                            1
+                            for event in session.events
+                            if event.category == "subprocess"
+                        ),
+                    )
+                    total_event.add_counter("dryRun", int(args.dry_run))
+                    total_event.add_counter("buildRequested", int(args.build))
+                total_event.add_counter("exitCode", result)
+                if result != 0:
+                    total_event.mark_error("NonZeroExit", f"exit code {result}")
+        except BaseException as exc:
+            session.finish("error", exc)
+            _write_root_profile(session)
+            raise
+        else:
+            session.finish("success" if result == 0 else "error")
+
+    if _write_root_profile(session) is None and result == 0:
+        return 3
+    return result
 
 
 if __name__ == "__main__":

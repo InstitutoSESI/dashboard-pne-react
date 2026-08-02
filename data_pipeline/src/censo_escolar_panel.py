@@ -20,6 +20,8 @@ import tempfile
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+
+from src.pipeline_profiling import profiled_query_call
 from typing import Any, Iterable
 
 import pandas as pd
@@ -956,10 +958,18 @@ def load_historical_from_postgres(
     )
     engine = create_engine(url, pool_pre_ping=True)
     try:
-        history = pd.read_sql_query(
-            text(HISTORICAL_NUMERATOR_QUERY),
-            engine,
-            params={"start_year": start_year, "end_year": end_year},
+        history = profiled_query_call(
+            "censo_escolar.historical_numerators",
+            lambda: pd.read_sql_query(
+                text(HISTORICAL_NUMERATOR_QUERY),
+                engine,
+                params={"start_year": start_year, "end_year": end_year},
+            ),
+            metadata={
+                "datasetId": "censo_escolar_historical_numerators",
+                "backend": "postgres_local",
+                "parametersBound": True,
+            },
         )
     finally:
         engine.dispose()

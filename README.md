@@ -41,6 +41,7 @@ npm run check:fast
 npm run python:lock:check
 npm run check:python-deps
 npm run test:pipeline-state-config
+npm run test:pipeline-profiling
 npm run build
 npm run test:unit
 npm run test:education
@@ -102,6 +103,19 @@ municipal de desigualdade em `details.json`, sincroniza `public/data` e valida o
 detalhes. O segundo atualiza somente Educação, materializa a desigualdade
 derivada e valida. `update:data:skip-build` permanece aceito como alias histórico
 do fluxo padrão sem build.
+
+O perfil de planejamento é opt-in e não executa subprocessos, banco, staging,
+sincronização ou build:
+
+```powershell
+npm run update:data -- --state RS --dry-run --profile
+```
+
+Uma execução real pode ser perfilada com `npm run update:data -- --state RS
+--profile`. Ela gera `profile.json` e `summary.json` em
+`data_pipeline/export/profiles/<run-id>/`, diretório ignorado pelo Git. O perfil
+mede o fluxo existente; não implementa execução incremental nem acelera o
+pipeline. O build só aparece no perfil quando `--build` é solicitado.
 
 O build completo continua explícito e inclui toda a árvore `public`, portanto
 também `public/data`:

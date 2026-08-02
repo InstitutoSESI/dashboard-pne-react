@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Any, Mapping
 
 
@@ -28,6 +29,12 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
 )
+from src.pipeline_profiling import (  # noqa: E402
+    get_active_profile_session,
+    profile_operation,
+    profiled_aggregate_operation,
+    profiled_main_from_environment,
+)
 
 
 PUBLIC_MUNICIPAL_ROOT = PUBLIC_DATA_DIR / "municipios"
@@ -40,37 +47,97 @@ ALLOWED_OUTPUT_ROOTS = frozenset(
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
+    failed = False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        if session is not None:
+            source_kind = (
+                "details"
+                if path.name == "details.json"
+                else "index"
+                if path.name == "index.json"
+                else "education"
+            )
+            session.accumulate_event(
+                category="read",
+                name="inequality.document_reads",
+                duration_ns=time.perf_counter_ns() - started_ns,
+                counters={
+                    "filesRead": int(not failed),
+                    "bytesRead": path.stat().st_size if path.is_file() else 0,
+                    "errors": int(failed),
+                },
+                metadata={"sourceKind": source_kind},
+            )
     if not isinstance(payload, dict):
         raise TypeError(f"{path} não contém um objeto JSON.")
     return payload
 
 
 def _serialized(payload: Mapping[str, Any]) -> bytes:
-    return (
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
+    content = (
         json.dumps(payload, ensure_ascii=False, allow_nan=False, indent=2) + "\n"
     ).encode("utf-8")
+    if session is not None:
+        session.accumulate_event(
+            category="serialization",
+            name="inequality.render_json",
+            duration_ns=time.perf_counter_ns() - started_ns,
+            counters={"payloads": 1, "bytesRendered": len(content)},
+            metadata={"format": "json"},
+        )
+    return content
 
 
 def _write_if_changed(
     path: Path, payload: Mapping[str, Any], *, check: bool
 ) -> str:
+    session = get_active_profile_session()
     if path.exists() and _read_json(path) == payload:
+        if session is not None:
+            session.accumulate_event(
+                category="write",
+                name="inequality.outputs",
+                counters={"preserved": 1},
+            )
         return "preserved"
     status = "updated" if path.exists() else "created"
     if check:
+        if session is not None:
+            session.accumulate_event(
+                category="validation",
+                name="inequality.planned_outputs",
+                counters={status: 1},
+                metadata={"checkOnly": True},
+            )
         return status
     content = _serialized(payload)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     if temporary.exists():
         raise FileExistsError(temporary)
+    started_ns = time.perf_counter_ns() if session is not None else 0
     temporary.write_bytes(content)
     try:
         os.replace(temporary, path)
     finally:
         if temporary.exists():
             temporary.unlink()
+    if session is not None:
+        session.accumulate_event(
+            category="write",
+            name="inequality.outputs",
+            duration_ns=time.perf_counter_ns() - started_ns,
+            counters={status: 1, "bytesWritten": len(content)},
+        )
     return status
 
 
@@ -85,6 +152,10 @@ def _education_rows(document: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [dict(row) for row in rows if isinstance(row, Mapping)]
 
 
+@profiled_aggregate_operation(
+    "validation",
+    "inequality.embedded_contract_validation",
+)
 def _validate_embedded_document(
     document: Any,
     *,
@@ -178,6 +249,10 @@ def validate_output_root(output_root: Path) -> Path:
     return resolved
 
 
+@profiled_aggregate_operation(
+    "validation",
+    "inequality.identity_validation",
+)
 def _validate_index_identity(
     target: Path,
     record: MunicipalityRecord,
@@ -196,7 +271,7 @@ def _validate_index_identity(
         )
 
 
-def materialize(
+def _materialize_impl(
     output_root: Path,
     *,
     education_root: Path | None = None,
@@ -349,6 +424,47 @@ def materialize(
     }
 
 
+def materialize(
+    output_root: Path,
+    *,
+    education_root: Path | None = None,
+    registry_path: Path | None = None,
+    registry: MunicipalityRegistry | None = None,
+    state_code: str = DEFAULT_STATE_CODE,
+    published_root: Path = PUBLIC_MUNICIPAL_ROOT,
+    check: bool = False,
+) -> dict[str, Any]:
+    with profile_operation(
+        "compute",
+        "inequality.materialization",
+        metadata={
+            "checkOnly": check,
+            "outputRoot": output_root,
+            "educationRoot": education_root,
+        },
+    ) as operation:
+        result = _materialize_impl(
+            output_root,
+            education_root=education_root,
+            registry_path=registry_path,
+            registry=registry,
+            state_code=state_code,
+            published_root=published_root,
+            check=check,
+        )
+        operation.add_counters(
+            municipalities=int(result["municipalityCount"]),
+            recalculated=int(result["recalculatedPilotCount"]),
+            preservedPilots=int(result["preservedPublishedPilotCount"]),
+            created=int(result["created"]),
+            updated=int(result["updated"]),
+            preserved=int(result["preserved"]),
+        )
+        operation.add_metadata(pilotSource=result["pilotSource"])
+        return result
+
+
+@profiled_main_from_environment("inequality")
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Incorpora o documento municipal de desigualdade em details.json."
@@ -363,8 +479,16 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     try:
-        state_config = load_state_config(args.state)
-        registry = load_municipality_registry(state_config)
+        with profile_operation(
+            "validation",
+            "inequality.configuration",
+            metadata={"state": args.state},
+        ) as configuration_event:
+            state_config = load_state_config(args.state)
+            registry = load_municipality_registry(state_config)
+            configuration_event.add_counter(
+                "municipalities", registry.municipality_count
+            )
     except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2

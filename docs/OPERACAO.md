@@ -122,8 +122,11 @@ npm run update:data:and-build
 # Atualiza Educação, valida e só então executa o build completo
 npm run update:education-data:and-build
 
-# Mostra as etapas e tempos sem executar
-uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
+# Gera o perfil de planejamento sem executar efeitos
+npm run update:data -- --state RS --dry-run --profile
+
+# Gera o perfil de uma atualização real (documentado; não é smoke test)
+npm run update:data -- --state RS --profile
 
 # Explicita o estado ativo sem alterar o caminho público atual
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run
@@ -160,6 +163,58 @@ aceita somente por compatibilidade e equivale ao padrão sem build.
 `--build`. Em dry-run, o build aparece no plano apenas quando foi solicitado;
 nenhum dry-run cria staging, consulta banco, acessa rede, escreve dados ou
 executa Vite.
+
+## Perfil reproduzível
+
+`--profile` é opcional. Sem a flag, a execução mantém o fluxo normal e não cria
+diretório, evento, fragmento ou JSON de perfil. `--profile-output <diretório>`
+só pode ser usado com `--profile` e aceita apenas um subdiretório dedicado de
+`data_pipeline/export/profiles` ou do diretório temporário do sistema; raízes
+amplas, `public/data`, `data_pipeline/data` e staging são recusados.
+
+Perfil de planejamento, seguro para inspeção sem efeitos:
+
+```powershell
+npm run update:data -- --state RS --dry-run --profile
+```
+
+Perfil real, apenas para uma operação de dados autorizada:
+
+```powershell
+npm run update:data -- --state RS --profile
+```
+
+O diretório padrão é `data_pipeline/export/profiles/<run-id>/` e contém:
+
+- `profile.json`, schema `pipeline-profile-v1`, com sessão, processos e eventos;
+- `summary.json`, schema `pipeline-profile-summary-v1`, com agregados por
+  categoria e counters totais;
+- `fragments/<child-run-id>.json`, arquivos intermediários atômicos dos
+  subprocessos, consolidados pelo processo pai.
+
+As categorias distinguem orquestração, subprocesso, consulta, cálculo,
+serialização, leitura, escrita, validação, promoção, cache e build. Queries usam
+identificadores estáveis e registram duração, linhas e colunas sem `COUNT`
+adicional nem exposição dos parâmetros. Arquivos distinguem bytes renderizados,
+lidos, comparados, escritos e promovidos. Educação e loops municipais publicam
+agregados, não um evento por município.
+
+A correlação usa variáveis de ambiente próprias do perfil, não o ambiente
+completo. Credenciais, URLs autenticadas, conteúdo analítico e paths pessoais
+são omitidos ou sanitizados. Os relatórios são determinísticos para o mesmo
+conteúdo, usam JSON UTF-8 finito e ficam ignorados pelo Git. Uma falha de
+subprocesso permanece visível com status `error`; falha ao gravar o relatório é
+informada ao final e não pode causar publicação analítica parcial.
+
+O perfil não acelera o pipeline e não equivale a execução incremental. Seus
+dados orientarão as Etapas 5D2–5D5. O build continua separado: só é medido quando
+`--build` é solicitado explicitamente e continua depois da validação.
+
+Validação dedicada:
+
+```powershell
+npm run test:pipeline-profiling
+```
 
 ## Build da aplicação, preview e deploy
 

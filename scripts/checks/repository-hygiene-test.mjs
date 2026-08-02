@@ -519,6 +519,7 @@ const expectedUvPythonScripts = [
   'test:pipeline-education-state',
   'test:pipeline-education-publication',
   'test:pipeline-build-decoupling',
+  'test:pipeline-profiling',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -532,6 +533,139 @@ for (const name of expectedUvPythonScripts) {
       `${name} contém comando Python operacional fora de uv run --project data_pipeline.`,
     )
   }
+}
+
+const profilingModulePath = 'data_pipeline/src/pipeline_profiling.py'
+const profilingTestPath = 'data_pipeline/tests/test_pipeline_profiling.py'
+const profilingModuleAbsolutePath = resolve(repoRoot, profilingModulePath)
+const profilingTestAbsolutePath = resolve(repoRoot, profilingTestPath)
+assert.ok(existsSync(profilingModuleAbsolutePath), `Módulo de profiling ausente: ${profilingModulePath}.`)
+assert.ok(existsSync(profilingTestAbsolutePath), `Suíte de profiling ausente: ${profilingTestPath}.`)
+const profilingSource = readFileSync(profilingModuleAbsolutePath, 'utf8')
+const profilingTestSource = readFileSync(profilingTestAbsolutePath, 'utf8')
+const gitignoreSource = readFileSync(resolve(repoRoot, '.gitignore'), 'utf8')
+const profileUpdateSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/update_static_data.py'),
+  'utf8',
+)
+const trackedProfileReports = tracked.filter((path) => (
+  /^data_pipeline\/export\/profiles\//.test(path)
+  || /(?:^|\/)(?:profile|summary)\.json$/.test(path) && path.includes('/profiles/')
+))
+assert.deepEqual(
+  trackedProfileReports,
+  [],
+  `Relatórios de profile não podem ser rastreados:\n${trackedProfileReports.join('\n')}`,
+)
+assert.match(
+  gitignoreSource,
+  /^data_pipeline\/export\/$/m,
+  'A raiz padrão dos relatórios deve permanecer ignorada pelo Git.',
+)
+assert.equal(
+  packageJson.scripts?.['test:pipeline-profiling'],
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_pipeline_profiling.py',
+  'A suíte permanente de profiling deve permanecer exposta com uv e lock congelado.',
+)
+assert.match(
+  profileUpdateSource,
+  /['"]--profile['"][\s\S]{0,160}?action=['"]store_true['"]/,
+  '--profile deve continuar opt-in e desabilitado por padrão.',
+)
+assert.doesNotMatch(
+  profileUpdateSource,
+  /['"]--profile['"][\s\S]{0,180}?default\s*=\s*True/,
+  '--profile não pode ser habilitado por padrão.',
+)
+assert.match(
+  profileUpdateSource,
+  /if not args\.profile:\s*\n\s*return run_pipeline\(args\)/,
+  'O caminho normal deve executar o pipeline sem criar sessão de profile.',
+)
+assert.match(
+  profilingSource,
+  /DEFAULT_PROFILE_ROOT\s*=\s*DATA_PIPELINE_DIR\s*\/\s*['"]export['"]\s*\/\s*['"]profiles['"]/,
+  'Relatórios devem permanecer na raiz ignorada do pipeline.',
+)
+assert.match(
+  profilingSource,
+  /REPO_ROOT\s*\/\s*['"]public['"]\s*\/\s*['"]data['"][\s\S]{0,500}?ProfileOutputError/,
+  'A validação de --profile-output deve recusar public/data.',
+)
+assert.doesNotMatch(
+  profilingSource,
+  /(?:dict\s*\(\s*os\.environ\s*\)|os\.environ\.copy\s*\(\s*\))/,
+  'O relatório não pode capturar o ambiente completo.',
+)
+assert.doesNotMatch(
+  profilingSource,
+  /\b(?:DATABASE_URL|SUPABASE_URL|DB_SENHA)\b\s*:/,
+  'URLs e credenciais de conexão não podem virar campos do relatório.',
+)
+assert.doesNotMatch(
+  profilingSource,
+  /COUNT\s*\(/i,
+  'Profiling não pode introduzir consulta COUNT adicional.',
+)
+assert.match(
+  profilingSource,
+  /def validate_profile_output_path\s*\([\s\S]*?_is_relative_to\(candidate, TEMP_ROOT\)[\s\S]*?raise ProfileOutputError/,
+  '--profile-output deve permanecer limitado às raízes seguras.',
+)
+assert.match(
+  profileUpdateSource,
+  /child_context\([\s\S]{0,300}?parent_event_id=operation\.event_id[\s\S]{0,500}?environment\.update\(child\.environment\)/,
+  'Subprocessos instrumentados devem receber correlação pai/filho controlada.',
+)
+for (const childPath of [
+  'data_pipeline/scripts/export_static_data.py',
+  'data_pipeline/scripts/partition_static_data.py',
+  'data_pipeline/scripts/export_education_indicators.py',
+  'data_pipeline/scripts/materialize_municipal_inequality.py',
+  'data_pipeline/scripts/validate_static_details.py',
+]) {
+  const source = readFileSync(resolve(repoRoot, childPath), 'utf8')
+  assert.match(
+    source,
+    /@profiled_main_from_environment\(['"][a-z_]+['"]\)/,
+    `${childPath} perdeu a emissão correlacionada de fragmento.`,
+  )
+}
+const profileEducationExporterSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/export_education_indicators.py'),
+  'utf8',
+)
+const educationMunicipalImpl = profileEducationExporterSource.slice(
+  profileEducationExporterSource.indexOf('def _exportar_municipios_impl('),
+  profileEducationExporterSource.indexOf(
+    '\ndef exportar_municipios(',
+    profileEducationExporterSource.indexOf('def _exportar_municipios_impl('),
+  ),
+)
+assert.doesNotMatch(
+  educationMunicipalImpl,
+  /profile_operation\s*\(/,
+  'A Educação não pode criar evento de profile por município.',
+)
+assert.doesNotMatch(
+  profilingSource,
+  /for\s+[^\n]*(?:row|cell)[^\n]*:[\s\S]{0,180}?profile_(?:operation|step)/i,
+  'Profiling não pode criar evento por linha ou célula.',
+)
+for (const requiredTest of [
+  'test_disabled_path_has_no_timer_directory_or_serialization',
+  'test_profile_output_without_profile_is_rejected',
+  'test_unsafe_profile_output_is_rejected',
+  'test_dry_run_creates_planning_profile_without_pipeline_subprocesses',
+  'test_subprocess_fragment_is_correlated_and_consolidated',
+  'test_query_wrapper_preserves_return_and_records_shape',
+  'test_file_comparison_counts_existing_reads_without_extra_read',
+]) {
+  assert.match(
+    profilingTestSource,
+    new RegExp(`def ${requiredTest}\\b`),
+    `Proteção permanente de profiling ausente: ${requiredTest}.`,
+  )
 }
 assert.match(
   String(packageJson.scripts?.['python:sync'] ?? ''),
@@ -731,15 +865,18 @@ assert.match(
   /if args\.validate_only and args\.build:[\s\S]{0,180}?parser\.error/,
   '--validate-only --build deve falhar antes de qualquer etapa.',
 )
-const updateMainSource = updateSource.slice(updateSource.indexOf('def main() -> int:'))
-const dataValidationPosition = updateMainSource.lastIndexOf(
+const updatePipelineSource = updateSource.slice(
+  updateSource.indexOf('def run_pipeline(args: argparse.Namespace) -> int:'),
+  updateSource.indexOf('\ndef _profile_parameters('),
+)
+const dataValidationPosition = updatePipelineSource.lastIndexOf(
   'run_command("validate", validate_command, results)',
 )
-const buildGuardPosition = updateMainSource.indexOf(
+const buildGuardPosition = updatePipelineSource.indexOf(
   'if run_build:',
   dataValidationPosition,
 )
-const completeBuildPosition = updateMainSource.indexOf(
+const completeBuildPosition = updatePipelineSource.indexOf(
   'run_command("build", build_command, results)',
   buildGuardPosition,
 )
@@ -750,7 +887,7 @@ assert.ok(
   'O build completo deve permanecer guardado por --build e depois da validação.',
 )
 assert.match(
-  updateMainSource,
+  updatePipelineSource,
   /except \(SystemExit, Exception\):[\s\S]{0,900}?não alcançado por falha anterior[\s\S]{0,900}?\n\s*raise/,
   'Falhas anteriores devem encerrar o fluxo sem alcançar o build.',
 )

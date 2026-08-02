@@ -1,5 +1,7 @@
 import pandas as pd
 
+from src.pipeline_profiling import profiled_aggregate_query_call
+
 from src.data_loader import load_basico_15_17_data
 from src.data_loader import load_basico_15_17_por_dependencia_data
 from src.data_loader import load_basico_6_17_data
@@ -2705,7 +2707,16 @@ def build_razao_escolaridade_racial_18_29_details(municipio):
 def _load_municipio_id_map():
     from src.data.repository import get_local_postgres_engine
     query = "SELECT id_municipio::text, municipio FROM municipios WHERE municipio IS NOT NULL"
-    df = pd.read_sql_query(query, get_local_postgres_engine())
+    df = profiled_aggregate_query_call(
+        "indicator_details.municipality_id_map",
+        lambda: pd.read_sql_query(query, get_local_postgres_engine()),
+        metadata={
+            "datasetId": "municipality_id_map",
+            "backend": "postgres_local",
+            "broadQuery": True,
+            "municipalityFilter": "local_after_query",
+        },
+    )
     if df.empty:
         return {}
     return {nome.strip(): id_mun for nome, id_mun in zip(df["municipio"], df["id_municipio"])}

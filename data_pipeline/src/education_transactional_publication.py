@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import shutil
 import tempfile
+import time
 from typing import Any
 import uuid
 
@@ -20,6 +21,7 @@ from .education_municipality_routes import (
     build_education_municipalities_index_payload,
 )
 from .municipality_registry import MunicipalityRegistry
+from .pipeline_profiling import get_active_profile_session, profile_operation
 
 
 EDUCATION_STAGING_PARENT = DATA_PIPELINE_DIR / ".staging" / "education"
@@ -414,7 +416,7 @@ def _validate_municipal_document(
         )
 
 
-def validate_education_staging(
+def _validate_education_staging_impl(
     output_root: Path,
     registry: MunicipalityRegistry,
     route_compatibility: EducationMunicipalityRouteCompatibility,
@@ -485,6 +487,33 @@ def validate_education_staging(
     )
 
 
+def validate_education_staging(
+    output_root: Path,
+    registry: MunicipalityRegistry,
+    route_compatibility: EducationMunicipalityRouteCompatibility,
+    *,
+    public_root: Path = EDUCATION_DATA_DIR,
+) -> EducationValidationReport:
+    with profile_operation(
+        "validation",
+        "education.staging_validation",
+        metadata={"stagingRoot": output_root},
+    ) as operation:
+        report = _validate_education_staging_impl(
+            output_root,
+            registry,
+            route_compatibility,
+            public_root=public_root,
+        )
+        operation.add_counters(
+            filesRead=len(report.files),
+            bytesRead=sum(path.stat().st_size for path in report.files),
+            payloadsVerified=len(report.files),
+            municipalities=report.municipality_count,
+        )
+        return report
+
+
 def iter_managed_education_public_files(public_root: Path) -> tuple[Path, ...]:
     """Lista somente arquivos que a publicacao principal pode substituir/remover."""
     public_root = Path(public_root)
@@ -508,15 +537,46 @@ def iter_managed_education_public_files(public_root: Path) -> tuple[Path, ...]:
 
 
 def files_match(source: Path, target: Path) -> bool:
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
+    bytes_compared = 0
     if not target.is_file() or source.stat().st_size != target.stat().st_size:
+        if session is not None:
+            session.accumulate_event(
+                category="read",
+                name="education.file_comparison",
+                duration_ns=time.perf_counter_ns() - started_ns,
+                counters={"filesCompared": 1, "bytesCompared": 0},
+            )
         return False
     with source.open("rb") as source_stream, target.open("rb") as target_stream:
         while True:
             source_chunk = source_stream.read(1024 * 1024)
             target_chunk = target_stream.read(1024 * 1024)
+            bytes_compared += len(source_chunk) + len(target_chunk)
             if source_chunk != target_chunk:
+                if session is not None:
+                    session.accumulate_event(
+                        category="read",
+                        name="education.file_comparison",
+                        duration_ns=time.perf_counter_ns() - started_ns,
+                        counters={
+                            "filesCompared": 1,
+                            "bytesCompared": bytes_compared,
+                        },
+                    )
                 return False
             if not source_chunk:
+                if session is not None:
+                    session.accumulate_event(
+                        category="read",
+                        name="education.file_comparison",
+                        duration_ns=time.perf_counter_ns() - started_ns,
+                        counters={
+                            "filesCompared": 1,
+                            "bytesCompared": bytes_compared,
+                        },
+                    )
                 return True
 
 
@@ -572,7 +632,7 @@ def _copy_file_atomically(source: Path, target: Path, *, token: str) -> None:
             temporary.unlink()
 
 
-def _build_promotion_actions(
+def _build_promotion_actions_impl(
     output_root: Path,
     public_root: Path,
     report: EducationValidationReport,
@@ -631,7 +691,39 @@ def _build_promotion_actions(
     )
 
 
-def promote_education_staging(
+def _build_promotion_actions(
+    output_root: Path,
+    public_root: Path,
+    report: EducationValidationReport,
+) -> tuple[list[_PromotionAction], EducationPublicationStats]:
+    with profile_operation(
+        "promotion",
+        "education.promotion_plan",
+        metadata={"eventGranularity": "aggregate"},
+    ) as operation:
+        actions, stats = _build_promotion_actions_impl(
+            output_root,
+            public_root,
+            report,
+        )
+        bytes_promoted = sum(
+            action.staged.stat().st_size
+            for action in actions
+            if action.staged is not None and action.kind in {"created", "updated"}
+        )
+        operation.add_counters(
+            filesEvaluated=len(report.files),
+            created=stats.created,
+            updated=stats.updated,
+            preserved=stats.preserved,
+            removed=stats.removed,
+            bytesPromoted=bytes_promoted,
+            noOp=int(not actions),
+        )
+        return actions, stats
+
+
+def _promote_education_staging_impl(
     output_root: Path,
     public_root: Path,
     registry: MunicipalityRegistry,
@@ -640,6 +732,7 @@ def promote_education_staging(
     before_mutation: Callable[[str, Path, int], None] | None = None,
 ) -> EducationPublicationStats:
     """Promove por arquivo com journal, backups integrais e rollback."""
+    profile_session = get_active_profile_session()
     output_root = Path(output_root).resolve()
     public_root = Path(public_root).resolve()
     if not public_root.is_dir():
@@ -713,6 +806,9 @@ def promote_education_staging(
                 action.target.unlink()
             applied.append(action)
     except Exception as exc:
+        rollback_started_ns = (
+            time.perf_counter_ns() if profile_session is not None else 0
+        )
         rollback_errors: list[str] = []
         for temporary in prepared.values():
             try:
@@ -739,6 +835,19 @@ def promote_education_staging(
                 rollback_errors.append(
                     f"diretorio {directory.relative_to(public_root)}: {rollback_exc}"
                 )
+        if profile_session is not None:
+            profile_session.record_aggregate_event(
+                category="promotion",
+                name="education.rollback",
+                duration_ns=time.perf_counter_ns() - rollback_started_ns,
+                counters={
+                    "rollbackAttempts": 1,
+                    "actionsReverted": len(applied),
+                    "rollbackErrors": len(rollback_errors),
+                },
+                metadata={"publicationRestored": not rollback_errors},
+                status="error" if rollback_errors else "success",
+            )
         if rollback_errors:
             rollback_failed = True
             raise EducationRollbackError(
@@ -756,6 +865,40 @@ def promote_education_staging(
     return stats
 
 
+def promote_education_staging(
+    output_root: Path,
+    public_root: Path,
+    registry: MunicipalityRegistry,
+    route_compatibility: EducationMunicipalityRouteCompatibility,
+    *,
+    before_mutation: Callable[[str, Path, int], None] | None = None,
+) -> EducationPublicationStats:
+    with profile_operation(
+        "promotion",
+        "education.promotion",
+        metadata={"publicRoot": public_root},
+    ) as operation:
+        stats = _promote_education_staging_impl(
+            output_root,
+            public_root,
+            registry,
+            route_compatibility,
+            before_mutation=before_mutation,
+        )
+        operation.add_counters(
+            created=stats.created,
+            updated=stats.updated,
+            preserved=stats.preserved,
+            removed=stats.removed,
+            noOp=int(
+                stats.created == 0
+                and stats.updated == 0
+                and stats.removed == 0
+            ),
+        )
+        return stats
+
+
 def publish_education_transactionally(
     *,
     registry: MunicipalityRegistry,
@@ -767,14 +910,25 @@ def publish_education_transactionally(
     before_mutation: Callable[[str, Path, int], None] | None = None,
 ) -> EducationTransactionResult:
     """Executa materializacao, validacao integral e somente entao promocao."""
-    staging = create_education_staging_run(
-        staging_directory,
-        public_root=public_root,
-    )
+    with profile_operation(
+        "write",
+        "education.staging_create",
+        metadata={"customDirectory": staging_directory is not None},
+    ) as staging_event:
+        staging = create_education_staging_run(
+            staging_directory,
+            public_root=public_root,
+        )
+        staging_event.add_counter("directoriesCreated", 2)
     validated = False
     preserve_staging = False
     try:
-        materialize(staging.output_root)
+        with profile_operation(
+            "compute",
+            "education.materialization",
+            metadata={"eventGranularity": "aggregate"},
+        ):
+            materialize(staging.output_root)
         report = validate_education_staging(
             staging.output_root,
             registry,
@@ -784,6 +938,13 @@ def publish_education_transactionally(
         validated = True
         if no_promote:
             preserve_staging = True
+            with profile_operation(
+                "promotion",
+                "education.promotion_skipped",
+                counters={"noPromote": 1, "filesPreservedInStaging": len(report.files)},
+                metadata={"reason": "no_promote"},
+            ):
+                pass
             return EducationTransactionResult(report, None, staging.output_root)
         stats = promote_education_staging(
             staging.output_root,
@@ -798,7 +959,13 @@ def publish_education_transactionally(
         raise
     finally:
         if not preserve_staging or not validated:
-            cleanup_education_staging_run(staging, public_root=public_root)
+            with profile_operation(
+                "promotion",
+                "education.staging_cleanup",
+                metadata={"validated": validated},
+            ) as cleanup_event:
+                cleanup_education_staging_run(staging, public_root=public_root)
+                cleanup_event.add_counter("stagingRunsRemoved", 1)
 
 
 def default_public_root() -> Path:

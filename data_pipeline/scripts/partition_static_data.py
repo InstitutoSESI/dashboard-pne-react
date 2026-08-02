@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +23,11 @@ from src.state_config import (  # noqa: E402
     DEFAULT_STATE_CODE,
     load_state_config,
 )
+from src.pipeline_profiling import (  # noqa: E402
+    get_active_profile_session,
+    profile_operation,
+    profiled_main_from_environment,
+)
 
 SOURCE_DIR = PIPELINE_EXPORT_DIR / "data"
 OUTPUT_DIR = STATIC_PARTITIONED_DATA_DIR
@@ -31,8 +37,29 @@ COPIED_ROOT_STATIC_FILES = ("indicadores.json",)
 
 
 def load_json(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
+    session = get_active_profile_session()
+    started_ns = time.perf_counter_ns() if session is not None else 0
+    failed = False
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            return json.load(file)
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        if session is not None:
+            size = path.stat().st_size if path.is_file() else 0
+            session.accumulate_event(
+                category="read",
+                name="partition.aggregate_reads",
+                duration_ns=time.perf_counter_ns() - started_ns,
+                counters={
+                    "filesRead": int(not failed),
+                    "bytesRead": size,
+                    "errors": int(failed),
+                },
+                metadata={"format": "json"},
+            )
 
 
 def load_optional_json(path: Path, fallback: dict | None = None) -> dict:
@@ -42,7 +69,22 @@ def load_optional_json(path: Path, fallback: dict | None = None) -> dict:
 
 
 def render_json(payload: dict) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    session = get_active_profile_session()
+    if session is None:
+        return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    started_ns = time.perf_counter_ns()
+    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    session.accumulate_event(
+        category="serialization",
+        name="partition.render_json",
+        duration_ns=time.perf_counter_ns() - started_ns,
+        counters={
+            "payloads": 1,
+            "bytesRendered": len(content.encode("utf-8")),
+        },
+        metadata={"format": "json"},
+    )
+    return content
 
 
 def record_write(path: Path, expected_paths: set[Path]) -> None:
@@ -51,18 +93,52 @@ def record_write(path: Path, expected_paths: set[Path]) -> None:
 
 def write_text_if_changed(path: Path, content: str, stats: dict[str, int]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    session = get_active_profile_session()
+    rendered_bytes = len(content.encode("utf-8")) if session is not None else 0
 
     if path.exists():
+        read_started_ns = time.perf_counter_ns() if session is not None else 0
         current = path.read_text(encoding="utf-8")
+        if session is not None:
+            session.accumulate_event(
+                category="read",
+                name="partition.output_comparison",
+                duration_ns=time.perf_counter_ns() - read_started_ns,
+                counters={
+                    "filesRead": 1,
+                    "bytesRead": len(current.encode("utf-8")),
+                },
+            )
         if current == content:
             stats["preserved"] += 1
+            if session is not None:
+                session.accumulate_event(
+                    category="write",
+                    name="partition.file_outputs",
+                    counters={
+                        "preserved": 1,
+                        "bytesRendered": rendered_bytes,
+                    },
+                )
             return
         action = "updated"
     else:
         action = "created"
 
+    write_started_ns = time.perf_counter_ns() if session is not None else 0
     path.write_text(content, encoding="utf-8")
     stats[action] += 1
+    if session is not None:
+        session.accumulate_event(
+            category="write",
+            name="partition.file_outputs",
+            duration_ns=time.perf_counter_ns() - write_started_ns,
+            counters={
+                action: 1,
+                "bytesRendered": rendered_bytes,
+                "bytesWritten": rendered_bytes,
+            },
+        )
 
 
 def write_json(
@@ -83,18 +159,57 @@ def copy_file_if_changed(
 ) -> None:
     record_write(destination, expected_paths)
     destination.parent.mkdir(parents=True, exist_ok=True)
+    session = get_active_profile_session()
+    read_started_ns = time.perf_counter_ns() if session is not None else 0
     content = source.read_bytes()
+    bytes_read = len(content)
 
     if destination.exists():
-        if destination.read_bytes() == content:
+        destination_content = destination.read_bytes()
+        bytes_read += len(destination_content)
+        if destination_content == content:
             stats["preserved"] += 1
+            if session is not None:
+                session.accumulate_event(
+                    category="read",
+                    name="partition.copy_reads",
+                    duration_ns=time.perf_counter_ns() - read_started_ns,
+                    counters={"filesRead": 2, "bytesRead": bytes_read},
+                )
+                session.accumulate_event(
+                    category="write",
+                    name="partition.file_outputs",
+                    counters={"preserved": 1, "bytesRendered": len(content)},
+                )
             return
         action = "updated"
     else:
         action = "created"
 
+    if session is not None:
+        session.accumulate_event(
+            category="read",
+            name="partition.copy_reads",
+            duration_ns=time.perf_counter_ns() - read_started_ns,
+            counters={
+                "filesRead": 2 if destination.exists() else 1,
+                "bytesRead": bytes_read,
+            },
+        )
+    write_started_ns = time.perf_counter_ns() if session is not None else 0
     destination.write_bytes(content)
     stats[action] += 1
+    if session is not None:
+        session.accumulate_event(
+            category="write",
+            name="partition.file_outputs",
+            duration_ns=time.perf_counter_ns() - write_started_ns,
+            counters={
+                action: 1,
+                "bytesRendered": len(content),
+                "bytesWritten": len(content),
+            },
+        )
 
 
 def copy_root_static_files(
@@ -462,6 +577,7 @@ def resolve_generated_at(payloads: dict[str, dict]) -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+@profiled_main_from_environment("partition")
 def main() -> int:
     global SOURCE_DIR, OUTPUT_DIR
 
@@ -487,77 +603,109 @@ def main() -> int:
 
     SOURCE_DIR = Path(args.source_dir).resolve()
     OUTPUT_DIR = Path(args.output_dir).resolve()
-    state_config = load_state_config(args.state)
-    registry = load_municipality_registry(state_config)
+    with profile_operation(
+        "validation",
+        "partition.configuration",
+        metadata={"state": args.state},
+    ) as configuration_event:
+        state_config = load_state_config(args.state)
+        registry = load_municipality_registry(state_config)
+        configuration_event.add_counter("municipalities", registry.municipality_count)
 
     print("[partition] Iniciando particionamento dos dados estáticos.")
     print(f"[partition] Origem: {SOURCE_DIR}")
     print(f"[partition] Saída: {OUTPUT_DIR}")
 
-    payloads = load_aggregate_payloads()
-    aggregate_names_by_id = resolve_aggregate_municipalities(
-        payloads["municipios"], registry
-    )
-    municipios = list(aggregate_names_by_id.values())
-    validate_fundeb_payload(payloads, municipios, registry)
-    validate_pnate_payload(payloads, municipios, registry)
-    validate_planning_scenarios_payload(payloads, municipios, registry)
+    with profile_operation(
+        "read",
+        "partition.read_aggregates",
+        metadata={"sourceRoot": SOURCE_DIR},
+    ) as read_event:
+        payloads = load_aggregate_payloads()
+        read_event.add_counter("aggregatePayloads", len(payloads))
+    with profile_operation(
+        "validation",
+        "partition.validate_aggregates",
+    ) as validation_event:
+        aggregate_names_by_id = resolve_aggregate_municipalities(
+            payloads["municipios"], registry
+        )
+        municipios = list(aggregate_names_by_id.values())
+        validate_fundeb_payload(payloads, municipios, registry)
+        validate_pnate_payload(payloads, municipios, registry)
+        validate_planning_scenarios_payload(payloads, municipios, registry)
+        validation_event.add_counter("municipalities", len(municipios))
+        validation_event.add_counter("contracts", 4)
     stats = {"created": 0, "updated": 0, "preserved": 0, "removed": 0}
     expected_paths: set[Path] = set()
 
-    safe_prepare_output_dir()
+    with profile_operation(
+        "write",
+        "partition.prepare_and_root_outputs",
+        metadata={"outputRoot": OUTPUT_DIR},
+    ):
+        safe_prepare_output_dir()
+        copy_root_static_files(stats, expected_paths)
+        for cycle in CYCLES:
+            state_reference_path = SOURCE_DIR / cycle / "referencia_estadual.json"
+            if state_reference_path.exists():
+                copy_file_if_changed(
+                    state_reference_path,
+                    OUTPUT_DIR / cycle / "referencia_estadual.json",
+                    stats,
+                    expected_paths,
+                )
 
-    copy_root_static_files(stats, expected_paths)
-    for cycle in CYCLES:
-        state_reference_path = SOURCE_DIR / cycle / "referencia_estadual.json"
-        if state_reference_path.exists():
-            copy_file_if_changed(
-                state_reference_path,
-                OUTPUT_DIR / cycle / "referencia_estadual.json",
-                stats,
-                expected_paths,
-            )
-
-    generated_at = resolve_generated_at(payloads)
-    write_json(
-        OUTPUT_DIR / "municipios_index.json",
-        registry.build_public_index_payload(generated_at=generated_at),
-        stats,
-        expected_paths,
-    )
+        generated_at = resolve_generated_at(payloads)
+        write_json(
+            OUTPUT_DIR / "municipios_index.json",
+            registry.build_public_index_payload(generated_at=generated_at),
+            stats,
+            expected_paths,
+        )
 
     errors: list[dict[str, str]] = []
-    for position, record in enumerate(registry.ordered_records, start=1):
-        aggregate_name = aggregate_names_by_id[record.ibge_code]
-        print(
-            f"[partition] {position}/{registry.municipality_count} "
-            f"{record.name} -> {record.ibge_code}"
+    with profile_operation(
+        "compute",
+        "partition.materialize_municipalities",
+        metadata={"eventGranularity": "aggregate"},
+    ) as municipal_event:
+        for position, record in enumerate(registry.ordered_records, start=1):
+            aggregate_name = aggregate_names_by_id[record.ibge_code]
+            print(
+                f"[partition] {position}/{registry.municipality_count} "
+                f"{record.name} -> {record.ibge_code}"
+            )
+            try:
+                municipio_payload = build_municipio_payload(
+                    payloads,
+                    aggregate_name,
+                    record,
+                )
+                write_json(
+                    OUTPUT_DIR / "municipios" / record.ibge_code / "index.json",
+                    municipio_payload,
+                    stats,
+                    expected_paths,
+                )
+                write_json(
+                    OUTPUT_DIR / "municipios" / record.ibge_code / "details.json",
+                    extract_indicator_details(
+                        payloads["indicator_details"], aggregate_name
+                    ),
+                    stats,
+                    expected_paths,
+                )
+            except Exception as exc:  # noqa: BLE001 - keep processing other municipalities.
+                errors.append(
+                    {"municipio": record.name, "slug": record.slug, "erro": str(exc)}
+                )
+                print(f"[partition] ERRO em {record.name}: {exc}")
+        municipal_event.add_counter(
+            "municipalitiesCompleted",
+            registry.municipality_count - len(errors),
         )
-        try:
-            municipio_payload = build_municipio_payload(
-                payloads,
-                aggregate_name,
-                record,
-            )
-            write_json(
-                OUTPUT_DIR / "municipios" / record.ibge_code / "index.json",
-                municipio_payload,
-                stats,
-                expected_paths,
-            )
-            write_json(
-                OUTPUT_DIR / "municipios" / record.ibge_code / "details.json",
-                extract_indicator_details(
-                    payloads["indicator_details"], aggregate_name
-                ),
-                stats,
-                expected_paths,
-            )
-        except Exception as exc:  # noqa: BLE001 - keep processing other municipalities.
-            errors.append(
-                {"municipio": record.name, "slug": record.slug, "erro": str(exc)}
-            )
-            print(f"[partition] ERRO em {record.name}: {exc}")
+        municipal_event.add_counter("errors", len(errors))
 
     if errors:
         write_json(
@@ -567,12 +715,35 @@ def main() -> int:
             expected_paths,
         )
 
-    remove_orphan_json_files(OUTPUT_DIR, expected_paths, stats)
+    removed_before = stats["removed"]
+    with profile_operation(
+        "promotion",
+        "partition.remove_orphans",
+        metadata={"outputRoot": OUTPUT_DIR},
+    ) as orphan_event:
+        remove_orphan_json_files(OUTPUT_DIR, expected_paths, stats)
+        orphan_event.add_counter("removed", stats["removed"] - removed_before)
 
-    files = list(OUTPUT_DIR.rglob("*.json"))
-    municipio_files = list((OUTPUT_DIR / "municipios").rglob("index.json"))
-    total_size = sum(path.stat().st_size for path in files)
-    largest = max(files, key=lambda path: path.stat().st_size)
+    with profile_operation(
+        "validation",
+        "partition.output_inventory",
+    ) as inventory_event:
+        files = list(OUTPUT_DIR.rglob("*.json"))
+        municipio_files = list((OUTPUT_DIR / "municipios").rglob("index.json"))
+        sizes = {path: path.stat().st_size for path in files}
+        total_size = sum(sizes.values())
+        largest = max(files, key=sizes.__getitem__)
+        inventory_event.add_counters(
+            files=len(files),
+            municipalities=len(municipio_files),
+            bytes=total_size,
+            largestFileBytes=sizes[largest],
+            created=stats["created"],
+            updated=stats["updated"],
+            preserved=stats["preserved"],
+            removed=stats["removed"],
+            errors=len(errors),
+        )
 
     print("[partition] Concluído.")
     print(f"[partition] Municípios particionados: {len(municipio_files)}")
@@ -583,7 +754,7 @@ def main() -> int:
     print(f"[partition] Erros: {len(errors)}")
     print(f"[partition] Arquivos JSON: {len(files)}")
     print(f"[partition] Tamanho total: {format_size(total_size)}")
-    print(f"[partition] Maior arquivo: {largest.relative_to(OUTPUT_DIR)} ({format_size(largest.stat().st_size)})")
+    print(f"[partition] Maior arquivo: {largest.relative_to(OUTPUT_DIR)} ({format_size(sizes[largest])})")
 
     return 1 if errors else 0
 
