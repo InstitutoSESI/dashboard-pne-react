@@ -5,12 +5,16 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+import pandas as pd
 
 
 DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
+
+from src.pne import indicator_details
 
 SPEC = importlib.util.spec_from_file_location(
     "export_static_data", DATA_PIPELINE_DIR / "scripts" / "export_static_data.py"
@@ -199,6 +203,116 @@ class ExportStaticDataTests(unittest.TestCase):
         )
         self.assertNotIn("desigualdade_por_municipio.json", source)
         self.assertNotIn("_export_inequality_documents", source)
+        self.assertNotIn("_build_indicator_details", source)
+
+    def test_indicator_details_export_uses_canonical_builder_and_writes_contract(self):
+        municipio = "Município Teste"
+        dependency_data = pd.DataFrame(
+            [
+                {
+                    "ano": 2025,
+                    "municipio": municipio,
+                    "mat_infantil_pre": 42,
+                    "dependencia": "municipal",
+                }
+            ]
+        )
+        controlled_loader = Mock(return_value=dependency_data)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "export"
+            with (
+                patch.dict(
+                    indicator_details.DETAIL_BUILDERS,
+                    {"pre_escola": indicator_details.build_pre_escola_details},
+                    clear=True,
+                ),
+                patch.object(
+                    indicator_details,
+                    "load_pre_escola_por_dependencia_data",
+                    controlled_loader,
+                ),
+                patch.object(
+                    indicator_details,
+                    "load_pre_escola_data",
+                    return_value=pd.DataFrame(),
+                ),
+                patch.object(
+                    indicator_details,
+                    "build_privadas_conveniadas_shared",
+                    return_value=None,
+                ),
+                patch.object(
+                    exporter,
+                    "build_indicator_details",
+                    wraps=indicator_details.build_indicator_details,
+                ) as canonical_builder,
+            ):
+                output_path = exporter._export_indicator_details_file(
+                    municipios=[municipio],
+                    output_dir=output_dir,
+                )
+
+            canonical_builder.assert_called_once_with(municipio)
+            controlled_loader.assert_called_once_with()
+            self.assertEqual(
+                output_path,
+                output_dir / "indicator_details_por_municipio.json",
+            )
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                set(payload),
+                {
+                    "generated_at",
+                    "total_municipios",
+                    "municipios_exportados",
+                    "municipios",
+                },
+            )
+            self.assertEqual(payload["total_municipios"], 1)
+            self.assertEqual(payload["municipios_exportados"], 1)
+            details = payload["municipios"][municipio]["indicator_details"]
+            self.assertEqual(set(details), {"pre_escola"})
+            self.assertEqual(details["pre_escola"]["unit"], "matrículas")
+            self.assertEqual(
+                details["pre_escola"]["series_total"],
+                [{"ano": 2025, "valor": 42}],
+            )
+            self.assertEqual(
+                details["pre_escola"]["series_dependencia"],
+                [
+                    {
+                        "ano": 2025,
+                        "municipal": 42,
+                        "estadual": 0,
+                        "privada": 0,
+                        "federal": 0,
+                    }
+                ],
+            )
+            self.assertFalse((Path(temp_dir) / "public" / "data").exists())
+
+    def test_indicator_details_builder_error_stops_export_without_output(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "export"
+            output_path = output_dir / "indicator_details_por_municipio.json"
+            with patch.object(
+                exporter,
+                "build_indicator_details",
+                side_effect=RuntimeError("falha controlada do builder"),
+            ) as canonical_builder:
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "falha controlada do builder",
+                ):
+                    exporter._export_indicator_details_file(
+                        municipios=["Município Teste"],
+                        output_dir=output_dir,
+                    )
+
+            canonical_builder.assert_called_once_with("Município Teste")
+            self.assertFalse(output_path.exists())
+            self.assertEqual(list(output_dir.rglob("*.json")), [])
 
 
 if __name__ == "__main__":

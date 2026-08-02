@@ -888,19 +888,79 @@ assert.doesNotMatch(
   'O contrato municipal administrado não pode voltar a exigir diagnostico.json.',
 )
 
+const retiredEducationExporterPath = 'scripts/export_education_indicators.py'
+const currentEducationExporterPath = `data_pipeline/${retiredEducationExporterPath}`
+
+function referencesRetiredEducationExporter(text) {
+  const normalized = text.replaceAll('\\', '/')
+  const pathPattern = /(?:\.\/)?(?:[A-Za-z0-9_.-]+\/)*scripts\/export_education_indicators\.py\b/g
+  const dataPipelineRootNames = new Set(
+    Array.from(
+      normalized.matchAll(
+        /\b([A-Z][A-Z0-9_]*)\s*=\s*[^\r\n]*\/\s*['"]data_pipeline['"]/g,
+      ),
+      (match) => match[1],
+    ),
+  )
+
+  for (const match of normalized.matchAll(pathPattern)) {
+    const candidate = match[0].replace(/^\.\//, '')
+    if (candidate.endsWith(currentEducationExporterPath)) continue
+
+    const prefix = normalized.slice(Math.max(0, match.index - 80), match.index)
+    const rootExpression = prefix.match(/\b([A-Z][A-Z0-9_]*)\s*\/\s*['"]$/)
+    const isDataPipelineRelative = (
+      candidate === retiredEducationExporterPath
+      && rootExpression
+      && dataPipelineRootNames.has(rootExpression[1])
+    )
+    if (isDataPipelineRelative) continue
+
+    return true
+  }
+  return false
+}
+
+for (const source of [
+  retiredEducationExporterPath,
+  `./${retiredEducationExporterPath}`,
+  `uv run python ${retiredEducationExporterPath}`,
+  'python .\\scripts\\export_education_indicators.py',
+]) {
+  assert.equal(
+    referencesRetiredEducationExporter(source),
+    true,
+    `Referência ao exportador aposentado deveria ser proibida: ${source}`,
+  )
+}
+for (const source of [
+  currentEducationExporterPath,
+  'PIPELINE_ROOT = REPO_ROOT / "data_pipeline"\n'
+    + 'PIPELINE_ROOT / "scripts" / "export_education_indicators.py"',
+  'PIPELINE_ROOT = REPO_ROOT / "data_pipeline"\n'
+    + '(PIPELINE_ROOT / "scripts/export_education_indicators.py").read_text()',
+]) {
+  assert.equal(
+    referencesRetiredEducationExporter(source),
+    false,
+    `Referência legítima ao exportador atual deveria ser permitida: ${source}`,
+  )
+}
+
 const forbiddenReferences = [
   ['data_pipeline/app.py', /data_pipeline\/app\.py/],
   ['src.views', /\bsrc\.views\b/],
   ['src/views', /(?:^|[^/])src\/views(?:\/|$)/m],
-  ['scripts/export_education_indicators.py', /(?:^|[^/])scripts\/export_education_indicators\.py\b/m],
+  [retiredEducationExporterPath, referencesRetiredEducationExporter],
 ]
 const staleReferences = []
 for (const path of tracked.filter((item) => ['.md', '.py', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'].includes(extname(item)))) {
   if (path === 'scripts/checks/repository-hygiene-test.mjs') continue
   if (!existsSync(resolve(repoRoot, path))) continue
   const text = readFileSync(resolve(repoRoot, path), 'utf8')
-  for (const [label, pattern] of forbiddenReferences) {
-    if (pattern.test(text)) staleReferences.push(`${path}: ${label}`)
+  for (const [label, matcher] of forbiddenReferences) {
+    const matches = typeof matcher === 'function' ? matcher(text) : matcher.test(text)
+    if (matches) staleReferences.push(`${path}: ${label}`)
   }
 }
 assert.deepEqual(staleReferences, [], `Referências removidas ainda presentes:\n${staleReferences.join('\n')}`)

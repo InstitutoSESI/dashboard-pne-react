@@ -22,6 +22,9 @@ EXPORT_DIR = BASE_DIR / "export" / "data"
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from src.pne.indicator_details import build_indicator_details  # noqa: E402
+
+
 def _generated_at() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -387,29 +390,16 @@ def _export_cycle_results(
 def _export_indicator_details(
     *,
     municipios: list[str],
-    shared: Any,
-    errors: list[dict[str, Any]],
 ) -> dict[str, Any]:
     exported = 0
     municipio_payloads: dict[str, Any] = {}
 
     print("\nProcessando dados complementares...")
     for index, municipio in enumerate(municipios, start=1):
-        try:
-            details = shared._build_indicator_details(municipio)
-            municipio_payloads[municipio] = {"indicator_details": details}
-            exported += 1
-        except Exception as exc:  # noqa: BLE001 - export should continue per city.
-            errors.append(
-                {
-                    "cycle": "indicator_details",
-                    "municipio": municipio,
-                    "stage": "indicator_details",
-                    "error": str(exc),
-                    "traceback": traceback.format_exc(limit=4),
-                }
-            )
-            municipio_payloads[municipio] = {"indicator_details": {}, "error": str(exc)}
+        print(f"  [{index}/{len(municipios)}] {municipio}")
+        details = build_indicator_details(municipio)
+        municipio_payloads[municipio] = {"indicator_details": details}
+        exported += 1
 
     return {
         "generated_at": _generated_at(),
@@ -417,6 +407,18 @@ def _export_indicator_details(
         "municipios_exportados": exported,
         "municipios": municipio_payloads,
     }
+
+
+def _export_indicator_details_file(
+    *,
+    municipios: list[str],
+    output_dir: Path,
+    profile: TimingProfile | None = None,
+) -> Path:
+    payload = _export_indicator_details(municipios=municipios)
+    output_path = output_dir / "indicator_details_por_municipio.json"
+    _write_json(output_path, payload, profile)
+    return output_path
 
 
 def _ranking_display(
@@ -1174,13 +1176,11 @@ def main() -> int:
         return 0
 
     with profile.measure("detalhes complementares"):
-        indicator_details_payload = _export_indicator_details(
+        indicator_details_path = _export_indicator_details_file(
             municipios=municipios,
-            shared=common,
-            errors=errors,
+            output_dir=EXPORT_DIR,
+            profile=profile,
         )
-    indicator_details_path = EXPORT_DIR / "indicator_details_por_municipio.json"
-    _write_json(indicator_details_path, indicator_details_payload, profile)
     generated_files.append(indicator_details_path)
 
     state_reference_payloads: dict[str, dict[str, Any]] = {}
