@@ -754,6 +754,7 @@ def test_update_static_data_propagates_education_failure_and_stops_later_steps(
         skip_education=False,
         education_only=True,
         skip_build=False,
+        build=True,
         validate_only=False,
         no_include_derived=False,
         profile=False,

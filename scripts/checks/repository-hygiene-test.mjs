@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -468,6 +469,36 @@ assert.doesNotMatch(
   'package.json não pode declarar municipios.json como catálogo público.',
 )
 const packageJson = JSON.parse(packageJsonSource)
+const expectedBuildScripts = {
+  build: 'vite build',
+  'build:app': 'vite build --mode app-only --outDir dist/app-only',
+  'check:fast': 'npm run typecheck && npm run lint && npm run build:app',
+  'update:data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py',
+  'update:data:skip-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --skip-build',
+  'update:data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --build',
+  'update:education-data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only',
+  'update:education-data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --build',
+}
+for (const [name, expected] of Object.entries(expectedBuildScripts)) {
+  assert.equal(
+    packageJson.scripts?.[name],
+    expected,
+    `Contrato de build/update divergente no script ${name}.`,
+  )
+}
+const viteConfigSource = readFileSync(resolve(repoRoot, 'vite.config.js'), 'utf8')
+assert.match(
+  viteConfigSource,
+  /copyPublicDir:\s*mode\s*!==\s*['"]app-only['"]/,
+  'build:app deve continuar sem copiar public/data.',
+)
+const packageLockSource = readFileSync(resolve(repoRoot, 'package-lock.json'), 'utf8')
+const packageLockSha256 = createHash('sha256').update(packageLockSource).digest('hex')
+assert.equal(
+  packageLockSha256,
+  '20303b684536a43721a969a0b72bd9ecfebb779243820bfe55e3724c965902df',
+  'package-lock.json mudou sem uma alteracao de dependencias e do contrato de lock.',
+)
 assert.equal(
   packageJson.scripts?.['test:municipality-identity'],
   'node --test --test-concurrency=1 scripts/checks/municipality-identity.test.mjs',
@@ -477,14 +508,17 @@ const expectedUvPythonScripts = [
   'test:python',
   'check:python-deps',
   'update:education-data',
+  'update:education-data:and-build',
   'update:indigenous-coverage',
   'update:data',
   'update:data:skip-build',
+  'update:data:and-build',
   'verify:indicator',
   'validate:details',
   'test:pipeline-state-config',
   'test:pipeline-education-state',
   'test:pipeline-education-publication',
+  'test:pipeline-build-decoupling',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -676,6 +710,72 @@ assert.doesNotMatch(
   updateSource,
   researchDependencyPattern,
   'update_static_data.py não pode importar nem executar código de pesquisa.',
+)
+assert.match(
+  updateSource,
+  /build_group\s*=\s*parser\.add_mutually_exclusive_group\(\)[\s\S]*?['"]--build['"][\s\S]*?['"]--skip-build['"]/,
+  '--build e --skip-build devem permanecer mutuamente exclusivos.',
+)
+assert.match(
+  updateSource,
+  /run_build\s*=\s*args\.build/,
+  'O build completo deve ser solicitado somente pela flag --build.',
+)
+assert.doesNotMatch(
+  updateSource,
+  /run_build\s*=\s*not\s+args\.skip_build/,
+  'O atualizador não pode voltar a executar build por padrão.',
+)
+assert.match(
+  updateSource,
+  /if args\.validate_only and args\.build:[\s\S]{0,180}?parser\.error/,
+  '--validate-only --build deve falhar antes de qualquer etapa.',
+)
+const updateMainSource = updateSource.slice(updateSource.indexOf('def main() -> int:'))
+const dataValidationPosition = updateMainSource.lastIndexOf(
+  'run_command("validate", validate_command, results)',
+)
+const buildGuardPosition = updateMainSource.indexOf(
+  'if run_build:',
+  dataValidationPosition,
+)
+const completeBuildPosition = updateMainSource.indexOf(
+  'run_command("build", build_command, results)',
+  buildGuardPosition,
+)
+assert.ok(
+  dataValidationPosition >= 0
+    && buildGuardPosition > dataValidationPosition
+    && completeBuildPosition > buildGuardPosition,
+  'O build completo deve permanecer guardado por --build e depois da validação.',
+)
+assert.match(
+  updateMainSource,
+  /except \(SystemExit, Exception\):[\s\S]{0,900}?não alcançado por falha anterior[\s\S]{0,900}?\n\s*raise/,
+  'Falhas anteriores devem encerrar o fluxo sem alcançar o build.',
+)
+
+const buildDecouplingTestPath = resolve(
+  repoRoot,
+  'data_pipeline/tests/test_update_build_decoupling.py',
+)
+assert.ok(existsSync(buildDecouplingTestPath), 'Suíte de desacoplamento do build ausente.')
+const buildDecouplingTestSource = readFileSync(buildDecouplingTestPath, 'utf8')
+for (const requiredTest of [
+  'test_default_update_never_executes_build',
+  'test_build_flag_executes_the_complete_build_only_after_validation',
+  'test_any_data_failure_prevents_the_requested_build',
+]) {
+  assert.match(
+    buildDecouplingTestSource,
+    new RegExp(`def ${requiredTest}\\b`),
+    `Proteção permanente de desacoplamento ausente: ${requiredTest}.`,
+  )
+}
+assert.equal(
+  packageJson.scripts?.['test:pipeline-build-decoupling'],
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_update_build_decoupling.py data_pipeline/tests/test_update_static_data.py',
+  'A suíte de desacoplamento deve permanecer exposta no package.json.',
 )
 
 const educationExporterSource = readFileSync(

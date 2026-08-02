@@ -408,13 +408,14 @@ def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_bui
         )
     if run_build:
         print(f"[update-data] Rodaria build: {format_command([NPM, 'run', 'build'])}")
+        print("[update-data] build: planejado, não executado por dry-run")
 
 
 def print_summary(
     results: list[StepResult],
     skipped: list[str],
     validate_ok: bool,
-    build_ok: bool | None,
+    build_status: str,
     profile: bool = False,
 ) -> None:
     print("[update-data] Resumo:")
@@ -424,10 +425,7 @@ def print_summary(
     for name in skipped:
         print(f"  - {name}: pulado")
     print(f"[update-data] validate:details: {'passou' if validate_ok else 'nao executado'}")
-    if build_ok is None:
-        print("[update-data] build: nao executado")
-    else:
-        print(f"[update-data] build: {'passou' if build_ok else 'falhou'}")
+    print(f"[update-data] build: {build_status}")
     if profile:
         print("[update-data] Perfil por duração:")
         for result in sorted(
@@ -440,9 +438,12 @@ def print_summary(
     print(run_git_status() or "  limpo")
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Orquestra export, partition, sync, validacao e build dos dados estaticos."
+        description=(
+            "Orquestra export, partition, sync e validacao dos dados estaticos; "
+            "o build completo e opcional."
+        )
     )
     parser.add_argument("--dry-run", action="store_true", help="Mostra as etapas sem alterar arquivos.")
     parser.add_argument("--skip-export", action="store_true", help="Pula a etapa de export.")
@@ -455,9 +456,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--education-only",
         action="store_true",
-        help="Exporta somente Educacao, valida e, salvo --skip-build, recompila a aplicacao.",
+        help="Exporta somente Educacao, materializa a desigualdade e valida.",
     )
-    parser.add_argument("--skip-build", action="store_true", help="Pula npm run build.")
+    build_group = parser.add_mutually_exclusive_group()
+    build_group.add_argument(
+        "--build",
+        action="store_true",
+        help="Executa o build completo apos todas as etapas de dados passarem.",
+    )
+    build_group.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Alias legado: mantem o comportamento padrao sem build.",
+    )
     parser.add_argument("--validate-only", action="store_true", help="Roda apenas npm run validate:details.")
     parser.add_argument(
         "--no-include-derived",
@@ -474,7 +485,10 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_STATE_CODE,
         help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
     )
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.validate_only and args.build:
+        parser.error("--validate-only nao pode ser combinado com --build.")
+    return args
 
 
 def main() -> int:
@@ -489,6 +503,11 @@ def main() -> int:
         return 2
     results: list[StepResult] = []
     skipped: list[str] = []
+    if args.skip_build:
+        print(
+            "[update-data] Compatibilidade: --skip-build e legado; "
+            "o build ja nao e solicitado por padrao."
+        )
 
     export_command = [PYTHON, "data_pipeline/scripts/export_static_data.py"]
     if not args.no_include_derived:
@@ -521,12 +540,22 @@ def main() -> int:
         if args.dry_run:
             print_dry_run([("validate", validate_command)], run_sync=False, run_build=False)
             return 0
-        run_command("validate", validate_command, results)
+        try:
+            run_command("validate", validate_command, results)
+        except (SystemExit, Exception):
+            print_summary(
+                results,
+                ["export", "partition", "sync", "inequality", "education"],
+                validate_ok=False,
+                build_status="não solicitado",
+                profile=args.profile,
+            )
+            raise
         print_summary(
             results,
-            ["export", "partition", "sync", "inequality-pilot", "education", "build"],
+            ["export", "partition", "sync", "inequality", "education"],
             validate_ok=True,
-            build_ok=None,
+            build_status="não solicitado",
             profile=args.profile,
         )
         return 0
@@ -536,7 +565,7 @@ def main() -> int:
     run_sync = run_partition
     run_education = not args.skip_education
     run_inequality = run_partition or run_education
-    run_build = not args.skip_build
+    run_build = args.build
     inequality_output_root = (
         STATIC_PARTITIONED_DATA_DIR / "municipios"
         if run_partition
@@ -568,47 +597,62 @@ def main() -> int:
         print_dry_run(planned_commands, run_sync=run_sync, run_build=run_build)
         return 0
 
-    if run_export or run_partition or run_sync or run_education:
-        ensure_git_update_safe()
+    validate_ok = False
+    build_started = False
+    try:
+        if run_export or run_partition or run_sync or run_education:
+            ensure_git_update_safe()
 
-    if run_export:
-        run_command("export", export_command, results)
-    else:
-        skipped.append("export")
+        if run_export:
+            run_command("export", export_command, results)
+        else:
+            skipped.append("export")
 
-    if run_partition:
-        run_command("partition", partition_command, results)
-    else:
-        skipped.extend(["partition", "sync"])
+        if run_partition:
+            run_command("partition", partition_command, results)
+        else:
+            skipped.extend(["partition", "sync"])
 
-    if run_education:
-        run_command("education", education_command, results)
-    else:
-        skipped.append("education")
+        if run_education:
+            run_command("education", education_command, results)
+        else:
+            skipped.append("education")
 
-    if run_inequality:
-        run_command("inequality", inequality_command, results)
-    else:
-        skipped.append("inequality")
+        if run_inequality:
+            run_command("inequality", inequality_command, results)
+        else:
+            skipped.append("inequality")
 
-    if run_sync:
-        sync_partitioned_to_public(results, registry=registry)
+        if run_sync:
+            sync_partitioned_to_public(results, registry=registry)
 
-    run_command("validate", validate_command, results)
-    validate_ok = True
+        run_command("validate", validate_command, results)
+        validate_ok = True
 
-    build_ok: bool | None = None
-    if run_build:
-        run_command("build", build_command, results)
-        build_ok = True
-    else:
-        skipped.append("build")
+        if run_build:
+            build_started = True
+            run_command("build", build_command, results)
+    except (SystemExit, Exception):
+        if run_build:
+            build_status = (
+                "falhou" if build_started else "não alcançado por falha anterior"
+            )
+        else:
+            build_status = "não solicitado"
+        print_summary(
+            results,
+            skipped,
+            validate_ok=validate_ok,
+            build_status=build_status,
+            profile=args.profile,
+        )
+        raise
 
     print_summary(
         results,
         skipped,
         validate_ok=validate_ok,
-        build_ok=build_ok,
+        build_status="concluído" if run_build else "não solicitado",
         profile=args.profile,
     )
     return 0

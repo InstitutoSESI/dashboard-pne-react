@@ -153,6 +153,14 @@ release ativa apontada por `pne2026-diagnostic-v3/current.json`.
 
 As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, os contratos financeiros usam `data_pipeline/export/municipal_finance` e a Educação principal usa runs efêmeros em `data_pipeline/.staging/education`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
 
+Geração, validação e promoção de dados são independentes da geração do bundle.
+`update_static_data.py` termina após validar por padrão e só chama o build
+completo quando recebe `--build`. O build permanece uma etapa posterior à
+validação, de modo que falhas de exportação, Educação, materialização,
+sincronização ou validação não o alcançam. `--skip-build` é somente um alias
+histórico do novo padrão sem build. Essa separação não altera os contratos,
+schemas, fórmulas, dados ou a publicação transacional da Educação.
+
 O ambiente Python do pipeline também tem contrato único: as dependências
 diretas ficam em `data_pipeline/pyproject.toml` e a resolução reproduzível em
 `data_pipeline/uv.lock`. Os comandos operacionais do `package.json` executam
@@ -161,7 +169,16 @@ mas permanece fora do pipeline automático.
 
 ## Publicação e segurança
 
-O artefato publicável é `dist`. A hospedagem deve servir arquivos estáticos e usar `index.html` como fallback. Credenciais, dumps privados e dados pessoais não podem entrar em `public`, `dist` ou arquivos versionados.
+O artefato publicável é `dist`. `npm run build` continua sendo o build completo:
+o Vite usa `copyPublicDir` e inclui `public/data`. O modo `app-only`, exposto por
+`npm run build:app`, desativa essa cópia e grava em `dist/app-only`; ele também é
+usado por `check:fast` para validação leve. `npm run preview` serve o `dist`
+existente e, para validar uma release, pressupõe um build completo atual. A
+hospedagem e o deploy continuam responsáveis por produzir e servir o pacote
+completo, com `index.html` como fallback. Dados já promovidos em `public/data` e
+o conteúdo materializado em `dist` têm ciclos operacionais separados.
+Credenciais, dumps privados e dados pessoais não podem entrar em `public`,
+`dist` ou arquivos versionados.
 
 A Etapa 5B2 alterou somente o mecanismo de geração e publicação da Educação
 principal. Nenhuma fonte real foi consultada e nenhum arquivo público foi

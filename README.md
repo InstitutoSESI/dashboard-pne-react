@@ -78,34 +78,52 @@ identidade e a geração não lê o índice público anterior. Essa parametriza�
 regenerou `public/data`: schemas, paths e dados publicados do RS permanecem os
 mesmos.
 
-`public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
+`public/data` é parte do produto e deve continuar versionado. Desenvolvimento
+visual e validação leve da aplicação usam somente o build app-only:
+
+```powershell
+npm run dev
+npm run check:fast
+npm run build:app
+```
+
+`build:app` não copia `public/data`; `check:fast` continua executando typecheck,
+lint e esse build leve. A atualização e validação de dados não constroem mais a
+aplicação. Para atualizar somente Educação, configure `SESI_DB_DIR` para o
+projeto que fornece `utils_educacao`:
 
 ```powershell
 npm run update:data
+npm run update:education-data
 ```
 
-Ele exporta e particiona os dados, atualiza Educação, incorpora o documento
-municipal de desigualdade em `details.json`, sincroniza `public/data`, valida os
-detalhes e executa o build. Para omitir apenas o build:
+O primeiro comando exporta, particiona, atualiza Educação, incorpora o documento
+municipal de desigualdade em `details.json`, sincroniza `public/data` e valida os
+detalhes. O segundo atualiza somente Educação, materializa a desigualdade
+derivada e valida. `update:data:skip-build` permanece aceito como alias histórico
+do fluxo padrão sem build.
+
+O build completo continua explícito e inclui toda a árvore `public`, portanto
+também `public/data`:
 
 ```powershell
-npm run update:data:skip-build
+npm run build
+npm run update:data:and-build
+npm run update:education-data:and-build
 ```
 
-Para validar rapidamente somente o código da aplicação, sem copiar a árvore
-versionada de dados para `dist`, execute `npm run check:fast` ou apenas
-`npm run build:app`. A publicação continua exigindo `npm run build`.
+Os dois comandos `and-build` executam o build completo somente depois de todas
+as respectivas etapas de dados e da validação passarem. Dados promovidos e o
+conteúdo de `dist` são responsabilidades separadas. `npm run preview` apenas
+serve um `dist` já existente; execute antes `npm run build` quando quiser validar
+o pacote completo de release. O deploy continua responsável por executar o
+build completo quando necessário. Este desacoplamento não alterou fórmula,
+schema, metodologia nem dado publicado.
 
 Para validar um indicador sem publicar dados:
 
 ```powershell
 npm run verify:indicator -- --cycle pne_2026_2036 --indicator creche --municipio "São Leopoldo"
-```
-
-Para regenerar somente `public/data/educacao`, defina `SESI_DB_DIR` para o projeto que fornece `utils_educacao` e execute:
-
-```powershell
-npm run update:education-data
 ```
 
 Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.env.example`. Nunca inclua segredos em `public/data`.

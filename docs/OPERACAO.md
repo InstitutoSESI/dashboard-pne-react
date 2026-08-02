@@ -71,7 +71,7 @@ Ausência e zero continuam distintos nos contratos educacionais. A
 parametrização estadual não executou atualização real nem regenerou os outputs
 públicos existentes do RS.
 
-## Atualização completa
+## Atualização de dados
 
 ```powershell
 npm run update:data
@@ -85,8 +85,12 @@ O comando executa, nesta ordem:
    transacional;
 4. incorporação do recorte municipal de desigualdade em `details.json` no staging;
 5. sincronização atômica do conjunto estático administrado;
-6. validação dos detalhes;
-7. build da aplicação.
+6. validação dos detalhes.
+
+O fluxo termina após a validação e não executa build por padrão. Geração,
+promoção dos dados versionados e materialização de `dist` são responsabilidades
+separadas. Nenhuma fórmula, schema, metodologia ou publicação analítica foi
+alterada por esse desacoplamento.
 
 Somente arquivos alterados são copiados. Educação, Financeiro, QSE e a
 publicação do diagnóstico PNE têm autoridades próprias e não são removidos pela
@@ -97,16 +101,26 @@ O passo educacional administra somente `educacao/index.json`,
 `educacao/municipios/<IBGE>.json`. Ele preserva `regioes`, `educacao-especial`,
 `superior`, `visao-geral-municipal`, `siope` e qualquer arquivo fora da
 allowlist. Um erro educacional retorna código não zero e interrompe o
-orquestrador antes da desigualdade, validação e build.
+orquestrador antes da desigualdade, validação e de qualquer build explicitamente
+solicitado.
 
 Comandos úteis:
 
 ```powershell
-# Atualiza os dados sem recompilar a aplicação
+# Atualiza e valida os dados, sem build
+npm run update:data
+
+# Atualiza e valida somente Educação e o recorte de desigualdade derivado dela
+npm run update:education-data
+
+# Alias histórico do fluxo padrão sem build
 npm run update:data:skip-build
 
-# Atualiza somente Educação e o recorte de desigualdade derivado dela
-npm run update:education-data
+# Atualiza, valida e só então executa o build completo
+npm run update:data:and-build
+
+# Atualiza Educação, valida e só então executa o build completo
+npm run update:education-data:and-build
 
 # Mostra as etapas e tempos sem executar
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
@@ -115,7 +129,10 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/update_stat
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run
 
 # Confere somente o plano educacional e a propagação do estado, sem executar
-uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --education-only --dry-run --skip-build
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --education-only --dry-run
+
+# Inclui o build completo somente no plano, depois da validação
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run --build
 
 # Mostra a CLI educacional sem banco, staging ou escrita
 uv run --project data_pipeline --frozen python data_pipeline/scripts/export_education_indicators.py --help
@@ -136,6 +153,40 @@ npm run test:pipeline-education-publication
 # Validação rápida do código da aplicação
 npm run check:fast
 ```
+
+`--build` e `--skip-build` são mutuamente exclusivos. A segunda opção permanece
+aceita somente por compatibilidade e equivale ao padrão sem build.
+`--validate-only` nunca constrói a aplicação e não pode ser combinado com
+`--build`. Em dry-run, o build aparece no plano apenas quando foi solicitado;
+nenhum dry-run cria staging, consulta banco, acessa rede, escreve dados ou
+executa Vite.
+
+## Build da aplicação, preview e deploy
+
+Desenvolvimento visual e validação leve usam:
+
+```powershell
+npm run dev
+npm run check:fast
+npm run build:app
+```
+
+`build:app` usa o modo `app-only`, grava em `dist/app-only` e não copia
+`public/data`. `check:fast` continua composto por typecheck, lint e esse build
+leve.
+
+O pacote de release completo é uma ação explícita:
+
+```powershell
+npm run build
+```
+
+Esse comando preserva a semântica atual do Vite, inclusive `copyPublicDir`, e
+copia toda a árvore `public`, incluindo `public/data`, para `dist`. `npm run
+preview` não atualiza dados nem constrói o pacote: ele serve o `dist` existente.
+Para validar uma release localmente, gere antes um build completo atual. O
+deploy continua responsável por executar `npm run build` quando necessário;
+paths, base, assets e hospedagem não mudaram.
 
 ## Conteúdo municipal compartilhado
 
