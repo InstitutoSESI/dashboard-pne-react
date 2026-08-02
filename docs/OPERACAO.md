@@ -81,7 +81,8 @@ O comando executa, nesta ordem:
 
 1. exportação dos agregados;
 2. particionamento em `data_pipeline/export/static_partitioned`;
-3. atualização dos documentos de Educação;
+3. geração integral da Educação em staging, validação fail-closed e promoção
+   transacional;
 4. incorporação do recorte municipal de desigualdade em `details.json` no staging;
 5. sincronização atômica do conjunto estático administrado;
 6. validação dos detalhes;
@@ -90,6 +91,13 @@ O comando executa, nesta ordem:
 Somente arquivos alterados são copiados. Educação, Financeiro, QSE e a
 publicação do diagnóstico PNE têm autoridades próprias e não são removidos pela
 sincronização estática.
+
+O passo educacional administra somente `educacao/index.json`,
+`educacao/municipios_index.json` e os 497
+`educacao/municipios/<IBGE>.json`. Ele preserva `regioes`, `educacao-especial`,
+`superior`, `visao-geral-municipal`, `siope` e qualquer arquivo fora da
+allowlist. Um erro educacional retorna código não zero e interrompe o
+orquestrador antes da desigualdade, validação e build.
 
 Comandos úteis:
 
@@ -109,8 +117,21 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/update_stat
 # Confere somente o plano educacional e a propagação do estado, sem executar
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --education-only --dry-run --skip-build
 
+# Mostra a CLI educacional sem banco, staging ou escrita
+uv run --project data_pipeline --frozen python data_pipeline/scripts/export_education_indicators.py --help
+
+# Valida estado, registro, slugs e o plano sem banco, staging ou escrita
+uv run --project data_pipeline --frozen python data_pipeline/scripts/export_education_indicators.py --state rs --dry-run
+
+# Gera e valida o lote integral sem promover; preserva o staging para inspeção
+# (este comando acessa as fontes e não foi executado na Etapa 5B2)
+uv run --project data_pipeline --frozen python data_pipeline/scripts/export_education_indicators.py --state RS --no-promote
+
 # Valida a parametrização dos quatro domínios educacionais
 npm run test:pipeline-education-state
+
+# Valida staging, fail-closed, no-op, promoção, rollback e orquestração
+npm run test:pipeline-education-publication
 
 # Validação rápida do código da aplicação
 npm run check:fast
@@ -182,10 +203,41 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne
 
 - estáticos gerais: `data_pipeline/export/static_partitioned`;
 - financeiro municipal: `data_pipeline/export/municipal_finance`;
+- Educação principal: `data_pipeline/.staging/education/<run-id>/output`;
 - staging temporário do diagnóstico PNE: `data_pipeline/.staging`.
 
 Esses diretórios não são fontes analíticas. Podem ser regenerados pelos
 respectivos comandos e não devem ser usados como entrada permanente.
+
+### Publicação transacional da Educação principal
+
+O entrypoint valida `StateConfig`, `MunicipalityRegistry` e a compatibilidade
+dos 182 slugs antes de criar o staging. `RS` e `rs` selecionam a mesma
+configuração; um estado não configurado, como `AL`, falha antes de banco,
+staging ou escrita. `--help` e `--dry-run` também não criam staging nem acessam
+fontes.
+
+O run materializa primeiro todos os documentos e acumula o relatório completo
+de falhas municipais. Qualquer falha impede os índices e a promoção. A árvore
+prospectiva só é aceita quando contém exatamente os 499 arquivos administrados,
+com 497 códigos IBGE textuais, nomes canônicos, schemas válidos, valores JSON
+finitos e índices coerentes. Lotes parciais por `--limit` ou `--municipios` são
+reconhecidos pela CLI, mas recusados antes do primeiro efeito.
+
+Na promoção, arquivos idênticos são classificados como `preserved` e mantêm
+bytes e `mtime`. Os demais são reportados como `created`, `updated` ou
+`removed`. Somente órfãos que correspondam ao padrão administrado
+`municipios/<IBGE>.json` podem ser removidos, e apenas depois da validação
+integral. Backups e temporários ficam vinculados ao run; uma falha intermediária
+restaura, em ordem reversa, cada alvo já alterado. Em sucesso, staging e backups
+são removidos. Em falha de rollback de sistema operacional, o run com backup é
+preservado e o processo retorna erro para intervenção; `--no-promote` também
+preserva explicitamente um staging já validado.
+
+O baseline de auditoria da Etapa 5B2 fica somente no diretório ignorado
+`data_pipeline/export/debug`. A etapa não executou `update:data`,
+`update:education-data`, consulta a banco, regeneração nem promoção de dados
+reais.
 
 ## Validação para entrega
 
@@ -207,6 +259,10 @@ preparar uma entrega ou após mudanças transversais no pipeline.
 ## Diagnóstico de falhas
 
 - falha antes da sincronização: `public/data` permanece com o conjunto anterior;
+- falha na geração ou validação da Educação: nenhum arquivo público educacional
+  é criado, alterado ou removido;
+- falha durante a promoção da Educação: o journal restaura integralmente o lote
+  anterior e o processo retorna código não zero;
 - falha na materialização PNE: o staging incompleto não é publicado;
 - falha na promoção PNE antes do ponteiro: a release ativa permanece válida;
 - falha depois da ativação: `current.json` continua apontando para uma release

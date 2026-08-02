@@ -101,6 +101,35 @@ público anterior. Índices e manifestos públicos são somente saídas derivada
 Ausência, zero observado, `derived_zero`, indisponibilidade e não aplicabilidade
 continuam estados distintos conforme cada contrato.
 
+A publicação da Educação principal é transacional e fail-closed. O exportador
+`data_pipeline/scripts/export_education_indicators.py` não conhece o caminho
+físico de `public/data`: ele recebe exclusivamente o diretório `output` de um
+run isolado em `data_pipeline/.staging/education/<run-id>`. Depois de consultar
+e calcular o lote integral, materializa nesse staging a allowlist ativa:
+
+- `educacao/index.json`;
+- `educacao/municipios_index.json`;
+- `educacao/municipios/<IBGE>.json`, exatamente um para cada código textual do
+  `MunicipalityRegistry`.
+
+Os arquivos `educacao/regioes/*.json` são artefatos legados do mesmo exportador,
+mas o fluxo padrão não os gera nem os administra. As subárvores
+`educacao-especial`, `superior`, `visao-geral-municipal` e `siope` pertencem a
+outros domínios e ficam fora da allowlist. Os 182 slugs históricos não são
+aliases físicos: continuam campos do índice derivados da configuração de
+compatibilidade versionada.
+
+Antes da promoção, o publicador exige o conjunto exato de arquivos, JSON
+estrito sem `NaN`/`Infinity`, schemas conhecidos, identidade e nome canônicos,
+mesma data do manifesto, índice compatível e conjunto exato de slugs. Falha de
+qualquer município, serialização, escrita ou validação rejeita o lote inteiro.
+Como `public/data/educacao` compartilha a raiz com outros domínios, a promoção é
+arquivo a arquivo: os arquivos alterados usam substituição atômica, os alvos
+anteriores e os órfãos administrados recebem backup, e um journal restaura o
+estado anterior em ordem reversa se ocorrer exceção. Arquivos byte a byte
+idênticos não são substituídos e preservam o `mtime`; órfãos dentro do padrão
+municipal administrado só são removidos depois da validação integral.
+
 Esta fundação ainda não constitui suporte real a múltiplos estados. Somente o
 RS está configurado; `rs` é normalizado para `RS`, enquanto `AL` falha antes de
 efeitos colaterais e não possui configuração nem publicação. Nomes físicos de
@@ -122,7 +151,7 @@ release ativa apontada por `pne2026-diagnostic-v3/current.json`.
 
 ## Pipeline
 
-As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, enquanto os contratos financeiros usam `data_pipeline/export/municipal_finance`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
+As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, os contratos financeiros usam `data_pipeline/export/municipal_finance` e a Educação principal usa runs efêmeros em `data_pipeline/.staging/education`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
 
 O ambiente Python do pipeline também tem contrato único: as dependências
 diretas ficam em `data_pipeline/pyproject.toml` e a resolução reproduzível em
@@ -133,3 +162,7 @@ mas permanece fora do pipeline automático.
 ## Publicação e segurança
 
 O artefato publicável é `dist`. A hospedagem deve servir arquivos estáticos e usar `index.html` como fallback. Credenciais, dumps privados e dados pessoais não podem entrar em `public`, `dist` ou arquivos versionados.
+
+A Etapa 5B2 alterou somente o mecanismo de geração e publicação da Educação
+principal. Nenhuma fonte real foi consultada e nenhum arquivo público foi
+regenerado ou promovido durante sua implementação e validação.

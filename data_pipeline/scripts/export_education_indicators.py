@@ -27,7 +27,7 @@ from sqlalchemy import bindparam, text
 DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SESI_DB_DIR  # noqa: E402
+from src.config import REPO_ROOT, SESI_DB_DIR  # noqa: E402
 from src.education_municipality_routes import (  # noqa: E402
     EducationMunicipalityRouteCompatibilityError,
     build_education_municipalities_index_payload,
@@ -49,6 +49,13 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
     normalize_state_code,
+)
+from src.education_transactional_publication import (  # noqa: E402
+    EducationPublicationError,
+    default_public_root,
+    publish_education_transactionally,
+    render_education_json,
+    validate_education_staging,
 )
 
 # ── Logging ────────────────────────────────────────────────────────────────
@@ -82,12 +89,20 @@ class Timer:
 # ── Caminhos ─────────────────────────────────────────────────────────────
 
 SESI_DB = SESI_DB_DIR
-SAIDA = EDUCATION_DATA_DIR
-SAIDA_MUN = SAIDA / "municipios"
-SAIDA_REG = SAIDA / "regioes"
+SAIDA: Path | None = None
+SAIDA_MUN: Path | None = None
+SAIDA_REG: Path | None = None
 
 sys.path.insert(0, str(SESI_DB))
 DATA_EXPORTACAO = datetime.now().strftime("%Y-%m-%d")
+
+
+def configure_education_output_root(output_root: Path) -> None:
+    """Vincula todas as escritas do exportador a um staging ja isolado."""
+    global SAIDA, SAIDA_MUN, SAIDA_REG
+    SAIDA = Path(output_root).resolve()
+    SAIDA_MUN = SAIDA / "municipios"
+    SAIDA_REG = SAIDA / "regioes"
 
 EDUCATION_VIEWS = (
     ("vw_educacao_matriculas", "matriculas"),
@@ -513,7 +528,7 @@ def detalhamento_oferta(df, dimensoes, filtros=None):
 
 
 def safe_json_dump(data, path):
-    """Escreve JSON com validacao e escrita atomica via arquivo temporario.
+    """Escreve JSON deterministico no staging via arquivo temporario.
 
     Remove o temporario em caso de erro para nunca deixar lixo.
     """
@@ -540,14 +555,18 @@ def safe_json_dump(data, path):
         return obj
 
     data = clean(data)
+    serialized = render_education_json(data)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_suffix(".tmp")
     try:
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
-        # Validar serializacao antes de substituir
+        with open(temp_path, "wb") as f:
+            f.write(serialized)
+            f.flush()
+        # Validar serializacao antes de substituir o arquivo do staging.
         with open(temp_path, encoding="utf-8") as f:
-            json.load(f)
+            json.load(f, parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"Constante JSON nao finita: {value}")
+            ))
         temp_path.replace(path)
     except Exception:
         if temp_path.exists():
@@ -2643,7 +2662,11 @@ def exportar_municipios(
             gerados += 1
             tamanho = path.stat().st_size
             tamanhos.append((id_mun, nome, tamanho))
-            arquivos_escritos.append(str(path.relative_to(REPO_ROOT)))
+            try:
+                display_path = path.relative_to(REPO_ROOT)
+            except ValueError:
+                display_path = path
+            arquivos_escritos.append(str(display_path))
 
             if progress_every and idx % progress_every == 0:
                 log(f"Progresso: {idx}/{len(mun_rs)} municipios ({gerados} OK, {len(falhas)} falhas)")
@@ -2666,6 +2689,76 @@ def exportar_municipios(
             log(f"  {id_mun} {nome}: {err}")
 
     return gerados, falhas, arquivos_escritos, tamanhos
+
+
+class EducationMunicipalityBatchError(EducationPublicationError):
+    """Mantem o relatorio municipal completo e impede indices/promocao."""
+
+    def __init__(self, failures):
+        self.failures = tuple(failures)
+        preview = "; ".join(
+            f"{municipality_id} ({name}): {error}"
+            for municipality_id, name, error in self.failures[:10]
+        )
+        super().__init__(
+            f"Falha em {len(self.failures)} municipios; lote rejeitado: {preview}"
+        )
+
+
+def materialize_education_outputs(
+    output_root,
+    mun_rs,
+    dfs,
+    anos_por_bloco,
+    registry,
+    route_compatibility,
+    progress_every=0,
+):
+    """Materializa o lote integral exclusivamente na arvore recebida."""
+    observed_ids = mun_rs["id_municipio"].tolist()
+    invalid_ids = [
+        value
+        for value in observed_ids
+        if not isinstance(value, str) or re.fullmatch(r"\d{7}", value) is None
+    ]
+    observed_set = set(observed_ids)
+    if invalid_ids or observed_set != registry.ids or len(observed_ids) != len(
+        observed_set
+    ):
+        raise EducationPublicationError(
+            "Universo municipal da materializacao diverge do registro; "
+            f"invalidos={invalid_ids[:5]}, "
+            f"ausentes={sorted(registry.ids - observed_set)[:5]}, "
+            f"extras={sorted(observed_set - registry.ids)[:5]}."
+        )
+    names_by_id = dict(zip(observed_ids, mun_rs["municipio"], strict=True))
+    divergent_names = [
+        record.ibge_code
+        for record in registry.ordered_records
+        if names_by_id.get(record.ibge_code) != record.name
+    ]
+    if divergent_names:
+        raise EducationPublicationError(
+            "Nomes municipais da materializacao divergem do registro: "
+            f"{divergent_names[:5]}."
+        )
+
+    configure_education_output_root(Path(output_root))
+    gerados_mun, falhas_mun, arquivos_escritos, tamanhos = exportar_municipios(
+        mun_rs,
+        dfs,
+        progress_every,
+    )
+    if falhas_mun:
+        raise EducationMunicipalityBatchError(falhas_mun)
+    if gerados_mun != registry.municipality_count:
+        raise EducationPublicationError(
+            "Quantidade municipal materializada diverge do registro: "
+            f"gerados={gerados_mun}, esperado={registry.municipality_count}."
+        )
+    gerar_municipios_index(registry, route_compatibility)
+    gerar_index(mun_rs, anos_por_bloco, gerados_mun)
+    return gerados_mun, arquivos_escritos, tamanhos
 
 
 # ── Exportacao regional ──────────────────────────────────────────────────
@@ -2929,8 +3022,39 @@ def gerar_index(mun_rs, anos_por_bloco, gerados_mun):
 # ── Validacao ────────────────────────────────────────────────────────────
 
 
-def validar_jsons(gerados_mun):
-    """Executa validacoes nos JSONs gerados."""
+def validar_jsons(
+    gerados_mun,
+    registry,
+    route_compatibility,
+    *,
+    output_root=None,
+):
+    """Executa o validador fail-closed da arvore prospectiva completa."""
+    root = Path(output_root) if output_root is not None else SAIDA
+    if root is None:
+        raise EducationPublicationError(
+            "Diretorio de staging educacional nao configurado."
+        )
+    if gerados_mun != registry.municipality_count:
+        raise EducationPublicationError(
+            "Validacao recusou lote municipal incompleto: "
+            f"gerados={gerados_mun}, esperado={registry.municipality_count}."
+        )
+    report = validate_education_staging(
+        root,
+        registry,
+        route_compatibility,
+        public_root=default_public_root(),
+    )
+    print(
+        "Validacao integral concluida: "
+        f"{len(report.files)} arquivos, {report.municipality_count} municipios."
+    )
+    return report
+
+
+def diagnosticar_jsons(gerados_mun):
+    """Relatorio humano opcional; nao autoriza nem executa promocao."""
     print("\n" + "=" * 60)
     print("VALIDACAO DOS JSONs GERADOS")
     print("=" * 60)
@@ -3064,32 +3188,67 @@ def validar_jsons(gerados_mun):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="Exportador de Indicadores da Educacao",
+        description=(
+            "Exportador transacional dos Indicadores da Educacao: gera em "
+            "staging, valida integralmente e somente entao publica."
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Exemplos:\n"
-            "  %(prog)s                                       # exporta tudo\n"
-            "  %(prog)s --limit 3                             # primeiros 3 municipios\n"
-            "  %(prog)s --municipios 4300109,Alegria          # municipios especificos\n"
-            "  %(prog)s --skip-regioes                        # pula regioes\n"
-            "  %(prog)s --progress-every 10                   # log a cada 10\n"
-            "  %(prog)s --diagnostic                          # modo diagnostico\n"
+            "  %(prog)s --state RS                         # gera e publica\n"
+            "  %(prog)s --state rs --dry-run               # valida e mostra o plano\n"
+            "  %(prog)s --state RS --no-promote            # preserva staging validado\n"
+            "  %(prog)s --state RS --staging-dir CAMINHO   # staging exclusivo controlado\n"
         ),
     )
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Limitar a N municipios (para testes)")
-    parser.add_argument("--municipios", type=str, default=None,
-                        help="Lista separada por virgula de IDs ou nomes de municipios")
-    parser.add_argument("--skip-regioes", action="store_true",
-                        help="Pular exportacao regional (nao afeta o comportamento padrao)")
-    parser.add_argument("--progress-every", type=int, default=0,
-                        help="Exibir progresso a cada N municipios")
-    parser.add_argument("--diagnostic", action="store_true",
-                        help="Modo diagnostico com logs detalhados")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Opção legada reconhecida; lotes parciais são recusados.",
+    )
+    parser.add_argument(
+        "--municipios",
+        type=str,
+        default=None,
+        help="Opção legada reconhecida; lotes parciais são recusados.",
+    )
+    parser.add_argument(
+        "--skip-regioes",
+        action="store_true",
+        help="Preserva explicitamente os artefatos regionais legados fora do lote.",
+    )
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=0,
+        help="Exibir progresso a cada N municipios.",
+    )
+    parser.add_argument(
+        "--diagnostic",
+        action="store_true",
+        help="Exibe detalhes dos arquivos materializados no staging.",
+    )
     parser.add_argument(
         "--state",
         default=DEFAULT_STATE_CODE,
         help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Valida estado e mostra o plano sem banco, staging ou escrita.",
+    )
+    parser.add_argument(
+        "--staging-dir",
+        type=Path,
+        default=None,
+        help="Diretório exclusivo do run; deve estar fora de public/data.",
+    )
+    parser.add_argument(
+        "--no-promote",
+        action="store_true",
+        help="Gera e valida integralmente, mas preserva o staging sem publicar.",
     )
     args = parser.parse_args(argv)
 
@@ -3110,134 +3269,152 @@ def main(argv=None):
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
 
-    log("=" * 60)
-    log("Exportador de Indicadores da Educacao")
-    log(f"Estado: {state_config.state_code}")
-    log(f"Data: {DATA_EXPORTACAO}")
-    log(f"Saida: {SAIDA}")
-    if args.diagnostic:
-        log("MODO DIAGNOSTICO ativado")
-    if args.limit:
-        log(f"LIMIT: {args.limit} municipios")
-    if args.municipios:
-        log(f"MUNICIPIOS filter: {args.municipios}")
-    if args.skip_regioes:
-        log("SKIP REGIOES: exportacao regional desativada")
-    if args.progress_every:
-        log(f"PROGRESS EVERY: {args.progress_every}")
-    log("")
+    if args.limit is not None or args.municipios:
+        print(
+            "Exportações municipais parciais foram desativadas: o contrato "
+            "transacional exige o lote integral.",
+            file=sys.stderr,
+        )
+        return 2
 
-    eh_parcial = bool(args.limit or args.municipios)
+    public_root = default_public_root()
+    if args.dry_run:
+        planned_staging = (
+            args.staging_dir
+            if args.staging_dir is not None
+            else DATA_PIPELINE_DIR / ".staging" / "education" / "<run-id>"
+        )
+        print("[education] Dry run: nenhuma fonte, banco ou escrita será acessado.")
+        print(f"[education] Estado validado: {state_config.state_code}.")
+        print(
+            "[education] Universo municipal: "
+            f"{registry.municipality_count} códigos IBGE textuais."
+        )
+        print(f"[education] Staging planejado: {planned_staging}.")
+        print(
+            "[education] Allowlist: index.json, municipios_index.json e "
+            f"{registry.municipality_count} arquivos municipios/<IBGE>.json."
+        )
+        print(f"[education] Destino após validação integral: {public_root}.")
+        if args.no_promote:
+            print("[education] Promoção: desativada por --no-promote.")
+        return 0
 
-    engine = _get_education_engine()
+    generation_summary = {}
 
-    # 1. Carregar atributos auxiliares para o universo municipal canônico.
-    with Timer("carregar_municipios"):
-        mun_rs = carregar_municipios(engine, state_config, registry)
-    municipality_ids = mun_rs["id_municipio"].tolist()
-    log(
-        f"Municipios {state_config.state_code} carregados: "
-        f"{len(municipality_ids)}"
-    )
+    def materialize(output_root):
+        log("=" * 60)
+        log("Exportador transacional de Indicadores da Educacao")
+        log(f"Estado: {state_config.state_code}")
+        log(f"Data: {DATA_EXPORTACAO}")
+        log(f"Staging: {output_root}")
+        log("Artefatos regionais legados: preservados fora da allowlist ativa")
+        if args.diagnostic:
+            log("MODO DIAGNOSTICO ativado")
+        log("")
 
-    # Filtrar municipios se especificado via --municipios
-    if args.municipios:
-        termos = [m.strip() for m in args.municipios.split(",")]
-        # Tenta separar por ID exato ou nome exato
-        mask = mun_rs["id_municipio"].isin(termos) | mun_rs["municipio"].isin(termos)
-        mun_rs = mun_rs[mask].copy()
-        log(f"Filtro --municipios: {len(mun_rs)} municipios selecionados")
-        if mun_rs.empty:
-            log("AVISO: nenhum municipio encontrado com o filtro especificado")
-
-    # Aplicar --limit
-    if args.limit and len(mun_rs) > args.limit:
-        mun_rs = mun_rs.head(args.limit).copy()
-        log(f"Limit --limit {args.limit}: {len(mun_rs)} municipios")
-
-    # 2. Carregar views
-    log("Carregando views...")
-    dfs = {}
-    for view_name, key in EDUCATION_VIEWS:
-        with Timer(f"Carregar {view_name}"):
-            df = carregar_view(
+        engine = _get_education_engine()
+        with Timer("carregar_municipios"):
+            municipalities = carregar_municipios(
                 engine,
-                view_name,
-                municipality_ids,
+                state_config,
                 registry,
             )
-            dfs[key] = df
-        log(f"  {view_name}: {len(df)} linhas")
+        municipality_ids = municipalities["id_municipio"].tolist()
+        log(
+            f"Municipios {state_config.state_code} carregados: "
+            f"{len(municipality_ids)}"
+        )
 
-    # 3. Anos por bloco
-    anos_por_bloco = {}
-    for nome, df in dfs.items():
-        if nome == "matriculas_educacao_basica":
-            continue
-        if not df.empty and "ano" in df.columns:
-            anos_por_bloco[nome] = sorted(df["ano"].unique().tolist())
-        elif not df.empty and "ano_fundeb" in df.columns:
-            anos_por_bloco[nome] = sorted(df["ano_fundeb"].unique().tolist())
+        log("Carregando views...")
+        frames = {}
+        for view_name, key in EDUCATION_VIEWS:
+            with Timer(f"Carregar {view_name}"):
+                frame = carregar_view(
+                    engine,
+                    view_name,
+                    municipality_ids,
+                    registry,
+                )
+                frames[key] = frame
+            log(f"  {view_name}: {len(frame)} linhas")
 
-    if args.diagnostic:
-        log(f"Anos disponiveis por view: {anos_por_bloco}")
+        available_years = {}
+        for name, frame in frames.items():
+            if name == "matriculas_educacao_basica":
+                continue
+            if not frame.empty and "ano" in frame.columns:
+                available_years[name] = sorted(frame["ano"].unique().tolist())
+            elif not frame.empty and "ano_fundeb" in frame.columns:
+                available_years[name] = sorted(
+                    frame["ano_fundeb"].unique().tolist()
+                )
+        if args.diagnostic:
+            log(f"Anos disponiveis por view: {available_years}")
 
-    # 4. Exportar municipios
-    gerados_mun, falhas_mun, arquivos_escritos, tamanhos = exportar_municipios(
-        mun_rs,
-        dfs,
-        args.progress_every,
-    )
-    log(f"Municipios exportados com sucesso: {gerados_mun}")
-    if falhas_mun:
-        log(f"Falhas: {len(falhas_mun)} municipios com erro")
-        for id_mun, nome, err in falhas_mun:
-            log(f"  {id_mun} ({nome}): {err}")
+        generated, written, sizes = materialize_education_outputs(
+            output_root,
+            municipalities,
+            frames,
+            available_years,
+            registry,
+            route_compatibility,
+            args.progress_every,
+        )
+        validation = validar_jsons(
+            generated,
+            registry,
+            route_compatibility,
+            output_root=output_root,
+        )
+        generation_summary.update(
+            generated=generated,
+            written=written,
+            sizes=sizes,
+            validation=validation,
+        )
 
-    # Em modo parcial, nao regerar indices globais (evitar inconsistencia)
-    if eh_parcial:
-        log("Exportacao parcial detectada — pulando geracao de indices globais e validacao.")
-        log("Os JSONs individuais foram escritos, mas index.json e municipios_index.json")
-        log("nao foram atualizados para evitar inconsistencia com dados completos.")
-    else:
-        # 5. Gerar municipios_index.json
-        with Timer("Gerar municipios_index.json"):
-            gerar_municipios_index(registry, route_compatibility)
+    try:
+        result = publish_education_transactionally(
+            registry=registry,
+            route_compatibility=route_compatibility,
+            materialize=materialize,
+            public_root=public_root,
+            staging_directory=args.staging_dir,
+            no_promote=args.no_promote,
+        )
+    except EducationMunicipalityBatchError as exc:
+        print(f"[education] Lote municipal rejeitado: {exc}", file=sys.stderr)
+        return 1
+    except EducationPublicationError as exc:
+        print(f"[education] Publicação recusada: {exc}", file=sys.stderr)
+        return 1
 
-        # 6. Gerar index
-        with Timer("Gerar index.json"):
-            gerar_index(mun_rs, anos_por_bloco, gerados_mun)
-
-        # 7. Validar
-        validar_jsons(gerados_mun)
-
-    # 8. Resumo final
     log("")
     log("=" * 60)
     log("RESUMO FINAL")
     log("=" * 60)
-    log(f"Municipios exportados: {gerados_mun}")
-    if falhas_mun:
-        log(f"Falhas: {len(falhas_mun)}")
-    log(f"Arquivos escritos: {len(arquivos_escritos)}")
+    log(f"Municipios materializados: {result.validation.municipality_count}")
+    log(f"Arquivos validados: {len(result.validation.files)}")
+    if result.stats is None:
+        log("Promocao: nao executada (--no-promote)")
+        log(f"Staging validado preservado: {result.staged_output}")
+    else:
+        log(f"created: {result.stats.created}")
+        log(f"updated: {result.stats.updated}")
+        log(f"preserved: {result.stats.preserved}")
+        log(f"removed: {result.stats.removed}")
+        log("Staging e backups: removidos com seguranca")
+    if args.diagnostic:
+        log(
+            f"Arquivos materializados neste ciclo: "
+            f"{len(generation_summary.get('written', []))}"
+        )
+        for path in generation_summary.get("written", []):
+            log(f"  {path}")
     elapsed = time.time() - _START_TIME
     log(f"Tempo total: {elapsed:.1f}s")
-    if falhas_mun:
-        log(f"AVISOS: {len(falhas_mun)} municipios com erro — ver detalhes acima")
-    # Nota sobre export parcial por bloco (ex: --only infraestrutura)
-    log("Nota: export parcial por bloco (futuro --only) exige cuidado para evitar")
-    log("inconsistencia entre blocos — prefira export completo.")
-
-    if args.diagnostic:
-        log("")
-        log(f"Arquivos gerados neste ciclo ({len(arquivos_escritos)}):")
-        for arq in arquivos_escritos:
-            log(f"  {arq}")
-
-    log("")
-    log(f"Concluido! {gerados_mun} municipios + index.json + municipios_index.json")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

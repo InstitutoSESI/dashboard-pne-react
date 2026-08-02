@@ -484,6 +484,7 @@ const expectedUvPythonScripts = [
   'validate:details',
   'test:pipeline-state-config',
   'test:pipeline-education-state',
+  'test:pipeline-education-publication',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -677,6 +678,140 @@ assert.doesNotMatch(
   'update_static_data.py não pode importar nem executar código de pesquisa.',
 )
 
+const educationExporterSource = readFileSync(
+  resolve(repoRoot, 'data_pipeline/scripts/export_education_indicators.py'),
+  'utf8',
+)
+const educationPublicationPath = 'data_pipeline/src/education_transactional_publication.py'
+const educationPublicationAbsolutePath = resolve(repoRoot, educationPublicationPath)
+assert.ok(
+  existsSync(educationPublicationAbsolutePath),
+  `Publicador transacional da Educação ausente: ${educationPublicationPath}.`,
+)
+const educationPublicationSource = readFileSync(educationPublicationAbsolutePath, 'utf8')
+const educationPublicationTestPath = resolve(
+  repoRoot,
+  'data_pipeline/tests/test_education_transactional_publication.py',
+)
+assert.ok(
+  existsSync(educationPublicationTestPath),
+  'Suíte transacional permanente da Educação ausente.',
+)
+const educationPublicationTestSource = readFileSync(educationPublicationTestPath, 'utf8')
+
+assert.doesNotMatch(
+  educationExporterSource,
+  /\b(?:EDUCATION_DATA_DIR|PUBLIC_DATA_DIR)\b/,
+  'O gerador educacional não pode conhecer nem escrever diretamente no destino público.',
+)
+assert.match(
+  educationExporterSource,
+  /def configure_education_output_root\s*\([\s\S]*?SAIDA\s*=\s*Path\(output_root\)\.resolve\(\)/,
+  'Todas as escritas do exportador devem ser vinculadas ao output_root isolado.',
+)
+assert.match(
+  educationExporterSource,
+  /if falhas_mun:\s*\n\s*raise EducationMunicipalityBatchError\(falhas_mun\)/,
+  'Falhas municipais acumuladas devem rejeitar o lote antes dos índices.',
+)
+assert.match(
+  educationExporterSource,
+  /except EducationMunicipalityBatchError as exc:[\s\S]{0,300}?return 1/,
+  'Falha municipal não pode encerrar o exportador com código zero.',
+)
+assert.match(
+  educationExporterSource,
+  /except EducationPublicationError as exc:[\s\S]{0,300}?return 1/,
+  'Falha transacional não pode encerrar o exportador com código zero.',
+)
+
+assert.match(
+  educationPublicationSource,
+  /MANAGED_EDUCATION_ROOT_FILES\s*=\s*frozenset\([\s\S]*?index\.json[\s\S]*?municipios_index\.json/,
+  'A allowlist raiz da Educação principal deve permanecer explícita.',
+)
+assert.match(
+  educationPublicationSource,
+  /MANAGED_EDUCATION_MUNICIPAL_PATTERN\s*=\s*re\.compile\(r"\\d\{7\}\\\.json"\)/,
+  'A propriedade municipal deve continuar limitada a arquivos por código IBGE textual.',
+)
+assert.match(
+  educationPublicationSource,
+  /if not is_managed_education_public_path\(relative\):[\s\S]{0,180}?Recusa ao remover caminho fora da allowlist/,
+  'Órfãos só podem ser removidos depois de confirmar a allowlist educacional.',
+)
+assert.doesNotMatch(
+  educationPublicationSource,
+  /\b(?:int|float|str)\s*\([^\n)]*\b(?:id_municipio|municipality_id|ibgeCode)\b|\bid_municipio\b[^\n]*\.astype\(str\)/,
+  'O publicador transacional não pode converter código IBGE municipal.',
+)
+
+const createStagingStart = educationPublicationSource.indexOf(
+  'def create_education_staging_run(',
+)
+const cleanupStagingStart = educationPublicationSource.indexOf(
+  '\ndef cleanup_education_staging_run(',
+  createStagingStart,
+)
+const createStagingBody = educationPublicationSource.slice(
+  createStagingStart,
+  cleanupStagingStart,
+)
+assert.ok(
+  createStagingStart >= 0
+    && cleanupStagingStart > createStagingStart
+    && createStagingBody.indexOf('_validate_staging_location(')
+      < createStagingBody.indexOf('run_root.mkdir('),
+  'O staging deve ser recusado dentro de public/data antes da primeira escrita.',
+)
+
+const transactionStart = educationPublicationSource.indexOf(
+  'def publish_education_transactionally(',
+)
+const transactionEnd = educationPublicationSource.indexOf(
+  '\ndef default_public_root(',
+  transactionStart,
+)
+const transactionBody = educationPublicationSource.slice(
+  transactionStart,
+  transactionEnd,
+)
+const materializePosition = transactionBody.indexOf('materialize(staging.output_root)')
+const validationPosition = transactionBody.indexOf('validate_education_staging(')
+const promotionPosition = transactionBody.indexOf('promote_education_staging(')
+assert.ok(
+  transactionStart >= 0
+    && transactionEnd > transactionStart
+    && materializePosition >= 0
+    && materializePosition < validationPosition
+    && validationPosition < promotionPosition,
+  'A promoção educacional deve ocorrer somente após materialização e validação integral.',
+)
+assert.match(
+  educationPublicationSource,
+  /for action in reversed\(applied\):[\s\S]*?_copy_file_atomically\(backup, action\.target/,
+  'A promoção arquivo a arquivo deve manter journal e rollback reverso.',
+)
+
+for (const requiredTest of [
+  'test_promotion_failure_rolls_back_bytes_and_mtimes',
+  'test_noop_preserves_every_byte_and_mtime',
+  'test_created_updated_preserved_removed_stats_and_orphan_timing',
+  'test_update_static_data_propagates_education_failure_and_stops_later_steps',
+  'test_all_182_historical_slugs_are_preserved_without_public_data_read',
+]) {
+  assert.match(
+    educationPublicationTestSource,
+    new RegExp(`def ${requiredTest}\\b`),
+    `Proteção transacional permanente ausente: ${requiredTest}.`,
+  )
+}
+assert.equal(
+  packageJson.scripts?.['test:pipeline-education-publication'],
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_education_transactional_publication.py',
+  'A suíte transacional da Educação deve permanecer exposta no package.json.',
+)
+
 const migratedPipelineSources = new Map([
   ['data_pipeline/src/pne_macro_ingestion.py', readFileSync(
     resolve(repoRoot, 'data_pipeline/src/pne_macro_ingestion.py'),
@@ -868,6 +1003,11 @@ const educationCommand = updateSource.match(
   /education_command\s*=\s*\[([\s\S]*?)\n\s*\]/,
 )
 assert.ok(educationCommand, 'Comando central de Educação não encontrado.')
+assert.match(
+  educationCommand[1],
+  /['"]data_pipeline\/scripts\/export_education_indicators\.py['"]/,
+  'update_static_data.py deve usar o único entrypoint educacional transacional.',
+)
 assert.match(
   educationCommand[1],
   /['"]--state['"][\s\S]*state_config\.state_code/,
