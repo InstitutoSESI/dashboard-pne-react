@@ -7686,13 +7686,13 @@
   margin-top: var(--space-2);
 }
 
-.municipal-technical-report__hero-actions .municipal-technical-report__excel {
+.content-area .municipal-technical-report .municipal-technical-report__excel {
   background: var(--green-primary);
   color: var(--text-inverted);
   border-color: var(--green-primary);
 }
 
-.municipal-technical-report__hero-actions .municipal-technical-report__excel:hover:not(:disabled) {
+.content-area .municipal-technical-report .municipal-technical-report__excel:hover:not(:disabled) {
   background: var(--green-deep);
   border-color: var(--green-deep);
 }
@@ -7830,9 +7830,9 @@
 .municipal-technical-report__summary-grid {
   margin-top: var(--space-2);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
-  gap: var(--space-3) var(--space-6);
+  gap: var(--space-2) var(--space-6);
 }
 
 .municipal-technical-report__summary-chapter {
@@ -7842,18 +7842,8 @@
   break-inside: avoid;
 }
 
-.municipal-technical-report__summary-chapter:last-child {
-  grid-column: 1 / -1;
-}
-
-.municipal-technical-report__summary-chapter:last-child ol {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: var(--space-6);
-}
-
 .municipal-technical-report__summary-chapter:hover {
-  background: var(--surface-soft);
+  background: transparent;
 }
 
 .municipal-technical-report__summary-chapter > header {
@@ -7896,17 +7886,28 @@
 }
 
 .municipal-technical-report__summary li a {
-  min-height: 38px;
-  padding: 7px var(--space-1);
+  min-height: 0;
+  padding: var(--space-1);
   color: var(--text);
-  display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-2);
+  display: flex;
+  align-items: baseline;
+  gap: 0;
   border-radius: var(--radius-xs);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-snug);
   text-decoration: none;
+}
+
+.municipal-technical-report__summary-item-title {
+  min-width: 0;
+}
+
+.municipal-technical-report__summary-leader {
+  flex: 1 1 auto;
+  align-self: center;
+  min-width: var(--space-3);
+  margin: 0 var(--space-2);
+  border-bottom: 1px dotted var(--border-strong-line);
 }
 
 .municipal-technical-report__summary li a:hover {
@@ -7926,10 +7927,12 @@
   outline-offset: 2px;
 }
 
-.municipal-technical-report__summary li a span {
+.municipal-technical-report__summary-locator {
+  flex: none;
   color: var(--green-deep);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
 }
 
 .municipal-technical-report__summary,
@@ -8675,8 +8678,8 @@
 }
 
 .municipal-technical-report__metrics > div {
-  min-height: 88px;
-  padding: var(--space-3) var(--space-4);
+  min-height: 64px;
+  padding: var(--space-3);
   border-color: var(--border-faint);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface-card) 88%, var(--surface-soft));
@@ -8688,12 +8691,12 @@
 }
 
 .municipal-technical-report__metrics dd {
-  font-size: 1.75rem;
+  font-size: var(--font-size-2xl);
 }
 
 .municipal-technical-report__summary {
-  gap: var(--space-5);
-  margin-top: var(--space-12);
+  gap: var(--space-3);
+  margin-top: var(--space-6);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -8701,7 +8704,7 @@
 }
 
 .municipal-technical-report__summary-grid {
-  gap: var(--space-8) var(--space-12);
+  gap: var(--space-3) var(--space-8);
 }
 
 .municipal-technical-report__summary-chapter,
@@ -8738,7 +8741,7 @@
 }
 
 .municipal-technical-report__chapter {
-  margin-top: var(--space-16);
+  margin-top: var(--space-6);
   padding: var(--space-5) 0 0;
   border: 0;
   border-top: 2px solid var(--green-primary);
@@ -8746,12 +8749,12 @@
 }
 
 .municipal-technical-report__summary + .municipal-technical-report__chapter {
-  margin-top: var(--space-12);
+  margin-top: var(--space-6);
 }
 
 .municipal-technical-report__chapter-header {
-  gap: var(--space-2);
-  margin-bottom: var(--space-8);
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
   padding: 0;
   border: 0;
   background: transparent;
@@ -8768,14 +8771,14 @@
 
 .municipal-technical-report__section,
 .municipal-technical-report__section--compact {
-  gap: var(--space-4);
-  padding: 0 0 var(--space-10);
+  gap: var(--space-3);
+  padding: 0 0 var(--space-5);
   border: 0;
   background: transparent;
 }
 
 .municipal-technical-report__section + .municipal-technical-report__section {
-  padding-top: var(--space-10);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--border-faint);
 }
 
@@ -10032,22 +10035,22 @@
 }
 
 .municipal-technical-report__chapter {
-  margin-top: 68px;
+  margin-top: var(--space-6);
   padding: 0;
   border: 0;
 }
 
 .municipal-technical-report__summary + .municipal-technical-report__chapter {
-  margin-top: var(--space-12);
+  margin-top: var(--space-6);
 }
 
 .municipal-technical-report__chapter-header {
-  gap: var(--space-2);
-  margin: 0 0 var(--space-8);
-  padding: var(--space-5) var(--space-6);
-  border: 0;
-  border-top: var(--border-width) solid var(--green-accent);
-  background: color-mix(in srgb, var(--green-soft) 26%, var(--surface-card));
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--green-soft) 40%, var(--surface-card));
 }
 
 .municipal-technical-report__chapter-kicker {
@@ -10177,7 +10180,7 @@
 }
 
 .municipal-technical-report__metrics dd {
-  font-size: 1.75rem;
+  font-size: var(--font-size-2xl);
 }
 
 .municipal-technical-report__metrics span {
@@ -10552,7 +10555,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--text-strong);
-  font-size: 1.75rem;
+  font-size: var(--font-size-2xl);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   white-space: nowrap;
@@ -10567,7 +10570,7 @@
 
 .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body {
   grid-template-columns: minmax(0, 30fr) minmax(0, 70fr);
-  gap: var(--space-5) var(--space-6);
+  gap: var(--space-3) var(--space-5);
 }
 
 .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics {
@@ -10597,7 +10600,7 @@
 
 .municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body {
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
+  gap: var(--space-3);
 }
 
 .municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body > * {
@@ -10762,7 +10765,7 @@
 }
 
 .municipal-technical-report .municipal-technical-report__summary-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
 }
 
@@ -10916,7 +10919,7 @@
 .municipal-technical-report .municipal-technical-report__section,
 .municipal-technical-report .municipal-technical-report__section--compact {
   min-width: 0;
-  padding: 0 0 var(--space-10);
+  padding: 0 0 var(--space-5);
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
   grid-auto-rows: auto;
@@ -10927,7 +10930,7 @@
 }
 
 .municipal-technical-report .municipal-technical-report__section + .municipal-technical-report__section {
-  padding-top: var(--space-10);
+  padding-top: var(--space-5);
 }
 
 .municipal-technical-report .municipal-technical-report__section-number {
@@ -11273,11 +11276,10 @@
 }
 
 .municipal-technical-report .municipal-technical-report__summary-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(3, auto);
-  grid-auto-flow: column;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: row;
   column-gap: var(--space-8);
-  row-gap: var(--space-8);
+  row-gap: var(--space-4);
 }
 
 .municipal-technical-report .municipal-technical-report__summary-chapter > header {
@@ -11321,12 +11323,11 @@
 }
 
 .municipal-technical-report .municipal-technical-report__summary li a {
-  min-height: 44px;
-  padding: var(--space-2) 0;
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  column-gap: var(--space-2);
-  align-items: center;
+  min-height: 0;
+  padding: var(--space-1) 0;
+  display: flex;
+  align-items: baseline;
+  column-gap: 0;
 }
 
 @container technical-report (max-width: 919px) {
@@ -12058,7 +12059,8 @@
   }
 
   .municipal-technical-report .municipal-technical-report__chapter {
-    break-before: page;
+    break-before: auto;
+    page-break-before: auto;
   }
 
   .municipal-technical-report .municipal-technical-report__summary + .municipal-technical-report__chapter {

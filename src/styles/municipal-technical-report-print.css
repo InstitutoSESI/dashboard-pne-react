@@ -125,14 +125,24 @@
     column-gap: 10mm;
   }
 
+  /*
+   * Capítulos fluem de forma contínua (sem forçar nova folha por capítulo).
+   * Antes cada capítulo abria em página nova — 6 quebras forçadas deixavam
+   * meias-folhas em branco e inflavam a contagem. A separação visual fica
+   * por conta do filete superior; a quebra só ocorre quando a folha enche.
+   */
   .municipal-technical-report--print .municipal-technical-report__chapter {
-    break-before: page;
-    page-break-before: always;
-  }
-
-  .municipal-technical-report--print .municipal-technical-report__summary + .municipal-technical-report__chapter {
     break-before: auto;
     page-break-before: auto;
+    padding-top: 4mm;
+    border-top: 0.4mm solid #9aa8a0;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report--print .municipal-technical-report__chapter-header {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .municipal-technical-report--print :is(
