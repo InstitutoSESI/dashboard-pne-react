@@ -1,35 +1,19 @@
-import { useMemo } from 'react'
 import { loadMunicipioData, primeMunicipioCache } from '../data/staticData'
 import type { AsyncDataState } from '../types/async'
-import type { MunicipioData, MunicipioIndexEntry, MunicipioName } from '../types/data'
+import type { MunicipalityId, MunicipioData } from '../types/data'
 import { useAsyncData } from '../utils/useAsyncData'
 
-function findMunicipioEntry(
-  municipiosIndex: MunicipioIndexEntry[],
-  selectedMunicipio: MunicipioName | null,
-): MunicipioIndexEntry | null {
-  return municipiosIndex.find((item) => item.nome === selectedMunicipio) ?? null
-}
-
 export function useMunicipioData(
-  municipiosIndex: MunicipioIndexEntry[],
-  selectedMunicipio: MunicipioName | null,
+  selectedMunicipalityId: MunicipalityId | null,
 ): AsyncDataState<MunicipioData | null> {
-  const selectedMunicipioEntry = useMemo(
-    () => findMunicipioEntry(municipiosIndex, selectedMunicipio),
-    [municipiosIndex, selectedMunicipio],
-  )
-
   return useAsyncData(
     async () => {
-      if (!selectedMunicipioEntry?.id_municipio) {
-        return null
-      }
+      if (!selectedMunicipalityId) return null
 
-      const data = await loadMunicipioData(selectedMunicipioEntry.id_municipio)
-      primeMunicipioCache(selectedMunicipioEntry.id_municipio, data)
+      const data = await loadMunicipioData(selectedMunicipalityId)
+      primeMunicipioCache(selectedMunicipalityId, data)
       return data
     },
-    [selectedMunicipioEntry?.id_municipio],
+    [selectedMunicipalityId],
   )
 }

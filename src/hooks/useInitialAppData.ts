@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { loadIndicadores, loadMunicipios, loadMunicipiosIndex } from '../data/staticData'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
+import { loadIndicadores, loadMunicipiosIndex } from '../data/staticData'
+import { buildMunicipalityRegistry } from '../domain/municipalityRegistry'
 import type { InitialAppData } from '../types/data'
 
 const INITIAL_APP_DATA: InitialAppData = {
@@ -7,8 +9,7 @@ const INITIAL_APP_DATA: InitialAppData = {
   error: null,
   indicadores: null,
   loading: true,
-  municipios: [],
-  municipiosIndex: [],
+  municipalities: [],
 }
 
 export function useInitialAppData(): InitialAppData {
@@ -19,10 +20,12 @@ export function useInitialAppData(): InitialAppData {
 
     async function loadInitialData(): Promise<void> {
       try {
-        const [municipiosPayload, indicadoresPayload, municipiosIndexPayload] =
-          await Promise.all([loadMunicipios(), loadIndicadores(), loadMunicipiosIndex()])
-        const municipios = municipiosPayload.municipios ?? []
-        const municipiosIndex = municipiosIndexPayload.municipios ?? []
+        const [indicadoresPayload, municipiosIndexPayload] =
+          await Promise.all([loadIndicadores(), loadMunicipiosIndex()])
+        const municipalities = buildMunicipalityRegistry(
+          municipiosIndexPayload,
+          ACTIVE_STATE_CONFIG,
+        )
 
         if (!cancelled) {
           setInitialData({
@@ -30,8 +33,7 @@ export function useInitialAppData(): InitialAppData {
             error: null,
             indicadores: indicadoresPayload,
             loading: false,
-            municipios,
-            municipiosIndex,
+            municipalities,
           })
         }
       } catch (error: unknown) {
@@ -41,8 +43,7 @@ export function useInitialAppData(): InitialAppData {
             error: error instanceof Error ? error.message : 'Erro inesperado.',
             indicadores: null,
             loading: false,
-            municipios: [],
-            municipiosIndex: [],
+            municipalities: [],
           })
         }
       }

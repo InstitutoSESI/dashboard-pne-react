@@ -25,6 +25,16 @@ from src.higher_education import (  # noqa: E402
 from src.higher_education_materialization import (  # noqa: E402
     materialize_higher_education,
 )
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
+)
 
 
 def _parse_years(value: str) -> tuple[int, ...]:
@@ -55,12 +65,6 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--municipality-index",
-        type=Path,
-        default=EDUCATION_DATA_DIR / "municipios_index.json",
-        help="Indice dos 497 municipios usado atualmente pelo dominio Educacao.",
-    )
-    parser.add_argument(
         "--years",
         type=_parse_years,
         default=SUPPORTED_YEARS,
@@ -88,14 +92,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=EDUCATION_DATA_DIR / "superior",
         help="Diretorio publico exclusivo da Educacao Superior.",
     )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
+
     audit = parse_higher_education_sources(
         source_dir=args.source_dir,
-        municipality_index_path=args.municipality_index,
+        state_config=state_config,
+        registry=registry,
         years=args.years,
     )
     if args.materialize:
@@ -105,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         result = materialize_higher_education(
             audit,
-            municipality_index_path=args.municipality_index,
+            municipality_universe=registry.names_by_id,
             output_directory=args.public_output_dir,
         )
         print(

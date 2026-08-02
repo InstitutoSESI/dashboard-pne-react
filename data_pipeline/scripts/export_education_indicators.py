@@ -22,15 +22,33 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+from sqlalchemy import bindparam, text
 
 DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.config import EDUCATION_DATA_DIR, REPO_ROOT, SESI_DB_DIR  # noqa: E402
+from src.education_municipality_routes import (  # noqa: E402
+    EducationMunicipalityRouteCompatibilityError,
+    build_education_municipalities_index_payload,
+    load_education_municipality_route_compatibility,
+)
 from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
 from src.school_infrastructure_materialization import (  # noqa: E402
     attach_school_infrastructure_contract,
     build_contracts,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfig,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
 )
 
 # ── Logging ────────────────────────────────────────────────────────────────
@@ -69,10 +87,29 @@ SAIDA_MUN = SAIDA / "municipios"
 SAIDA_REG = SAIDA / "regioes"
 
 sys.path.insert(0, str(SESI_DB))
-from utils_educacao import get_engine  # noqa: E402
-
-engine = get_engine("sesi")
 DATA_EXPORTACAO = datetime.now().strftime("%Y-%m-%d")
+
+EDUCATION_VIEWS = (
+    ("vw_educacao_matriculas", "matriculas"),
+    ("vw_educacao_visao_geral_municipal", "matriculas_educacao_basica"),
+    ("vw_educacao_matriculas_faixa_etaria", "matriculas_faixa_etaria"),
+    ("vw_educacao_matriculas_cor_raca", "matriculas_cor_raca"),
+    ("vw_educacao_rede_escolar", "rede_escolar"),
+    ("vw_educacao_infraestrutura_escolar_ativa", "school_infrastructure"),
+    ("vw_educacao_rede_escolar_etapa", "rede_escolar_etapa"),
+    ("vw_educacao_turmas_docentes", "turmas"),
+    ("vw_educacao_alunos_turma", "alunos_turma"),
+    ("vw_educacao_fluxo", "fluxo"),
+    ("vw_educacao_aprendizagem", "aprendizagem"),
+    ("vw_educacao_oferta_tecnica", "oferta"),
+    ("educacao_indigena_municipal", "educacao_indigena"),
+    ("populacao_indigena_faixa_municipal", "populacao_indigena_faixas"),
+    ("populacao_indigena_idade_municipal", "populacao_indigena_idades"),
+    ("vw_educacao_sistema_s", "sistema_s"),
+    ("vw_educacao_sistema_s_escolas", "sistema_s_escolas"),
+    ("vw_vaar_municipio_dashboard", "vaar"),
+)
+ALLOWED_EDUCATION_VIEWS = frozenset(view for view, _key in EDUCATION_VIEWS)
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -653,28 +690,121 @@ AVISOS_EDUCACAO_INDIGENA = [
 # ── Carregamento de dados ────────────────────────────────────────────────
 
 
-def carregar_municipios_rs():
-    """Carrega mapeamento de municipios RS com regiao SENAI."""
-    df = pd.read_sql_query(
-        "SELECT id_municipio, municipio, regiao_senai "
-        "FROM municipios WHERE sigla_uf = 'RS' ORDER BY municipio",
-        engine,
+def _get_education_engine():
+    """Importa o adaptador externo somente depois da validação estadual."""
+    from utils_educacao import get_engine
+
+    return get_engine("sesi")
+
+
+def _validate_municipality_codes(
+    frame,
+    registry,
+    *,
+    source,
+    require_complete=False,
+):
+    if "id_municipio" not in frame.columns:
+        raise ValueError(f"{source}: coluna id_municipio ausente.")
+    values = frame["id_municipio"].dropna().tolist()
+    invalid = sorted(
+        {
+            repr(value)
+            for value in values
+            if not isinstance(value, str) or re.fullmatch(r"\d{7}", value) is None
+        }
     )
-    df["id_municipio"] = df["id_municipio"].astype(str)
-    return df
+    if invalid:
+        raise ValueError(
+            f"{source}: códigos IBGE devem permanecer texto com sete dígitos; "
+            f"inválidos={invalid[:5]}."
+        )
+    observed = set(values)
+    extra = sorted(observed - registry.ids)
+    missing = sorted(registry.ids - observed) if require_complete else []
+    if extra or missing:
+        raise ValueError(
+            f"{source}: universo municipal diverge do registro de "
+            f"{registry.state_code}; ausentes={missing[:5]}, extras={extra[:5]}."
+        )
 
 
-def carregar_view(view, rs_ids=None):
-    """Carrega uma view filtrada para RS."""
-    if rs_ids is not None:
-        placeholders = ",".join([f"'{i}'" for i in rs_ids])
-        sql = f"SELECT * FROM {view} WHERE id_municipio IN ({placeholders})"
-    else:
-        sql = f"SELECT * FROM {view}"
-    df = pd.read_sql_query(sql, engine)
-    if "id_municipio" in df.columns:
-        df["id_municipio"] = df["id_municipio"].astype(str)
-    return df
+def carregar_municipios(
+    engine,
+    state_config: StateConfig,
+    registry: MunicipalityRegistry,
+):
+    """Carrega somente atributos regionais; identidade vem do registro."""
+    query = text(
+        "SELECT id_municipio, municipio, regiao_senai "
+        "FROM municipios "
+        "WHERE sigla_uf = :state_code "
+        "AND id_municipio IN :municipality_ids"
+    ).bindparams(bindparam("municipality_ids", expanding=True))
+    frame = pd.read_sql_query(
+        query,
+        engine,
+        params={
+            "state_code": state_config.state_code,
+            "municipality_ids": tuple(
+                record.ibge_code for record in registry.ordered_records
+            ),
+        },
+    )
+    _validate_municipality_codes(
+        frame,
+        registry,
+        source="tabela municipios",
+        require_complete=True,
+    )
+    duplicated = frame["id_municipio"].duplicated(keep=False)
+    if duplicated.any():
+        raise ValueError(
+            "tabela municipios: códigos duplicados: "
+            f"{sorted(frame.loc[duplicated, 'id_municipio'].unique())[:5]}."
+        )
+    rows_by_id = frame.set_index("id_municipio").to_dict("index")
+    name_mismatches = [
+        record.ibge_code
+        for record in registry.ordered_records
+        if rows_by_id[record.ibge_code].get("municipio") != record.name
+    ]
+    if name_mismatches:
+        raise ValueError(
+            "tabela municipios: nomes divergem do registro canônico: "
+            f"{name_mismatches[:5]}."
+        )
+    return pd.DataFrame(
+        [
+            {
+                "id_municipio": record.ibge_code,
+                "municipio": record.name,
+                "regiao_senai": rows_by_id[record.ibge_code].get("regiao_senai"),
+            }
+            for record in registry.ordered_records
+        ]
+    )
+
+
+def carregar_view(
+    engine,
+    view,
+    municipality_ids,
+    registry: MunicipalityRegistry,
+):
+    """Carrega uma fonte municipal usando parâmetros vinculados do registro."""
+    if view not in ALLOWED_EDUCATION_VIEWS:
+        raise ValueError(f"View educacional não autorizada: {view!r}.")
+    query = text(
+        f"SELECT * FROM {view} WHERE id_municipio IN :municipality_ids"
+    ).bindparams(bindparam("municipality_ids", expanding=True))
+    frame = pd.read_sql_query(
+        query,
+        engine,
+        params={"municipality_ids": tuple(municipality_ids)},
+    )
+    _validate_municipality_codes(frame, registry, source=view)
+    return frame
 
 
 # ── Bloco: VAAR/FUNDEB ────────────────────────────────────────────────
@@ -2450,7 +2580,7 @@ def exportar_municipios(
 
     infrastructure_contracts = build_contracts(
         dfs_views["school_infrastructure"],
-        mun_rs["id_municipio"].astype(str).tolist(),
+        mun_rs["id_municipio"].tolist(),
     )
 
     for idx, (_, mun) in enumerate(mun_rs.iterrows(), 1):
@@ -2744,20 +2874,15 @@ def _agregar_oferta_regional(df, ids):
 # ── Municipios index ─────────────────────────────────────────────────────
 
 
-def gerar_municipios_index(mun_rs):
-    """Gera municipios_index.json com mapeamento nome -> id_municipio."""
-    municipios = []
-    for _, row in mun_rs.iterrows():
-        municipios.append({
-            "id_municipio": row["id_municipio"],
-            "municipio": row["municipio"],
-            "slug": slugify(row["municipio"]),
-            "caminho": f"educacao/municipios/{row['id_municipio']}.json",
-        })
-    dados = {"municipios": municipios}
+def gerar_municipios_index(registry, route_compatibility):
+    """Gera a projeção educacional compatível sem usar o índice anterior."""
+    dados = build_education_municipalities_index_payload(
+        registry,
+        route_compatibility,
+    )
     path = SAIDA / "municipios_index.json"
     safe_json_dump(dados, path)
-    print(f"municipios_index.json gerado: {len(municipios)} municipios, "
+    print(f"municipios_index.json gerado: {len(dados['municipios'])} municipios, "
           f"{path.stat().st_size / 1024:.1f} KB")
     return path
 
@@ -2937,7 +3062,7 @@ def validar_jsons(gerados_mun):
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Exportador de Indicadores da Educacao",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2961,10 +3086,33 @@ def main():
                         help="Exibir progresso a cada N municipios")
     parser.add_argument("--diagnostic", action="store_true",
                         help="Modo diagnostico com logs detalhados")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+        route_compatibility = load_education_municipality_route_compatibility(
+            state_config,
+            registry,
+        )
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        EducationMunicipalityRouteCompatibilityError,
+    ) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
 
     log("=" * 60)
     log("Exportador de Indicadores da Educacao")
+    log(f"Estado: {state_config.state_code}")
     log(f"Data: {DATA_EXPORTACAO}")
     log(f"Saida: {SAIDA}")
     if args.diagnostic:
@@ -2981,11 +3129,16 @@ def main():
 
     eh_parcial = bool(args.limit or args.municipios)
 
-    # 1. Carregar municipios RS
-    with Timer("carregar_municipios_rs"):
-        mun_rs = carregar_municipios_rs()
-    rs_ids = mun_rs["id_municipio"].tolist()
-    log(f"Municipios RS carregados: {len(rs_ids)}")
+    engine = _get_education_engine()
+
+    # 1. Carregar atributos auxiliares para o universo municipal canônico.
+    with Timer("carregar_municipios"):
+        mun_rs = carregar_municipios(engine, state_config, registry)
+    municipality_ids = mun_rs["id_municipio"].tolist()
+    log(
+        f"Municipios {state_config.state_code} carregados: "
+        f"{len(municipality_ids)}"
+    )
 
     # Filtrar municipios se especificado via --municipios
     if args.municipios:
@@ -3004,36 +3157,15 @@ def main():
 
     # 2. Carregar views
     log("Carregando views...")
-    views = [
-        ("vw_educacao_matriculas", "matriculas"),
-        (
-            "vw_educacao_visao_geral_municipal",
-            "matriculas_educacao_basica",
-        ),
-        ("vw_educacao_matriculas_faixa_etaria", "matriculas_faixa_etaria"),
-        ("vw_educacao_matriculas_cor_raca", "matriculas_cor_raca"),
-        ("vw_educacao_rede_escolar", "rede_escolar"),
-        (
-            "vw_educacao_infraestrutura_escolar_ativa",
-            "school_infrastructure",
-        ),
-        ("vw_educacao_rede_escolar_etapa", "rede_escolar_etapa"),
-        ("vw_educacao_turmas_docentes", "turmas"),
-        ("vw_educacao_alunos_turma", "alunos_turma"),
-        ("vw_educacao_fluxo", "fluxo"),
-        ("vw_educacao_aprendizagem", "aprendizagem"),
-        ("vw_educacao_oferta_tecnica", "oferta"),
-        ("educacao_indigena_municipal", "educacao_indigena"),
-        ("populacao_indigena_faixa_municipal", "populacao_indigena_faixas"),
-        ("populacao_indigena_idade_municipal", "populacao_indigena_idades"),
-        ("vw_educacao_sistema_s", "sistema_s"),
-        ("vw_educacao_sistema_s_escolas", "sistema_s_escolas"),
-        ("vw_vaar_municipio_dashboard", "vaar"),
-    ]
     dfs = {}
-    for view_name, key in views:
+    for view_name, key in EDUCATION_VIEWS:
         with Timer(f"Carregar {view_name}"):
-            df = carregar_view(view_name, rs_ids)
+            df = carregar_view(
+                engine,
+                view_name,
+                municipality_ids,
+                registry,
+            )
             dfs[key] = df
         log(f"  {view_name}: {len(df)} linhas")
 
@@ -3070,7 +3202,7 @@ def main():
     else:
         # 5. Gerar municipios_index.json
         with Timer("Gerar municipios_index.json"):
-            gerar_municipios_index(mun_rs)
+            gerar_municipios_index(registry, route_compatibility)
 
         # 6. Gerar index
         with Timer("Gerar index.json"):
@@ -3104,7 +3236,8 @@ def main():
 
     log("")
     log(f"Concluido! {gerados_mun} municipios + index.json + municipios_index.json")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

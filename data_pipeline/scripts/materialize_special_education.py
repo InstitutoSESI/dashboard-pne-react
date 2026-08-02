@@ -16,25 +16,47 @@ REPO_ROOT = DATA_PIPELINE_DIR.parent
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.data_loader import load_special_education_school_source_data  # noqa: E402
+from src.education_municipality_routes import (  # noqa: E402
+    EducationMunicipalityRouteCompatibility,
+    EducationMunicipalityRouteCompatibilityError,
+    load_education_municipality_route_compatibility,
+    resolve_education_public_slug,
+)
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
 from src.special_education_materialization import (  # noqa: E402
     materialize,
     replace_directory_atomically,
     tree_hash,
 )
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
+)
 
 
 PUBLIC_EDUCATION = REPO_ROOT / "public" / "data" / "educacao"
 DEFAULT_OUTPUT = PUBLIC_EDUCATION / "educacao-especial"
-MUNICIPAL_INDEX = PUBLIC_EDUCATION / "municipios_index.json"
 OVERVIEW_MUNICIPALITIES = PUBLIC_EDUCATION / "visao-geral-municipal"
 
 
-def municipalities() -> list[dict]:
-    payload = json.loads(MUNICIPAL_INDEX.read_text(encoding="utf-8"))
-    result = payload["municipios"]
-    if len(result) != 497:
-        raise ValueError(f"Cadastro municipal contém {len(result)} itens, não 497.")
-    return result
+def municipalities(
+    registry: MunicipalityRegistry,
+    route_compatibility: EducationMunicipalityRouteCompatibility,
+) -> list[dict]:
+    return [
+        {
+            "id_municipio": record.ibge_code,
+            "municipio": record.name,
+            "slug": resolve_education_public_slug(record, route_compatibility),
+        }
+        for record in registry.ordered_records
+    ]
 
 
 def _new_2025_total(contract: dict) -> int | float | None:
@@ -46,7 +68,7 @@ def reconcile_overview(stage: Path, universe: list[dict]) -> dict:
     divergent = []
     compared = 0
     for municipality in universe:
-        code = str(municipality["id_municipio"])
+        code = municipality["id_municipio"]
         overview_path = OVERVIEW_MUNICIPALITIES / f"{code}.json"
         if not overview_path.exists():
             continue
@@ -72,13 +94,37 @@ def reconcile_overview(stage: Path, universe: list[dict]) -> dict:
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    args = parser.parse_args()
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    args = parser.parse_args(argv)
 
-    source = load_special_education_school_source_data()
-    universe = municipalities()
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+        route_compatibility = load_education_municipality_route_compatibility(
+            state_config,
+            registry,
+        )
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        EducationMunicipalityRouteCompatibilityError,
+    ) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
+
+    source = load_special_education_school_source_data(
+        municipality_ids=registry.ids
+    )
+    universe = municipalities(registry, route_compatibility)
     staging_root = DATA_PIPELINE_DIR / ".staging"
     staging_root.mkdir(parents=True, exist_ok=True)
     first = Path(tempfile.mkdtemp(prefix=".special-first-", dir=staging_root))

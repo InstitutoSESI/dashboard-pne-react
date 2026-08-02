@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -12,6 +11,24 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_PIPELINE_DIR = REPO_ROOT / "data_pipeline"
+if str(DATA_PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(DATA_PIPELINE_DIR))
+
+from src.config import PUBLIC_DATA_DIR  # noqa: E402
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRecord,
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+)
+
+
 DEFAULT_DETAILS_GLOB = "municipios/*/details.json"
 
 ALLOWED_TOP_LEVEL_FIELDS = {
@@ -45,6 +62,14 @@ DENOMINATOR_FIELDS = {"denominador", "denominator"}
 
 # Current published data uses this aggregate public-series plus breakdown pattern.
 ALLOWED_PUBLICA_MIXED_DETAIL_KEYS = {"temporarios"}
+MUNICIPAL_INEQUALITY_STATUSES = {
+    "available",
+    "suppressed_small_cell",
+    "missing",
+    "not_applicable",
+    "methodology_incompatible",
+}
+MUNICIPAL_INEQUALITY_GROUPS = {"urban", "rural"}
 
 
 @dataclass
@@ -60,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--data-dir",
-        default=str(REPO_ROOT / "public" / "data"),
+        default=str(PUBLIC_DATA_DIR),
         help="Directory containing the public static data tree.",
     )
     parser.add_argument(
@@ -68,6 +93,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=80,
         help="Maximum number of individual problems to print.",
+    )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Configured state code (default: {DEFAULT_STATE_CODE}).",
     )
     return parser.parse_args()
 
@@ -434,7 +464,212 @@ def _validate_por_list(
                 )
 
 
-def validate_detail_file(path: Path, problems: list[Problem]) -> int:
+def validate_shared_municipal_inequality(
+    payload: Any,
+    *,
+    municipality_id: str,
+    municipality_name: str | None = None,
+    path: Path,
+    problems: list[Problem],
+) -> None:
+    field = "_shared.municipal_inequality"
+    if not isinstance(payload, dict):
+        add_problem(problems, "ERROR", path, f"{field} must be an object.")
+        return
+
+    expected_document_keys = {
+        "schemaVersion", "generatedAt", "municipality", "inequalityPilot"
+    }
+    if set(payload) != expected_document_keys:
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            f"{field} must contain exactly the municipal-inequality-v1 fields.",
+        )
+    if payload.get("schemaVersion") != "municipal-inequality-v1":
+        add_problem(problems, "ERROR", path, f"{field}.schemaVersion is invalid.")
+    if not isinstance(payload.get("generatedAt"), str) or not payload["generatedAt"].strip():
+        add_problem(problems, "ERROR", path, f"{field}.generatedAt must be filled.")
+
+    municipality = payload.get("municipality")
+    if not isinstance(municipality, dict):
+        add_problem(problems, "ERROR", path, f"{field}.municipality must be an object.")
+    else:
+        if str(municipality.get("id") or "") != municipality_id:
+            add_problem(
+                problems,
+                "ERROR",
+                path,
+                f"{field}.municipality.id must match directory {municipality_id}.",
+            )
+        if not isinstance(municipality.get("name"), str) or not municipality["name"].strip():
+            add_problem(problems, "ERROR", path, f"{field}.municipality.name must be filled.")
+        elif municipality_name is not None and municipality["name"] != municipality_name:
+            add_problem(
+                problems,
+                "ERROR",
+                path,
+                f"{field}.municipality.name must equal registry name {municipality_name!r}.",
+            )
+
+    pilot = payload.get("inequalityPilot")
+    if not isinstance(pilot, dict):
+        add_problem(problems, "ERROR", path, f"{field}.inequalityPilot must be an object.")
+        return
+
+    expected_identity = {
+        "methodologyVersion": "municipal-inequality-p4b-v1",
+        "indicatorId": "basico_integral",
+        "dimension": "urban_rural",
+        "universeCode": "public_basic_education_enrollments",
+        "formulaCode": "integral_enrollments_over_eligible_enrollments",
+        "minimumCellSize": 10,
+    }
+    for key, expected in expected_identity.items():
+        if pilot.get(key) != expected:
+            add_problem(
+                problems,
+                "ERROR",
+                path,
+                f"{field}.inequalityPilot.{key} must be {expected!r}.",
+            )
+
+    pilot_status = pilot.get("status")
+    if pilot_status not in MUNICIPAL_INEQUALITY_STATUSES:
+        add_problem(problems, "ERROR", path, f"{field}.inequalityPilot.status is invalid.")
+    pilot_year = pilot.get("year")
+    if pilot_year is not None and (
+        isinstance(pilot_year, bool) or not isinstance(pilot_year, int)
+    ):
+        add_problem(problems, "ERROR", path, f"{field}.inequalityPilot.year is invalid.")
+    difference = pilot.get("observedDifferencePercentagePoints")
+    if difference is not None and not is_number(difference):
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            f"{field}.inequalityPilot.observedDifferencePercentagePoints is invalid.",
+        )
+
+    groups = pilot.get("groups")
+    if not isinstance(groups, list):
+        add_problem(problems, "ERROR", path, f"{field}.inequalityPilot.groups must be a list.")
+        return
+    group_codes = [
+        group.get("groupCode") for group in groups if isinstance(group, dict)
+    ]
+    if len(groups) != 2 or set(group_codes) != MUNICIPAL_INEQUALITY_GROUPS:
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            f"{field}.inequalityPilot.groups must contain urban and rural exactly once.",
+        )
+
+    group_statuses: set[str] = set()
+    available_groups: dict[str, dict[str, Any]] = {}
+    for index, group in enumerate(groups):
+        group_field = f"{field}.inequalityPilot.groups[{index}]"
+        if not isinstance(group, dict):
+            add_problem(problems, "ERROR", path, f"{group_field} must be an object.")
+            continue
+        status = group.get("status")
+        if status not in MUNICIPAL_INEQUALITY_STATUSES:
+            add_problem(problems, "ERROR", path, f"{group_field}.status is invalid.")
+            continue
+        group_statuses.add(status)
+        if group.get("publicationStatus") != status:
+            add_problem(
+                problems,
+                "ERROR",
+                path,
+                f"{group_field}.publicationStatus must equal status.",
+            )
+        group_year = group.get("year")
+        if group_year is not None and (
+            isinstance(group_year, bool) or not isinstance(group_year, int)
+        ):
+            add_problem(problems, "ERROR", path, f"{group_field}.year is invalid.")
+        if pilot_year is not None and group_year is not None and group_year != pilot_year:
+            add_problem(problems, "ERROR", path, f"{group_field}.year conflicts with pilot year.")
+        if group.get("coverage") not in {"municipality_public_network", "missing"}:
+            add_problem(problems, "ERROR", path, f"{group_field}.coverage is invalid.")
+        if group.get("suppressionReasonCode") not in {
+            None, "small_cell", "complementary_suppression"
+        }:
+            add_problem(
+                problems, "ERROR", path, f"{group_field}.suppressionReasonCode is invalid."
+            )
+
+        numerator = group.get("numerator")
+        denominator = group.get("denominator")
+        percentage = group.get("percentage")
+        if status == "available":
+            if not all(is_number(value) for value in (numerator, denominator, percentage)):
+                add_problem(
+                    problems, "ERROR", path, f"{group_field} available values must be numeric."
+                )
+            elif float(denominator) <= 0 or not 0 <= float(numerator) <= float(denominator):
+                add_problem(problems, "ERROR", path, f"{group_field} has invalid components.")
+            else:
+                available_groups[str(group.get("groupCode"))] = group
+        elif status == "not_applicable":
+            if numerator != 0 or denominator != 0 or percentage is not None:
+                add_problem(
+                    problems,
+                    "ERROR",
+                    path,
+                    f"{group_field} not_applicable values must be 0, 0 and null.",
+                )
+        elif any(value is not None for value in (numerator, denominator, percentage)):
+            add_problem(
+                problems, "ERROR", path, f"{group_field} unavailable values must remain null."
+            )
+
+    if "methodology_incompatible" in group_statuses:
+        expected_status = "methodology_incompatible"
+    elif "suppressed_small_cell" in group_statuses:
+        expected_status = "suppressed_small_cell"
+    elif "available" in group_statuses:
+        expected_status = "available"
+    elif group_statuses == {"not_applicable"}:
+        expected_status = "not_applicable"
+    else:
+        expected_status = "missing"
+    if pilot_status in MUNICIPAL_INEQUALITY_STATUSES and pilot_status != expected_status:
+        add_problem(problems, "ERROR", path, f"{field}.inequalityPilot.status conflicts with groups.")
+
+    if set(available_groups) == MUNICIPAL_INEQUALITY_GROUPS:
+        expected_difference = round(
+            float(available_groups["urban"]["percentage"])
+            - float(available_groups["rural"]["percentage"]),
+            6,
+        )
+        if not is_number(difference) or not math.isclose(
+            float(difference), expected_difference, abs_tol=1e-9
+        ):
+            add_problem(
+                problems,
+                "ERROR",
+                path,
+                f"{field}.inequalityPilot observed difference conflicts with groups.",
+            )
+    elif difference is not None:
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            f"{field}.inequalityPilot observed difference must be null when groups are unavailable.",
+        )
+
+
+def validate_detail_file(
+    path: Path,
+    problems: list[Problem],
+    *,
+    municipality_name: str | None = None,
+) -> int:
     try:
         with path.open("r", encoding="utf-8") as file:
             payload = json.load(file)
@@ -449,19 +684,29 @@ def validate_detail_file(path: Path, problems: list[Problem]) -> int:
         add_problem(problems, "ERROR", path, "top-level payload must be an object.")
         return 0
 
+    if "municipal_inequality" in payload:
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            "municipal_inequality conflicts with shared content outside _shared.",
+        )
     shared = payload.get("_shared")
-    if shared is not None:
-        if not isinstance(shared, dict):
-            add_problem(
-                problems, "ERROR", path,
-                "top-level _shared must be an object."
+    if not isinstance(shared, dict):
+        add_problem(problems, "ERROR", path, "top-level _shared must be an object.")
+    else:
+        privadas = shared.get("privadas_conveniadas")
+        if privadas is not None:
+            validate_shared_privadas_conveniadas(
+                privadas, path=path, problems=problems
             )
-        else:
-            privadas = shared.get("privadas_conveniadas")
-            if privadas is not None:
-                validate_shared_privadas_conveniadas(
-                    privadas, path=path, problems=problems
-                )
+        validate_shared_municipal_inequality(
+            shared.get("municipal_inequality"),
+            municipality_id=path.parent.name,
+            municipality_name=municipality_name,
+            path=path,
+            problems=problems,
+        )
 
     total_details = 0
     for indicator_key, detail_payload in payload.items():
@@ -495,20 +740,19 @@ def print_summary(total_files: int, problems: list[Problem], max_problems: int) 
             print(f"  ... {len(problems) - max_problems} more problem(s) omitted.")
 
 
-EXPECTED_MUNICIPALITIES = 497
-_ID_PATTERN = re.compile(r"^\d{7}$")
-
-
 def _validate_shared_coverage(
-    detail_files: list[Path], data_dir: Path, problems: list[Problem]
+    detail_files: list[Path],
+    data_dir: Path,
+    problems: list[Problem],
+    registry: MunicipalityRegistry,
 ) -> None:
-    seen_ids_with: set[str] = set()
-    seen_ids_without: set[str] = set()
+    seen_ids: set[str] = set()
+    ids_with_privadas: set[str] = set()
+    ids_with_inequality: set[str] = set()
 
     for path in detail_files:
         parent_name = path.parent.name
-        if not _ID_PATTERN.match(parent_name):
-            continue
+        seen_ids.add(parent_name)
 
         try:
             with path.open("r", encoding="utf-8") as f:
@@ -518,45 +762,122 @@ def _validate_shared_coverage(
 
         shared = payload.get("_shared") if isinstance(payload, dict) else None
         if isinstance(shared, dict):
-            privadas = shared.get("privadas_conveniadas")
-        else:
-            privadas = None
+            if shared.get("privadas_conveniadas") is not None:
+                ids_with_privadas.add(parent_name)
+            if shared.get("municipal_inequality") is not None:
+                ids_with_inequality.add(parent_name)
 
-        if privadas is not None:
-            seen_ids_with.add(parent_name)
-        else:
-            seen_ids_without.add(parent_name)
-
-    total_ids = len(seen_ids_with) + len(seen_ids_without)
-    if total_ids != EXPECTED_MUNICIPALITIES:
+    if seen_ids != registry.ids:
+        missing = sorted(registry.ids - seen_ids)
+        extra = sorted(seen_ids - registry.ids)
         add_problem(
             problems, "ERROR", data_dir,
-            f"Expected {EXPECTED_MUNICIPALITIES} municipal ID directories, "
-            f"found {total_ids}."
+            "Municipal details set diverges from registry; "
+            f"missing={missing[:5]}, extra={extra[:5]}."
         )
 
-    if len(seen_ids_without) > 0:
-        exemplos = sorted(seen_ids_without)[:5]
+    ids_without_privadas = registry.ids - ids_with_privadas
+    if ids_without_privadas:
+        exemplos = sorted(ids_without_privadas)[:5]
         add_problem(
             problems, "ERROR", data_dir,
-            f"{len(seen_ids_without)} municipio(s) sem "
+            f"{len(ids_without_privadas)} municipio(s) sem "
             f"_shared.privadas_conveniadas: {', '.join(exemplos)}"
-            + ("..." if len(seen_ids_without) > 5 else "")
+            + ("..." if len(ids_without_privadas) > 5 else "")
         )
 
-    if len(seen_ids_with) != EXPECTED_MUNICIPALITIES:
+    if ids_with_privadas != registry.ids:
         add_problem(
             problems, "ERROR", data_dir,
-            f"Expected {EXPECTED_MUNICIPALITIES} municipios with "
-            f"_shared.privadas_conveniadas, found {len(seen_ids_with)}."
+            f"Expected {registry.municipality_count} municipios with "
+            f"_shared.privadas_conveniadas, found {len(ids_with_privadas)}."
+        )
+
+    ids_without_inequality = registry.ids - ids_with_inequality
+    if ids_without_inequality:
+        exemplos = sorted(ids_without_inequality)[:5]
+        add_problem(
+            problems, "ERROR", data_dir,
+            f"{len(ids_without_inequality)} municipio(s) sem "
+            f"_shared.municipal_inequality: {', '.join(exemplos)}"
+            + ("..." if len(ids_without_inequality) > 5 else "")
+        )
+
+    if ids_with_inequality != registry.ids:
+        add_problem(
+            problems, "ERROR", data_dir,
+            f"Expected {registry.municipality_count} municipios with "
+            f"_shared.municipal_inequality, found {len(ids_with_inequality)}."
+        )
+
+
+def validate_municipal_index_identity(
+    data_dir: Path,
+    record: MunicipalityRecord,
+    problems: list[Problem],
+) -> None:
+    path = data_dir / "municipios" / record.ibge_code / "index.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        add_problem(problems, "ERROR", path, "municipal index.json is missing.")
+        return
+    except (json.JSONDecodeError, OSError) as exc:
+        add_problem(problems, "ERROR", path, f"could not read municipal index: {exc}")
+        return
+    if not isinstance(payload, dict):
+        add_problem(problems, "ERROR", path, "municipal index must be an object.")
+        return
+    expected = {
+        "id_municipio": record.ibge_code,
+        "municipio": record.name,
+        "slug": record.slug,
+    }
+    observed = {field: payload.get(field) for field in expected}
+    if observed != expected:
+        add_problem(
+            problems,
+            "ERROR",
+            path,
+            f"municipal identity diverges from registry: {observed!r}.",
         )
 
 
 def main() -> int:
     args = parse_args()
+    try:
+        state_config = load_state_config(args.state)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"State configuration validation failed: {exc}", file=sys.stderr)
+        return 2
     data_dir = Path(args.data_dir).resolve()
-    detail_files = sorted(data_dir.glob(DEFAULT_DETAILS_GLOB))
     problems: list[Problem] = []
+    municipal_root = data_dir / "municipios"
+    physical_directories = (
+        {path.name for path in municipal_root.iterdir() if path.is_dir()}
+        if municipal_root.is_dir()
+        else set()
+    )
+    if physical_directories != registry.ids:
+        missing = sorted(registry.ids - physical_directories)
+        extra = sorted(physical_directories - registry.ids)
+        add_problem(
+            problems,
+            "ERROR",
+            municipal_root,
+            "municipal directory set diverges from registry; "
+            f"missing={missing[:5]}, extra={extra[:5]}.",
+        )
+
+    detail_files: list[Path] = []
+    for record in registry.ordered_records:
+        validate_municipal_index_identity(data_dir, record, problems)
+        details_path = municipal_root / record.ibge_code / "details.json"
+        if details_path.is_file():
+            detail_files.append(details_path)
+        else:
+            add_problem(problems, "ERROR", details_path, "details.json is missing.")
 
     if not detail_files:
         add_problem(
@@ -570,9 +891,14 @@ def main() -> int:
 
     total_files = 0
     for path in detail_files:
-        total_files += validate_detail_file(path, problems)
+        record = registry.get_by_id(path.parent.name)
+        total_files += validate_detail_file(
+            path,
+            problems,
+            municipality_name=record.name,
+        )
 
-    _validate_shared_coverage(detail_files, data_dir, problems)
+    _validate_shared_coverage(detail_files, data_dir, problems, registry)
 
     print_summary(total_files, problems, args.max_problems)
     return 1 if any(problem.severity == "ERROR" for problem in problems) else 0

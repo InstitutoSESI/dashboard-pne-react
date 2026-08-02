@@ -96,14 +96,6 @@ function hasNumber(value) {
   return value !== null && value !== undefined && Number.isFinite(Number(value))
 }
 
-function normalizeName(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('pt-BR')
-    .trim()
-}
-
 function formatSiopeValue(value, unidade, compact = false) {
   if (!hasNumber(value)) return EM
   const numeric = Number(value)
@@ -158,19 +150,9 @@ function getIndicatorTypeLabel(indicator) {
   return 'Número'
 }
 
-function getMunicipiosList(municipios) {
-  if (Array.isArray(municipios)) return municipios
-  return Object.values(municipios ?? {})
-}
-
-function getMunicipalityRecord(wide, idMunicipio, selectedMunicipio) {
+function getMunicipalityRecord(wide, idMunicipio) {
   const municipios = wide?.municipios ?? {}
-  const direct = idMunicipio ? municipios[String(idMunicipio)] : null
-  if (direct) return direct
-
-  const target = normalizeName(selectedMunicipio)
-  if (!target) return null
-  return getMunicipiosList(municipios).find((item) => normalizeName(item?.municipio) === target) ?? null
+  return idMunicipio ? municipios[String(idMunicipio)] ?? null : null
 }
 
 function buildGroups(indicators) {
@@ -537,7 +519,7 @@ function SiopeEmpty({ children }) {
   )
 }
 
-export function SiopeIndicatorsPanel({ idMunicipio, selectedMunicipio, detailKey = '', onDetailChange }) {
+export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChange }) {
   const state = useAsyncData(() => loadSiopeDashboardData(), [])
   const financeState = useAsyncData(
     () => (idMunicipio ? municipalFinanceLoader.load(String(idMunicipio)) : null),
@@ -553,14 +535,14 @@ export function SiopeIndicatorsPanel({ idMunicipio, selectedMunicipio, detailKey
   const model = useMemo(() => {
     const catalogIndicators = state.data?.catalogo?.indicadores ?? []
     const groups = buildGroups(catalogIndicators)
-    const municipality = getMunicipalityRecord(state.data?.wide, idMunicipio, selectedMunicipio)
+    const municipality = getMunicipalityRecord(state.data?.wide, idMunicipio)
 
     return {
       catalogIndicators,
       groups,
       municipality,
     }
-  }, [idMunicipio, selectedMunicipio, state.data])
+  }, [idMunicipio, state.data])
 
   useEffect(() => {
     if (!detailKey) return setIsDetailOpen(false)
@@ -576,7 +558,7 @@ export function SiopeIndicatorsPanel({ idMunicipio, selectedMunicipio, detailKey
     }
   }, [detailKey, model.groups, onDetailChange, state.loading])
 
-  if (!selectedMunicipio) {
+  if (!idMunicipio) {
     return <SiopeEmpty>Selecione um município para consultar os dados declarados ao SIOPE/FNDE.</SiopeEmpty>
   }
 

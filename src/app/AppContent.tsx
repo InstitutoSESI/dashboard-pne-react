@@ -29,8 +29,7 @@ export function AppContent({ activePage, initialData, navigationContext, onNavig
     <AppPageRouter
       activePage={activePage}
       indicadores={initialData.indicadores}
-      municipios={initialData.municipios}
-      municipiosIndex={initialData.municipiosIndex}
+      municipalities={initialData.municipalities}
       navigationContext={navigationContext}
       onNavigate={onNavigate}
     />

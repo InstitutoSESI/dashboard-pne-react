@@ -14,9 +14,9 @@ const PAGE_CRUMBS = {
 
 export function ContextBar({
   activePage,
-  municipios,
-  onMunicipioChange,
-  selectedMunicipio,
+  municipalities,
+  onMunicipalityChange,
+  selectedMunicipalityId,
 }) {
   const financialPage = getFinancialPageByKey(activePage)
   const crumb = financialPage
@@ -27,9 +27,9 @@ export function ContextBar({
     <div className="context-bar">
       <div className="context-bar__selector">
         <MunicipalitySelector
-          municipios={municipios}
-          selectedMunicipio={selectedMunicipio}
-          onChange={onMunicipioChange}
+          municipalities={municipalities}
+          selectedMunicipalityId={selectedMunicipalityId}
+          onChange={onMunicipalityChange}
           placeholder="Buscar município"
         />
       </div>

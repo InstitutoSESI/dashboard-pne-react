@@ -1,67 +1,114 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { PropsWithChildren } from 'react'
-import type { MunicipioName } from '../types/data'
+import { ACTIVE_STATE_CONFIG, type StateConfig } from '../config/stateConfig'
+import {
+  findMunicipalityById,
+  indexMunicipalitiesById,
+} from '../domain/municipalityRegistry'
+import {
+  getBrowserMunicipalityStorage,
+  persistMunicipalitySelection,
+  restoreMunicipalitySelection,
+} from '../domain/municipalityStorage'
+import type { MunicipalityId, MunicipalityRef } from '../types/data'
 
-const STORAGE_KEY = 'pne_dashboard_municipio'
-
-interface MunicipalityContextValue {
-  selectedMunicipio: MunicipioName | null
-  setSelectedMunicipio: (value: MunicipioName | null) => void
+export interface MunicipalityContextValue {
+  activeState: StateConfig
+  selectedMunicipalityId: MunicipalityId | null
+  selectedMunicipality: MunicipalityRef | null
+  setSelectedMunicipalityId: (value: MunicipalityId | null) => void
+  selectionReady: boolean
 }
 
 interface MunicipalityProviderProps extends PropsWithChildren {
-  municipios: MunicipioName[]
+  activeState?: StateConfig
+  municipalities: MunicipalityRef[]
 }
 
 const FALLBACK_MUNICIPALITY_CONTEXT: MunicipalityContextValue = {
-  selectedMunicipio: null,
-  setSelectedMunicipio: () => {},
+  activeState: ACTIVE_STATE_CONFIG,
+  selectedMunicipalityId: null,
+  selectedMunicipality: null,
+  setSelectedMunicipalityId: () => {},
+  selectionReady: false,
 }
 
 const MunicipalityContext = createContext<MunicipalityContextValue | undefined>(undefined)
 
-export function MunicipalityProvider({ children, municipios }: MunicipalityProviderProps) {
-  const [selectedMunicipio, setSelectedMunicipio] = useState<MunicipioName | null>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        return saved
-      }
-    } catch {
-      return null
-    }
-    return null
-  })
+export function MunicipalityProvider({
+  activeState = ACTIVE_STATE_CONFIG,
+  children,
+  municipalities,
+}: MunicipalityProviderProps) {
+  const [selectedMunicipalityId, setSelectedMunicipalityIdState] =
+    useState<MunicipalityId | null>(null)
+  const [selectionReady, setSelectionReady] = useState(false)
+  const hydratedStateCodeRef = useRef<string | null>(null)
+  const municipalitiesById = useMemo(
+    () => indexMunicipalitiesById(municipalities),
+    [municipalities],
+  )
+  const selectedMunicipality = useMemo(
+    () => findMunicipalityById(municipalitiesById, selectedMunicipalityId),
+    [municipalitiesById, selectedMunicipalityId],
+  )
 
-  const saveMunicipio = useCallback((value: MunicipioName | null) => {
-    setSelectedMunicipio(value)
-    try {
-      if (value) {
-        localStorage.setItem(STORAGE_KEY, value)
-      } else {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    } catch {
-      // localStorage can be unavailable in restricted browser contexts.
-    }
-  }, [])
+  useLayoutEffect(() => {
+    if (municipalities.length === 0) return
+    if (hydratedStateCodeRef.current === activeState.stateCode) return
 
-  useEffect(() => {
-    if (municipios.length === 0) return
+    const restored = restoreMunicipalitySelection(
+      getBrowserMunicipalityStorage(),
+      municipalities,
+      activeState,
+    )
+    hydratedStateCodeRef.current = activeState.stateCode
+    setSelectedMunicipalityIdState(restored.municipalityId)
+    setSelectionReady(true)
+  }, [activeState, municipalities])
 
-    if (selectedMunicipio && !municipios.includes(selectedMunicipio)) {
-      setSelectedMunicipio(null)
-      try {
-        localStorage.removeItem(STORAGE_KEY)
-      } catch {
-        // localStorage can be unavailable in restricted browser contexts.
-      }
-    }
-  }, [municipios, selectedMunicipio])
+  useLayoutEffect(() => {
+    if (!selectionReady || municipalities.length === 0 || !selectedMunicipalityId) return
+    if (municipalitiesById.has(selectedMunicipalityId)) return
+
+    setSelectedMunicipalityIdState(null)
+    persistMunicipalitySelection(
+      getBrowserMunicipalityStorage(),
+      municipalities,
+      activeState,
+      null,
+    )
+  }, [activeState, municipalities, municipalitiesById, selectedMunicipalityId, selectionReady])
+
+  const setSelectedMunicipalityId = useCallback((value: MunicipalityId | null) => {
+    if (value !== null && !municipalitiesById.has(value)) return
+
+    setSelectedMunicipalityIdState(value)
+    persistMunicipalitySelection(
+      getBrowserMunicipalityStorage(),
+      municipalities,
+      activeState,
+      value,
+    )
+  }, [activeState, municipalities, municipalitiesById])
 
   return (
     <MunicipalityContext.Provider
-      value={{ selectedMunicipio, setSelectedMunicipio: saveMunicipio }}
+      value={{
+        activeState,
+        selectedMunicipalityId,
+        selectedMunicipality,
+        setSelectedMunicipalityId,
+        selectionReady,
+      }}
     >
       {children}
     </MunicipalityContext.Provider>

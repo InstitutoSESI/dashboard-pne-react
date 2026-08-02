@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 
 PIPELINE = Path(__file__).resolve().parents[1]
@@ -15,10 +16,14 @@ sys.path.insert(0, str(PIPELINE))
 
 from src.special_education_materialization import (  # noqa: E402
     ALL_FIELDS,
+    YEARS,
+    build_manifest,
     build_contract,
     field_availability,
     json_bytes,
+    validate_source_municipality_universe,
     validate_contract,
+    write_json_atomic,
 )
 
 
@@ -271,6 +276,63 @@ def test_contract_serialization_is_byte_deterministic():
     second = json_bytes(contract(source().sample(frac=1, random_state=7)))
 
     assert first == second
+
+
+def test_contract_preserves_registry_identity_and_slug_alias():
+    payload = contract()
+    assert payload["municipality"] == {
+        "code": "4300001",
+        "name": "Teste",
+        "slug": "teste",
+    }
+
+
+def _universe_source(ids: tuple[str, ...]) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {"ano": reference_year, "id_municipio": code}
+            for reference_year in YEARS
+            for code in ids
+        ]
+    )
+
+
+def test_source_universe_requires_exact_textual_coverage_for_every_year():
+    expected = frozenset({"4300001", "4300002"})
+    complete = _universe_source(tuple(sorted(expected)))
+    validate_source_municipality_universe(complete, expected)
+
+    missing = complete[~(
+        complete["ano"].eq(YEARS[-1])
+        & complete["id_municipio"].eq("4300002")
+    )]
+    with pytest.raises(ValueError, match=str(YEARS[-1])):
+        validate_source_municipality_universe(missing, expected)
+
+    extra = pd.concat(
+        [complete, _universe_source(("2704302",))],
+        ignore_index=True,
+    )
+    with pytest.raises(ValueError, match="extras"):
+        validate_source_municipality_universe(extra, expected)
+
+    numeric = complete.copy()
+    numeric.loc[0, "id_municipio"] = 4300001
+    with pytest.raises(ValueError, match="preservar código municipal como texto"):
+        validate_source_municipality_universe(numeric, expected)
+
+
+def test_manifest_count_and_content_hash_are_deterministic(tmp_path):
+    municipality_directory = tmp_path / "municipios"
+    write_json_atomic(municipality_directory / "4300001.json", {"value": 0})
+    write_json_atomic(municipality_directory / "4300002.json", {"value": None})
+
+    first = build_manifest(tmp_path, 2)
+    second = build_manifest(tmp_path, 2)
+
+    assert first["municipalityCount"] == 2
+    assert first["fileCount"] == 2
+    assert first["contentHash"] == second["contentHash"]
 
 
 def published_contract(code: str) -> dict:

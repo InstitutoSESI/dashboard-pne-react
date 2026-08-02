@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
@@ -376,8 +377,10 @@ def build_contract(
     municipality: dict[str, Any],
     availability: dict[str, Any],
 ) -> dict[str, Any]:
-    code = str(municipality["id_municipio"])
-    municipal = source[source["id_municipio"].astype(str) == code]
+    code = municipality["id_municipio"]
+    if not isinstance(code, str) or re.fullmatch(r"\d{7}", code) is None:
+        raise ValueError("Código IBGE municipal deve permanecer texto com sete dígitos.")
+    municipal = source[source["id_municipio"] == code]
     years = []
     for year in YEARS:
         year_frame = municipal[municipal["ano"] == year].copy()
@@ -525,6 +528,43 @@ def _build_municipality_contract(
     return municipality, contract, validate_contract(contract)
 
 
+def validate_source_municipality_universe(
+    source: pd.DataFrame,
+    expected_ids: frozenset[str],
+) -> None:
+    if "id_municipio" not in source.columns:
+        raise ValueError("A fonte não possui id_municipio.")
+    raw_codes = source["id_municipio"].dropna().tolist()
+    invalid = sorted(
+        {
+            repr(value)
+            for value in raw_codes
+            if not isinstance(value, str)
+            or re.fullmatch(r"\d{7}", value) is None
+        }
+    )
+    if invalid:
+        raise ValueError(
+            "A fonte deve preservar código municipal como texto; "
+            f"inválidos={invalid[:5]}."
+        )
+    observed_ids = set(raw_codes)
+    if observed_ids != expected_ids:
+        raise ValueError(
+            "A fonte diverge do registro municipal; "
+            f"ausentes={sorted(expected_ids - observed_ids)[:5]}, "
+            f"extras={sorted(observed_ids - expected_ids)[:5]}."
+        )
+    for year in YEARS:
+        year_ids = set(source.loc[source["ano"].eq(year), "id_municipio"].dropna())
+        if year_ids != expected_ids:
+            raise ValueError(
+                f"A fonte de {year} diverge do registro municipal; "
+                f"ausentes={sorted(expected_ids - year_ids)[:5]}, "
+                f"extras={sorted(year_ids - expected_ids)[:5]}."
+            )
+
+
 def materialize(
     source: pd.DataFrame,
     municipalities: list[dict[str, Any]],
@@ -532,22 +572,31 @@ def materialize(
 ) -> dict[str, Any]:
     if source.duplicated(["ano", "cod_escola"]).any():
         raise ValueError("A fonte não possui chave ano x escola única.")
+    municipality_ids = [municipality["id_municipio"] for municipality in municipalities]
+    if any(
+        not isinstance(identifier, str)
+        or re.fullmatch(r"\d{7}", identifier) is None
+        for identifier in municipality_ids
+    ):
+        raise ValueError("O registro municipal deve preservar códigos IBGE textuais.")
+    if len(set(municipality_ids)) != len(municipality_ids):
+        raise ValueError("O registro municipal contém códigos duplicados.")
+    expected_ids = frozenset(municipality_ids)
+    validate_source_municipality_universe(source, expected_ids)
     availability = field_availability(source)
     source_by_municipality = {
-        str(code): frame
-        for code, frame in source.groupby(source["id_municipio"].astype(str), sort=False)
+        code: frame
+        for code, frame in source.groupby("id_municipio", sort=False)
     }
     temporary = Path(tempfile.mkdtemp(prefix=".special-education-", dir=destination.parent))
     errors = []
     try:
-        ordered_municipalities = sorted(
-            municipalities, key=lambda item: str(item["id_municipio"])
-        )
+        ordered_municipalities = list(municipalities)
 
         jobs = (
             (
                 source_by_municipality.get(
-                    str(municipality["id_municipio"]),
+                    municipality["id_municipio"],
                     source.iloc[0:0],
                 ),
                 municipality,
@@ -571,8 +620,15 @@ def materialize(
         if errors:
             raise ValueError(f"Validação falhou: {errors[:10]}")
         manifest = build_manifest(temporary, len(municipalities))
-        if manifest["fileCount"] != 497:
-            raise ValueError(f"Esperados 497 municípios; obtidos {manifest['fileCount']}.")
+        generated_ids = {
+            path.stem for path in (temporary / "municipios").glob("*.json")
+        }
+        if generated_ids != expected_ids:
+            raise ValueError(
+                "A materialização não produziu o conjunto municipal exato; "
+                f"ausentes={sorted(expected_ids - generated_ids)[:5]}, "
+                f"extras={sorted(generated_ids - expected_ids)[:5]}."
+            )
         write_json_atomic(temporary / "index.json", manifest)
         replace_directory_atomically(temporary, destination)
         temporary = None

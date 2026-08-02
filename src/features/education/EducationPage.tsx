@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ContentState } from '../../components/ContentState.jsx'
 import { ErrorState } from '../../components/ErrorState.jsx'
-import { loadEducationMunicipio, loadEducationMunicipiosIndex } from '../../data/educationData.js'
+import { loadEducationMunicipio } from '../../data/educationData.js'
 import {
   SCHOOL_INFRASTRUCTURE_CONTRACT_VERSION,
   type SchoolInfrastructureContract,
@@ -98,20 +98,13 @@ function latestEducationYear(items: ReadonlyArray<Record<string, unknown>>) {
 export function EducationPage({
   indicadores,
   municipioData,
+  municipalityId,
   municipalitySlug,
   navigationContext,
   selectedMunicipio,
 }: EducationPageProps) {
   const pageCopy = EDUCATION_PAGE_COPY
-  const eduIndexState = useAsyncData(() => loadEducationMunicipiosIndex(), [])
-  const eduMunMap = useMemo<Map<string, string>>(() => {
-    const list = eduIndexState.data?.municipios ?? []
-    return new Map(list.map((m: { municipio: string; id_municipio: string | number }) => [
-      m.municipio,
-      String(m.id_municipio),
-    ]))
-  }, [eduIndexState.data])
-  const selectedId = selectedMunicipio ? eduMunMap.get(selectedMunicipio) ?? null : null
+  const selectedId = municipalityId
   const previousSelectedIdRef = useRef(selectedId)
   const munDataState = useAsyncData(async () => {
     if (!selectedId) return null
@@ -139,22 +132,19 @@ export function EducationPage({
     && selectedThemeKey !== PANORAMA_THEME_KEYS.escolasSistemaS
   const isTechnicalReportRoute = selectedSectionKey === EDUCATION_SECTION_KEYS.technicalReport
   const isHigherEducationRoute = selectedSectionKey === EDUCATION_SECTION_KEYS.higherEducation
-  const loadedMunicipalityId = typeof municipioData?.id_municipio === 'string'
-    ? municipioData.id_municipio
-    : null
   const municipalOverviewState = useMunicipalEducationOverview(
-    selectedId ?? loadedMunicipalityId,
+    selectedId,
     isMunicipalOverviewRoute || isTechnicalReportRoute,
   )
   const municipalDiagnosticState = useMunicipioDiagnostic(
-    isTechnicalReportRoute ? selectedId ?? loadedMunicipalityId : null,
+    isTechnicalReportRoute ? selectedId : null,
   )
   const higherEducationState = useHigherEducation(
-    selectedId ?? loadedMunicipalityId,
+    selectedId,
     isHigherEducationRoute || isTechnicalReportRoute,
   )
   const specialEducationState = useSpecialEducation(
-    selectedId ?? loadedMunicipalityId,
+    selectedId,
     selectedSectionKey === EDUCATION_SECTION_KEYS.modalities || isTechnicalReportRoute,
   )
   const [printEmissionDate, setPrintEmissionDate] = useState(() => printDateFormatter.format(new Date()))
@@ -187,7 +177,6 @@ export function EducationPage({
     Number(sistemaS.resumo_ultimo_ano?.total_escolas || 0) > 0 &&
     Number(sistemaS.ultimo_ano) === 2025
   const shouldKeepSistemaSTheme =
-    eduIndexState.loading ||
     munDataState.loading ||
     previousSelectedIdRef.current !== selectedId
 
@@ -224,7 +213,7 @@ export function EducationPage({
     )
   }
 
-  if (!selectedMunicipio) {
+  if (!selectedId) {
     return (
       <div className="page-stack educacao-page">
         <EducationCompactHeader
@@ -245,23 +234,8 @@ export function EducationPage({
     )
   }
 
-  if (eduIndexState.loading || munDataState.loading) {
+  if (munDataState.loading) {
     return <div className="page-stack"><ContentState as="p" kind="loading" className="state-box state-box--loading">Carregando dados...</ContentState></div>
-  }
-
-  if (eduIndexState.error) {
-    return <div className="page-stack"><ErrorState title="Erro ao carregar o índice educacional" message={eduIndexState.error} /></div>
-  }
-
-  if (!selectedId) {
-    return (
-      <div className="page-stack">
-        <ContentState kind="unavailable" className="state-box">
-          <strong>Indicadores educacionais indisponíveis</strong>
-          <span>Não foi encontrada uma correspondência de dados educacionais para {selectedMunicipio}.</span>
-        </ContentState>
-      </div>
-    )
   }
 
   if (munDataState.error) {
@@ -617,7 +591,7 @@ export function EducationPage({
           educationItems={allEducationItems}
           emissionDate={printEmissionDate}
           higherEducationState={higherEducationState}
-          municipalityId={selectedId ?? loadedMunicipalityId ?? ''}
+          municipalityId={selectedId}
           municipalityName={selectedMunicipio}
           municipalityPopulation={
             municipioData?.municipio?.populacao

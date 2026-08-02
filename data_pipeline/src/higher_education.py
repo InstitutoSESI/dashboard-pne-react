@@ -20,10 +20,12 @@ from typing import Iterable, Mapping, Sequence
 
 from openpyxl import load_workbook
 
+from .municipality_registry import MunicipalityRegistry
+from .state_config import StateConfig
+
 
 SUPPORTED_YEARS = tuple(range(2018, 2025))
 REQUIRED_TABLES = ("1.1", "2.1", "2.3", "5.1", "7.1", "7.2", "7.3")
-TARGET_UF = "Rio Grande do Sul"
 
 STATUS_OBSERVED = "observed"
 STATUS_DERIVED_ZERO = "derived_zero"
@@ -249,44 +251,20 @@ def discover_source_files(
     return dict(sorted(discovered.items()))
 
 
-def load_municipality_universe(index_path: Path) -> dict[str, str]:
-    payload = json.loads(index_path.read_text(encoding="utf-8"))
-    municipalities = payload.get("municipios") if isinstance(payload, dict) else payload
-    if not isinstance(municipalities, list):
-        raise ValueError(f"Indice municipal invalido: {index_path}.")
-
-    universe: dict[str, str] = {}
-    for item in municipalities:
-        if not isinstance(item, dict):
-            raise ValueError(f"Entrada municipal invalida em {index_path}.")
-        raw_id = item.get("id_municipio") or item.get("id") or item.get("codigo_ibge")
-        municipality_id = normalize_ibge_code(raw_id, field="indice municipal")
-        name = normalize_text(item.get("municipio") or item.get("nome"))
-        if not name:
-            raise ValueError(f"Municipio sem nome no indice: {municipality_id}.")
-        if municipality_id in universe:
-            raise ValueError(f"Codigo municipal duplicado no indice: {municipality_id}.")
-        universe[municipality_id] = name
-
-    if len(universe) != 497:
-        raise ValueError(
-            f"Universo municipal invalido: esperados 497, encontrados {len(universe)}."
-        )
-    return universe
+def municipality_universe_from_registry(
+    registry: MunicipalityRegistry,
+) -> dict[str, str]:
+    return {
+        record.ibge_code: record.name
+        for record in registry.ordered_records
+    }
 
 
 def normalize_ibge_code(value: object, *, field: str) -> str:
     if value is None or isinstance(value, bool):
         raise ValueError(f"Codigo IBGE invalido em {field}: {value!r}.")
-    text_value = normalize_text(value)
-    try:
-        numeric = float(text_value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Codigo IBGE invalido em {field}: {value!r}.") from exc
-    if not math.isfinite(numeric) or not numeric.is_integer():
-        raise ValueError(f"Codigo IBGE invalido em {field}: {value!r}.")
-    code = str(int(numeric))
-    if len(code) != 7:
+    code = normalize_text(value)
+    if re.fullmatch(r"\d{7}", code) is None:
         raise ValueError(f"Codigo IBGE deve ter sete digitos em {field}: {value!r}.")
     return code
 
@@ -751,6 +729,7 @@ def _parse_sheet(
     sheet_name: str,
     source_file: Path,
     source_sha256: str,
+    state_config: StateConfig,
     municipality_universe: Mapping[str, str],
 ) -> ParsedSheet:
     sheet = workbook[sheet_name]
@@ -776,6 +755,7 @@ def _parse_sheet(
     controls: dict[str, dict[str, int | None]] = {}
     state_controls: dict[str, int | None] = {}
     seen_municipalities: set[str] = set()
+    target_state_name = normalize_header(state_config.state_name)
 
     for row_number, row in enumerate(
         sheet.iter_rows(min_row=first_source_row, values_only=True),
@@ -790,8 +770,8 @@ def _parse_sheet(
         if table in {"5.1", "7.1"} and academic_level != "graduacao":
             continue
 
-        is_state_total = uf_value == "total rio grande do sul"
-        is_target_municipality = uf_value == normalize_header(TARGET_UF)
+        is_state_total = uf_value == f"total {target_state_name}"
+        is_target_municipality = uf_value == target_state_name
         if not is_state_total and not is_target_municipality:
             continue
 
@@ -831,6 +811,12 @@ def _parse_sheet(
         seen_municipalities.add(municipality_id)
 
         official_name = municipality_universe[municipality_id]
+        if municipality_name != official_name:
+            raise ValueError(
+                f"Nome municipal divergente na tabela {table} de {year}: "
+                f"{municipality_id} usa {municipality_name!r}, esperado "
+                f"{official_name!r}."
+            )
         controls[municipality_id] = {}
         for rule in rules:
             value = values_by_rule[rule.column.name]
@@ -1085,6 +1071,7 @@ def build_reconciliations(
     controls: Mapping[tuple[int, str, str], Mapping[str, int | None]],
     state_controls: Mapping[tuple[int, str], Mapping[str, int | None]],
     municipality_universe: Mapping[str, str],
+    state_config: StateConfig,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     direct = _direct_index(records)
     years = sorted({record.year for record in records})
@@ -1262,8 +1249,8 @@ def build_reconciliations(
                 "state_enrollments_7.1_vs_5.1",
                 state_71.get("enrollments_total"),
                 state_51.get("enrollments_total_control"),
-                "7.1 RS",
-                "5.1 RS",
+                f"7.1 {state_config.state_code}",
+                f"5.1 {state_config.state_code}",
             ),
             (
                 "state_enrollments_total_vs_modalities",
@@ -1275,23 +1262,23 @@ def build_reconciliations(
                     and state_73.get("enrollments_distance") is not None
                     else None
                 ),
-                "7.1 RS",
-                "7.2 + 7.3 RS",
+                f"7.1 {state_config.state_code}",
+                f"7.2 + 7.3 {state_config.state_code}",
             ),
             (
                 "state_faculty_2.1_vs_2.3",
                 state_21.get("faculty_total"),
                 state_23.get("faculty_total_control"),
-                "2.1 RS",
-                "2.3 RS",
+                f"2.1 {state_config.state_code}",
+                f"2.3 {state_config.state_code}",
             ),
         )
         for measure, left, right, left_label, right_label in state_checks:
             comparisons.append(
                 _comparison(
                     year=year,
-                    municipality_id="RS",
-                    municipality=TARGET_UF,
+                    municipality_id=state_config.state_code,
+                    municipality=state_config.state_name,
                     measure=measure,
                     left_label=left_label,
                     left_value=left,
@@ -1558,11 +1545,16 @@ def build_pilots(
 def parse_higher_education_sources(
     *,
     source_dir: Path,
-    municipality_index_path: Path,
+    state_config: StateConfig,
+    registry: MunicipalityRegistry,
     years: Iterable[int] | None = None,
 ) -> ParsedAudit:
     source_paths = discover_source_files(source_dir, years)
-    municipality_universe = load_municipality_universe(municipality_index_path)
+    municipality_universe = municipality_universe_from_registry(registry)
+    if registry.state_code != state_config.state_code:
+        raise ValueError(
+            "Registro municipal e configuração estadual possuem estados diferentes."
+        )
     records: list[NormalizedRecord] = []
     layouts: list[SheetLayout] = []
     controls: dict[tuple[int, str, str], dict[str, int | None]] = {}
@@ -1593,6 +1585,7 @@ def parse_higher_education_sources(
                     sheet_name=names[table],
                     source_file=source_path,
                     source_sha256=digest,
+                    state_config=state_config,
                     municipality_universe=municipality_universe,
                 )
                 records.extend(parsed.records)
@@ -1613,6 +1606,7 @@ def parse_higher_education_sources(
             controls,
             state_controls,
             municipality_universe,
+            state_config,
         )
     )
     divergences = [

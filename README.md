@@ -4,14 +4,30 @@ Aplicação web estática para leitura municipal de indicadores educacionais, me
 
 ## Ambiente local
 
-Requisitos: Node.js compatível com Vite 8, npm e Python 3.11 ou superior.
+Requisitos: Node.js compatível com Vite 8, npm, Python 3.11 a 3.13 e
+[`uv`](https://docs.astral.sh/uv/). No Windows, instale o executável oficial e
+prepare o ambiente reproduzível do pipeline:
 
 ```powershell
+winget install --id=astral-sh.uv -e
+uv --version
 npm ci
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r data_pipeline\requirements.txt
+npm run python:sync
+npm run python:lock:check
+npm run test:python
 npm run dev
+```
+
+`data_pipeline/pyproject.toml` declara somente as dependências diretas;
+`data_pipeline/uv.lock` fixa toda a resolução. Não instale pacotes avulsos para
+contornar imports: qualquer atualização deve ser uma mudança própria do
+contrato e do lock. O antigo `requirements.txt` foi aposentado. Quando uma
+integração exigir esse formato, exporte-o sob demanda para o diretório ignorado
+`exports`, sem versioná-lo:
+
+```powershell
+uv export --project data_pipeline --frozen --format requirements.txt `
+  --output-file exports/python-requirements.txt
 ```
 
 O servidor local usa `http://127.0.0.1:5173` por padrão. O frontend não precisa de credenciais para consumir os dados já versionados.
@@ -22,10 +38,14 @@ O servidor local usa `http://127.0.0.1:5173` por padrão. O frontend não precis
 npm run typecheck
 npm run lint
 npm run check:fast
+npm run python:lock:check
+npm run check:python-deps
+npm run test:pipeline-state-config
 npm run build
 npm run test:unit
 npm run test:education
 npm run test:app-routing
+npm run test:municipality-identity
 npm run test:data-sources
 npm run test:ui-architecture
 npm run test:python
@@ -35,9 +55,28 @@ npm run check:hygiene
 
 Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.0.0.1 --port 5173` em um terminal e `npm run test:e2e` em outro. Defina `BASE_URL` para testar outro endereço.
 
-`npm run test:python` usa o `pytest` como coletor único para toda a suíte Python.
+`npm run test:python` usa o `pytest` como coletor único para toda a suíte Python
+e o executa no ambiente congelado pelo uv.
 
 ## Dados estáticos
+
+`config/states/rs.json` contém os metadados estaduais e
+`config/municipalities/rs.json` contém o registro municipal canônico do
+pipeline. Nesta etapa a plataforma continua operando exclusivamente com o Rio
+Grande do Sul: o código IBGE é a identidade, o nome é apresentação e
+compatibilidade temporária de agregados internos, e o slug permanece reservado
+às URLs. `public/data/municipios_index.json` conserva schema e caminho, mas é
+uma projeção publicada do registro, nunca a entrada do universo no pipeline.
+
+Na Educação, a exportação geral, a Visão Geral Municipal, a Educação Superior e
+a Educação Especial recebem `--state` e usam essa configuração com o registro
+municipal. Somente `RS` está configurado; `AL` falha antes de banco, fonte ou
+escrita. Os 182 slugs históricos que divergem do slug canônico são projetados
+pela compatibilidade versionada em
+`config/compatibility/education-municipality-routes/rs.json`; ela não define
+identidade e a geração não lê o índice público anterior. Essa parametrização não
+regenerou `public/data`: schemas, paths e dados publicados do RS permanecem os
+mesmos.
 
 `public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
 
@@ -45,9 +84,9 @@ Os testes E2E esperam uma aplicação ativa. Execute `npm run dev -- --host 127.
 npm run update:data
 ```
 
-Ele exporta e particiona os dados, atualiza Educação, materializa o documento
-compacto de desigualdade, sincroniza `public/data`, valida os detalhes e executa
-o build. Para omitir apenas o build:
+Ele exporta e particiona os dados, atualiza Educação, incorpora o documento
+municipal de desigualdade em `details.json`, sincroniza `public/data`, valida os
+detalhes e executa o build. Para omitir apenas o build:
 
 ```powershell
 npm run update:data:skip-build
@@ -74,6 +113,8 @@ Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.en
 ## Estrutura
 
 - `src`: aplicação React, rotas, componentes, features, modelos e estilos.
+- `config/states`: configurações estaduais versionadas; somente o RS está ativo.
+- `config/municipalities`: identidade municipal canônica versionada por estado.
 - `public/data`: dados públicos servidos diretamente ao navegador.
 - `data_pipeline/src`: cálculo, acesso às fontes e contratos de dados.
 - `data_pipeline/src/pne`: regras puras dos ciclos do PNE, sem framework web.

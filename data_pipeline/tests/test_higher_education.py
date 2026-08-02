@@ -39,10 +39,14 @@ from src.higher_education_materialization import (  # noqa: E402
     validate_public_directory,
     write_public_contracts,
 )
+from src.municipality_registry import load_municipality_registry  # noqa: E402
+from src.state_config import load_state_config  # noqa: E402
 
 
 PORTO_ALEGRE = "4314902"
 TABLES = ("1.1", "2.1", "2.3", "5.1", "7.1", "7.2", "7.3")
+STATE_CONFIG = load_state_config()
+MUNICIPALITY_REGISTRY = load_municipality_registry(STATE_CONFIG)
 
 
 def _path(*parts: str) -> tuple[str, ...]:
@@ -283,7 +287,7 @@ def _make_workbook(
     workbook.save(path)
 
 
-def _municipality_index(path: Path) -> None:
+def _municipality_universe() -> dict[str, str]:
     municipalities = [
         {"id_municipio": PORTO_ALEGRE, "municipio": "Porto Alegre"}
     ]
@@ -303,10 +307,10 @@ def _municipality_index(path: Path) -> None:
                 "municipio": f"Município {index}",
             }
         )
-    path.write_text(
-        json.dumps({"municipios": municipalities}, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    return {
+        item["id_municipio"]: item["municipio"]
+        for item in municipalities
+    }
 
 
 def _record(metric: str, value: int | None, table: str) -> NormalizedRecord:
@@ -472,11 +476,10 @@ class HigherEducationParserTest(unittest.TestCase):
         source_dir.mkdir(parents=True)
         workbook_path = source_dir / "sinopse_2024.xlsx"
         _make_workbook(workbook_path, **workbook_options)
-        index_path = root / "municipios_index.json"
-        _municipality_index(index_path)
         return parse_higher_education_sources(
             source_dir=source_dir,
-            municipality_index_path=index_path,
+            state_config=STATE_CONFIG,
+            registry=MUNICIPALITY_REGISTRY,
             years=(2024,),
         )
 
@@ -529,8 +532,9 @@ class HigherEducationParserTest(unittest.TestCase):
         )
 
     def test_ibge_requires_seven_integer_digits(self):
-        self.assertEqual(normalize_ibge_code(4314902.0, field="teste"), PORTO_ALEGRE)
-        for invalid in (123456, 4314902.5, "não é código"):
+        self.assertEqual(normalize_ibge_code(PORTO_ALEGRE, field="teste"), PORTO_ALEGRE)
+        self.assertEqual(normalize_ibge_code(4314902, field="teste"), PORTO_ALEGRE)
+        for invalid in (123456, 4314902.0, 4314902.5, "não é código"):
             with self.assertRaises(ValueError):
                 normalize_ibge_code(invalid, field="teste")
 
@@ -601,7 +605,8 @@ class HigherEducationParserTest(unittest.TestCase):
             first = self._parse(root)
             second = parse_higher_education_sources(
                 source_dir=root / "source",
-                municipality_index_path=root / "municipios_index.json",
+                state_config=STATE_CONFIG,
+                registry=MUNICIPALITY_REGISTRY,
                 years=(2024,),
             )
         self.assertEqual(
@@ -643,9 +648,7 @@ class HigherEducationParserTest(unittest.TestCase):
 
 class HigherEducationMaterializationTest(unittest.TestCase):
     def _contracts(self, root: Path):
-        index_path = root / "municipios_index.json"
-        _municipality_index(index_path)
-        universe = materialization.load_municipality_universe(index_path)
+        universe = _municipality_universe()
         manifest, municipalities = build_public_contracts(
             _materialization_audit(),
             universe,

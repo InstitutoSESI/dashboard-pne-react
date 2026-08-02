@@ -15,6 +15,16 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.data_loader import load_special_education_school_source_data  # noqa: E402
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
+)
 
 
 FIELDS = (
@@ -33,11 +43,7 @@ FIELDS = (
     "QT_TUR_BAS_LIBRAS",
     "QT_DOC_BAS_LIBRAS",
 )
-MUNICIPALITIES = {
-    "4300034": "Aceguá",
-    "4300406": "Alegrete",
-    "4318705": "São Leopoldo",
-}
+SAMPLE_MUNICIPALITY_IDS = ("4300034", "4300406", "4318705")
 FLAG_FIELDS = {"TP_AEE", "IN_SALA_ATENDIMENTO_ESPECIAL"}
 
 
@@ -87,22 +93,40 @@ def profile(frame: pd.DataFrame, field: str) -> dict:
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    args = parser.parse_args(argv)
 
-    source = load_special_education_school_source_data()
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
+
+    source = load_special_education_school_source_data(
+        municipality_ids=registry.ids
+    )
+    municipalities = {
+        code: registry.get_by_id(code).name for code in SAMPLE_MUNICIPALITY_IDS
+    }
     scopes = {
         "rio_grande_do_sul": source,
         **{
-            code: source[source["id_municipio"].astype(str).eq(code)]
-            for code in MUNICIPALITIES
+            code: source[source["id_municipio"].eq(code)]
+            for code in municipalities
         },
     }
     result = {
         "schemaVersion": 1,
-        "municipalities": MUNICIPALITIES,
+        "municipalities": municipalities,
         "profiles": {
             scope: {
                 str(year): {

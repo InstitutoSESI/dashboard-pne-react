@@ -3,15 +3,73 @@
 ## Preparação
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r data_pipeline\requirements.txt
+winget install --id=astral-sh.uv -e
+uv --version
 npm ci
+npm run python:sync
+npm run python:lock:check
+npm run test:python
 ```
+
+O intervalo suportado é Python 3.11 a 3.13. `data_pipeline/pyproject.toml`
+declara as dependências diretas de runtime e mantém `pytest` somente no grupo
+`test`; `data_pipeline/uv.lock` fixa a resolução completa usada pelos comandos.
+Não instale pacotes avulsos para corrigir imports. Atualizações de dependências
+devem ocorrer em mudança própria, com regeneração e validação explícitas do
+lock. O antigo `data_pipeline/requirements.txt` foi aposentado.
+
+Para uma integração pontual com pip, gere uma exportação descartável em um
+diretório ignorado e não a versione:
+
+```powershell
+uv export --project data_pipeline --frozen --format requirements.txt `
+  --output-file exports/python-requirements.txt
+```
+
+Uma segunda sincronização sem mudanças reutiliza o ambiente local em
+`data_pipeline/.venv`. O uv reduz o custo de preparação do ambiente, mas não
+substitui a futura otimização incremental da materialização dos dados.
 
 As fontes reproduzíveis e os insumos de regeneração permanecem em
 `data_pipeline/data`. Os artefatos públicos são gerados pelo pipeline e não
 devem ser editados manualmente.
+
+## Configuração estadual e identidade municipal
+
+`config/states/rs.json` é a configuração estadual ativa e versionada. Frontend
+e pipeline validam o mesmo contrato `state-config-v1`. A identidade municipal
+canônica do pipeline fica separada em `config/municipalities/rs.json`, no
+contrato `municipality-registry-v1`; `public/data/municipios_index.json` é uma
+projeção publicada desse registro e não pode ser usado como fonte do universo.
+
+Internamente, o código IBGE textual identifica o município; o nome é texto de
+apresentação e compatibilidade temporária dos agregados por nome, e o slug é o
+valor canônico de URL. A exportação geral, a Visão Geral Municipal, a Educação
+Superior e a Educação Especial usam `StateConfig` e `MunicipalityRegistry`;
+os 182 slugs educacionais históricos diferentes do canônico são compatibilidade
+explícita de publicação em
+`config/compatibility/education-municipality-routes/rs.json`. Esse arquivo não é
+cadastro: contém apenas overrides por código IBGE. O índice geral e a Educação
+Especial usam o resolvedor; a Visão Geral usa o slug canônico e Superior não
+publica slug. Nenhum materializador lê o índice educacional anterior para gerar
+as rotas. Índices educacionais publicados são saídas derivadas, não fontes de
+identidade.
+O particionamento resolve nomes de forma única contra o registro e nunca deriva
+código ou slug do nome. Fundeb e PNATE fornecem dados, mas não identidade. A
+persistência do navegador usa
+`dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
+em nome são migrados uma única vez quando há correspondência inequívoca. Não há
+seletor de estado, configuração de Alagoas nem caminhos públicos de dados por
+estado. Educação Indígena e SIDRA, PNE e Financeiro permanecem para etapas
+posteriores, e o suporte de produto e publicação por estado depende de trabalho
+futuro. Nomes físicos de fontes podem continuar específicos do RS.
+
+Os comandos centrais aceitam `--state RS`; `rs` é normalizado para `RS`. Um
+estado sem `config/states/<uf>.json`, como `AL` nesta etapa, falha antes de
+exportação, particionamento, sincronização ou escrita, sem fallback para RS.
+Ausência e zero continuam distintos nos contratos educacionais. A
+parametrização estadual não executou atualização real nem regenerou os outputs
+públicos existentes do RS.
 
 ## Atualização completa
 
@@ -24,7 +82,7 @@ O comando executa, nesta ordem:
 1. exportação dos agregados;
 2. particionamento em `data_pipeline/export/static_partitioned`;
 3. atualização dos documentos de Educação;
-4. materialização do recorte municipal de desigualdade no staging;
+4. incorporação do recorte municipal de desigualdade em `details.json` no staging;
 5. sincronização atômica do conjunto estático administrado;
 6. validação dos detalhes;
 7. build da aplicação.
@@ -43,25 +101,41 @@ npm run update:data:skip-build
 npm run update:education-data
 
 # Mostra as etapas e tempos sem executar
-python data_pipeline/scripts/update_static_data.py --dry-run --profile
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
+
+# Explicita o estado ativo sem alterar o caminho público atual
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run
+
+# Confere somente o plano educacional e a propagação do estado, sem executar
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --education-only --dry-run --skip-build
+
+# Valida a parametrização dos quatro domínios educacionais
+npm run test:pipeline-education-state
 
 # Validação rápida do código da aplicação
 npm run check:fast
 ```
 
-## Artefato municipal de desigualdade
+## Conteúdo municipal compartilhado
 
-`public/data/municipios/<IBGE>/diagnostico.json` é mantido como URL estável,
-mas contém somente o contrato `municipal-inequality-v1`, que é o único conteúdo
-desse arquivo consumido pela aplicação atual. A geração é feita por:
+`public/data/municipios/<IBGE>/details.json` contém detalhes dos indicadores e
+conteúdos compartilhados sob `_shared`. O piloto de desigualdade usa o contrato
+completo `municipal-inequality-v1` em `_shared.municipal_inequality`. O antigo
+`public/data/municipios/<IBGE>/diagnostico.json` foi aposentado; isso não altera
+a publicação do Diagnóstico PNE completo em `pne2026-diagnostic-v3`.
+
+A geração após a atualização de Educação é feita por:
 
 ```powershell
-python data_pipeline/scripts/materialize_municipal_inequality.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/materialize_municipal_inequality.py `
   --output-root data_pipeline/export/static_partitioned/municipios
 ```
 
 O materializador lê os documentos educacionais atuais, aplica supressão de
-células pequenas e grava apenas quando o conteúdo mudou.
+células pequenas, preserva os demais campos de `details.json` — inclusive
+`_shared.privadas_conveniadas` — e grava apenas quando o conteúdo semântico
+mudou. O particionamento e a sincronização administram somente `index.json` e
+`details.json` em cada diretório municipal.
 
 ## Publicação do diagnóstico PNE
 
@@ -77,10 +151,10 @@ deve existir somente a release apontada por `current.json`.
 Geração e validação:
 
 ```powershell
-python data_pipeline/scripts/materialize_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/materialize_pne2026_public_diagnostic_v3.py `
   --output-dir data_pipeline/.staging/pne-diagnostic-current
 
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --source-dir data_pipeline/.staging/pne-diagnostic-current `
   --destination-dir public/data/pne2026-diagnostic-v3 `
   --check
@@ -89,7 +163,7 @@ python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
 Publicação:
 
 ```powershell
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --source-dir data_pipeline/.staging/pne-diagnostic-current `
   --destination-dir public/data/pne2026-diagnostic-v3
 ```
@@ -98,7 +172,7 @@ A ativação de `current.json` é atômica. Depois dela, o promotor apaga releas
 inativas automaticamente. Para apenas conferir ou aplicar essa invariável:
 
 ```powershell
-python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
+uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne2026_public_diagnostic_v3.py `
   --prune-inactive `
   --destination-dir public/data/pne2026-diagnostic-v3 `
   --check
@@ -117,8 +191,12 @@ respectivos comandos e não devem ser usados como entrada permanente.
 
 ```powershell
 npm run check:fast
+npm run python:lock:check
+npm run check:python-deps
 npm run test:unit
 npm run test:education
+npm run test:municipality-identity
+npm run test:pipeline-education-state
 npm run test:python
 npm run build
 ```

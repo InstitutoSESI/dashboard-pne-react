@@ -1,12 +1,19 @@
 import type {
   IndicadoresPayload,
+  MunicipalityId,
   MunicipioData,
   MunicipiosIndexPayload,
-  MunicipiosPayload,
 } from '../types/data'
+import { assertMunicipalityPayloadMatchesRequest } from '../domain/municipalityDataIdentity.js'
 import type { MunicipalInequalityDocument } from '../types/municipalInequality'
 
 type JsonObject = Record<string, unknown>
+
+export type MunicipioDetails = JsonObject & {
+  _shared?: JsonObject & {
+    municipal_inequality?: MunicipalInequalityDocument
+  }
+}
 
 const dataCache = new Map<string, unknown>()
 const pendingCache = new Map<string, Promise<unknown>>()
@@ -46,10 +53,6 @@ export function loadJson<T>(path: string, validate?: (data: T) => unknown): Prom
   return promise
 }
 
-export function loadMunicipios(): Promise<MunicipiosPayload> {
-  return loadJson<MunicipiosPayload>('/data/municipios.json')
-}
-
 export function loadIndicadores(): Promise<IndicadoresPayload> {
   return loadJson<IndicadoresPayload>('/data/indicadores.json')
 }
@@ -58,17 +61,16 @@ export function loadMunicipiosIndex(): Promise<MunicipiosIndexPayload> {
   return loadJson<MunicipiosIndexPayload>('/data/municipios_index.json')
 }
 
-export function loadMunicipioData(idMunicipio: string): Promise<MunicipioData> {
-  return loadJson<MunicipioData>(`/data/municipios/${idMunicipio}/index.json`)
+export function loadMunicipioData(idMunicipio: MunicipalityId): Promise<MunicipioData> {
+  return loadJson<MunicipioData>(
+    `/data/municipios/${idMunicipio}/index.json`,
+    (data) => assertMunicipalityPayloadMatchesRequest(data, idMunicipio),
+  )
 }
 
-export function loadMunicipioInequality(idMunicipio: string): Promise<MunicipalInequalityDocument> {
-  return loadJson<MunicipalInequalityDocument>(`/data/municipios/${idMunicipio}/diagnostico.json`)
-}
-
-export function loadMunicipioDetails(idMunicipio: string): Promise<JsonObject> {
+export function loadMunicipioDetails(idMunicipio: string): Promise<MunicipioDetails> {
   if (!idMunicipio) return Promise.resolve({})
-  return loadJson<JsonObject>(`/data/municipios/${idMunicipio}/details.json`).catch(() => ({}))
+  return loadJson<MunicipioDetails>(`/data/municipios/${idMunicipio}/details.json`).catch(() => ({}))
 }
 
 export function loadIndicatorDetail(idMunicipio: string, indicatorKey: string): Promise<unknown | null> {
@@ -80,7 +82,7 @@ export function loadPneStateReference(cycle = 'pne_2026_2036'): Promise<unknown>
   return loadJson<unknown>(`/data/${cycle}/referencia_estadual.json`)
 }
 
-export function primeMunicipioCache(idMunicipio: string, data: MunicipioData): void {
+export function primeMunicipioCache(idMunicipio: MunicipalityId, data: MunicipioData): void {
   if (!idMunicipio) return
   dataCache.set(`/data/municipios/${idMunicipio}/index.json`, data)
 }

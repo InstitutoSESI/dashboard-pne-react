@@ -10,9 +10,10 @@ from typing import Any
 
 from .pne_macro_ingestion import (
     DATA_ROOT,
-    EXPECTED_MUNICIPALITIES,
     NORMALIZED_SCHEMA,
+    load_municipality_universe,
 )
+from .state_config import DEFAULT_STATE_CODE
 
 
 MUNIC_CAREER_RELATION_ID = "relation.17.c.munic_planos_carreira_declarados"
@@ -63,6 +64,8 @@ def _absence(
 def load_normalized_source(
     source_id: str,
     path: Path | None = None,
+    *,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Mapping[str, Any]]:
     source_path = path or SOURCE_PATHS[source_id]
     payload = json.loads(source_path.read_text(encoding="utf-8"))
@@ -71,10 +74,11 @@ def load_normalized_source(
     if payload.get("sourceId") != source_id:
         raise ValueError(f"{source_id}: identidade da fonte divergente.")
     records = payload.get("records")
+    expected_ids = set(load_municipality_universe(state_code)[0])
     if (
         not isinstance(records, dict)
-        or payload.get("municipalityCount") != EXPECTED_MUNICIPALITIES
-        or len(records) != EXPECTED_MUNICIPALITIES
+        or payload.get("municipalityCount") != len(expected_ids)
+        or set(records) != expected_ids
     ):
         raise ValueError(f"{source_id}: cobertura municipal incompleta.")
     for municipality_id, record in records.items():

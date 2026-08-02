@@ -26,7 +26,6 @@ from .higher_education import (
     SUPPORTED_YEARS,
     NormalizedRecord,
     ParsedAudit,
-    load_municipality_universe,
 )
 
 
@@ -509,8 +508,8 @@ def build_public_contracts(
     audit: ParsedAudit,
     municipality_universe: Mapping[str, str],
 ) -> tuple[dict, dict[str, dict]]:
-    if len(municipality_universe) != 497:
-        raise ValueError("A materializacao exige exatamente 497 municipios.")
+    if not municipality_universe:
+        raise ValueError("A materializacao exige um registro municipal não vazio.")
     _validate_source_files(audit.source_files)
     for record in audit.records:
         if record.year not in SUPPORTED_YEARS:
@@ -553,7 +552,7 @@ def build_public_contracts(
         "firstYear": min(SUPPORTED_YEARS),
         "latestYear": max(SUPPORTED_YEARS),
         "availableYears": list(SUPPORTED_YEARS),
-        "municipalityCount": 497,
+        "municipalityCount": len(municipality_universe),
         "indicators": indicator_catalog,
         "breakdowns": breakdown_catalog,
         "sources": sources,
@@ -672,6 +671,8 @@ def validate_public_directory(
         raise ValueError("schemaVersion invalida no manifesto.")
     if manifest.get("availableYears") != list(SUPPORTED_YEARS):
         raise ValueError("availableYears invalido no manifesto.")
+    if manifest.get("municipalityCount") != len(municipality_universe):
+        raise ValueError("municipalityCount invalido no manifesto.")
     if [item.get("id") for item in manifest.get("indicators", ())] != [
         spec.id for spec in INDICATORS
     ]:
@@ -687,8 +688,8 @@ def validate_public_directory(
 
     files = sorted(municipal_directory.glob("*.json"))
     expected_names = {f"{municipality_id}.json" for municipality_id in municipality_universe}
-    if len(files) != 497 or {path.name for path in files} != expected_names:
-        raise ValueError("A saida nao contem os 497 arquivos municipais esperados.")
+    if len(files) != len(expected_names) or {path.name for path in files} != expected_names:
+        raise ValueError("A saida nao contém o conjunto municipal exato do registro.")
 
     availability_counts = Counter()
     indicator_file_counts = Counter()
@@ -807,7 +808,7 @@ def validate_public_directory(
             breakdown_usable_file_counts[breakdown_id] += 1
         sizes.append(path.stat().st_size)
 
-    if sum(availability_counts.values()) != 497:
+    if sum(availability_counts.values()) != len(municipality_universe):
         raise ValueError("Contagem de disponibilidade municipal invalida.")
     if not referenced_sources.issubset(source_ids):
         raise ValueError("Ha sourceIds municipais fora do manifesto.")
@@ -935,10 +936,9 @@ def replace_directory_atomically(
 def materialize_higher_education(
     audit: ParsedAudit,
     *,
-    municipality_index_path: Path,
+    municipality_universe: Mapping[str, str],
     output_directory: Path,
 ) -> dict:
-    municipality_universe = load_municipality_universe(municipality_index_path)
     output_directory = output_directory.resolve()
     output_directory.parent.mkdir(parents=True, exist_ok=True)
     system_temporary = Path(tempfile.gettempdir()).resolve()

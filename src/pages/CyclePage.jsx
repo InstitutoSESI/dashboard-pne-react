@@ -16,7 +16,7 @@ import {
 } from '../data/pne2026GoalIndicatorContract'
 import { PNE_2014_INDICATOR_GOAL_REFS } from '../data/pne2014IndicatorGoalRefs'
 import { buildThematicGroups } from '../data/thematicGroups'
-import { loadMunicipioDetails, loadMunicipioInequality, loadPneStateReference } from '../data/staticData'
+import { loadMunicipioDetails, loadPneStateReference } from '../data/staticData'
 import { normalizePopulationPercentResults } from '../utils/indicatorValues'
 import { resolvePneCycleMunicipalResults } from '../utils/pneCycleDiagnosticResults'
 import { getPneCycleCopy } from '../utils/pneCycleCopy'
@@ -74,7 +74,10 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     () => loadPneStateReference(cycle).catch(() => null),
     [cycle],
   )
-  const { data: municipioDetails } = useAsyncData(
+  const {
+    data: municipioDetails,
+    loading: municipioDetailsLoading,
+  } = useAsyncData(
     () => municipioData?.id_municipio ? loadMunicipioDetails(municipioData.id_municipio) : null,
     [municipioData?.id_municipio],
   )
@@ -165,15 +168,12 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
   const shouldLoadInequalityPilot = cycle === 'pne_2026_2036'
     && isShowingDetail
     && activeItem?.key === 'basico_integral'
-  const {
-    data: inequalityDiagnostic,
-    loading: inequalityPilotLoading,
-  } = useAsyncData(
-    () => shouldLoadInequalityPilot && municipioData?.id_municipio
-      ? loadMunicipioInequality(municipioData.id_municipio)
-      : null,
-    [municipioData?.id_municipio, shouldLoadInequalityPilot],
-  )
+  const inequalityDiagnostic = shouldLoadInequalityPilot && municipioData?.id_municipio
+    ? municipioDetails?._shared?.municipal_inequality ?? null
+    : null
+  const inequalityPilotLoading = shouldLoadInequalityPilot
+    && Boolean(municipioData?.id_municipio)
+    && municipioDetailsLoading
   const activeThemeLabel = selectedGroup?.shortLabel ?? selectedGroup?.label ?? null
   const detailNavigation = useDetailViewNavigation({
     activeKey: activeIndicatorKey,
@@ -353,7 +353,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
             <IndicatorDetail
               cycle={cycle}
               inequalityPilot={shouldLoadInequalityPilot ? inequalityDiagnostic?.inequalityPilot : null}
-              inequalityPilotLoading={shouldLoadInequalityPilot && inequalityPilotLoading}
+              inequalityPilotLoading={inequalityPilotLoading}
               item={activeItem}
               municipioData={municipioData}
               result={activeResult}
