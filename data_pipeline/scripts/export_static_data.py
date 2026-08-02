@@ -185,7 +185,7 @@ class ResultsCache:
 
 def _write_json(path: Path, payload: Any, profile: TimingProfile | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if profile is None:
+    if profile is None or not profile.enabled:
         path.write_text(
             json.dumps(_json_safe(payload), ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -213,6 +213,71 @@ def _write_json(path: Path, payload: Any, profile: TimingProfile | None = None) 
     except ValueError:
         display_path = path
     print(f"  arquivo gerado: {display_path}")
+
+
+def _finalize_export(
+    *,
+    errors: list[dict[str, Any]],
+    validation_errors: list[str],
+    generated_files: list[Path],
+    municipios: list[str],
+    profile: TimingProfile,
+    partial_export: bool,
+    success_message: str | None = None,
+) -> int:
+    error_path = EXPORT_DIR / "export_errors.json"
+    if errors:
+        _write_json(
+            error_path,
+            {
+                "generated_at": _generated_at(),
+                "total_errors": len(errors),
+                "errors": errors,
+            },
+            profile,
+        )
+        if error_path not in generated_files:
+            generated_files.append(error_path)
+
+    invalid = bool(errors or validation_errors)
+    if validation_errors:
+        print("Falha na validação da exportação dirigida:")
+        for error in validation_errors:
+            print(f"  - {error}")
+
+    print("\nResumo da exportação")
+    print(f"  municípios exportados: {len(municipios)}")
+    print(f"  erros registrados: {len(errors)}")
+    print("  arquivos gerados:")
+    for path in generated_files:
+        print(f"    - {path}")
+
+    with profile_operation(
+        "orchestration",
+        "export.result",
+        counters={
+            "municipalities": len(municipios),
+            "errors": len(errors),
+            "validationErrors": len(validation_errors),
+            "files": len(generated_files),
+        },
+        metadata={"partialExport": partial_export},
+    ) as result_event:
+        if invalid:
+            result_event.mark_error(
+                "InvalidExport",
+                "A exportação acumulou erros e não pode ser promovida.",
+            )
+
+    if invalid:
+        print(
+            "\nExportação inválida: os erros foram preservados para diagnóstico "
+            "e o processo será encerrado com código não zero."
+        )
+    elif success_message:
+        print(success_message)
+    profile.print_summary()
+    return 1 if invalid else 0
 
 
 def _build_item_lookup(cycle_module: Any) -> dict[str, dict[str, Any]]:
@@ -647,6 +712,7 @@ def _export_cycle_rankings(
     print(f"\nProcessando rankings {cycle_key}...")
     for index, municipio in enumerate(municipios, start=1):
         print(f"  [{index}/{len(municipios)}] {municipio}")
+        errors_before = len(errors)
         try:
             results = results_cache.get(
                 cycle_key=cycle_key,
@@ -662,7 +728,12 @@ def _export_cycle_rankings(
                 shared=shared,
                 errors=errors,
             )
-            exported += 1
+            if len(errors) == errors_before:
+                exported += 1
+            else:
+                municipio_payloads[municipio]["error"] = (
+                    "Falha ao serializar um ou mais campos do ranking."
+                )
         except Exception as exc:  # noqa: BLE001 - export should continue per city.
             errors.append(
                 {
@@ -994,11 +1065,33 @@ def _validate_targeted_export(
             continue
         exported = payload.get("municipios", {})
         for municipio in municipios:
-            results = exported.get(municipio, {}).get("results", {})
+            municipality_payload = exported.get(municipio)
+            if not isinstance(municipality_payload, Mapping):
+                problems.append(
+                    f"Município {municipio} ausente no ciclo {cycle_key}."
+                )
+                continue
+            if municipality_payload.get("error"):
+                problems.append(
+                    f"Resultado municipal inválido para {municipio} no ciclo {cycle_key}."
+                )
+            results = municipality_payload.get("results")
+            if not isinstance(results, Mapping):
+                problems.append(
+                    f"Resultados ausentes para {municipio} no ciclo {cycle_key}."
+                )
+                continue
             for indicator_key in indicator_keys or ():
                 if indicator_key not in results:
                     problems.append(
                         f"Indicador {indicator_key} ausente para {municipio} no ciclo {cycle_key}."
+                    )
+                    continue
+                result = results[indicator_key]
+                if not isinstance(result, Mapping) or result.get("error"):
+                    problems.append(
+                        f"Indicador {indicator_key} contém erro para {municipio} "
+                        f"no ciclo {cycle_key}."
                     )
     return problems
 
@@ -1251,15 +1344,15 @@ def main() -> int:
                 cycle_indicators=selected_indicators,
                 municipios=municipios,
             )
-        if validation_errors:
-            print("Falha na validação da exportação rápida:")
-            for error in validation_errors:
-                print(f"  - {error}")
-            profile.print_summary()
-            return 1
-        print("\nValidação rápida concluída sem alterar public/data.")
-        profile.print_summary()
-        return 0
+        return _finalize_export(
+            errors=errors,
+            validation_errors=validation_errors,
+            generated_files=generated_files,
+            municipios=municipios,
+            profile=profile,
+            partial_export=is_partial_export,
+            success_message="\nValidação dirigida concluída sem alterar public/data.",
+        )
 
     with profile.measure("detalhes complementares"):
         indicator_details_path = _export_indicator_details_file(
@@ -1350,39 +1443,14 @@ def main() -> int:
             _write_json(rankings_path, rankings_payload, profile)
             generated_files.append(rankings_path)
 
-    if errors:
-        _write_json(
-            EXPORT_DIR / "export_errors.json",
-            {
-                "generated_at": _generated_at(),
-                "total_errors": len(errors),
-                "errors": errors,
-            },
-            profile,
-        )
-        generated_files.append(EXPORT_DIR / "export_errors.json")
-
-    print("\nResumo da exportação")
-    print(f"  municípios exportados: {len(municipios)}")
-    print(f"  erros registrados: {len(errors)}")
-    print("  arquivos gerados:")
-    for path in generated_files:
-        print(f"    - {path}")
-
-    with profile_operation(
-        "orchestration",
-        "export.result",
-        counters={
-            "municipalities": len(municipios),
-            "errors": len(errors),
-            "files": len(generated_files),
-        },
-        metadata={"partialExport": is_partial_export},
-    ):
-        pass
-
-    profile.print_summary()
-    return 0
+    return _finalize_export(
+        errors=errors,
+        validation_errors=[],
+        generated_files=generated_files,
+        municipios=municipios,
+        profile=profile,
+        partial_export=is_partial_export,
+    )
 
 
 if __name__ == "__main__":

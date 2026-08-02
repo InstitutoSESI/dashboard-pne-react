@@ -66,7 +66,7 @@ def load_approved_planning_scenarios(
                 f"missing={missing[:5]}, unexpected={unexpected[:5]}"
             )
 
-    return {
+    payload = {
         "contractVersion": PUBLIC_CONTRACT_VERSION,
         "sourceExperimentVersion": experiment_version,
         "publicationStatus": "published",
@@ -81,6 +81,128 @@ def load_approved_planning_scenarios(
             for municipality in expected_municipalities
         },
     }
+    validate_public_planning_scenarios(payload, expected_municipalities)
+    return payload
+
+
+def validate_public_planning_scenarios(
+    payload: dict[str, Any],
+    municipalities: Iterable[str],
+) -> None:
+    """Validate the promoted public contract against the canonical PNE contract."""
+
+    expected_municipalities = tuple(str(name) for name in municipalities)
+    if len(set(expected_municipalities)) != len(expected_municipalities):
+        raise ValueError("Public planning scenarios contain duplicate municipalities")
+    if payload.get("contractVersion") != PUBLIC_CONTRACT_VERSION:
+        raise ValueError("Invalid public planning scenario contract version")
+    if payload.get("publicationStatus") != "published":
+        raise ValueError("Invalid public planning scenario publication status")
+    if payload.get("scenarioType") != "maintenance":
+        raise ValueError("Invalid public planning scenario type")
+    if payload.get("municipalityCount") != len(expected_municipalities):
+        raise ValueError("Invalid public planning scenario municipality count")
+    if payload.get("indicatorKeys") != list(INDICATOR_KEYS):
+        raise ValueError("Invalid public planning scenario indicator set or order")
+
+    scenarios = payload.get("municipios")
+    if not isinstance(scenarios, dict):
+        raise ValueError("Public planning scenarios must contain a municipality map")
+    if tuple(scenarios) != expected_municipalities:
+        raise ValueError("Invalid public planning scenario municipality set or order")
+
+    for municipality in expected_municipalities:
+        contracts = scenarios.get(municipality)
+        if not isinstance(contracts, dict) or tuple(contracts) != INDICATOR_KEYS:
+            raise ValueError(
+                f"{municipality}: incomplete or unexpected public planning contracts"
+            )
+        for indicator_key in INDICATOR_KEYS:
+            _validate_public_contract(
+                contracts[indicator_key],
+                indicator_key,
+                municipality,
+            )
+
+
+def _validate_public_contract(
+    contract: Any,
+    indicator_key: str,
+    municipality: str,
+) -> None:
+    if not isinstance(contract, dict):
+        raise ValueError(f"{indicator_key}/{municipality}: public contract must be an object")
+    if contract.get("contractVersion") != PUBLIC_CONTRACT_VERSION:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid contract version")
+    if contract.get("indicatorKey") != indicator_key:
+        raise ValueError(f"{indicator_key}/{municipality}: mismatched indicator identity")
+    for identity_field in ("municipality", "municipio"):
+        if identity_field in contract and contract[identity_field] != municipality:
+            raise ValueError(f"{indicator_key}/{municipality}: mismatched municipality identity")
+    if contract.get("model") != APPROVED_MODEL:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid public model")
+    if contract.get("scenarioType") != "maintenance":
+        raise ValueError(f"{indicator_key}/{municipality}: invalid public scenario type")
+    if contract.get("strategy") != "ratio_of_counts":
+        raise ValueError(f"{indicator_key}/{municipality}: invalid public strategy")
+
+    indicator = get_indicator(indicator_key)
+    if indicator is None or contract.get("formulaId") != indicator.get("formulaId"):
+        raise ValueError(f"{indicator_key}/{municipality}: invalid canonical formulaId")
+
+    historical = contract.get("historical")
+    if not isinstance(historical, list) or not historical:
+        raise ValueError(f"{indicator_key}/{municipality}: missing public historical series")
+    observed_years = [
+        int(point["year"])
+        for point in historical
+        if isinstance(point, dict) and _is_number(point.get("year"))
+    ]
+    reference = get_indicator_reference_profile(
+        indicator_key,
+        max(observed_years) if observed_years else None,
+    )
+    legal_reference = reference if reference and reference["kind"] == "legal" else None
+    expected_reference_kind = reference["kind"] if reference else "configured"
+    expected_reference_id = reference["referenceId"] if reference else None
+    expected_validation_status = (
+        legal_reference["validationStatus"]
+        if legal_reference
+        else "configured_unvalidated"
+    )
+
+    validation_status = contract.get("targetValidationStatus")
+    if validation_status not in {"official_law", "configured_unvalidated"}:
+        raise ValueError(f"{indicator_key}/{municipality}: unknown target validation status")
+    if validation_status != expected_validation_status:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid target validation status")
+    if contract.get("referenceKind") != expected_reference_kind:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid reference kind")
+    if contract.get("referenceId") != expected_reference_id:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid referenceId")
+
+    reference_contract = dict(contract)
+    if legal_reference:
+        if contract.get("direction") != legal_reference["direction"]:
+            raise ValueError(f"{indicator_key}/{municipality}: invalid legal direction")
+        reference_contract["direction"] = legal_reference["direction"]
+        reference_contract["targets"] = [
+            {
+                **milestone,
+                "type": "official_law_reference",
+                "referenceId": legal_reference["referenceId"],
+            }
+            for milestone in legal_reference["milestones"]
+        ]
+    elif contract.get("direction") not in {"at_least", "at_most"}:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid configured direction")
+
+    expected_trajectory = build_reference_trajectory(reference_contract)
+    expected_targets = build_reference_targets(reference_contract, expected_trajectory)
+    if not expected_trajectory or contract.get("referenceTrajectory") != expected_trajectory:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid reference trajectory")
+    if contract.get("targets") != expected_targets:
+        raise ValueError(f"{indicator_key}/{municipality}: invalid public targets")
 
 
 def build_reference_trajectory(

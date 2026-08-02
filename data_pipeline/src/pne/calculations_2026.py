@@ -1084,6 +1084,7 @@ def _calc_medio_tecnico_articulado_percentual(municipio):
     result["numerator"] = float(latest["mat_articulado_total"])
     result["denominator"] = float(latest["mat_medio"])
     if above_100_years:
+        result["display"] = dict(result.get("display") or {})
         result["display"]["warning"] = (
             "Valores acima de 100% podem ocorrer porque a medida usa matrículas "
             "e não estudantes únicos."

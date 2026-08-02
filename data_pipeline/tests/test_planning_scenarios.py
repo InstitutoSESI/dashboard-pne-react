@@ -29,16 +29,21 @@ PARTITION_SPEC.loader.exec_module(partition)
 
 
 class PlanningScenarioTests(unittest.TestCase):
-    def test_approved_artifacts_become_public_contracts_for_all_municipalities(self):
+    @classmethod
+    def setUpClass(cls):
         index = json.loads(
             (REPO_ROOT / "public" / "data" / "municipios_index.json").read_text(
                 encoding="utf-8"
             )
         )
-        municipalities = [item["nome"] for item in index["municipios"]]
-        payload = planning.load_approved_planning_scenarios(
-            PIPELINE_ROOT / "data" / "planning_scenarios", municipalities
+        cls.municipalities = [item["nome"] for item in index["municipios"]]
+        cls.payload = planning.load_approved_planning_scenarios(
+            PIPELINE_ROOT / "data" / "planning_scenarios",
+            cls.municipalities,
         )
+
+    def test_approved_artifacts_become_public_contracts_for_all_municipalities(self):
+        payload = self.payload
         self.assertEqual(payload["publicationStatus"], "published")
         self.assertEqual(payload["scenarioType"], "maintenance")
         self.assertEqual(payload["municipalityCount"], 497)
@@ -70,6 +75,43 @@ class PlanningScenarioTests(unittest.TestCase):
                 self.assertTrue(
                     all("requiredAnnualPacePp" in target for target in contract["targets"])
                 )
+
+        planning.validate_public_planning_scenarios(payload, self.municipalities)
+
+    def test_public_validation_rejects_reference_and_coverage_divergences(self):
+        municipality = self.municipalities[0]
+        contracts = self.payload["municipios"][municipality]
+        cases = (
+            ("basico_integral", "targetValidationStatus", "configured_unvalidated"),
+            ("pos_graduacao", "targetValidationStatus", "official_law"),
+            ("basico_integral", "referenceId", "reference.invalid"),
+            ("basico_integral", "referenceKind", "configured"),
+            ("temporarios", "targetValidationStatus", "unknown"),
+        )
+        for indicator_key, field, invalid_value in cases:
+            with self.subTest(indicator_key=indicator_key, field=field):
+                original = contracts[indicator_key][field]
+                contracts[indicator_key][field] = invalid_value
+                try:
+                    with self.assertRaises(ValueError):
+                        planning.validate_public_planning_scenarios(
+                            self.payload,
+                            self.municipalities,
+                        )
+                finally:
+                    contracts[indicator_key][field] = original
+
+        original_contracts = dict(contracts)
+        del contracts["temporarios"]
+        try:
+            with self.assertRaisesRegex(ValueError, "incomplete or unexpected"):
+                planning.validate_public_planning_scenarios(
+                    self.payload,
+                    self.municipalities,
+                )
+        finally:
+            contracts.clear()
+            contracts.update(original_contracts)
 
     def test_contract_validation_rejects_non_persistent_or_incomplete_points(self):
         artifact = json.loads(

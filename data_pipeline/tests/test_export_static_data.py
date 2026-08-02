@@ -15,6 +15,8 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.pne import indicator_details
+from src import data_loader
+from src.pipeline_profiling import ProfileSession, activate_profile_session
 
 SPEC = importlib.util.spec_from_file_location(
     "export_static_data", DATA_PIPELINE_DIR / "scripts" / "export_static_data.py"
@@ -153,6 +155,239 @@ class ExportStaticDataTests(unittest.TestCase):
         targeted_result = targeted["municipios"]["Teste"]["results"]["indicador_a"]
         self.assertEqual(targeted_result, full_result)
         self.assertEqual(set(targeted["municipios"]["Teste"]["results"]), {"indicador_a"})
+        self.assertEqual(
+            set(targeted),
+            {
+                "generated_at",
+                "cycle",
+                "total_municipios",
+                "municipios_exportados",
+                "municipios",
+            },
+        )
+
+    def test_warning_is_serialized_by_the_ranking_path(self):
+        warned = result(120)
+        warned["display"] = {"warning": "valor bruto acima de 100%"}
+        errors = []
+        payload = exporter._build_rankings_payload_for_municipio(
+            cycle_key="pne_2026_2036",
+            cycle_module=FakeCycle,
+            municipio="Teste",
+            results={"indicador_a": warned},
+            shared=self.shared,
+            errors=errors,
+        )
+
+        rows = payload["categories"]["categoria"]["top_avancos"]
+        self.assertEqual(rows[0]["display"]["warning"], "valor bruto acima de 100%")
+        self.assertEqual(errors, [])
+
+    def test_targeted_validation_rejects_result_error_objects(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "export"
+            path = output_dir / "pne_2026_2036" / "indicadores_por_municipio.json"
+            exporter._write_json(
+                path,
+                {
+                    "municipios": {
+                        "Teste": {
+                            "results": {"indicador_a": {"error": "falha controlada"}}
+                        }
+                    }
+                },
+            )
+
+            problems = exporter._validate_targeted_export(
+                export_dir=output_dir,
+                cycle_indicators={"pne_2026_2036": ("indicador_a",)},
+                municipios=["Teste"],
+            )
+
+        self.assertEqual(len(problems), 1)
+        self.assertIn("contém erro", problems[0])
+
+    def test_accumulated_calculation_serialization_display_and_ranking_errors_fail_closed(self):
+        calculation_cycle = SimpleNamespace(
+            CATEGORY_ORDER=FakeCycle.CATEGORY_ORDER,
+            INDICADORES=FakeCycle.INDICADORES,
+            _calculate_results=Mock(side_effect=RuntimeError("cálculo inválido")),
+        )
+        calculation_errors = []
+        exporter._export_cycle_results(
+            cycle_key="pne_2026_2036",
+            cycle_module=calculation_cycle,
+            municipios=["Teste"],
+            shared=self.shared,
+            errors=calculation_errors,
+            results_cache=exporter.ResultsCache(),
+        )
+        self.assertEqual(calculation_errors[0]["stage"], "calculate_results")
+
+        serialization_errors = []
+        with patch.object(
+            exporter,
+            "_serialize_result",
+            side_effect=RuntimeError("serialização inválida"),
+        ):
+            serialized = exporter._export_cycle_results(
+                cycle_key="pne_2026_2036",
+                cycle_module=FakeCycle,
+                municipios=["Teste"],
+                shared=self.shared,
+                errors=serialization_errors,
+                results_cache=exporter.ResultsCache(),
+            )
+        self.assertTrue(
+            all(error["stage"] == "serialize_result" for error in serialization_errors)
+        )
+        self.assertEqual(
+            serialized["municipios"]["Teste"]["results"]["indicador_a"],
+            {"error": "serialização inválida"},
+        )
+
+        display_shared = FakeShared()
+        display_shared._format_metric_value = Mock(side_effect=RuntimeError("display inválido"))
+        display_errors = []
+        exporter._export_cycle_results(
+            cycle_key="pne_2026_2036",
+            cycle_module=FakeCycle,
+            municipios=["Teste"],
+            shared=display_shared,
+            errors=display_errors,
+            results_cache=exporter.ResultsCache(),
+        )
+        self.assertTrue(any(error["stage"].startswith("display.") for error in display_errors))
+
+        ranking_errors = []
+        with patch.object(
+            exporter,
+            "_build_rankings_payload_for_municipio",
+            side_effect=RuntimeError("ranking inválido"),
+        ):
+            rankings = exporter._export_cycle_rankings(
+                cycle_key="pne_2026_2036",
+                cycle_module=FakeCycle,
+                municipios=["Teste"],
+                shared=self.shared,
+                errors=ranking_errors,
+                results_cache=exporter.ResultsCache(),
+            )
+        self.assertEqual(ranking_errors[0]["stage"], "rankings")
+        self.assertEqual(rankings["municipios_exportados"], 0)
+
+        for errors in (
+            calculation_errors,
+            serialization_errors,
+            display_errors,
+            ranking_errors,
+        ):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                output_dir = Path(temp_dir) / "export"
+                session = ProfileSession(
+                    enabled=True,
+                    run_id="fail-closed-test",
+                    command="export",
+                    output_dir=Path(temp_dir) / "profile",
+                    is_root=True,
+                )
+                with (
+                    patch.object(exporter, "EXPORT_DIR", output_dir),
+                    activate_profile_session(session),
+                ):
+                    exit_code = exporter._finalize_export(
+                        errors=errors,
+                        validation_errors=[],
+                        generated_files=[],
+                        municipios=["Teste"],
+                        profile=exporter.TimingProfile(False),
+                        partial_export=True,
+                    )
+                self.assertEqual(exit_code, 1)
+                report = json.loads(
+                    (output_dir / "export_errors.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(report["total_errors"], len(errors))
+                result_event = next(
+                    event for event in session.events if event.name == "export.result"
+                )
+                self.assertEqual(result_event.status, "error")
+
+    def test_clean_finalization_returns_zero_without_error_report(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "export"
+            with patch.object(exporter, "EXPORT_DIR", output_dir):
+                exit_code = exporter._finalize_export(
+                    errors=[],
+                    validation_errors=[],
+                    generated_files=[],
+                    municipios=["Teste"],
+                    profile=exporter.TimingProfile(False),
+                    partial_export=True,
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertFalse((output_dir / "export_errors.json").exists())
+
+    def test_targeted_and_full_main_return_nonzero_after_calculation_error(self):
+        failing_cycle = SimpleNamespace(
+            CATEGORY_ORDER=FakeCycle.CATEGORY_ORDER,
+            INDICADORES=FakeCycle.INDICADORES,
+            _calculate_results=Mock(side_effect=RuntimeError("cálculo inválido")),
+            _calculate_results_for_indicators=Mock(
+                side_effect=RuntimeError("cálculo inválido")
+            ),
+        )
+        for targeted in (True, False):
+            with self.subTest(targeted=targeted), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir) / "data_pipeline"
+                initial_output = root / "export" / "data"
+                args = SimpleNamespace(
+                    limit=None,
+                    municipio=["Teste"] if targeted else None,
+                    check_connection=False,
+                    include_derived=False,
+                    cycle=["pne_2026_2036"] if targeted else None,
+                    indicator=["indicador_a"] if targeted else None,
+                    profile=False,
+                )
+                selected_indicators = {
+                    "pne_2026_2036": ("indicador_a",) if targeted else None
+                }
+                with (
+                    patch.object(exporter, "BASE_DIR", root),
+                    patch.object(exporter, "EXPORT_DIR", initial_output),
+                    patch.object(exporter, "_safe_timestamp", return_value="test"),
+                    patch.object(exporter, "_parse_args", return_value=args),
+                    patch.object(data_loader, "load_municipios", return_value=["Teste"]),
+                    patch.object(
+                        exporter,
+                        "_select_cycles_and_indicators",
+                        return_value=(
+                            {"pne_2026_2036": failing_cycle},
+                            selected_indicators,
+                        ),
+                    ),
+                    patch.object(
+                        exporter,
+                        "_export_indicator_details_file",
+                        return_value=root / "export" / "details.json",
+                    ),
+                    patch.object(exporter, "_export_state_reference", return_value={}),
+                    patch.object(exporter, "_export_projections", return_value={}),
+                    patch.object(exporter, "_export_planning_scenarios", return_value={}),
+                    patch.object(exporter, "_export_education_attendance", return_value={}),
+                    patch.object(exporter, "_export_fundeb_data", return_value={}),
+                    patch.object(exporter, "_export_pnate_data", return_value={}),
+                ):
+                    exit_code = exporter.main()
+
+                self.assertEqual(exit_code, 1)
+                error_files = list(root.rglob("export_errors.json"))
+                self.assertEqual(len(error_files), 1)
+                report = json.loads(error_files[0].read_text(encoding="utf-8"))
+                self.assertEqual(report["errors"][0]["stage"], "calculate_results")
+                self.assertFalse((Path(temp_dir) / "public" / "data").exists())
 
     def test_targeted_output_stays_in_debug_and_does_not_create_public_data(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -1,6 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -16,6 +17,7 @@ from src.medio_tecnico_articulado import (  # noqa: E402
     calculate_subsequent_expansion_series,
 )
 from src.pne.common import _build_result, _select_reference_rows  # noqa: E402
+from src.pne import calculations_2026  # noqa: E402
 
 
 def row(**overrides):
@@ -91,6 +93,111 @@ class MedioTecnicoArticuladoTests(unittest.TestCase):
         self.assertAlmostEqual(point["percentual_calculado"], 120.0)
         self.assertAlmostEqual(point["percentual_articulado_total"], 120.0)
         self.assertTrue(point["acima_de_100"])
+
+    def test_real_indicator_calculation_preserves_above_100_warning_and_display(self):
+        municipio = "Município Teste"
+        frame = pd.DataFrame(
+            [
+                row(
+                    ano=2024,
+                    municipio=municipio,
+                    mat_integrado_total=70,
+                    mat_concomitante_total=10,
+                    mat_medio=100,
+                ),
+                row(
+                    ano=2025,
+                    municipio=municipio,
+                    mat_integrado_total=110,
+                    mat_concomitante_total=10,
+                    mat_medio=100,
+                ),
+            ]
+        )
+
+        def build_with_existing_display(*args, **kwargs):
+            built = _build_result(*args, **kwargs)
+            built["display"] = {"status": "preservado"}
+            return built
+
+        with (
+            patch.object(
+                calculations_2026,
+                "load_medio_tecnico_articulado_data",
+                return_value=frame,
+            ),
+            patch.object(
+                calculations_2026,
+                "_build_result",
+                side_effect=build_with_existing_display,
+            ),
+        ):
+            calculated = calculations_2026._calc_medio_tecnico_articulado_percentual(
+                municipio
+            )
+
+        self.assertGreater(calculated["end_value"], 100)
+        self.assertTrue(calculated["acima_de_100"])
+        self.assertIn(2025, calculated["acima_de_100_anos"])
+        self.assertEqual(calculated["display"]["status"], "preservado")
+        self.assertIn("matrículas", calculated["display"]["warning"])
+        self.assertTrue(calculated["series"][-1]["acima_de_100"])
+
+        at_most_100 = frame.assign(
+            mat_integrado_total=[70, 80],
+            mat_concomitante_total=[10, 20],
+        )
+        with patch.object(
+            calculations_2026,
+            "load_medio_tecnico_articulado_data",
+            return_value=at_most_100,
+        ):
+            without_warning = (
+                calculations_2026._calc_medio_tecnico_articulado_percentual(municipio)
+            )
+        self.assertEqual(without_warning["end_value"], 100)
+        self.assertFalse(without_warning["acima_de_100"])
+        self.assertNotIn("display", without_warning)
+
+    def test_real_indicator_keeps_missing_zero_denominator_and_valid_zero_distinct(self):
+        municipio = "Município Teste"
+        missing = pd.DataFrame()
+        zero_denominator = pd.DataFrame(
+            [row(municipio=municipio, mat_integrado_total=10, mat_medio=0)]
+        )
+        valid_zero = pd.DataFrame(
+            [
+                row(
+                    municipio=municipio,
+                    mat_integrado_total=0,
+                    mat_concomitante_total=0,
+                    mat_medio=100,
+                )
+            ]
+        )
+
+        outputs = []
+        for frame in (missing, zero_denominator, valid_zero):
+            with patch.object(
+                calculations_2026,
+                "load_medio_tecnico_articulado_data",
+                return_value=frame,
+            ):
+                outputs.append(
+                    calculations_2026._calc_medio_tecnico_articulado_percentual(
+                        municipio
+                    )
+                )
+
+        self.assertFalse(outputs[0]["available"])
+        self.assertFalse(outputs[1]["available"])
+        self.assertTrue(outputs[2]["available"])
+        self.assertEqual(outputs[2]["end_value"], 0)
+        zero_denominator_point = calculate_medio_tecnico_articulado_series(
+            zero_denominator
+        ).iloc[0]
+        self.assertEqual(zero_denominator_point["mat_articulado_total"], 10)
+        self.assertTrue(pd.isna(zero_denominator_point["percentual_calculado"]))
 
     def test_missing_component_makes_percentage_unavailable(self):
         result = calculate_medio_tecnico_articulado_series(

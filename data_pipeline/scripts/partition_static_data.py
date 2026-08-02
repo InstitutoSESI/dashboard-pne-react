@@ -28,6 +28,7 @@ from src.pipeline_profiling import (  # noqa: E402
     profile_operation,
     profiled_main_from_environment,
 )
+from src.planning_scenarios import validate_public_planning_scenarios  # noqa: E402
 
 SOURCE_DIR = PIPELINE_EXPORT_DIR / "data"
 OUTPUT_DIR = STATIC_PARTITIONED_DATA_DIR
@@ -447,38 +448,17 @@ def validate_planning_scenarios_payload(
     registry: MunicipalityRegistry,
 ) -> None:
     payload = payloads.get("planning_scenarios") or {}
-    scenarios = payload.get("municipios")
-    expected_keys = {
-        "basico_integral",
-        "escolas_integral",
-        "pos_graduacao",
-        "temporarios",
-    }
-    problems = []
-    if payload.get("publicationStatus") != "published":
-        problems.append("status de publicação inválido")
-    if payload.get("scenarioType") != "maintenance":
-        problems.append("tipo de cenário inválido")
-    if not isinstance(scenarios, dict) or len(scenarios) != registry.municipality_count:
-        problems.append("cobertura municipal incompleta")
-    elif set(scenarios) != set(municipios):
-        problems.append("conjunto municipal divergente")
-    else:
-        for municipio in municipios:
-            contracts = scenarios.get(municipio)
-            if not isinstance(contracts, dict) or set(contracts) != expected_keys:
-                problems.append(f"contratos incompletos para {municipio}")
-                break
-            if any(
-                contract.get("targetValidationStatus") != "configured_unvalidated"
-                for contract in contracts.values()
-            ):
-                problems.append(f"situação jurídica inválida para {municipio}")
-                break
-    if problems:
+    if len(municipios) != registry.municipality_count:
         raise RuntimeError(
-            "[partition] Cenários de planejamento inválidos: " + "; ".join(problems)
+            "[partition] Cenários de planejamento inválidos: "
+            "cobertura municipal incompatível com o registro"
         )
+    try:
+        validate_public_planning_scenarios(payload, municipios)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"[partition] Cenários de planejamento inválidos: {exc}"
+        ) from exc
 
 
 def extract_results(payload: dict, municipio: str) -> dict:

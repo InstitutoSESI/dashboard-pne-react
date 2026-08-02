@@ -394,6 +394,42 @@ class StaticDataSyncTests(unittest.TestCase):
         run_command.assert_not_called()
         sync.assert_not_called()
 
+    def test_export_failure_stops_before_partition_and_every_later_step(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            state, registry = self.registry(Path(temporary))
+            args = SimpleNamespace(
+                dry_run=False,
+                skip_export=False,
+                skip_partition=False,
+                skip_education=False,
+                education_only=False,
+                skip_build=False,
+                build=True,
+                validate_only=False,
+                no_include_derived=False,
+                profile=False,
+                state="RS",
+            )
+            started = []
+
+            def fail_export(name, _command, _results):
+                started.append(name)
+                raise SystemExit(9)
+
+            with (
+                patch.object(update, "load_state_config", return_value=state),
+                patch.object(update, "load_municipality_registry", return_value=registry),
+                patch.object(update, "ensure_git_update_safe"),
+                patch.object(update, "run_command", side_effect=fail_export),
+                patch.object(update, "sync_partitioned_to_public") as sync,
+                patch.object(update, "print_summary"),
+            ):
+                with self.assertRaisesRegex(SystemExit, "9"):
+                    update.run_pipeline(args)
+
+            self.assertEqual(started, ["export"])
+            sync.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -246,6 +246,24 @@ class PartitionStaticDataPublicationTests(unittest.TestCase):
         self.assertNotIn("def unique_slugs", source)
         self.assertNotIn("id_municipio or slug", source)
 
+    def test_planning_validation_delegates_to_the_public_contract_validator(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _state, registry = self._registry(root)
+            names = ["Aceguá", "Água Santa"]
+            payload = {"contractVersion": "planning-scenarios-v1"}
+            with patch.object(
+                partition,
+                "validate_public_planning_scenarios",
+            ) as validate:
+                partition.validate_planning_scenarios_payload(
+                    {"planning_scenarios": payload},
+                    names,
+                    registry,
+                )
+
+            validate.assert_called_once_with(payload, names)
+
 
 if __name__ == "__main__":
     unittest.main()
