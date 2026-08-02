@@ -298,11 +298,18 @@ class MunicipalEducationOverviewTests(unittest.TestCase):
 
     def test_completeness_evidence_requires_the_expected_2025_coverage(self):
         evidence = build_2025_completeness_evidence(
-            [row(2025, "municipal", "urbana")], expected_municipalities=1
+            [row(2025, "municipal", "urbana")],
+            {"4320008"},
         )
 
         self.assertTrue(evidence["isCompleteForDerivedZero"])
         self.assertEqual(evidence["municipalitiesPresent"], 1)
+
+        with self.assertRaisesRegex(ValueError, "permanecer texto"):
+            build_2025_completeness_evidence(
+                [{**row(2025, "municipal", "urbana"), "id_municipio": 4320008}],
+                {"4320008"},
+            )
 
     def test_historical_comparison_calculates_growth_reduction_and_stability(self):
         contract = self.materialize([

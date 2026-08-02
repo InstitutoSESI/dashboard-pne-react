@@ -1,4 +1,5 @@
 import time
+import re
 from functools import lru_cache
 
 from src.data.repository import (
@@ -194,8 +195,42 @@ def load_school_infrastructure_source_data():
     return load_dataset("school_infrastructure_source_data")
 
 
-def load_special_education_school_source_data():
-    return load_dataset("special_education_school_source_data")
+def load_special_education_school_source_data(*, municipality_ids=None):
+    source = load_dataset("special_education_school_source_data")
+    if municipality_ids is None:
+        return source
+    expected_ids = frozenset(municipality_ids)
+    if not expected_ids or any(
+        not isinstance(identifier, str)
+        or re.fullmatch(r"\d{7}", identifier) is None
+        for identifier in expected_ids
+    ):
+        raise ValueError(
+            "O filtro da Educação Especial exige códigos IBGE textuais."
+        )
+    if "id_municipio" not in source.columns:
+        raise ValueError("Fonte da Educação Especial sem id_municipio.")
+    raw_codes = source["id_municipio"].dropna().tolist()
+    invalid = sorted(
+        {
+            repr(value)
+            for value in raw_codes
+            if not isinstance(value, str)
+            or re.fullmatch(r"\d{7}", value) is None
+        }
+    )
+    if invalid:
+        raise ValueError(
+            "Fonte da Educação Especial converteu código municipal para número; "
+            f"inválidos={invalid[:5]}."
+        )
+    extra = sorted(set(raw_codes) - expected_ids)
+    if extra:
+        raise ValueError(
+            "Fonte da Educação Especial contém códigos fora do registro: "
+            f"{extra[:5]}."
+        )
+    return source[source["id_municipio"].isin(expected_ids)].copy()
 
 
 @lru_cache(maxsize=4)

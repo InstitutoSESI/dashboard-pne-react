@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from sqlalchemy import bindparam, text
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_PIPELINE_DIR = REPO_ROOT / "data_pipeline"
@@ -23,8 +25,13 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.data.repository import get_local_postgres_engine  # noqa: E402
+from src.config import PUBLIC_DATA_DIR  # noqa: E402
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistry,
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
 from src.municipal_education_overview import (  # noqa: E402
-    EXPECTED_MUNICIPALITIES,
     REFERENCE_YEAR,
     SCHEMA_VERSION,
     VIEW_NAME,
@@ -33,10 +40,15 @@ from src.municipal_education_overview import (  # noqa: E402
     build_year_completeness_evidence,
     materialize_municipal_education_overview,
 )
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfig,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
+)
 
 
-PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data"
-REGISTRY_PATH = PUBLIC_DATA_DIR / "municipios_index.json"
 DEFAULT_OUTPUT_DIR = PUBLIC_DATA_DIR / "educacao" / "visao-geral-municipal"
 EXPECTED_PUBLICATION_STATES = {
     "published": 426,
@@ -123,40 +135,55 @@ def _serialize(payload: Mapping[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
-def _registry_entries(registry_path: Path = REGISTRY_PATH) -> list[dict[str, str]]:
-    payload = _load_json(registry_path)
-    entries = list(payload.get("municipios") or [])
-    if (
-        payload.get("total_municipios") != EXPECTED_MUNICIPALITIES
-        or len(entries) != EXPECTED_MUNICIPALITIES
-    ):
-        raise RuntimeError("O registro municipal precisa conter exatamente 497 municípios.")
-
-    normalized = [
+def _registry_entries(registry: MunicipalityRegistry) -> list[dict[str, str]]:
+    return [
         {
-            "idMunicipality": str(entry.get("id_municipio") or ""),
-            "name": str(entry.get("nome") or ""),
-            "slug": str(entry.get("slug") or ""),
+            "idMunicipality": record.ibge_code,
+            "name": record.name,
+            "slug": record.slug,
         }
-        for entry in entries
+        for record in registry.ordered_records
     ]
-    ids = [entry["idMunicipality"] for entry in normalized]
-    slugs = [entry["slug"] for entry in normalized]
-    if (
-        any(not identifier.isdigit() for identifier in ids)
-        or any(not entry["name"] for entry in normalized)
-        or any(not slug for slug in slugs)
-        or len(set(ids)) != EXPECTED_MUNICIPALITIES
-        or len(set(slugs)) != EXPECTED_MUNICIPALITIES
-    ):
-        raise RuntimeError("O registro municipal possui códigos, nomes ou slugs inválidos.")
-    return sorted(normalized, key=lambda entry: entry["slug"])
 
 
-def load_view_rows(engine: Any) -> list[dict[str, Any]]:
+def _require_registered_text_codes(
+    rows: Iterable[Mapping[str, Any]],
+    registry: MunicipalityRegistry,
+    *,
+    source: str,
+    require_complete: bool,
+) -> set[str]:
+    values = [row.get("id_municipio") for row in rows]
+    invalid = sorted(
+        {
+            repr(value)
+            for value in values
+            if not isinstance(value, str)
+            or len(value) != 7
+            or not value.isdigit()
+        }
+    )
+    if invalid:
+        raise RuntimeError(
+            f"{source}: códigos IBGE devem permanecer texto com sete dígitos; "
+            f"inválidos={invalid[:5]}."
+        )
+    observed = set(values)
+    extra = sorted(observed - registry.ids)
+    missing = sorted(registry.ids - observed) if require_complete else []
+    if extra or missing:
+        raise RuntimeError(
+            f"{source}: universo municipal diverge do registro de "
+            f"{registry.state_code}; ausentes={missing[:5]}; extras={extra[:5]}."
+        )
+    return observed
+
+
+def load_view_rows(
+    engine: Any,
+    registry: MunicipalityRegistry,
+) -> list[dict[str, Any]]:
     """Lê exclusivamente a view VGM-1 e falha se a estrutura for incompatível."""
-    from sqlalchemy import text
-
     columns = (
         "v.ano, v.id_municipio, v.dependencia, v.localizacao, "
         "v.mat_basico, v.mat_infantil, v.mat_infantil_creche, v.mat_infantil_pre, "
@@ -173,15 +200,23 @@ def load_view_rows(engine: Any) -> list[dict[str, Any]]:
          AND c.dependencia = v.dependencia
          AND c.localizacao = v.localizacao
         WHERE v.ano IN (:comparison_year, :reference_year)
+          AND v.id_municipio IN :municipality_ids
         ORDER BY v.id_municipio, v.dependencia, v.localizacao
         """
-    )
+    ).bindparams(bindparam("municipality_ids", expanding=True))
     try:
         with engine.connect() as connection:
             rows = [
                 dict(row)
                 for row in connection.execute(
-                    query, {"comparison_year": 2015, "reference_year": REFERENCE_YEAR}
+                    query,
+                    {
+                        "comparison_year": 2015,
+                        "reference_year": REFERENCE_YEAR,
+                        "municipality_ids": tuple(
+                            record.ibge_code for record in registry.ordered_records
+                        ),
+                    },
                 ).mappings()
             ]
     except Exception as exc:  # noqa: BLE001 - no fallback source is allowed.
@@ -215,10 +250,21 @@ def load_view_rows(engine: Any) -> list[dict[str, Any]]:
         )
     if {int(row["ano"]) for row in rows} != {2015, REFERENCE_YEAR}:
         raise RuntimeError("A leitura da view precisa retornar somente 2015 e 2025.")
+    for year in (2015, REFERENCE_YEAR):
+        _require_registered_text_codes(
+            (row for row in rows if int(row["ano"]) == year),
+            registry,
+            source=f"{VIEW_NAME}/{year}",
+            require_complete=True,
+        )
     return rows
 
 
-def load_official_census_totals(path: Path) -> dict[str, dict[str, int]]:
+def load_official_census_totals(
+    path: Path,
+    state_config: StateConfig,
+    registry: MunicipalityRegistry,
+) -> dict[str, dict[str, int]]:
     """Agrega somente os campos homologados do microdado oficial de 2025."""
     if not path.is_file():
         raise RuntimeError(f"Microdado oficial do Censo Escolar 2025 não encontrado: {path}")
@@ -229,25 +275,43 @@ def load_official_census_totals(path: Path) -> dict[str, dict[str, int]]:
         if missing:
             raise RuntimeError(f"Microdado sem campos obrigatórios: {sorted(missing)}")
         for row in reader:
-            if row.get("SG_UF") != "RS":
+            if row.get("SG_UF") != state_config.state_code:
                 continue
-            municipality_id = str(row["CO_MUNICIPIO"])
+            municipality_id = row["CO_MUNICIPIO"]
+            if (
+                not isinstance(municipality_id, str)
+                or len(municipality_id) != 7
+                or not municipality_id.isdigit()
+            ):
+                raise RuntimeError(
+                    "Microdado oficial contém código IBGE municipal não textual: "
+                    f"{municipality_id!r}."
+                )
+            if municipality_id not in registry.ids:
+                raise RuntimeError(
+                    "Microdado oficial contém código fora do registro de "
+                    f"{state_config.state_code}: {municipality_id}."
+                )
             for source_field, contract_field in OFFICIAL_CENSUS_FIELDS.items():
                 raw = str(row.get(source_field) or "").strip().replace(",", ".")
                 if raw:
                     totals[municipality_id][contract_field] += int(float(raw))
     normalized = {identifier: dict(values) for identifier, values in totals.items()}
-    if len(normalized) != EXPECTED_MUNICIPALITIES:
+    if set(normalized) != registry.ids:
+        missing_ids = sorted(registry.ids - set(normalized))
+        extra_ids = sorted(set(normalized) - registry.ids)
         raise RuntimeError(
-            f"Microdado oficial cobre {len(normalized)} municípios do RS; esperados 497."
+            "Microdado oficial diverge do registro municipal; "
+            f"ausentes={missing_ids[:5]}; extras={extra_ids[:5]}."
         )
     return normalized
 
 
-def load_performance_rows(engine: Any) -> dict[str, list[dict[str, Any]]]:
+def load_performance_rows(
+    engine: Any,
+    registry: MunicipalityRegistry,
+) -> dict[str, list[dict[str, Any]]]:
     """Lê as taxas municipais oficiais total/total de 2025, sem recalcular médias."""
-    from sqlalchemy import text
-
     query = text(
         """
         SELECT ano, id_municipio, etapa_ensino,
@@ -260,15 +324,32 @@ def load_performance_rows(engine: Any) -> dict[str, list[dict[str, Any]]]:
             'fundamental', 'fundamental_anos_iniciais',
             'fundamental_anos_finais', 'medio'
           )
+          AND id_municipio IN :municipality_ids
         ORDER BY id_municipio, etapa_ensino
         """
-    )
+    ).bindparams(bindparam("municipality_ids", expanding=True))
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     with engine.connect() as connection:
-        for row in connection.execute(query, {"reference_year": REFERENCE_YEAR}).mappings():
-            grouped[str(row["id_municipio"])].append(dict(row))
-    if len(grouped) != EXPECTED_MUNICIPALITIES:
-        raise RuntimeError(f"Rendimento 2025 cobre {len(grouped)} municípios; esperados 497.")
+        rows = [
+            dict(row)
+            for row in connection.execute(
+                query,
+                {
+                    "reference_year": REFERENCE_YEAR,
+                    "municipality_ids": tuple(
+                        record.ibge_code for record in registry.ordered_records
+                    ),
+                },
+            ).mappings()
+        ]
+    _require_registered_text_codes(
+        rows,
+        registry,
+        source="rendimento escolar 2025",
+        require_complete=True,
+    )
+    for row in rows:
+        grouped[row["id_municipio"]].append(row)
     return dict(grouped)
 
 
@@ -382,6 +463,7 @@ def validate_contract_directory(
     canonical_contracts: dict[str, bytes] = {}
     composition_reconciled = 0
     performance_coverage: Counter[str] = Counter()
+    expected_performance_coverage: Counter[str] = Counter()
     performance_states: Counter[str] = Counter()
 
     for municipality_id, entry in expected_by_id.items():
@@ -401,6 +483,15 @@ def validate_contract_directory(
             performance_states.update(states)
             if all(state == "observed" for state in states):
                 performance_coverage[stage] += 1
+        expected_stage_totals = {
+            "elementary": contract["elementary"]["total"]["total"],
+            "initialYears": contract["elementary"]["initialYears"]["total"],
+            "finalYears": contract["elementary"]["finalYears"]["total"],
+            "highSchool": contract["highSchool"]["total"]["total"],
+        }
+        for stage, total in expected_stage_totals.items():
+            if total.get("state") in {"observed", "derived_zero"} and total.get("value", 0) > 0:
+                expected_performance_coverage[stage] += 1
         publication_states[str(contract.get("publicationState"))] += 1
         reconciliations = list(
             (contract.get("quality") or {}).get("reconciliations") or []
@@ -442,17 +533,17 @@ def validate_contract_directory(
             "Esperados 71 municípios com nullCoreRows; "
             f"encontrados {len(null_core_municipalities)}."
         )
-    if composition_reconciled != EXPECTED_MUNICIPALITIES:
+    expected_count = len(expected_by_id)
+    if composition_reconciled != expected_count:
         raise RuntimeError(
-            f"Composição da Educação Básica reconciliada em {composition_reconciled}/497 municípios."
+            "Composição da Educação Básica reconciliada em "
+            f"{composition_reconciled}/{expected_count} municípios."
         )
-    expected_performance_coverage = {
-        "elementary": 497,
-        "initialYears": 497,
-        "finalYears": 497,
-        "highSchool": 496,
+    expected_performance = {
+        stage: expected_performance_coverage[stage]
+        for stage in ("elementary", "initialYears", "finalYears", "highSchool")
     }
-    if dict(performance_coverage) != expected_performance_coverage:
+    if dict(performance_coverage) != expected_performance:
         raise RuntimeError(
             f"Cobertura de rendimento divergente: {dict(performance_coverage)}."
         )
@@ -551,10 +642,22 @@ def materialize_contracts(
 ) -> dict[str, dict[str, Any]]:
     rows_list = [dict(row) for row in rows]
     entries_list = [dict(entry) for entry in entries]
+    expected_ids = {entry["idMunicipality"] for entry in entries_list}
+    invalid_codes = sorted(
+        {
+            repr(row.get("id_municipio"))
+            for row in rows_list
+            if not isinstance(row.get("id_municipio"), str)
+        }
+    )
+    if invalid_codes:
+        raise RuntimeError(
+            "A view deve preservar códigos IBGE municipais como texto; "
+            f"inválidos={invalid_codes[:5]}."
+        )
     rows_by_municipality: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows_list:
-        rows_by_municipality[str(row["id_municipio"])].append(row)
-    expected_ids = {entry["idMunicipality"] for entry in entries_list}
+        rows_by_municipality[row["id_municipio"]].append(row)
     actual_ids = set(rows_by_municipality)
     if actual_ids != expected_ids:
         raise RuntimeError(
@@ -562,12 +665,16 @@ def materialize_contracts(
             f"ausentes={sorted(expected_ids - actual_ids)[:5]}; "
             f"extras={sorted(actual_ids - expected_ids)[:5]}."
         )
-    completeness = build_2025_completeness_evidence(rows_list)
+    completeness = build_2025_completeness_evidence(rows_list, expected_ids)
     if not completeness["isCompleteForDerivedZero"]:
         raise RuntimeError(
             f"A carga 2025 não é completa para zeros derivados: {completeness}."
         )
-    comparison_completeness = build_year_completeness_evidence(rows_list, 2015)
+    comparison_completeness = build_year_completeness_evidence(
+        rows_list,
+        2015,
+        expected_ids,
+    )
     if not comparison_completeness["isCompleteForDerivedZero"]:
         raise RuntimeError(
             f"A carga 2015 não é completa para zeros derivados: {comparison_completeness}."
@@ -629,24 +736,40 @@ def _generated_at(value: str | None) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Materializa contratos municipais VGM-3.")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--registry", default=str(REGISTRY_PATH))
     parser.add_argument(
-        "--generated-at", help="ISO 8601 compartilhado pelos 497 contratos."
+        "--generated-at", help="ISO 8601 compartilhado por todos os contratos."
     )
     parser.add_argument(
         "--censo-2025-csv",
         required=True,
         help="Caminho para o microdado oficial do Censo Escolar 2025.",
     )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
     args = parser.parse_args(argv)
 
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
+
     output_directory = Path(args.output_dir).resolve()
-    entries = _registry_entries(Path(args.registry).resolve())
+    entries = _registry_entries(registry)
     generated_at = _generated_at(args.generated_at)
     engine = get_local_postgres_engine()
-    rows = load_view_rows(engine)
-    supplemental = load_official_census_totals(Path(args.censo_2025_csv).resolve())
-    performance = load_performance_rows(engine)
+    rows = load_view_rows(engine, registry)
+    supplemental = load_official_census_totals(
+        Path(args.censo_2025_csv).resolve(),
+        state_config,
+        registry,
+    )
+    performance = load_performance_rows(engine, registry)
     contracts = materialize_contracts(
         rows,
         entries,

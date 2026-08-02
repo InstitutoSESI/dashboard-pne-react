@@ -361,6 +361,8 @@ class StaticDataSyncTests(unittest.TestCase):
         self.assertTrue(print_dry_run.call_args.kwargs["run_sync"])
         partition_command = dict(commands)["partition"]
         self.assertEqual(partition_command[-2:], ["--state", "RS"])
+        education_command = dict(commands)["education"]
+        self.assertEqual(education_command[-2:], ["--state", "RS"])
 
     def test_unknown_state_fails_before_any_pipeline_step(self) -> None:
         args = SimpleNamespace(

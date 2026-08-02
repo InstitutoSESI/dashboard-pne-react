@@ -42,20 +42,34 @@ canônica do pipeline fica separada em `config/municipalities/rs.json`, no
 contrato `municipality-registry-v1`; `public/data/municipios_index.json` é uma
 projeção publicada desse registro e não pode ser usado como fonte do universo.
 
-Internamente, o código IBGE identifica o município; o nome é texto de
+Internamente, o código IBGE textual identifica o município; o nome é texto de
 apresentação e compatibilidade temporária dos agregados por nome, e o slug é o
-valor canônico de URL. O particionamento resolve nomes de forma única contra o
-registro e nunca deriva código ou slug do nome. Fundeb e PNATE fornecem dados,
-mas não identidade. A persistência do navegador usa
+valor canônico de URL. A exportação geral, a Visão Geral Municipal, a Educação
+Superior e a Educação Especial usam `StateConfig` e `MunicipalityRegistry`;
+os 182 slugs educacionais históricos diferentes do canônico são compatibilidade
+explícita de publicação em
+`config/compatibility/education-municipality-routes/rs.json`. Esse arquivo não é
+cadastro: contém apenas overrides por código IBGE. O índice geral e a Educação
+Especial usam o resolvedor; a Visão Geral usa o slug canônico e Superior não
+publica slug. Nenhum materializador lê o índice educacional anterior para gerar
+as rotas. Índices educacionais publicados são saídas derivadas, não fontes de
+identidade.
+O particionamento resolve nomes de forma única contra o registro e nunca deriva
+código ou slug do nome. Fundeb e PNATE fornecem dados, mas não identidade. A
+persistência do navegador usa
 `dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
 em nome são migrados uma única vez quando há correspondência inequívoca. Não há
 seletor de estado, configuração de Alagoas nem caminhos públicos de dados por
-estado; fontes e fórmulas multiestado dependem da Etapa 4B2, e o suporte de
-produto e publicação por estado depende da Etapa 4C.
+estado. Educação Indígena e SIDRA, PNE e Financeiro permanecem para etapas
+posteriores, e o suporte de produto e publicação por estado depende de trabalho
+futuro. Nomes físicos de fontes podem continuar específicos do RS.
 
 Os comandos centrais aceitam `--state RS`; `rs` é normalizado para `RS`. Um
 estado sem `config/states/<uf>.json`, como `AL` nesta etapa, falha antes de
 exportação, particionamento, sincronização ou escrita, sem fallback para RS.
+Ausência e zero continuam distintos nos contratos educacionais. A
+parametrização estadual não executou atualização real nem regenerou os outputs
+públicos existentes do RS.
 
 ## Atualização completa
 
@@ -91,6 +105,12 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/update_stat
 
 # Explicita o estado ativo sem alterar o caminho público atual
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --dry-run
+
+# Confere somente o plano educacional e a propagação do estado, sem executar
+uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --state RS --education-only --dry-run --skip-build
+
+# Valida a parametrização dos quatro domínios educacionais
+npm run test:pipeline-education-state
 
 # Validação rápida do código da aplicação
 npm run check:fast
@@ -176,6 +196,7 @@ npm run check:python-deps
 npm run test:unit
 npm run test:education
 npm run test:municipality-identity
+npm run test:pipeline-education-state
 npm run test:python
 npm run build
 ```

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -16,11 +17,27 @@ REPO_ROOT = DATA_PIPELINE_DIR.parent
 sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.data_loader import load_special_education_school_source_data  # noqa: E402
+from src.education_municipality_routes import (  # noqa: E402
+    EducationMunicipalityRouteCompatibilityError,
+    load_education_municipality_route_compatibility,
+    resolve_education_public_slug,
+)
+from src.municipality_registry import (  # noqa: E402
+    MunicipalityRegistryError,
+    load_municipality_registry,
+)
 from src.special_education_materialization import (  # noqa: E402
     ALL_FIELDS,
     RESOLVED_STATES,
     SCHEMA_VERSION,
     validate_contract,
+    validate_source_municipality_universe,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    StateConfigError,
+    load_state_config,
+    normalize_state_code,
 )
 
 
@@ -71,16 +88,41 @@ def reconcile_cut(yearly: dict, path: tuple[str, ...], errors: list[str]) -> Non
             errors.append(f"{yearly['year']}/{'/'.join(path)}: localizações não reconciliam")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    args = parser.parse_args(argv)
+    try:
+        state_code = normalize_state_code(args.state)
+        state_config = load_state_config(state_code)
+        registry = load_municipality_registry(state_config)
+        route_compatibility = load_education_municipality_route_compatibility(
+            state_config,
+            registry,
+        )
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        EducationMunicipalityRouteCompatibilityError,
+    ) as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
+
     errors: list[str] = []
-    source = load_special_education_school_source_data()
+    source = load_special_education_school_source_data(
+        municipality_ids=registry.ids
+    )
     if source.duplicated(["ano", "cod_escola"]).any():
         errors.append("fonte: chave ano x escola duplicada")
-    if source["id_municipio"].astype(str).nunique() != 497:
-        errors.append("fonte: universo municipal diferente de 497")
-    coverage = source.groupby("ano")["id_municipio"].nunique()
-    if any(coverage.get(year, 0) != 497 for year in range(2014, 2026)):
-        errors.append("fonte: ano sem cobertura dos 497 municípios")
+    try:
+        validate_source_municipality_universe(source, registry.ids)
+    except ValueError as exc:
+        errors.append(f"fonte: {exc}")
     numeric = source[[field for field in ALL_FIELDS if field in source]].apply(
         pd.to_numeric, errors="coerce"
     )
@@ -102,18 +144,34 @@ def main() -> int:
         errors.append("fonte: matrículas comuns/exclusivas não reconciliam")
 
     files = sorted((ROOT / "municipios").glob("*.json"))
-    if len(files) != 497:
-        errors.append(f"contrato: {len(files)} arquivos municipais")
+    file_ids = {path.stem for path in files}
+    if file_ids != registry.ids:
+        errors.append(
+            "contrato: conjunto municipal divergente; "
+            f"ausentes={sorted(registry.ids - file_ids)[:5]}, "
+            f"extras={sorted(file_ids - registry.ids)[:5]}"
+        )
     manifest = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != SCHEMA_VERSION:
         errors.append("manifesto: schemaVersion inválido")
-    if manifest.get("municipalityCount") != 497 or manifest.get("fileCount") != 497:
+    if (
+        manifest.get("municipalityCount") != registry.municipality_count
+        or manifest.get("fileCount") != registry.municipality_count
+    ):
         errors.append("manifesto: contagens inválidas")
 
     compared = 0
     for path in files:
         raw = path.read_bytes()
         contract = json.loads(raw)
+        record = registry.records_by_id.get(path.stem)
+        municipality = contract.get("municipality", {})
+        if record is not None and municipality != {
+            "code": record.ibge_code,
+            "name": record.name,
+            "slug": resolve_education_public_slug(record, route_compatibility),
+        }:
+            errors.append(f"{path.stem}: referência municipal pública divergente")
         errors.extend(f"{path.stem}: {error}" for error in validate_contract(contract))
         for point_path, point in walk_points(contract):
             if point["state"] not in ALLOWED_STATES:
@@ -165,7 +223,7 @@ def main() -> int:
         "schemaVersion": SCHEMA_VERSION,
         "valid": not errors,
         "sourceRows": len(source),
-        "sourceMunicipalities": int(source["id_municipio"].nunique()),
+        "sourceMunicipalities": len(set(source["id_municipio"].dropna())),
         "municipalityFiles": len(files),
         "overviewCompared": compared,
         "errorCount": len(errors),

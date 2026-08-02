@@ -68,6 +68,16 @@ compatibilidade temporária de agregados internos, e o slug permanece reservado
 às URLs. `public/data/municipios_index.json` conserva schema e caminho, mas é
 uma projeção publicada do registro, nunca a entrada do universo no pipeline.
 
+Na Educação, a exportação geral, a Visão Geral Municipal, a Educação Superior e
+a Educação Especial recebem `--state` e usam essa configuração com o registro
+municipal. Somente `RS` está configurado; `AL` falha antes de banco, fonte ou
+escrita. Os 182 slugs históricos que divergem do slug canônico são projetados
+pela compatibilidade versionada em
+`config/compatibility/education-municipality-routes/rs.json`; ela não define
+identidade e a geração não lê o índice público anterior. Essa parametrização não
+regenerou `public/data`: schemas, paths e dados publicados do RS permanecem os
+mesmos.
+
 `public/data` é parte do produto e deve continuar versionado. O fluxo principal é:
 
 ```powershell

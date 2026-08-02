@@ -504,6 +504,8 @@ def main() -> int:
     education_command = [
         PYTHON,
         "data_pipeline/scripts/export_education_indicators.py",
+        "--state",
+        state_config.state_code,
     ]
     validate_command = [
         NPM,

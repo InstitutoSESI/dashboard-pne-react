@@ -36,7 +36,7 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 | PNE institucional | `#pne-overview`, `#pne-legal-goals` | `PneOverviewPage`, `PneLegalGoalsPage` | catálogos de indicadores, textos e relações legais em `src/data` | `export_static_data.py`, `scripts/generate-diagnostic-catalog.mjs` | `test:unit`, `test:data-sources` |
 | Ciclos PNE | `#pne2014`, `#pne2026` | `src/pages/CyclePage.jsx` | `municipios/<ibge>/index.json`, `details.json`, referências estaduais por ciclo | `data_pipeline/src/pne`, `export_static_data.py` | `test:unit`, `test:python` |
 | Diagnóstico | `#diagnostico` | `src/pages/Diagnostico.jsx` | release ativa única em `pne2026-diagnostic-v3` | `materialize_pne2026_public_diagnostic_v3.py`, `promote_pne2026_public_diagnostic_v3.py` | `test:diagnostic`, `test:python` |
-| Educação | `#educacao` com `secao` | `src/features/education/EducationPage.tsx` | `municipios/<ibge>/index.json`, `educacao/visao-geral-municipal/<ibge>.json` | `export_education_indicators.py`, `materialize_municipal_education_overview.py` | `test:education`, `test:python` |
+| Educação | `#educacao` com `secao` | `src/features/education/EducationPage.tsx` | `municipios/<ibge>/index.json`, `educacao/visao-geral-municipal/<ibge>.json` | `export_education_indicators.py`, `materialize_municipal_education_overview.py` | `test:education`, `test:pipeline-education-state`, `test:python` |
 | Panorama financeiro | `#financeiros-panorama` | `MunicipalFinancePanoramaPage` | `municipios/<ibge>/financeiro.json`, histórico anual da QSE | `generate_municipal_finance.py`, `generate_qse_annual.py` | `test:municipal-finance`, `test:python` |
 | Módulos financeiros | `#financeiros`, `#financeiros-*` | `src/pages/FinancialPage.jsx` | contrato municipal, catálogos e metadados de `src/data` | exportadores de Fundeb/PNATE e geradores financeiros | `test:municipal-finance`, `test:data-sources` |
 
@@ -86,10 +86,29 @@ por correspondência única e removida; ela nunca volta a ser escrita. Rotas com
 `municipio` aceitam slug, código IBGE ou nome legado e, quando válidas, são
 normalizadas para o slug sem mudar a identidade interna.
 
-Esta fundação ainda não constitui suporte real a múltiplos estados. Os scripts
-centrais aceitam `--state RS` e falham antes de escrever quando a configuração
-solicitada não existe. Fontes, fórmulas e agregados ainda específicos do RS,
-Alagoas, seleção e publicação por estado dependem das Etapas 4B2 e 4C.
+Na camada Python de Educação, a exportação geral, a Visão Geral Municipal, a
+Educação Superior e a Educação Especial carregam `StateConfig` e
+`MunicipalityRegistry` antes de banco, fonte ou staging. Seus entrypoints usam
+`--state`, filtram pelo código estadual ou pelo conjunto exato de códigos do
+registro e preservam o código IBGE como texto e identidade. Nome e slug canônico
+vêm do registro; a compatibilidade de publicação dos 182 slugs educacionais
+históricos fica separada em
+`config/compatibility/education-municipality-routes/rs.json`. O resolvedor de
+domínio aplica esses overrides somente ao índice educacional geral e à Educação
+Especial; a Visão Geral continua canônica e Superior não publica slug. A ordem
+histórica do índice também é projetada deterministicamente, sem ler o arquivo
+público anterior. Índices e manifestos públicos são somente saídas derivadas.
+Ausência, zero observado, `derived_zero`, indisponibilidade e não aplicabilidade
+continuam estados distintos conforme cada contrato.
+
+Esta fundação ainda não constitui suporte real a múltiplos estados. Somente o
+RS está configurado; `rs` é normalizado para `RS`, enquanto `AL` falha antes de
+efeitos colaterais e não possui configuração nem publicação. Nomes físicos de
+fontes, inclusive tabelas com sufixo `_rs`, podem continuar específicos do RS
+sem definir a identidade ou o universo. A parametrização não regenerou os
+outputs públicos atuais. Educação Indígena e integrações SIDRA, domínios PNE e
+Financeiro permanecem para etapas posteriores, assim como seleção e publicação
+de produto por estado.
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 

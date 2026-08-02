@@ -8,6 +8,7 @@ intencionalmente fora deste módulo e será responsabilidade da VGM-3.
 from __future__ import annotations
 
 import math
+import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
@@ -27,7 +28,6 @@ PERFORMANCE_SOURCE_URL = (
 VIEW_NAME = "vw_educacao_visao_geral_municipal"
 REFERENCE_YEAR = 2025
 COMPARISON_YEAR = 2015
-EXPECTED_MUNICIPALITIES = 497
 
 NETWORKS = ("municipal", "estadual", "federal", "privada")
 LOCATIONS = ("urbana", "rural")
@@ -84,6 +84,14 @@ AUDIT_FIELDS = (
     "turmas_basico",
 )
 RESOLVED_STATES = {"observed", "derived_zero"}
+
+
+def _require_text_municipality_id(value: object, *, source: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"\d{7}", value) is None:
+        raise ValueError(
+            f"{source}: código IBGE municipal deve permanecer texto com sete dígitos."
+        )
+    return value
 
 
 def _is_nullish(value: Any) -> bool:
@@ -312,17 +320,34 @@ def _duplicate_grains(rows: Iterable[Mapping[str, Any]]) -> list[tuple[int, str,
 def build_year_completeness_evidence(
     rows: Iterable[Mapping[str, Any]],
     year: int,
-    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
+    expected_municipality_ids: Iterable[str],
 ) -> dict[str, Any]:
     """Formaliza a evidência global exigida para inferir zeros em um ano."""
+    expected_ids = frozenset(
+        _require_text_municipality_id(identifier, source="universo esperado")
+        for identifier in expected_municipality_ids
+    )
+    if not expected_ids:
+        raise ValueError("O universo esperado deve conter municípios.")
     selected_rows = [dict(row) for row in rows if int(row["ano"]) == year]
-    municipality_ids = {str(row["id_municipio"]) for row in selected_rows}
+    municipality_ids = {
+        _require_text_municipality_id(
+            row.get("id_municipio"), source=f"completude de {year}"
+        )
+        for row in selected_rows
+    }
     grain_seen: set[tuple[str, str, str]] = set()
     duplicate_count = 0
     invalid_domain_count = 0
     negative_count = 0
     for row in selected_rows:
-        grain = (str(row["id_municipio"]), str(row.get("dependencia")), str(row.get("localizacao")))
+        grain = (
+            _require_text_municipality_id(
+                row.get("id_municipio"), source=f"completude de {year}"
+            ),
+            str(row.get("dependencia")),
+            str(row.get("localizacao")),
+        )
         if grain in grain_seen:
             duplicate_count += 1
         grain_seen.add(grain)
@@ -334,10 +359,10 @@ def build_year_completeness_evidence(
             if _number(row.get(field)) is not None and _number(row.get(field)) < 0
         )
 
-    annual_load_present = bool(selected_rows) and len(municipality_ids) == expected_municipalities
+    annual_load_present = bool(selected_rows) and municipality_ids == expected_ids
     return {
         "referenceYear": year,
-        "expectedMunicipalities": expected_municipalities,
+        "expectedMunicipalities": len(expected_ids),
         "municipalitiesPresent": len(municipality_ids),
         "annualLoadPresent": annual_load_present,
         "validDependencyDomain": invalid_domain_count == 0,
@@ -354,9 +379,14 @@ def build_year_completeness_evidence(
 
 
 def build_2025_completeness_evidence(
-    rows: Iterable[Mapping[str, Any]], expected_municipalities: int = EXPECTED_MUNICIPALITIES
+    rows: Iterable[Mapping[str, Any]],
+    expected_municipality_ids: Iterable[str],
 ) -> dict[str, Any]:
-    return build_year_completeness_evidence(rows, REFERENCE_YEAR, expected_municipalities)
+    return build_year_completeness_evidence(
+        rows,
+        REFERENCE_YEAR,
+        expected_municipality_ids,
+    )
 
 
 def audit_fully_null_rows(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
@@ -366,11 +396,14 @@ def audit_fully_null_rows(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
 
     rows_list = list(rows)
     for row in rows_list:
-        municipality_years[(int(row["ano"]), str(row["id_municipio"]))].append(row)
+        municipality_id = _require_text_municipality_id(
+            row.get("id_municipio"), source="auditoria de nulos"
+        )
+        municipality_years[(int(row["ano"]), municipality_id)].append(row)
         if all(_is_nullish(row.get(field)) for field in CORE_FIELDS):
             key = (
                 int(row["ano"]),
-                str(row["id_municipio"]),
+                municipality_id,
                 str(row.get("dependencia")),
                 str(row.get("localizacao")),
             )
@@ -569,7 +602,7 @@ def materialize_municipal_education_overview(
     performance_source_rows = [dict(row) for row in (performance_rows or [])]
     completeness_evidence = dict(completeness or {
         "referenceYear": REFERENCE_YEAR,
-        "expectedMunicipalities": EXPECTED_MUNICIPALITIES,
+        "expectedMunicipalities": 0,
         "municipalitiesPresent": 0,
         "annualLoadPresent": False,
         "validDependencyDomain": False,
@@ -583,9 +616,26 @@ def materialize_municipal_education_overview(
     if missing_municipality_keys:
         raise ValueError(f"Município sem chaves: {sorted(missing_municipality_keys)}")
 
-    municipality_id = str(municipality["idMunicipality"])
-    if any(str(row["id_municipio"]) != municipality_id for row in source_rows):
+    municipality_id = _require_text_municipality_id(
+        municipality["idMunicipality"], source="contrato municipal"
+    )
+    if any(
+        _require_text_municipality_id(
+            row.get("id_municipio"), source="linhas da visão geral"
+        )
+        != municipality_id
+        for row in source_rows
+    ):
         raise ValueError("As linhas de origem devem pertencer a um único município.")
+    if any(
+        "id_municipio" in row
+        and _require_text_municipality_id(
+            row.get("id_municipio"), source="linhas de desempenho"
+        )
+        != municipality_id
+        for row in performance_source_rows
+    ):
+        raise ValueError("As linhas de desempenho devem pertencer ao município.")
     if any(row.get("dependencia") not in NETWORKS for row in source_rows):
         raise ValueError("Dependência administrativa fora do contrato VGM-1.")
     if any(row.get("localizacao") not in LOCATIONS for row in source_rows):
@@ -1096,5 +1146,13 @@ def load_municipal_overview_rows(engine: Any, id_municipio: str) -> list[dict[st
         ORDER BY v.ano, v.dependencia, v.localizacao
         """
     )
+    municipality_id = _require_text_municipality_id(
+        id_municipio, source="consulta da visão geral"
+    )
     with engine.connect() as connection:
-        return [dict(row) for row in connection.execute(query, {"id_municipio": str(id_municipio)}).mappings()]
+        return [
+            dict(row)
+            for row in connection.execute(
+                query, {"id_municipio": municipality_id}
+            ).mappings()
+        ]

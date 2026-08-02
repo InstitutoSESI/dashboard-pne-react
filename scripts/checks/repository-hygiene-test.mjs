@@ -224,6 +224,94 @@ assert.deepEqual(
   'municipios_index.json deve ser exatamente a projeção pública do registro canônico.',
 )
 
+const educationRouteCompatibilityPath = resolve(
+  repoRoot,
+  'config/compatibility/education-municipality-routes/rs.json',
+)
+assert.ok(
+  existsSync(educationRouteCompatibilityPath),
+  'A compatibilidade versionada das rotas municipais da Educação não pode desaparecer.',
+)
+const educationRouteCompatibility = JSON.parse(
+  readFileSync(educationRouteCompatibilityPath, 'utf8'),
+)
+assert.deepEqual(
+  Object.keys(educationRouteCompatibility).toSorted(),
+  ['schemaVersion', 'slugOverrides', 'stateCode'],
+  'A compatibilidade educacional não pode incorporar cadastro ou dados analíticos.',
+)
+assert.equal(
+  educationRouteCompatibility.schemaVersion,
+  'education-municipality-route-compat-v1',
+)
+assert.equal(educationRouteCompatibility.stateCode, stateConfig.stateCode)
+assert.equal(typeof educationRouteCompatibility.slugOverrides, 'object')
+assert.ok(!Array.isArray(educationRouteCompatibility.slugOverrides))
+
+const publicEducationMunicipalityIndex = JSON.parse(
+  readFileSync(resolve(repoRoot, 'public/data/educacao/municipios_index.json'), 'utf8'),
+)
+assert.deepEqual(
+  Object.keys(publicEducationMunicipalityIndex),
+  ['municipios'],
+  'O índice educacional não pode voltar a definir um cadastro paralelo.',
+)
+assert.equal(
+  publicEducationMunicipalityIndex.municipios.length,
+  municipalityRegistry.municipalityCount,
+)
+const registryById = new Map(
+  municipalityRegistry.municipalities.map((municipality) => [
+    municipality.ibgeCode,
+    municipality,
+  ]),
+)
+const expectedEducationOverrides = publicEducationMunicipalityIndex.municipios
+  .filter((municipality) => (
+    registryById.get(municipality.id_municipio)?.slug !== municipality.slug
+  ))
+  .map((municipality) => [municipality.id_municipio, municipality.slug])
+  .toSorted(([left], [right]) => left.localeCompare(right))
+const configuredEducationOverrides = Object.entries(
+  educationRouteCompatibility.slugOverrides,
+).toSorted(([left], [right]) => left.localeCompare(right))
+assert.equal(expectedEducationOverrides.length, 182)
+assert.deepEqual(
+  configuredEducationOverrides,
+  expectedEducationOverrides,
+  'Os overrides devem coincidir exatamente com as divergências públicas atuais.',
+)
+for (const [municipalityId, publicSlug] of configuredEducationOverrides) {
+  assert.match(municipalityId, /^\d{7}$/, 'Código de override deve permanecer texto.')
+  const canonical = registryById.get(municipalityId)
+  assert.ok(canonical, `Override órfão: ${municipalityId}.`)
+  assert.equal(typeof publicSlug, 'string')
+  assert.ok(publicSlug.trim(), `Override vazio: ${municipalityId}.`)
+  assert.notEqual(publicSlug, canonical.slug, `Override redundante: ${municipalityId}.`)
+}
+const resultingEducationSlugs = municipalityRegistry.municipalities.map((municipality) => (
+  educationRouteCompatibility.slugOverrides[municipality.ibgeCode] ?? municipality.slug
+)).map((slug) => slug.toLocaleLowerCase('pt-BR'))
+assert.equal(
+  new Set(resultingEducationSlugs).size,
+  municipalityRegistry.municipalityCount,
+  'Slugs públicos educacionais resultantes devem ser únicos.',
+)
+for (const [position, municipality] of publicEducationMunicipalityIndex.municipios.entries()) {
+  assert.deepEqual(
+    Object.keys(municipality),
+    ['id_municipio', 'municipio', 'slug', 'caminho'],
+    `Índice educacional na posição ${position + 1} contém aliases ou campos inesperados.`,
+  )
+  const canonical = registryById.get(municipality.id_municipio)
+  assert.ok(canonical, `Índice educacional contém código desconhecido: ${municipality.id_municipio}.`)
+  assert.equal(municipality.municipio, canonical.name)
+  assert.equal(
+    municipality.caminho,
+    `educacao/municipios/${municipality.id_municipio}.json`,
+  )
+}
+
 const municipalityContextSource = readFileSync(
   resolve(repoRoot, 'src/context/MunicipalityContext.tsx'),
   'utf8',
@@ -395,6 +483,7 @@ const expectedUvPythonScripts = [
   'verify:indicator',
   'validate:details',
   'test:pipeline-state-config',
+  'test:pipeline-education-state',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -625,6 +714,169 @@ assert.doesNotMatch(
   migratedPipelineSources.get('data_pipeline/scripts/materialize_municipal_inequality.py'),
   /municipios_index\.json/,
   'Materializador de desigualdade não pode usar o índice público como registro.',
+)
+
+const migratedEducationPaths = [
+  'data_pipeline/scripts/export_education_indicators.py',
+  'data_pipeline/src/education_municipality_routes.py',
+  'data_pipeline/src/municipal_education_overview.py',
+  'data_pipeline/scripts/materialize_municipal_education_overview.py',
+  'data_pipeline/src/higher_education.py',
+  'data_pipeline/src/higher_education_materialization.py',
+  'data_pipeline/scripts/sync_higher_education_from_sinopse.py',
+  'data_pipeline/scripts/materialize_special_education.py',
+  'data_pipeline/src/special_education_materialization.py',
+  'data_pipeline/scripts/validate_special_education.py',
+  'data_pipeline/scripts/audit_special_education_completeness.py',
+]
+const migratedEducationSources = new Map(migratedEducationPaths.map((path) => [
+  path,
+  readFileSync(resolve(repoRoot, path), 'utf8'),
+]))
+for (const [path, source] of migratedEducationSources) {
+  assert.doesNotMatch(
+    source,
+    /\bEXPECTED_MUNICIPALIT(?:Y_COUNT|IES)\s*=/,
+    `${path} voltou a declarar cardinalidade municipal literal na Educação migrada.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /\b(?:int|float|str)\s*\([^\n)]*\b(?:id_municipio|municipality_id|ibgeCode)\b|\bid_municipio\b[^\n]*\.astype\(str\)|\.astype\(str\)[^\n]*\bid_municipio\b/,
+    `${path} converte código IBGE municipal para número ou texto após a leitura.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /(?:startswith\(\s*['"]43['"]\)|\[:2\]\s*==\s*['"]43['"])/,
+    `${path} voltou a usar o prefixo 43 como validação central.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /(?:sigla_uf|SG_UF|unidade_da_federacao|uf)\s*(?:==|=)\s*['"]RS['"]/i,
+    `${path} voltou a fixar RS em filtro estadual de produção.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /slugify\s*\([^\n]*(?:municipio|municipality|name)/i,
+    `${path} voltou a derivar slug municipal para definir identidade.`,
+  )
+}
+
+for (const path of migratedEducationPaths.slice(1)) {
+  assert.doesNotMatch(
+    migratedEducationSources.get(path),
+    /municipios_index\.json/,
+    `${path} voltou a usar índice educacional publicado como identidade.`,
+  )
+}
+assert.doesNotMatch(
+  migratedEducationSources.get('data_pipeline/scripts/export_education_indicators.py'),
+  /\b(?:MUNICIPAL_INDEX|REGISTRY_PATH)\b/,
+  'O exportador geral não pode usar índice publicado como registro municipal.',
+)
+const routeCompatibilitySource = migratedEducationSources.get(
+  'data_pipeline/src/education_municipality_routes.py',
+)
+assert.match(
+  routeCompatibilitySource,
+  /def resolve_education_public_slug\s*\(/,
+  'O resolvedor testável da rota educacional deve permanecer explícito.',
+)
+const educationRouteBoundaries = [
+  'data_pipeline/scripts/export_education_indicators.py',
+  'data_pipeline/scripts/materialize_special_education.py',
+  'data_pipeline/scripts/validate_special_education.py',
+]
+for (const path of educationRouteBoundaries) {
+  const source = migratedEducationSources.get(path)
+  assert.match(
+    source,
+    /(?:build_education_municipalities_index_payload|resolve_education_public_slug)\s*\(/,
+    `${path} deve projetar o slug histórico pelo resolvedor de compatibilidade.`,
+  )
+  assert.doesNotMatch(
+    source,
+    /['"]slug['"]\s*:\s*record\.slug/,
+    `${path} não pode publicar record.slug diretamente na fronteira histórica.`,
+  )
+}
+const embeddedEducationOverrides = migratedEducationPaths.filter((path) => (
+  /['"]\d{7}['"]\s*:\s*['"][\p{L}\d-]+['"]/u.test(
+    migratedEducationSources.get(path),
+  )
+))
+assert.deepEqual(
+  embeddedEducationOverrides,
+  [],
+  `Overrides municipais não podem ser embutidos em Python:\n${embeddedEducationOverrides.join('\n')}`,
+)
+const municipalSlugAsInternalKey = migratedEducationPaths.filter((path) => {
+  const source = migratedEducationSources.get(path)
+  return /(?:groupby|set_index|merge|join)\s*\([^\n)]*(?:record\.slug|municipality[^\n)]*slug|municipio[^\n)]*slug)/i.test(source)
+    || /\[\s*(?:record\.slug|municipality\[['"]slug['"]\])\s*\]/.test(source)
+    || /f['"][^'"\n]*\{(?:record\.slug|municipality\[['"]slug['"]\])\}[^'"\n]*['"]/.test(source)
+})
+assert.deepEqual(
+  municipalSlugAsInternalKey,
+  [],
+  `Slug municipal não pode ser diretório, join ou chave interna:\n${municipalSlugAsInternalKey.join('\n')}`,
+)
+
+const educationEntrypoints = new Map([
+  ['data_pipeline/scripts/export_education_indicators.py', '_get_education_engine()'],
+  ['data_pipeline/scripts/materialize_municipal_education_overview.py', 'get_local_postgres_engine()'],
+  ['data_pipeline/scripts/sync_higher_education_from_sinopse.py', 'parse_higher_education_sources('],
+  ['data_pipeline/scripts/materialize_special_education.py', 'load_special_education_school_source_data('],
+  ['data_pipeline/scripts/validate_special_education.py', 'load_special_education_school_source_data('],
+  ['data_pipeline/scripts/audit_special_education_completeness.py', 'load_special_education_school_source_data('],
+])
+for (const [path, firstEffect] of educationEntrypoints) {
+  const source = migratedEducationSources.get(path)
+  const main = source.slice(source.search(/\ndef main\s*\(/))
+  assert.match(source, /['"]--state['"]/, `${path} perdeu o parâmetro --state.`)
+  assert.match(main, /load_state_config\(/, `${path} não carrega StateConfig no entrypoint.`)
+  assert.match(
+    main,
+    /load_municipality_registry\(/,
+    `${path} não carrega MunicipalityRegistry no entrypoint.`,
+  )
+  assert.ok(
+    main.indexOf('load_state_config(') < main.indexOf(firstEffect),
+    `${path} executa ${firstEffect} antes de validar o estado.`,
+  )
+}
+for (const [path, firstEffect] of [
+  ['data_pipeline/scripts/export_education_indicators.py', '_get_education_engine()'],
+  ['data_pipeline/scripts/materialize_special_education.py', 'load_special_education_school_source_data('],
+  ['data_pipeline/scripts/validate_special_education.py', 'load_special_education_school_source_data('],
+]) {
+  const main = migratedEducationSources.get(path).slice(
+    migratedEducationSources.get(path).search(/\ndef main\s*\(/),
+  )
+  assert.ok(
+    main.indexOf('load_state_config(')
+      < main.indexOf('load_education_municipality_route_compatibility('),
+    `${path} deve validar StateConfig antes da compatibilidade de rota.`,
+  )
+  assert.ok(
+    main.indexOf('load_education_municipality_route_compatibility(')
+      < main.indexOf(firstEffect),
+    `${path} deve validar compatibilidade antes do primeiro efeito externo.`,
+  )
+}
+
+const educationCommand = updateSource.match(
+  /education_command\s*=\s*\[([\s\S]*?)\n\s*\]/,
+)
+assert.ok(educationCommand, 'Comando central de Educação não encontrado.')
+assert.match(
+  educationCommand[1],
+  /['"]--state['"][\s\S]*state_config\.state_code/,
+  'update_static_data.py deve propagar --state para a Educação.',
+)
+assert.equal(
+  packageJson.scripts?.['test:pipeline-education-state'],
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_pipeline_education_state.py data_pipeline/tests/test_export_education_indicators_matriculas.py data_pipeline/tests/test_municipal_education_overview.py data_pipeline/tests/test_materialize_municipal_education_overview.py data_pipeline/tests/test_higher_education.py data_pipeline/tests/test_special_education_materialization.py',
+  'A suíte focada de parametrização estadual da Educação deve permanecer exposta.',
 )
 const municipalContract = updateSource.match(
   /MUNICIPAL_STATIC_FILES\s*=\s*frozenset\(\s*\{([\s\S]*?)\}\s*\)/,
