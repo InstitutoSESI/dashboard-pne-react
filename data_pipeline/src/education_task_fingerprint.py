@@ -1,8 +1,9 @@
-"""Fingerprint shadow da tarefa principal de Educacao do Rio Grande do Sul.
+"""Fingerprint da tarefa principal de Educacao do Rio Grande do Sul.
 
-O modulo mede elegibilidade para reutilizacao, mas deliberadamente nao pula
-consultas, materializacao, validacao ou promocao. O estado local e apenas uma
-prova de integridade: nunca e usado como fonte analitica.
+O contrato atende ao modo shadow e ao modo incremental opt-in. A elegibilidade
+so autoriza reutilizacao quando fontes, codigo executado e todos os outputs
+administrados forem verificaveis. O estado local e uma prova de integridade e
+nunca e usado como fonte analitica.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ OUTPUT_MANIFEST_SCHEMA_VERSION = "education-output-manifest-v1"
 OUTPUT_TREE_ALGORITHM_VERSION = "education-output-tree-sha256-v1"
 SOURCE_DIGESTS_SCHEMA_VERSION = "education-source-digests-v1"
 CONTRACT_DIGESTS_SCHEMA_VERSION = "education-contract-digests-v1"
+CONTRACT_FILE_DIGEST_ALGORITHM_VERSION = "education-contract-file-sha256-v1"
 NULL_POLICY = "pandas-isna-single-null-v1"
 ROW_ORDER_POLICY = "multiset-row-hash-v1"
 COLUMN_ORDER_POLICY = "contractual-column-order-v1"
@@ -234,6 +236,16 @@ class OutputIntegrityResult:
     reason: str
     managed_outputs: int = 0
     output_bytes_verified: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedPythonModuleContract:
+    """Modulo Python importado cuja origem sera hashada sem serializar seu path."""
+
+    contract_id: str
+    module_name: str
+    source_path: Path
+    version: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -489,11 +501,119 @@ def _validate_relative_contract_path(value: str) -> PurePosixPath:
     return relative
 
 
+def _python_module_candidates(
+    module_name: str,
+    search_paths: Sequence[str],
+) -> set[Path]:
+    parts = module_name.split(".")
+    candidates: set[Path] = set()
+    for raw_root in search_paths:
+        try:
+            root = Path(raw_root or os.curdir).resolve()
+        except (OSError, RuntimeError):
+            continue
+        module_file = root.joinpath(*parts).with_suffix(".py")
+        package_file = root.joinpath(*parts, "__init__.py")
+        for candidate in (module_file, package_file):
+            try:
+                if candidate.is_file():
+                    candidates.add(candidate.resolve(strict=True))
+            except (OSError, RuntimeError):
+                continue
+    return candidates
+
+
+def _normalized_module_version(module: Any) -> str | None:
+    raw_version = getattr(module, "__version__", None)
+    if raw_version is None:
+        return None
+    if isinstance(raw_version, tuple):
+        raw_version = ".".join(str(part) for part in raw_version)
+    if not isinstance(raw_version, (str, int, float)) or isinstance(
+        raw_version, bool
+    ):
+        raise EducationFingerprintError(
+            "Versao do modulo Python externo nao e verificavel."
+        )
+    version = str(raw_version)
+    if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,63}", version) is None:
+        raise EducationFingerprintError(
+            "Versao do modulo Python externo possui formato inseguro."
+        )
+    return version
+
+
+def resolve_imported_python_module_contract(
+    module_name: str,
+    *,
+    contract_id: str,
+    search_paths: Sequence[str] | None = None,
+) -> ResolvedPythonModuleContract:
+    """Resolve exatamente o arquivo fonte do modulo que ja foi importado.
+
+    Nome, tamanho, mtime ou um path configurado isoladamente nunca autorizam o
+    contrato. Modulo ausente, origem nao-fonte ou mais de um candidato importavel
+    produzem erro fail-closed para que o chamador execute o fluxo integral.
+    """
+
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", module_name) is None:
+        raise EducationFingerprintError("Nome de modulo Python externo invalido.")
+    if re.fullmatch(r"[a-z0-9_.:-]+", contract_id) is None:
+        raise EducationFingerprintError("Identificador de contrato externo invalido.")
+
+    module = sys.modules.get(module_name)
+    if module is None:
+        raise EducationFingerprintError(
+            f"Modulo Python externo ainda nao foi importado: {module_name}."
+        )
+    module_file = getattr(module, "__file__", None)
+    spec = getattr(module, "__spec__", None)
+    spec_origin = getattr(spec, "origin", None)
+    if not isinstance(module_file, str) or not isinstance(spec_origin, str):
+        raise EducationFingerprintError(
+            f"Origem do modulo Python externo nao e verificavel: {module_name}."
+        )
+    try:
+        resolved_origins = {
+            Path(module_file).resolve(strict=True),
+            Path(spec_origin).resolve(strict=True),
+        }
+    except (OSError, RuntimeError) as exc:
+        raise EducationFingerprintError(
+            f"Arquivo fonte do modulo Python externo indisponivel: {module_name}."
+        ) from exc
+    if len(resolved_origins) != 1:
+        raise EducationFingerprintError(
+            f"Import ambiguo para o modulo Python externo: {module_name}."
+        )
+    source_path = next(iter(resolved_origins))
+    if source_path.suffix.casefold() != ".py" or not source_path.is_file():
+        raise EducationFingerprintError(
+            f"Modulo Python externo nao aponta para fonte .py: {module_name}."
+        )
+
+    candidates = _python_module_candidates(
+        module_name,
+        tuple(search_paths) if search_paths is not None else tuple(sys.path),
+    )
+    if candidates != {source_path}:
+        raise EducationFingerprintError(
+            f"Import ambiguo ou divergente para o modulo Python externo: {module_name}."
+        )
+    return ResolvedPythonModuleContract(
+        contract_id=contract_id,
+        module_name=module_name,
+        source_path=source_path,
+        version=_normalized_module_version(module),
+    )
+
+
 def digest_contract_files(
     repository_root: Path,
     *,
     allowlist: Sequence[str] = EDUCATION_CONTRACT_FILE_ALLOWLIST,
     external_contracts: Mapping[str, Path] | None = None,
+    external_python_contracts: Sequence[ResolvedPythonModuleContract] = (),
 ) -> dict[str, Any]:
     root = Path(repository_root).resolve()
     if len(set(allowlist)) != len(allowlist):
@@ -518,11 +638,15 @@ def digest_contract_files(
         )
     entries.sort(key=lambda item: item["path"])
     external_entries = []
+    external_ids: set[str] = set()
     for contract_id, path in sorted((external_contracts or {}).items()):
         if not re.fullmatch(r"[a-z0-9_.:-]+", contract_id):
             raise EducationFingerprintError(
                 f"Identificador de contrato externo invalido: {contract_id!r}."
             )
+        if contract_id in external_ids:
+            raise EducationFingerprintError("Contrato externo duplicado.")
+        external_ids.add(contract_id)
         external_path = Path(path)
         if not external_path.is_file():
             raise EducationFingerprintError(
@@ -533,13 +657,48 @@ def digest_contract_files(
         external_entries.append(
             {"contractId": contract_id, "size": size, "sha256": sha256}
         )
+    for contract in sorted(
+        external_python_contracts,
+        key=lambda item: (item.contract_id, item.module_name),
+    ):
+        if (
+            re.fullmatch(r"[a-z0-9_.:-]+", contract.contract_id) is None
+            or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", contract.module_name) is None
+        ):
+            raise EducationFingerprintError("Contrato Python externo invalido.")
+        if contract.contract_id in external_ids:
+            raise EducationFingerprintError("Contrato externo duplicado.")
+        external_ids.add(contract.contract_id)
+        source_path = Path(contract.source_path)
+        if source_path.suffix.casefold() != ".py" or not source_path.is_file():
+            raise EducationFingerprintError(
+                f"Fonte Python externa indisponivel: {contract.contract_id}."
+            )
+        sha256, size = _hash_file(source_path)
+        total_bytes += size
+        entry: dict[str, Any] = {
+            "contractId": contract.contract_id,
+            "moduleName": contract.module_name,
+            "sourceKind": "python-module",
+            "size": size,
+            "sha256": sha256,
+        }
+        if contract.version is not None:
+            entry["version"] = contract.version
+        external_entries.append(entry)
+    external_entries.sort(key=lambda item: str(item["contractId"]))
     aggregate = _sha256_bytes(
         canonical_json_bytes(
-            {"repositoryFiles": entries, "externalContracts": external_entries}
+            {
+                "algorithmVersion": CONTRACT_FILE_DIGEST_ALGORITHM_VERSION,
+                "repositoryFiles": entries,
+                "externalContracts": external_entries,
+            }
         )
     )
     return {
         "schemaVersion": CONTRACT_DIGESTS_SCHEMA_VERSION,
+        "algorithmVersion": CONTRACT_FILE_DIGEST_ALGORITHM_VERSION,
         "aggregateSha256": aggregate,
         "files": entries,
         "externalContracts": external_entries,
@@ -928,6 +1087,13 @@ def load_task_state(path: Path) -> TaskStateLoadResult:
                 ValueError(f"Constante JSON nao finita: {value}")
             ),
         )
+        if (
+            isinstance(payload, dict)
+            and "algorithmVersion" in payload
+            and payload.get("algorithmVersion")
+            != INPUT_FINGERPRINT_ALGORITHM_VERSION
+        ):
+            return TaskStateLoadResult(None, "algorithm_changed")
         _validate_task_state_structure(payload)
     except EducationOutputIntegrityError as exc:
         return TaskStateLoadResult(None, exc.reason)
@@ -1092,6 +1258,7 @@ def source_audit_rows(source_digests: Mapping[str, Any]) -> list[dict[str, Any]]
 
 __all__ = [
     "COLUMN_ORDER_POLICY",
+    "CONTRACT_FILE_DIGEST_ALGORITHM_VERSION",
     "CONTRACT_DIGESTS_SCHEMA_VERSION",
     "EDUCATION_CONTRACT_FILE_ALLOWLIST",
     "EDUCATION_SOURCE_DEFINITIONS",
@@ -1106,6 +1273,7 @@ __all__ = [
     "NULL_POLICY",
     "OUTPUT_MANIFEST_SCHEMA_VERSION",
     "ROW_ORDER_POLICY",
+    "ResolvedPythonModuleContract",
     "SOURCE_DIGEST_ALGORITHM_VERSION",
     "STATE_CODE",
     "ShadowDecision",
@@ -1124,6 +1292,7 @@ __all__ = [
     "expected_managed_output_paths",
     "load_task_state",
     "runtime_contract",
+    "resolve_imported_python_module_contract",
     "source_audit_rows",
     "verify_output_manifest",
     "write_task_state_atomic",

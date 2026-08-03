@@ -116,6 +116,12 @@ npm run update:education-data
 # Mede elegibilidade shadow e ainda executa a Educação integralmente
 npm run update:education-data:fingerprint-shadow
 
+# Reutiliza somente Educação quando o hit forte for comprovado
+npm run update:education-data:incremental
+
+# Pipeline geral com apenas a etapa de Educação incremental
+npm run update:data:education-incremental
+
 # Alias histórico do fluxo padrão sem build
 npm run update:data:skip-build
 
@@ -156,7 +162,7 @@ npm run test:pipeline-education-state
 # Valida staging, fail-closed, no-op, promoção, rollback e orquestração
 npm run test:pipeline-education-publication
 
-# Valida digests, contratos, manifesto de 499 outputs e decisão shadow
+# Valida os 51 cenários shadow e os casos adicionais de skip real
 npm run test:pipeline-education-fingerprint
 
 # Validação rápida do código da aplicação
@@ -351,21 +357,24 @@ O baseline de auditoria da Etapa 5B2 fica somente no diretório ignorado
 `update:education-data`, consulta a banco, regeneração nem promoção de dados
 reais.
 
-### Fingerprint shadow 5D2A
+### Fingerprint shadow 5D2A e skip opt-in 5D2B
 
 O comando operacional explícito é:
 
 ```powershell
 npm run update:education-data:fingerprint-shadow
+npm run update:education-data:incremental
+npm run update:data:education-incremental
 ```
 
-Ele propaga `--education-fingerprint-shadow` ao orquestrador e
-`--fingerprint-shadow` ao exportador. Sem essas flags, nenhum digest novo é
-calculado e nenhum task state é lido ou escrito. `--help` não cria diretório;
-em `--dry-run`, a CLI apenas informa que o shadow foi solicitado, sem banco ou
-digest tabular. Lotes parciais continuam recusados. `AL` continua falhando
-antes do primeiro efeito. `--no-promote` pode calcular a decisão para inspeção,
-mas não grava estado porque não representa publicação final.
+Shadow propaga `--education-fingerprint-shadow` ao orquestrador e
+`--fingerprint-shadow` ao exportador. Incremental propaga
+`--education-fingerprint-skip` e `--fingerprint-skip`. Sem essas flags, nenhum
+digest novo é calculado e nenhum task state é lido ou escrito. `--help` não cria
+diretório; em `--dry-run`, a CLI apenas informa o modo, sem banco ou digest
+tabular. Lotes parciais continuam recusados e `AL` falha antes do primeiro
+efeito. `--no-promote` permanece disponível para shadow, mas é incompatível com
+skip porque não representa publicação final reutilizável.
 
 O contrato usa `taskId=education.core.rs`, estado `RS`, schema
 `education-task-fingerprint-v1`, algoritmo de fontes
@@ -374,7 +383,11 @@ O contrato usa `taskId=education.core.rs`, estado `RS`, schema
 reais: a tabela municipal, 15 views PostgreSQL e três tabelas PostgreSQL
 alimentadas por snapshots locais de Educação/População Indígena. Transformações
 em memória, como os contratos municipais de infraestrutura escolar e os blocos
-de apresentação, são cobertas pela allowlist de código e contrato.
+de apresentação, são cobertas pela allowlist de código e contrato. O
+`utils_educacao` efetivamente importado é resolvido antes do digest; seu arquivo
+`.py` participa por SHA-256 e versão explícita quando disponível. Path pessoal,
+conteúdo do módulo, `SESI_DB_DIR`, credenciais e URL não são serializados.
+Ausência, origem não verificável ou import ambíguo força execução integral.
 
 O digest tabular trata as linhas como multiconjunto: reordená-las não muda a
 identidade, mas valor, null, coluna, ordem contratual de colunas, dtype ou
@@ -400,20 +413,29 @@ A decisão exige manifesto anterior válido, mesmo `inputFingerprint` e os 499
 outputs atuais com mesmo tamanho/SHA-256/conjunto. `wouldSkip=false` registra
 motivos como `first_run`, `manifest_missing`, `manifest_invalid`,
 `input_changed`, `contract_changed`, `output_missing`, `output_changed`,
-`output_extra` ou `state_mismatch`; `eligible` é o único hit. Em qualquer caso,
-o shadow continua consultando, materializando, validando e promovendo. O task
-state novo só é gravado depois de promoção bem-sucedida ou no-op validado e da
-confirmação dos outputs finais. Falha de materialização, validação ou promoção
-nunca grava estado.
+`output_extra`, `state_mismatch` ou `algorithm_changed`; `eligible` é o único
+hit. Em qualquer caso, shadow continua consultando, materializando, validando e
+promovendo. No modo incremental, a decisão ocorre antes da criação do staging:
+um hit retorna `reused=true`, não chama a camada transacional e preserva bytes e
+mtimes dos 499 outputs e do task state. Um miss executa integralmente staging,
+materialização, validação e promoção/no-op. O state novo só é gravado depois da
+publicação confirmada; falha nunca substitui o anterior.
 
 Quando `--profile` também está ativo, os eventos agregados
 `education.fingerprint.sources`, `.contracts`, `.input`, `.output_integrity`,
-`.shadow_decision` e `.state_write` medem tempo, linhas, colunas, bytes e a
-decisão, sem eventos por linha ou município. Profiling responde quanto o fluxo
-custou; fingerprint responde se entradas e outputs são idênticos. **5D2A mede
-elegibilidade, mas ainda executa a Educação integralmente.** A 5D2B futura
-poderá avaliar skip real somente depois desta prova, sem changed-only, cache por
-fonte/município ou redução de validações nesta etapa.
+`.shadow_decision`, `.skip_decision` e `.state_write` medem tempo, linhas,
+colunas, bytes e a decisão, sem eventos por linha ou município. Hit real registra
+`fingerprintHit=1`, `wouldSkip=1`, `actuallySkipped=1`, `stagingCreated=0`, zero
+municípios, arquivos e bytes renderizados. Shadow nunca registra
+`actuallySkipped=1`; sem flags não existe evento de fingerprint. Profiling
+responde quanto o fluxo custou; fingerprint responde se entradas e outputs são
+idênticos.
+
+Mesmo com Educação reutilizada, o orquestrador continua desigualdade, sync
+quando pertencente ao pipeline geral, `validate:details` e build apenas quando
+explicitamente solicitado. Falha posterior continua sendo erro. O resumo usa
+`reused=true` para hit e `publicationNoop=true` para uma publicação integral que
+não precisou trocar bytes; os resultados não são equivalentes.
 
 Validação dedicada:
 

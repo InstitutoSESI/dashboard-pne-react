@@ -566,6 +566,11 @@ def _run_exporter_shadow(
 
     monkeypatch.setattr(EXPORTER, "default_public_root", lambda: public_root)
     monkeypatch.setattr(EXPORTER, "_get_education_engine", lambda: object())
+    monkeypatch.setattr(
+        EXPORTER,
+        "resolve_imported_python_module_contract",
+        lambda *_args, **_kwargs: object(),
+    )
     monkeypatch.setattr(EXPORTER, "carregar_municipios", lambda *_args: municipalities)
     monkeypatch.setattr(
         EXPORTER,

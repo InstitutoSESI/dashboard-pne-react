@@ -14,6 +14,7 @@ Estrutura de saida:
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import time
@@ -67,6 +68,7 @@ from src.education_task_fingerprint import (  # noqa: E402
     digest_education_sources,
     evaluate_shadow_eligibility,
     load_task_state,
+    resolve_imported_python_module_contract,
     write_task_state_atomic,
 )
 from src.pipeline_profiling import (  # noqa: E402
@@ -117,9 +119,72 @@ SESI_DB = SESI_DB_DIR
 SAIDA: Path | None = None
 SAIDA_MUN: Path | None = None
 SAIDA_REG: Path | None = None
+EDUCATION_RESULT_ENV = "PNE_EDUCATION_RESULT_PATH"
+EDUCATION_RESULT_SCHEMA_VERSION = "education-run-result-v1"
 
 sys.path.insert(0, str(SESI_DB))
 DATA_EXPORTACAO = datetime.now().strftime("%Y-%m-%d")
+
+
+def emit_education_result(**values) -> dict:
+    """Publica resultado operacional sanitizado sem misturá-lo ao task state."""
+
+    payload = {
+        "schemaVersion": EDUCATION_RESULT_SCHEMA_VERSION,
+        "reused": bool(values.get("reused", False)),
+        "publicationNoop": bool(values.get("publication_noop", False)),
+        "reason": str(values.get("reason", "integral")),
+        "stagingCreated": int(values.get("staging_created", 0)),
+        "municipalitiesMaterialized": int(
+            values.get("municipalities_materialized", 0)
+        ),
+        "filesRendered": int(values.get("files_rendered", 0)),
+        "bytesRendered": int(values.get("bytes_rendered", 0)),
+        "filesValidated": int(values.get("files_validated", 0)),
+        "promoted": bool(values.get("promoted", False)),
+        "stateWritten": bool(values.get("state_written", False)),
+    }
+    serialized = json.dumps(
+        payload,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    print(f"[education-result] {serialized}", flush=True)
+    requested_path = os.environ.get(EDUCATION_RESULT_ENV)
+    if not requested_path:
+        return payload
+    destination = Path(requested_path).resolve()
+    forbidden_roots = (
+        (REPO_ROOT / "public" / "data").resolve(),
+        (DATA_PIPELINE_DIR / "data").resolve(),
+    )
+    if destination.suffix.casefold() != ".json" or any(
+        destination == root or root in destination.parents for root in forbidden_roots
+    ):
+        raise EducationPublicationError(
+            "Destino do resultado operacional educacional e inseguro."
+        )
+    if not destination.parent.is_dir():
+        raise EducationPublicationError(
+            "Diretorio do resultado operacional educacional nao existe."
+        )
+    temporary = destination.with_name(f".{destination.name}.{os.getpid()}.tmp")
+    if temporary.exists():
+        raise EducationPublicationError(
+            "Temporario do resultado operacional educacional ja existe."
+        )
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write(serialized + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+    return payload
 
 
 def configure_education_output_root(output_root: Path) -> None:
@@ -3311,6 +3376,196 @@ def diagnosticar_jsons(gerados_mun):
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
+def load_education_inputs(state_config, registry, *, diagnostic=False):
+    """Carrega uma unica vez todas as fontes da tarefa educacional."""
+
+    with profile_operation(
+        "query",
+        "education.sources",
+        metadata={"eventGranularity": "aggregate"},
+    ) as sources_event:
+        engine = _get_education_engine()
+        with Timer("carregar_municipios"):
+            municipalities = carregar_municipios(
+                engine,
+                state_config,
+                registry,
+            )
+        municipality_ids = municipalities["id_municipio"].tolist()
+        log(
+            f"Municipios {state_config.state_code} carregados: "
+            f"{len(municipality_ids)}"
+        )
+
+        log("Carregando views...")
+        frames = {}
+        for view_name, key in EDUCATION_VIEWS:
+            with Timer(f"Carregar {view_name}"):
+                frame = carregar_view(
+                    engine,
+                    view_name,
+                    municipality_ids,
+                    registry,
+                )
+                frames[key] = frame
+            log(f"  {view_name}: {len(frame)} linhas")
+        sources_event.add_counters(
+            sourceFrames=len(frames) + 1,
+            sourceRows=len(municipalities)
+            + sum(len(frame) for frame in frames.values()),
+        )
+
+    available_years = {}
+    for name, frame in frames.items():
+        if name == "matriculas_educacao_basica":
+            continue
+        if not frame.empty and "ano" in frame.columns:
+            available_years[name] = sorted(frame["ano"].unique().tolist())
+        elif not frame.empty and "ano_fundeb" in frame.columns:
+            available_years[name] = sorted(
+                frame["ano_fundeb"].unique().tolist()
+            )
+    if diagnostic:
+        log(f"Anos disponiveis por view: {available_years}")
+    return {
+        "municipalities": municipalities,
+        "municipalityIds": municipality_ids,
+        "frames": frames,
+        "availableYears": available_years,
+    }
+
+
+def calculate_education_fingerprint(
+    *,
+    inputs,
+    state_config,
+    registry,
+    public_root,
+    mode,
+):
+    """Calcula a decisao fail-closed sem criar staging ou escrever state."""
+
+    source_frames = {
+        "municipalities": inputs["municipalities"],
+        **inputs["frames"],
+    }
+    with profile_operation(
+        "compute",
+        "education.fingerprint.sources",
+        metadata={"eventGranularity": "aggregate"},
+    ) as source_event:
+        source_digests = digest_education_sources(source_frames)
+        source_event.add_counters(**source_digests["stats"])
+
+    with profile_operation(
+        "read",
+        "education.fingerprint.contracts",
+        metadata={"allowlist": "education-explicit-v1"},
+    ) as contract_event:
+        utils_contract = resolve_imported_python_module_contract(
+            "utils_educacao",
+            contract_id="utils_educacao",
+        )
+        contract_digests = digest_contract_files(
+            REPO_ROOT,
+            external_python_contracts=(utils_contract,),
+        )
+        contract_event.add_counters(
+            contracts=contract_digests["fileCount"],
+            bytesHashed=contract_digests["bytesHashed"],
+        )
+
+    with profile_operation(
+        "compute",
+        "education.fingerprint.input",
+        metadata={"taskId": EDUCATION_TASK_ID},
+    ) as input_event:
+        input_fingerprint = build_input_fingerprint(
+            source_digests,
+            contract_digests,
+            state_code=state_config.state_code,
+            execution_parameters={
+                "municipalityCount": registry.municipality_count,
+                "publicationContract": "transactional-full-v1",
+                "outputCount": registry.municipality_count + 2,
+            },
+        )
+        input_event.add_counter("bytesHashed", input_fingerprint["bytesHashed"])
+
+    task_state_path = default_task_state_path(DATA_PIPELINE_DIR)
+    previous_state = load_task_state(task_state_path)
+    with profile_operation(
+        "validation",
+        "education.fingerprint.output_integrity",
+        metadata={"phase": f"{mode}_decision"},
+    ) as output_event:
+        decision = evaluate_shadow_eligibility(
+            previous_state,
+            input_fingerprint,
+            contract_digests,
+            public_root,
+            inputs["municipalityIds"],
+        )
+        output_event.add_counters(
+            managedOutputs=decision.output_integrity.managed_outputs,
+            outputBytesVerified=decision.output_integrity.output_bytes_verified,
+            manifestInvalid=int(decision.manifest_invalid),
+        )
+    actually_skipped = mode == "skip" and decision.would_skip
+    with profile_operation(
+        "orchestration",
+        f"education.fingerprint.{mode}_decision",
+        counters={
+            "fingerprintHit": int(decision.fingerprint_hit),
+            "wouldSkip": int(decision.would_skip),
+            "actuallySkipped": int(actually_skipped),
+            "manifestInvalid": int(decision.manifest_invalid),
+        },
+        metadata={
+            "taskId": EDUCATION_TASK_ID,
+            "reason": decision.reason,
+            "shadowOnly": mode == "shadow",
+        },
+    ):
+        pass
+    log(
+        f"Fingerprint {mode}: taskId={EDUCATION_TASK_ID} "
+        f"inputFingerprint={input_fingerprint['inputFingerprint']} "
+        f"wouldSkip={str(decision.would_skip).lower()} "
+        f"reason={decision.reason}"
+    )
+    return {
+        "sourceDigests": source_digests,
+        "contractDigests": contract_digests,
+        "inputFingerprint": input_fingerprint,
+        "decision": decision,
+        "taskStatePath": task_state_path,
+    }
+
+
+def record_fingerprint_error(mode, exc):
+    with profile_operation(
+        "orchestration",
+        f"education.fingerprint.{mode}_decision",
+        counters={
+            "fingerprintHit": 0,
+            "wouldSkip": 0,
+            "actuallySkipped": 0,
+            "manifestInvalid": 1,
+        },
+        metadata={
+            "taskId": EDUCATION_TASK_ID,
+            "reason": "fingerprint_error",
+            "shadowOnly": mode == "shadow",
+        },
+    ):
+        pass
+    log(
+        f"Fingerprint {mode} indisponivel; wouldSkip=false "
+        f"reason=fingerprint_error ({type(exc).__name__})."
+    )
+
+
 @profiled_main_from_environment("education")
 def main(argv=None):
     parser = argparse.ArgumentParser(
@@ -3376,7 +3631,8 @@ def main(argv=None):
         action="store_true",
         help="Gera e valida integralmente, mas preserva o staging sem publicar.",
     )
-    parser.add_argument(
+    fingerprint_group = parser.add_mutually_exclusive_group()
+    fingerprint_group.add_argument(
         "--fingerprint-shadow",
         action="store_true",
         help=(
@@ -3384,7 +3640,17 @@ def main(argv=None):
             "executando o fluxo integral sem skip real."
         ),
     )
+    fingerprint_group.add_argument(
+        "--fingerprint-skip",
+        action="store_true",
+        help=(
+            "Reutiliza a publicacao somente quando o fingerprint e os 499 "
+            "outputs forem comprovadamente integros."
+        ),
+    )
     args = parser.parse_args(argv)
+    if args.fingerprint_skip and args.no_promote:
+        parser.error("--fingerprint-skip nao pode ser combinado com --no-promote.")
 
     try:
         with profile_operation(
@@ -3440,9 +3706,10 @@ def main(argv=None):
         print(f"[education] Destino após validação integral: {public_root}.")
         if args.no_promote:
             print("[education] Promoção: desativada por --no-promote.")
-        if args.fingerprint_shadow:
+        if args.fingerprint_shadow or args.fingerprint_skip:
+            mode = "shadow" if args.fingerprint_shadow else "skip"
             print(
-                "[education] Fingerprint shadow solicitado: o dry-run não calcula "
+                f"[education] Fingerprint {mode} solicitado: o dry-run não calcula "
                 "digests nem lê ou grava task state."
             )
         with profile_operation(
@@ -3458,6 +3725,75 @@ def main(argv=None):
         return 0
 
     generation_summary = {}
+    fingerprint_mode = (
+        "skip"
+        if args.fingerprint_skip
+        else "shadow"
+        if args.fingerprint_shadow
+        else None
+    )
+    prepared_inputs = None
+
+    if fingerprint_mode == "skip":
+        log("Preparando decisao incremental antes de criar staging...")
+        prepared_inputs = load_education_inputs(
+            state_config,
+            registry,
+            diagnostic=args.diagnostic,
+        )
+        try:
+            skip_context = calculate_education_fingerprint(
+                inputs=prepared_inputs,
+                state_config=state_config,
+                registry=registry,
+                public_root=public_root,
+                mode="skip",
+            )
+            generation_summary["fingerprint"] = skip_context
+        except Exception as exc:
+            generation_summary["fingerprintError"] = type(exc).__name__
+            record_fingerprint_error("skip", exc)
+        else:
+            decision = skip_context["decision"]
+            if decision.would_skip:
+                log(
+                    "Reutilizacao confirmada: zero staging, materializacao, "
+                    "validacao de staging, promocao, backup ou rollback."
+                )
+                with profile_operation(
+                    "orchestration",
+                    "education.result",
+                    counters={
+                        "fingerprintHit": 1,
+                        "wouldSkip": 1,
+                        "actuallySkipped": 1,
+                        "stagingCreated": 0,
+                        "municipalitiesMaterialized": 0,
+                        "filesRendered": 0,
+                        "bytesRendered": 0,
+                        "filesValidated": 0,
+                    },
+                    metadata={"reused": True, "reason": decision.reason},
+                ):
+                    pass
+                emit_education_result(
+                    reused=True,
+                    publication_noop=False,
+                    reason=decision.reason,
+                    staging_created=0,
+                    municipalities_materialized=0,
+                    files_rendered=0,
+                    bytes_rendered=0,
+                    files_validated=0,
+                    promoted=False,
+                    state_written=False,
+                )
+                log("RESUMO FINAL: reused=true, publicationNoop=false")
+                return 0
+            log(
+                "Modo incremental: elegibilidade nao comprovada; "
+                "a Educacao sera executada integralmente."
+            )
 
     def materialize(output_root):
         log("=" * 60)
@@ -3470,44 +3806,15 @@ def main(argv=None):
             log("MODO DIAGNOSTICO ativado")
         log("")
 
-        engine = _get_education_engine()
-        with Timer("carregar_municipios"):
-            municipalities = carregar_municipios(
-                engine,
-                state_config,
-                registry,
-            )
-        municipality_ids = municipalities["id_municipio"].tolist()
-        log(
-            f"Municipios {state_config.state_code} carregados: "
-            f"{len(municipality_ids)}"
+        inputs = prepared_inputs or load_education_inputs(
+            state_config,
+            registry,
+            diagnostic=args.diagnostic,
         )
-
-        log("Carregando views...")
-        frames = {}
-        for view_name, key in EDUCATION_VIEWS:
-            with Timer(f"Carregar {view_name}"):
-                frame = carregar_view(
-                    engine,
-                    view_name,
-                    municipality_ids,
-                    registry,
-                )
-                frames[key] = frame
-            log(f"  {view_name}: {len(frame)} linhas")
-
-        available_years = {}
-        for name, frame in frames.items():
-            if name == "matriculas_educacao_basica":
-                continue
-            if not frame.empty and "ano" in frame.columns:
-                available_years[name] = sorted(frame["ano"].unique().tolist())
-            elif not frame.empty and "ano_fundeb" in frame.columns:
-                available_years[name] = sorted(
-                    frame["ano_fundeb"].unique().tolist()
-                )
-        if args.diagnostic:
-            log(f"Anos disponiveis por view: {available_years}")
+        municipalities = inputs["municipalities"]
+        municipality_ids = inputs["municipalityIds"]
+        frames = inputs["frames"]
+        available_years = inputs["availableYears"]
 
         if args.fingerprint_shadow:
             try:
@@ -3525,11 +3832,13 @@ def main(argv=None):
                     "education.fingerprint.contracts",
                     metadata={"allowlist": "education-explicit-v1"},
                 ) as contract_event:
+                    utils_contract = resolve_imported_python_module_contract(
+                        "utils_educacao",
+                        contract_id="utils_educacao",
+                    )
                     contract_digests = digest_contract_files(
                         REPO_ROOT,
-                        external_contracts={
-                            "utils_educacao": SESI_DB_DIR / "utils_educacao.py"
-                        },
+                        external_python_contracts=(utils_contract,),
                     )
                     contract_event.add_counters(
                         contracts=contract_digests["fileCount"],
@@ -3582,6 +3891,7 @@ def main(argv=None):
                     counters={
                         "fingerprintHit": int(decision.fingerprint_hit),
                         "wouldSkip": int(decision.would_skip),
+                        "actuallySkipped": 0,
                         "manifestInvalid": int(decision.manifest_invalid),
                     },
                     metadata={
@@ -3617,6 +3927,7 @@ def main(argv=None):
                     counters={
                         "fingerprintHit": 0,
                         "wouldSkip": 0,
+                        "actuallySkipped": 0,
                         "manifestInvalid": 1,
                     },
                     metadata={
@@ -3646,11 +3957,17 @@ def main(argv=None):
             route_compatibility,
             output_root=output_root,
         )
+        rendered_paths = tuple(
+            path for path in Path(output_root).rglob("*") if path.is_file()
+        )
+        rendered_bytes = sum(path.stat().st_size for path in rendered_paths)
         generation_summary.update(
             generated=generated,
             written=written,
             sizes=sizes,
             validation=validation,
+            filesRendered=generated + 2,
+            bytesRendered=rendered_bytes,
         )
 
     try:
@@ -3669,7 +3986,8 @@ def main(argv=None):
         print(f"[education] Publicação recusada: {exc}", file=sys.stderr)
         return 1
 
-    if args.fingerprint_shadow:
+    state_written = False
+    if fingerprint_mode:
         fingerprint = generation_summary.get("fingerprint")
         if result.stats is None:
             with profile_operation(
@@ -3679,7 +3997,7 @@ def main(argv=None):
                 metadata={"reason": "no_promote"},
             ):
                 pass
-            log("Fingerprint shadow: task state não gravado por --no-promote.")
+            log(f"Fingerprint {fingerprint_mode}: task state não gravado por --no-promote.")
         elif fingerprint is None:
             with profile_operation(
                 "write",
@@ -3727,14 +4045,15 @@ def main(argv=None):
                         manifestWritten=1,
                         managedOutputs=output_manifest["managedOutputCount"],
                     )
+                state_written = True
                 log(
-                    "Fingerprint shadow: task state atômico gravado somente após "
+                    f"Fingerprint {fingerprint_mode}: task state atômico gravado somente após "
                     "a publicação final confirmada."
                 )
             except Exception as exc:
                 print(
-                    "[education] Falha ao confirmar task state shadow: "
-                    f"{type(exc).__name__}: {exc}",
+                    f"[education] Falha ao confirmar task state {fingerprint_mode}: "
+                    f"{type(exc).__name__}.",
                     file=sys.stderr,
                 )
                 return 1
@@ -3762,12 +4081,45 @@ def main(argv=None):
         for path in generation_summary.get("written", []):
             log(f"  {path}")
     sizes = generation_summary.get("sizes", [])
-    rendered_bytes = sum(size for _municipality_id, _name, size in sizes)
+    rendered_bytes = generation_summary.get(
+        "bytesRendered",
+        sum(size for _municipality_id, _name, size in sizes),
+    )
+    files_rendered = generation_summary.get(
+        "filesRendered",
+        result.validation.municipality_count + 2,
+    )
+    publication_noop = bool(
+        result.stats is not None
+        and result.stats.created == 0
+        and result.stats.updated == 0
+        and result.stats.removed == 0
+    )
     result_counters = {
         "municipalities": result.validation.municipality_count,
+        "municipalitiesMaterialized": result.validation.municipality_count,
+        "filesRendered": files_rendered,
         "filesValidated": len(result.validation.files),
         "bytesRendered": rendered_bytes,
+        "stagingCreated": 1,
     }
+    result_metadata = {
+        "promoted": result.stats is not None,
+        "reused": False,
+        "publicationNoop": publication_noop,
+    }
+    result_reason = "integral"
+    if fingerprint_mode:
+        fingerprint = generation_summary.get("fingerprint")
+        decision = fingerprint.get("decision") if fingerprint else None
+        result_reason = decision.reason if decision is not None else "fingerprint_error"
+        result_counters.update(
+            fingerprintHit=int(decision.fingerprint_hit) if decision else 0,
+            wouldSkip=int(decision.would_skip) if decision else 0,
+            actuallySkipped=0,
+        )
+        result_metadata["fingerprintMode"] = fingerprint_mode
+        result_metadata["reason"] = result_reason
     if result.stats is not None:
         result_counters.update(
             created=result.stats.created,
@@ -3779,9 +4131,25 @@ def main(argv=None):
         "orchestration",
         "education.result",
         counters=result_counters,
-        metadata={"promoted": result.stats is not None},
+        metadata=result_metadata,
     ):
         pass
+    emit_education_result(
+        reused=False,
+        publication_noop=publication_noop,
+        reason=result_reason,
+        staging_created=1,
+        municipalities_materialized=result.validation.municipality_count,
+        files_rendered=files_rendered,
+        bytes_rendered=rendered_bytes,
+        files_validated=len(result.validation.files),
+        promoted=result.stats is not None,
+        state_written=state_written,
+    )
+    log(
+        "Resultado operacional: reused=false "
+        f"publicationNoop={str(publication_noop).lower()}"
+    )
     elapsed = time.time() - _START_TIME
     log(f"Tempo total: {elapsed:.1f}s")
     return 0

@@ -476,8 +476,10 @@ const expectedBuildScripts = {
   'update:data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py',
   'update:data:skip-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --skip-build',
   'update:data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --build',
+  'update:data:education-incremental': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-fingerprint-skip',
   'update:education-data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only',
   'update:education-data:fingerprint-shadow': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --education-fingerprint-shadow',
+  'update:education-data:incremental': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --education-fingerprint-skip',
   'update:education-data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --build',
 }
 for (const [name, expected] of Object.entries(expectedBuildScripts)) {
@@ -509,11 +511,13 @@ const expectedUvPythonScripts = [
   'test:python',
   'check:python-deps',
   'update:education-data',
+  'update:education-data:incremental',
   'update:education-data:and-build',
   'update:indigenous-coverage',
   'update:data',
   'update:data:skip-build',
   'update:data:and-build',
+  'update:data:education-incremental',
   'verify:indicator',
   'validate:details',
   'test:pipeline-state-config',
@@ -537,6 +541,11 @@ for (const name of expectedUvPythonScripts) {
     )
   }
 }
+assert.equal(
+  packageJson.scripts?.['update:data:incremental'],
+  undefined,
+  'Nao deve existir update:data:incremental enquanto outros dominios nao forem incrementais.',
+)
 
 const profilingModulePath = 'data_pipeline/src/pipeline_profiling.py'
 const profilingTestPath = 'data_pipeline/tests/test_pipeline_profiling.py'
@@ -1054,8 +1063,10 @@ assert.equal(
 
 const educationFingerprintPath = 'data_pipeline/src/education_task_fingerprint.py'
 const educationFingerprintTestPath = 'data_pipeline/tests/test_education_task_fingerprint.py'
+const educationFingerprintSkipTestPath = 'data_pipeline/tests/test_education_fingerprint_skip.py'
 const educationFingerprintAbsolutePath = resolve(repoRoot, educationFingerprintPath)
 const educationFingerprintTestAbsolutePath = resolve(repoRoot, educationFingerprintTestPath)
+const educationFingerprintSkipTestAbsolutePath = resolve(repoRoot, educationFingerprintSkipTestPath)
 assert.ok(
   existsSync(educationFingerprintAbsolutePath),
   `Contrato de fingerprint educacional ausente: ${educationFingerprintPath}.`,
@@ -1064,8 +1075,13 @@ assert.ok(
   existsSync(educationFingerprintTestAbsolutePath),
   `Suite de fingerprint educacional ausente: ${educationFingerprintTestPath}.`,
 )
+assert.ok(
+  existsSync(educationFingerprintSkipTestAbsolutePath),
+  `Suite adicional de skip educacional ausente: ${educationFingerprintSkipTestPath}.`,
+)
 const educationFingerprintSource = readFileSync(educationFingerprintAbsolutePath, 'utf8')
 const educationFingerprintTestSource = readFileSync(educationFingerprintTestAbsolutePath, 'utf8')
+const educationFingerprintSkipTestSource = readFileSync(educationFingerprintSkipTestAbsolutePath, 'utf8')
 const trackedEducationTaskState = tracked.filter((path) => (
   /^data_pipeline\/export\/task-state\//.test(path)
   || /^public\/data\/.*task-state/.test(path)
@@ -1082,8 +1098,8 @@ assert.match(
 )
 assert.equal(
   packageJson.scripts?.['test:pipeline-education-fingerprint'],
-  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_education_task_fingerprint.py',
-  'A suite permanente do fingerprint deve usar uv e lock congelado.',
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_education_task_fingerprint.py data_pipeline/tests/test_education_fingerprint_skip.py',
+  'A suite permanente deve preservar a 5D2A e acrescentar os testes de skip.',
 )
 assert.match(
   educationExporterSource,
@@ -1094,6 +1110,16 @@ assert.match(
   updateSource,
   /['"]--education-fingerprint-shadow['"][\s\S]{0,180}?action=['"]store_true['"]/,
   'A propagacao do fingerprint deve permanecer opt-in.',
+)
+assert.match(
+  educationExporterSource,
+  /add_mutually_exclusive_group\(\)[\s\S]{0,700}?['"]--fingerprint-shadow['"][\s\S]{0,700}?['"]--fingerprint-skip['"]/,
+  'Shadow e skip do exportador devem ser opt-in e mutuamente exclusivos.',
+)
+assert.match(
+  updateSource,
+  /add_mutually_exclusive_group\(\)[\s\S]{0,700}?['"]--education-fingerprint-shadow['"][\s\S]{0,700}?['"]--education-fingerprint-skip['"]/,
+  'Shadow e skip do orquestrador devem ser opt-in e mutuamente exclusivos.',
 )
 assert.doesNotMatch(
   educationFingerprintSource,
@@ -1134,6 +1160,21 @@ assert.doesNotMatch(
 )
 assert.match(
   educationFingerprintSource,
+  /def resolve_imported_python_module_contract\([\s\S]*?sys\.modules\.get\(module_name\)[\s\S]*?_python_module_candidates\([\s\S]*?candidates != \{source_path\}/,
+  'Contrato Python externo deve resolver o modulo importado e recusar ambiguidade.',
+)
+assert.match(
+  educationFingerprintSource,
+  /external_python_contracts[\s\S]*?_hash_file\(source_path\)[\s\S]*?"sha256": sha256/,
+  'Contrato Python externo deve participar por SHA-256 do arquivo fonte real.',
+)
+assert.doesNotMatch(
+  educationFingerprintSource,
+  /external_entries\.append\([\s\S]{0,300}?["']path["']\s*:/,
+  'Paths pessoais de contratos externos nao podem entrar no task state.',
+)
+assert.match(
+  educationFingerprintSource,
   /_OPERATIONAL_COLUMN_NAMES[\s\S]{0,240}?["']data_carga["']/,
   'O timestamp operacional data_carga nao pode voltar a invalidar o fingerprint.',
 )
@@ -1160,6 +1201,9 @@ const publicationResultPosition = fingerprintMain.indexOf(
   'result = publish_education_transactionally(',
 )
 const stateWritePosition = fingerprintMain.indexOf('write_task_state_atomic(')
+const skipModePosition = fingerprintMain.indexOf('if fingerprint_mode == "skip":')
+const skipDecisionPosition = fingerprintMain.indexOf('if decision.would_skip:', skipModePosition)
+const materializeDefinitionPosition = fingerprintMain.indexOf('def materialize(output_root):')
 assert.ok(
   shadowDecisionPosition >= 0
     && shadowDecisionPosition < municipalMaterializationPosition
@@ -1167,10 +1211,12 @@ assert.ok(
     && publicationResultPosition < stateWritePosition,
   'Shadow deve decidir antes, executar o fluxo integral e gravar state somente depois da publicacao.',
 )
-assert.doesNotMatch(
-  fingerprintMain,
-  /if\s+decision\.would_skip\s*:/,
-  'wouldSkip shadow jamais pode pular materializacao.',
+assert.ok(
+  skipModePosition >= 0
+    && skipDecisionPosition > skipModePosition
+    && skipDecisionPosition < materializeDefinitionPosition
+    && materializeDefinitionPosition < publicationResultPosition,
+  'Skip elegivel deve retornar antes de definir/executar staging transacional.',
 )
 for (const requiredTest of [
   'test_digest_is_stable_between_controlled_processes',
@@ -1187,6 +1233,23 @@ for (const requiredTest of [
     educationFingerprintTestSource,
     new RegExp(`def ${requiredTest}\\b`),
     `Protecao permanente do fingerprint ausente: ${requiredTest}.`,
+  )
+}
+for (const requiredSkipTest of [
+  'test_eligible_skip_returns_reused_before_transaction',
+  'test_hit_avoids_every_transactional_effect',
+  'test_hit_preserves_task_state_bytes_and_mtime',
+  'test_hit_preserves_output_bytes_and_mtimes',
+  'test_every_classified_miss_executes_full_transaction_and_writes_state',
+  'test_resolved_utils_contract_hashes_actual_source_and_explicit_version',
+  'test_reuse_allows_full_pipeline_sync',
+  'test_profiling_hit_has_required_zero_work_counters',
+  'test_without_flags_emits_no_fingerprint_profile_event',
+]) {
+  assert.match(
+    educationFingerprintSkipTestSource,
+    new RegExp(`def ${requiredSkipTest}\\b`),
+    `Protecao permanente do skip educacional ausente: ${requiredSkipTest}.`,
   )
 }
 
@@ -1335,7 +1398,7 @@ assert.deepEqual(
 )
 
 const educationEntrypoints = new Map([
-  ['data_pipeline/scripts/export_education_indicators.py', '_get_education_engine()'],
+  ['data_pipeline/scripts/export_education_indicators.py', 'load_education_inputs('],
   ['data_pipeline/scripts/materialize_municipal_education_overview.py', 'get_local_postgres_engine()'],
   ['data_pipeline/scripts/sync_higher_education_from_sinopse.py', 'parse_higher_education_sources('],
   ['data_pipeline/scripts/materialize_special_education.py', 'load_special_education_school_source_data('],
@@ -1358,7 +1421,7 @@ for (const [path, firstEffect] of educationEntrypoints) {
   )
 }
 for (const [path, firstEffect] of [
-  ['data_pipeline/scripts/export_education_indicators.py', '_get_education_engine()'],
+  ['data_pipeline/scripts/export_education_indicators.py', 'load_education_inputs('],
   ['data_pipeline/scripts/materialize_special_education.py', 'load_special_education_school_source_data('],
   ['data_pipeline/scripts/validate_special_education.py', 'load_special_education_school_source_data('],
 ]) {

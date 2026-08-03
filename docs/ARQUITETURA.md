@@ -156,7 +156,7 @@ somente quando `series_total.valor` e `series_components.numerador` também
 reconciliam com `publica + privada`. O padrão misto de `temporarios` permanece
 uma compatibilidade histórica separada, sinalizada por warning.
 
-### Fingerprint shadow da Educação principal (5D2A)
+### Fingerprint shadow e skip opt-in da Educação principal (5D2A/5D2B)
 
 A tarefa piloto tem identidade estável `education.core.rs`, estado explícito
 `RS`, schema `education-task-fingerprint-v1` e algoritmo tabular
@@ -172,11 +172,14 @@ instáveis de agregações PostgreSQL em precisão muito superior à publicaçã
 
 O `inputFingerprint` combina os 19 digests tabulares, estado, registro dos 497
 municípios, compatibilidade dos 182 slugs, definição dos blocos, contrato de
-infraestrutura escolar, materialização, publicação transacional, repositório de
-dados, identificadores das relações/queries, adaptador `utils_educacao`,
-`uv.lock` e versões de Python, pandas e numpy. A allowlist usa caminhos
-explícitos relativos ao repositório; o adaptador externo participa somente por
-identificador lógico, tamanho e SHA-256, nunca por seu path local.
+infraestrutura escolar, materialização, publicação transacional, profiling,
+repositório de dados, identificadores das relações/queries, adaptador
+`utils_educacao`, `uv.lock` e versões de Python, pandas e numpy. A allowlist usa
+caminhos explícitos relativos ao repositório. O adaptador externo é resolvido a
+partir do módulo efetivamente importado e participa por identificador lógico,
+nome do módulo, versão quando declarada, tamanho e SHA-256 do arquivo `.py`,
+nunca por seu path local. Módulo ausente, não verificável ou com mais de um
+candidato importável produz miss seguro.
 
 Após uma promoção ou no-op confirmado, o piloto calcula o manifesto forte dos
 499 outputs administrados: `index.json`, `municipios_index.json` e os 497
@@ -191,11 +194,14 @@ corrompido é sempre miss seguro e nunca serve como fonte de dados.
 `wouldSkip=true` exige task state válido, mesmo `inputFingerprint` e paridade
 forte dos outputs públicos. Os motivos incluem `first_run`, `manifest_missing`,
 `manifest_invalid`, `input_changed`, `contract_changed`, `output_missing`,
-`output_changed`, `output_extra`, `state_mismatch` e `eligible`. Erro ou
-incerteza produz `wouldSkip=false`. Mesmo quando o motivo é `eligible`, a flag
-shadow continua executando consultas, materialização, staging, validações e
-promoção/no-op. **5D2A mede elegibilidade, mas ainda executa a Educação
-integralmente.** O skip real permanece reservado à futura 5D2B.
+`output_changed`, `output_extra`, `state_mismatch`, `algorithm_changed` e
+`eligible`. Erro ou incerteza produz `wouldSkip=false`. A flag shadow continua
+executando consultas, materialização, staging, validações e promoção/no-op mesmo
+quando elegível. A flag incremental, explicitamente opt-in, calcula a decisão
+antes de chamar a camada transacional e retorna `reused=true` somente para
+`eligible`; nesse caminho não cria staging, não materializa, não valida staging,
+não promove, não cria backup/rollback e não regrava o task state. Todo miss usa
+o fluxo 5B2 integral e só substitui o state depois da publicação confirmada.
 
 O task state e os profiles não armazenam credenciais, URL de conexão, ambiente
 completo, paths pessoais ou valores analíticos municipais. Profiling mede
@@ -241,10 +247,11 @@ arquivo são agregadas para não criar eventos por município, linha ou célula.
 Os relatórios ficam em `data_pipeline/export/profiles/<run-id>/`, fora de
 `public/data` e ignorados pelo Git. Eles não incluem dataset analítico, SQL com
 valores vinculados, credenciais, ambiente completo ou paths pessoais
-desnecessários. O profile mede o pipeline atual e orienta as Etapas 5D2–5D5;
-não cria fingerprint, cache persistente, changed-only ou qualquer execução
-incremental. Sem `--profile`, não há sessão, timers internos, serialização,
-fragmentos ou diretório de relatório.
+desnecessários. O profile mede o pipeline atual, inclusive a decisão incremental
+da Educação; ele não autoriza o hit nem funciona como cache. Em hit real, os
+counters registram `fingerprintHit=1`, `wouldSkip=1`, `actuallySkipped=1` e zero
+staging/materialização/renderização. Sem `--profile`, não há sessão, timers
+internos, serialização, fragmentos ou diretório de relatório.
 
 ## Publicação e segurança
 

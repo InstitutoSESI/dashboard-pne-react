@@ -97,6 +97,8 @@ projeto que fornece `utils_educacao`:
 npm run update:data
 npm run update:education-data
 npm run update:education-data:fingerprint-shadow
+npm run update:education-data:incremental
+npm run update:data:education-incremental
 ```
 
 O primeiro comando exporta, particiona, atualiza Educação, incorpora o documento
@@ -107,7 +109,12 @@ do fluxo padrão sem build.
 
 `npm run update:education-data:fingerprint-shadow` executa a mesma Educação
 integral e apenas reporta se a tarefa `education.core.rs` poderia ser pulada;
-nenhum skip de produção é ativado.
+nenhum skip é ativado. `update:education-data:incremental` torna o skip opt-in
+somente no fluxo `education-only`; `update:data:education-incremental` mantém os
+demais domínios integrais e torna incremental apenas a etapa educacional.
+Qualquer incerteza executa a publicação transacional completa. Em hit, o
+orquestrador ainda executa desigualdade, sync quando pertencente ao fluxo,
+validação e build quando explicitamente solicitado.
 
 O perfil de planejamento é opt-in e não executa subprocessos, banco, staging,
 sincronização ou build:
@@ -119,8 +126,9 @@ npm run update:data -- --state RS --dry-run --profile
 Uma execução real pode ser perfilada com `npm run update:data -- --state RS
 --profile`. Ela gera `profile.json` e `summary.json` em
 `data_pipeline/export/profiles/<run-id>/`, diretório ignorado pelo Git. O perfil
-mede o fluxo existente; não implementa execução incremental nem acelera o
-pipeline. O build só aparece no perfil quando `--build` é solicitado.
+mede tanto o fluxo integral quanto o hit incremental. Neste último, registra
+`actuallySkipped=1`, zero staging, municípios, arquivos e bytes renderizados.
+O build só aparece no perfil quando `--build` é solicitado.
 
 O build completo continua explícito e inclui toda a árvore `public`, portanto
 também `public/data`:

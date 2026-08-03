@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -70,6 +71,9 @@ class StepResult:
     name: str
     status: str
     duration: float | None = None
+    reused: bool = False
+    publication_noop: bool = False
+    reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,10 @@ class SyncStats:
     bytes_compared: int = 0
     bytes_copied: int = 0
     directories_examined: int = 0
+
+
+EDUCATION_RESULT_ENV = "PNE_EDUCATION_RESULT_PATH"
+EDUCATION_RESULT_SCHEMA_VERSION = "education-run-result-v1"
 
 
 def format_command(command: list[str]) -> str:
@@ -209,6 +217,81 @@ def run_command(name: str, command: list[str], results: list[StepResult]) -> Non
         raise SystemExit(completed.returncode)
     results.append(StepResult(name, "ok", duration))
     print(f"[update-data] {name} concluido em {duration:.1f}s.")
+
+
+def run_education_command(command: list[str], results: list[StepResult]) -> None:
+    """Executa Educacao e incorpora seu resultado sem persistir um sidecar."""
+
+    with tempfile.TemporaryDirectory(prefix="pne-education-result-") as temporary:
+        result_path = Path(temporary) / "education-result.json"
+        previous = os.environ.get(EDUCATION_RESULT_ENV)
+        os.environ[EDUCATION_RESULT_ENV] = str(result_path)
+        try:
+            run_command("education", command, results)
+        finally:
+            if previous is None:
+                os.environ.pop(EDUCATION_RESULT_ENV, None)
+            else:
+                os.environ[EDUCATION_RESULT_ENV] = previous
+
+        if not result_path.is_file():
+            return
+        try:
+            payload = json.loads(result_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Resultado operacional da Educacao e invalido.") from exc
+        required = {
+            "schemaVersion",
+            "reused",
+            "publicationNoop",
+            "reason",
+            "stagingCreated",
+            "municipalitiesMaterialized",
+            "filesRendered",
+            "bytesRendered",
+            "filesValidated",
+            "promoted",
+            "stateWritten",
+        }
+        counter_fields = (
+            "stagingCreated",
+            "municipalitiesMaterialized",
+            "filesRendered",
+            "bytesRendered",
+            "filesValidated",
+        )
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != required
+            or payload.get("schemaVersion") != EDUCATION_RESULT_SCHEMA_VERSION
+            or not isinstance(payload.get("reused"), bool)
+            or not isinstance(payload.get("publicationNoop"), bool)
+            or not isinstance(payload.get("reason"), str)
+            or not isinstance(payload.get("promoted"), bool)
+            or not isinstance(payload.get("stateWritten"), bool)
+            or any(
+                isinstance(payload.get(field), bool)
+                or not isinstance(payload.get(field), int)
+                or payload[field] < 0
+                for field in counter_fields
+            )
+        ):
+            raise RuntimeError("Contrato do resultado operacional da Educacao divergiu.")
+        if payload["reused"] and (
+            payload["publicationNoop"]
+            or payload["promoted"]
+            or payload["stateWritten"]
+            or any(payload[field] != 0 for field in counter_fields)
+        ):
+            raise RuntimeError("Resultado reused declarou efeito transacional.")
+        education_result = next(
+            (result for result in reversed(results) if result.name == "education"),
+            None,
+        )
+        if education_result is not None:
+            education_result.reused = payload["reused"]
+            education_result.publication_noop = payload["publicationNoop"]
+            education_result.reason = payload["reason"]
 
 
 def iter_files(root: Path) -> list[Path]:
@@ -627,7 +710,12 @@ def print_summary(
     print("[update-data] Resumo:")
     for result in results:
         duration = "" if result.duration is None else f" ({result.duration:.1f}s)"
-        print(f"  - {result.name}: {result.status}{duration}")
+        detail = ""
+        if result.reused:
+            detail = f", reused=true, reason={result.reason}"
+        elif result.publication_noop:
+            detail = ", reused=false, publicationNoop=true"
+        print(f"  - {result.name}: {result.status}{detail}{duration}")
     for name in skipped:
         print(f"  - {name}: pulado")
     print(f"[update-data] validate:details: {'passou' if validate_ok else 'nao executado'}")
@@ -664,12 +752,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Exporta somente Educacao, materializa a desigualdade e valida.",
     )
-    parser.add_argument(
+    education_fingerprint_group = parser.add_mutually_exclusive_group()
+    education_fingerprint_group.add_argument(
         "--education-fingerprint-shadow",
         action="store_true",
         help=(
             "Propaga o piloto de fingerprint shadow para a Educacao; mede "
             "wouldSkip, mas nao pula nenhuma etapa."
+        ),
+    )
+    education_fingerprint_group.add_argument(
+        "--education-fingerprint-skip",
+        action="store_true",
+        help=(
+            "Reutiliza somente a etapa de Educacao quando fingerprint e "
+            "outputs estiverem comprovadamente integros."
         ),
     )
     build_group = parser.add_mutually_exclusive_group()
@@ -728,13 +825,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if args.education_only and args.skip_education:
         raise SystemExit("--education-only e --skip-education sao mutuamente exclusivos.")
     shadow_requested = bool(getattr(args, "education_fingerprint_shadow", False))
-    if shadow_requested and args.skip_education:
+    skip_requested = bool(getattr(args, "education_fingerprint_skip", False))
+    fingerprint_requested = shadow_requested or skip_requested
+    selected_fingerprint_flag = (
+        "--education-fingerprint-skip"
+        if skip_requested
+        else "--education-fingerprint-shadow"
+    )
+    if fingerprint_requested and args.skip_education:
         raise SystemExit(
-            "--education-fingerprint-shadow requer a etapa de Educacao ativa."
+            f"{selected_fingerprint_flag} requer a etapa de Educacao ativa."
         )
-    if shadow_requested and args.validate_only:
+    if fingerprint_requested and args.validate_only:
         raise SystemExit(
-            "--education-fingerprint-shadow nao pode ser combinado com --validate-only."
+            f"{selected_fingerprint_flag} nao pode ser combinado com --validate-only."
         )
     try:
         with profile_operation(
@@ -779,6 +883,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
     ]
     if shadow_requested:
         education_command.append("--fingerprint-shadow")
+    elif skip_requested:
+        education_command.append("--fingerprint-skip")
     validate_command = [
         NPM,
         "run",
@@ -847,9 +953,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
     planned_commands.append(("validate", validate_command))
 
     if args.dry_run:
-        if shadow_requested:
+        if fingerprint_requested:
+            mode = "skip" if skip_requested else "shadow"
             print(
-                "[update-data] Fingerprint shadow solicitado no plano: nenhum "
+                f"[update-data] Fingerprint {mode} solicitado no plano: nenhum "
                 "digest tabular ou task state sera acessado no dry-run."
             )
         print_dry_run(planned_commands, run_sync=run_sync, run_build=run_build)
@@ -877,7 +984,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
             skipped.extend(["partition", "sync"])
 
         if run_education:
-            run_command("education", education_command, results)
+            run_education_command(education_command, results)
         else:
             skipped.append("education")
 
@@ -945,6 +1052,9 @@ def _profile_parameters(args: argparse.Namespace) -> dict[str, object]:
         "skipEducation": args.skip_education,
         "educationFingerprintShadow": bool(
             getattr(args, "education_fingerprint_shadow", False)
+        ),
+        "educationFingerprintSkip": bool(
+            getattr(args, "education_fingerprint_skip", False)
         ),
         "includeDerived": not args.no_include_derived,
     }
