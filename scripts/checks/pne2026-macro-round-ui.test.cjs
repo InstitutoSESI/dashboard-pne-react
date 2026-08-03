@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const { chromium } = require('playwright')
 
-const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:4173'
+const BASE_URL = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const MUNICIPALITY = 'Alegrete'
 const MUNICIPALITY_SLUG = 'alegrete'
 const PLAN_CAREER_TITLE = 'Requisitos declarados de plano de carreira'

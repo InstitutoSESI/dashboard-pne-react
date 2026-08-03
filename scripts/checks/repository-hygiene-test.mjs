@@ -12,6 +12,31 @@ const tracked = execFileSync('git', ['ls-files', '-z'], {
   maxBuffer: 16 * 1024 * 1024,
 }).split('\0').filter(Boolean)
 
+const agentsPath = resolve(repoRoot, 'AGENTS.md')
+assert.ok(existsSync(agentsPath), 'Instruções permanentes ausentes: AGENTS.md.')
+const agentsMarkdown = readFileSync(agentsPath, 'utf8')
+const agentsInvariants = [
+  ['código IBGE textual de sete dígitos', /código IBGE textual com sete dígitos/i],
+  ['registro municipal canônico', /config\/municipalities\/rs\.json[^\n]*registro municipal canônico/i],
+  ['proibição de edição manual de public\/data', /não edite manualmente `public\/data`/i],
+  ['update educacional incremental', /npm run update:education-data:incremental/i],
+  ['update geral com Educação incremental', /npm run update:data:education-incremental/i],
+  ['build completo explícito', /build completo[^\n]*explícito/i],
+  ['publicação em staging', /gerar em staging/i],
+  ['comportamento fail-closed', /fail-closed/i],
+  ['proibição de git clean -fdx', /nunca use `git clean -fdx`/i],
+  ['preservação do task state', /não apague o task state incremental/i],
+  ['testes em camadas', /## 8\. Testes em camadas/i],
+]
+const missingAgentsInvariants = agentsInvariants
+  .filter(([, matcher]) => !matcher.test(agentsMarkdown))
+  .map(([label]) => label)
+assert.deepEqual(
+  missingAgentsInvariants,
+  [],
+  `AGENTS.md perdeu invariantes essenciais:\n${missingAgentsInvariants.join('\n')}`,
+)
+
 const pythonProjectPath = resolve(repoRoot, 'data_pipeline/pyproject.toml')
 const pythonLockPath = resolve(repoRoot, 'data_pipeline/uv.lock')
 const retiredRequirementsPath = resolve(repoRoot, 'data_pipeline/requirements.txt')

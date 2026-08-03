@@ -172,6 +172,7 @@ Saídas de build, caches, relatórios, screenshots, logs e arquivos de inspeçã
 
 ## Documentação canônica
 
+- Orientações para agentes e fluxo de alterações: [AGENTS.md](AGENTS.md)
 - [Produto](PRODUCT.md)
 - [Arquitetura](docs/ARQUITETURA.md)
 - [Design](docs/DESIGN.md)
