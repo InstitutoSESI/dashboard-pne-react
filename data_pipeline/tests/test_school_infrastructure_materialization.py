@@ -15,7 +15,9 @@ from src.school_infrastructure_materialization import (
     attach_school_infrastructure_contract,
     adapt_pne_internet_details,
     adapt_pne_internet_yearly,
+    build_pne_internet_dependency_point,
     build_contracts,
+    reconcile_pne_internet_details,
     result_for,
 )
 
@@ -169,13 +171,71 @@ def test_pne_adapter_preserves_history_and_uses_raw_canonical_percentage():
         "denominador": 1,
         "percentual": 100.0,
     }
-    assert adapted["series_dependencia"][-1]["municipal"] == 1
+    assert adapted["series_total"][-1] == {"ano": 2025, "valor": 1}
+    assert adapted["series_dependencia"][-1] == {
+        "ano": 2025,
+        "publica": 1,
+        "privada": 0,
+        "estadual": 0,
+        "municipal": 1,
+        "federal": 0,
+    }
+    assert list(adapted["series_dependencia"][-1]) == [
+        "ano",
+        "publica",
+        "privada",
+        "estadual",
+        "municipal",
+        "federal",
+    ]
+    assert reconcile_pne_internet_details(adapted) == ()
+    assert adapted["series_total"][0] == payload["series_total"][0]
+    assert adapted["series_dependencia"][0] == payload["series_dependencia"][0]
+    assert payload["series_total"][-1] == {"ano": 2025, "valor": 9}
     yearly = pd.DataFrame([{"ano": 2024, "valor": 75.0}, {"ano": 2025, "valor": 1.0}])
     result = adapt_pne_internet_yearly(yearly, contract())
     assert result.to_dict("records") == [
         {"ano": 2024, "valor": 75.0},
         {"ano": 2025, "valor": 100.0},
     ]
+
+
+def test_dependency_point_builder_matches_the_canonical_contract():
+    assert build_pne_internet_dependency_point(contract()) == {
+        "ano": 2025,
+        "publica": 1,
+        "privada": 0,
+        "estadual": 0,
+        "municipal": 1,
+        "federal": 0,
+    }
+
+
+def test_zero_denominator_keeps_unavailable_companions_absent():
+    source = source_frame()
+    source["in_internet"] = None
+    unavailable_contract = build_contracts(source, ["4300001"])["4300001"]
+    payload = {
+        "series_total": [{"ano": 2024, "valor": 1}],
+        "series_components": [
+            {"ano": 2024, "numerador": 1, "denominador": 2, "percentual": 50.0}
+        ],
+        "series_dependencia": [{"ano": 2024, "municipal": 1}],
+    }
+
+    adapted = adapt_pne_internet_details(payload, unavailable_contract)
+
+    assert [row for row in adapted["series_total"] if row["ano"] == 2025] == []
+    assert [row for row in adapted["series_components"] if row["ano"] == 2025] == []
+    assert adapted["series_dependencia"][-1] == {
+        "ano": 2025,
+        "publica": 0,
+        "privada": 0,
+        "estadual": 0,
+        "municipal": 0,
+        "federal": 0,
+    }
+    assert reconcile_pne_internet_details(adapted) == ()
 
 
 def test_existing_pne_internet_result_uses_canonical_2025(monkeypatch):

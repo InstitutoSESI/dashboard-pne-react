@@ -5,7 +5,7 @@ import json
 import math
 import sys
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +32,10 @@ from src.pipeline_profiling import (  # noqa: E402
     get_active_profile_session,
     profile_operation,
     profiled_main_from_environment,
+)
+from src.school_infrastructure_materialization import (  # noqa: E402
+    PNE_INTERNET_DETAIL_KEY,
+    reconcile_pne_internet_details,
 )
 
 
@@ -66,8 +70,8 @@ DEPENDENCY_META_FIELDS = {"ano"}
 NUMERATOR_FIELDS = {"numerador", "numerator"}
 DENOMINATOR_FIELDS = {"denominador", "denominator"}
 
-# Current published data uses this aggregate public-series plus breakdown pattern.
-ALLOWED_PUBLICA_MIXED_DETAIL_KEYS = {"temporarios"}
+# Compatibility warning for the current historical aggregate-plus-breakdown pattern.
+LEGACY_MIXED_DEPENDENCY_WARNING_KEYS = {"temporarios"}
 MUNICIPAL_INEQUALITY_STATUSES = {
     "available",
     "suppressed_small_cell",
@@ -254,7 +258,12 @@ def validate_components_by_cycle(
 
 
 def validate_series_dependencia(
-    value: Any, *, path: Path, problems: list[Problem], detail_key: str
+    value: Any,
+    *,
+    path: Path,
+    problems: list[Problem],
+    detail_key: str,
+    detail_payload: Mapping[str, Any],
 ) -> None:
     if not isinstance(value, list):
         add_problem(problems, "ERROR", path, "series_dependencia must be a list.")
@@ -283,7 +292,12 @@ def validate_series_dependencia(
         aggregate_keys = dependency_keys & AGGREGATE_DEPENDENCIES
         unknown_keys = dependency_keys - EXPECTED_DEPENDENCIES - AGGREGATE_DEPENDENCIES
 
-        if unknown_keys:
+        uses_reconciled_internet_policy = (
+            detail_key == PNE_INTERNET_DETAIL_KEY
+            and bool(expected_keys)
+            and bool(aggregate_keys)
+        )
+        if unknown_keys and not uses_reconciled_internet_policy:
             add_problem(
                 problems,
                 "ERROR",
@@ -321,7 +335,7 @@ def validate_series_dependencia(
         )
 
     if mixes_publica_with_breakdown:
-        if detail_key in ALLOWED_PUBLICA_MIXED_DETAIL_KEYS:
+        if detail_key in LEGACY_MIXED_DEPENDENCY_WARNING_KEYS:
             add_problem(
                 problems,
                 "WARNING",
@@ -329,6 +343,9 @@ def validate_series_dependencia(
                 "series_dependencia mixes 'publica' with federal/estadual/"
                 "municipal/privada under an explicitly allowed current pattern.",
             )
+        elif detail_key == PNE_INTERNET_DETAIL_KEY:
+            for message in reconcile_pne_internet_details(detail_payload):
+                add_problem(problems, "ERROR", path, message)
         else:
             add_problem(
                 problems,
@@ -376,6 +393,7 @@ def validate_detail_payload(
             path=path,
             problems=problems,
             detail_key=detail_key,
+            detail_payload=payload,
         )
 
     if "series_components" in payload:

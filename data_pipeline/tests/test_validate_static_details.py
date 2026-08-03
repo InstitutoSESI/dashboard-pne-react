@@ -103,6 +103,254 @@ class ValidateStaticDetailsTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    @staticmethod
+    def _internet_payload(
+        *,
+        point: dict | None = None,
+        total: int = 5,
+        numerator: int = 5,
+    ) -> dict:
+        return {
+            "series_total": [{"ano": 2025, "valor": total}],
+            "series_components": [
+                {
+                    "ano": 2025,
+                    "numerador": numerator,
+                    "denominador": 10,
+                    "percentual": 50.0,
+                }
+            ],
+            "series_dependencia": [
+                point
+                or {
+                    "ano": 2025,
+                    "publica": 3,
+                    "privada": 2,
+                    "estadual": 1,
+                    "municipal": 1,
+                    "federal": 1,
+                }
+            ],
+        }
+
+    @staticmethod
+    def _validate_detail(detail_key: str, payload: dict) -> list[validator.Problem]:
+        problems: list[validator.Problem] = []
+        validator.validate_detail_payload(
+            payload,
+            path=Path("details.json"),
+            problems=problems,
+            detail_key=detail_key,
+        )
+        return problems
+
+    def test_reconciled_internet_2025_passes_without_problem(self) -> None:
+        problems = self._validate_detail("internet", self._internet_payload())
+
+        self.assertEqual(problems, [])
+
+    def test_internet_public_subtotal_divergence_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0]["publica"] = 4
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "publica == federal + estadual + municipal failed" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_total_divergence_is_error(self) -> None:
+        problems = self._validate_detail(
+            "internet",
+            self._internet_payload(total=6, numerator=6),
+        )
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "series_total.valor == publica + privada failed" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_numerator_divergence_is_error(self) -> None:
+        problems = self._validate_detail(
+            "internet",
+            self._internet_payload(numerator=4),
+        )
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "series_components.numerador == series_total.valor failed"
+                in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_missing_public_network_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0].pop("federal")
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "missing fields: federal" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_unexpected_dependency_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0]["conveniada"] = 1
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "unexpected fields: conveniada" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_negative_dependency_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0]["federal"] = -1
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "finite, non-negative number" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_bool_dependency_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0]["federal"] = True
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "cannot be bool" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_wrong_reference_year_is_error(self) -> None:
+        payload = self._internet_payload()
+        payload["series_dependencia"][0]["ano"] = 2024
+
+        problems = self._validate_detail("internet", payload)
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR"
+                and "year must equal 2025" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_non_finite_dependency_is_error(self) -> None:
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                payload = self._internet_payload()
+                payload["series_dependencia"][0]["federal"] = value
+
+                problems = self._validate_detail("internet", payload)
+
+                self.assertTrue(
+                    any(
+                        problem.severity == "ERROR"
+                        and "finite, non-negative number" in problem.message
+                        for problem in problems
+                    )
+                )
+
+    def test_temporarios_keeps_historical_warning(self) -> None:
+        problems = self._validate_detail(
+            "temporarios",
+            {
+                "series_dependencia": [
+                    {
+                        "ano": 2025,
+                        "publica": 3,
+                        "federal": 1,
+                        "estadual": 1,
+                        "municipal": 1,
+                    }
+                ]
+            },
+        )
+
+        self.assertEqual([problem.severity for problem in problems], ["WARNING"])
+        self.assertIn("explicitly allowed current pattern", problems[0].message)
+
+    def test_other_mixed_detail_remains_error(self) -> None:
+        problems = self._validate_detail(
+            "outro",
+            {
+                "series_dependencia": [
+                    {"ano": 2025, "publica": 2, "municipal": 2}
+                ]
+            },
+        )
+
+        self.assertTrue(
+            any(
+                problem.severity == "ERROR" and "mixes 'publica'" in problem.message
+                for problem in problems
+            )
+        )
+
+    def test_internet_without_publica_keeps_historical_format_valid(self) -> None:
+        problems = self._validate_detail(
+            "internet",
+            {
+                "series_dependencia": [
+                    {
+                        "ano": 2025,
+                        "federal": 1,
+                        "estadual": 1,
+                        "municipal": 1,
+                        "privada": 2,
+                    }
+                ]
+            },
+        )
+
+        self.assertEqual(problems, [])
+
+    def test_internet_2014_2024_decomposed_history_remains_valid(self) -> None:
+        problems = self._validate_detail(
+            "internet",
+            {
+                "series_dependencia": [
+                    {
+                        "ano": year,
+                        "federal": 1,
+                        "estadual": 1,
+                        "municipal": 1,
+                        "privada": 2,
+                    }
+                    for year in range(2014, 2025)
+                ]
+            },
+        )
+
+        self.assertEqual(problems, [])
+
     def test_valid_embedded_document_and_private_shared_content_pass(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "municipios" / "4300034" / "details.json"

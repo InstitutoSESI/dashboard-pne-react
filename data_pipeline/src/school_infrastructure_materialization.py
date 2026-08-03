@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -13,6 +14,18 @@ from src.school_infrastructure import INDICATORS, aggregate_school_infrastructur
 
 CONTRACT_VERSION = "school-infrastructure-v2"
 REFERENCE_YEAR = 2025
+PNE_INTERNET_DETAIL_KEY = "internet"
+PNE_INTERNET_PUBLIC_DEPENDENCY_CUTS = ("federal", "estadual", "municipal")
+PNE_INTERNET_DEPENDENCY_CUTS = (
+    "publica",
+    "privada",
+    "estadual",
+    "municipal",
+    "federal",
+)
+PNE_INTERNET_DEPENDENCY_POINT_FIELDS = frozenset(
+    ("ano", *PNE_INTERNET_DEPENDENCY_CUTS)
+)
 INDICATOR_ORDER = (
     "agua_potavel",
     "energia_eletrica",
@@ -133,6 +146,204 @@ def result_for(
     return contract["years"][0]["cuts"][cut]["indicators"][indicator]
 
 
+def build_pne_internet_dependency_point(
+    contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Projeta o ponto canônico reconciliado de Internet no PNE."""
+    return {
+        "ano": REFERENCE_YEAR,
+        **{
+            cut: result_for(contract, PNE_INTERNET_DETAIL_KEY, cut)["numerator"]
+            for cut in PNE_INTERNET_DEPENDENCY_CUTS
+        },
+    }
+
+
+def _is_finite_non_negative_number(value: Any) -> bool:
+    return (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(float(value))
+        and value >= 0
+    )
+
+
+def _reference_year_rows(
+    value: Any,
+    *,
+    field_name: str,
+    errors: list[str],
+) -> list[Mapping[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: {field_name} must be a list."
+        )
+        return []
+    return [
+        row
+        for row in value
+        if isinstance(row, Mapping) and row.get("ano") == REFERENCE_YEAR
+    ]
+
+
+def validate_pne_internet_dependency_point(
+    point: Mapping[str, Any],
+    *,
+    series_total: Any,
+    series_components: Any,
+) -> tuple[str, ...]:
+    """Valida o subtotal público e os totais do ponto misto de Internet."""
+    errors: list[str] = []
+    if not isinstance(point, Mapping):
+        return (
+            f"Internet {REFERENCE_YEAR}: dependency point must be an object.",
+        )
+
+    fields = set(point)
+    missing = PNE_INTERNET_DEPENDENCY_POINT_FIELDS - fields
+    unexpected = fields - PNE_INTERNET_DEPENDENCY_POINT_FIELDS
+    if missing:
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: dependency point is missing fields: "
+            f"{', '.join(sorted(missing))}."
+        )
+    if unexpected:
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: dependency point has unexpected fields: "
+            f"{', '.join(sorted(unexpected))}."
+        )
+
+    year = point.get("ano")
+    if isinstance(year, bool) or not isinstance(year, int) or year != REFERENCE_YEAR:
+        errors.append(
+            f"Internet dependency point year must equal {REFERENCE_YEAR}; got {year!r}."
+        )
+
+    dependency_values_valid = True
+    for cut in PNE_INTERNET_DEPENDENCY_CUTS:
+        if cut not in point:
+            dependency_values_valid = False
+            continue
+        value = point[cut]
+        if not _is_finite_non_negative_number(value):
+            dependency_values_valid = False
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: dependency '{cut}' must be a finite, "
+                f"non-negative number and cannot be bool; got {value!r}."
+            )
+
+    expected_total: int | float | None = None
+    if dependency_values_valid:
+        expected_public = sum(
+            point[cut] for cut in PNE_INTERNET_PUBLIC_DEPENDENCY_CUTS
+        )
+        if point["publica"] != expected_public:
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: publica == federal + estadual + "
+                f"municipal failed ({point['publica']!r} != {expected_public!r})."
+            )
+        expected_total = point["publica"] + point["privada"]
+
+    total_rows = _reference_year_rows(
+        series_total,
+        field_name="series_total",
+        errors=errors,
+    )
+    component_rows = _reference_year_rows(
+        series_components,
+        field_name="series_components",
+        errors=errors,
+    )
+
+    # O adaptador omite ambos os pontos quando o universo canônico é indisponível
+    # e todas as contagens reconciliadas são zero.
+    if expected_total == 0 and not total_rows and not component_rows:
+        return tuple(errors)
+
+    if len(total_rows) != 1:
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: series_total must contain exactly one "
+            f"row for the reference year; found {len(total_rows)}."
+        )
+    if len(component_rows) != 1:
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: series_components must contain exactly "
+            f"one row for the reference year; found {len(component_rows)}."
+        )
+
+    total_value: int | float | None = None
+    if len(total_rows) == 1:
+        candidate = total_rows[0].get("valor")
+        if not _is_finite_non_negative_number(candidate):
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: series_total.valor must be a finite, "
+                f"non-negative number and cannot be bool; got {candidate!r}."
+            )
+        else:
+            total_value = candidate
+            if expected_total is not None and total_value != expected_total:
+                errors.append(
+                    f"Internet {REFERENCE_YEAR}: series_total.valor == publica + "
+                    f"privada failed ({total_value!r} != {expected_total!r})."
+                )
+
+    if len(component_rows) == 1:
+        numerator = component_rows[0].get("numerador")
+        if not _is_finite_non_negative_number(numerator):
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: series_components.numerador must be "
+                f"a finite, non-negative number and cannot be bool; got {numerator!r}."
+            )
+        elif total_value is None:
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: series_components.numerador cannot "
+                "reconcile without a valid series_total.valor."
+            )
+        elif numerator != total_value:
+            errors.append(
+                f"Internet {REFERENCE_YEAR}: series_components.numerador == "
+                f"series_total.valor failed ({numerator!r} != {total_value!r})."
+            )
+
+    return tuple(errors)
+
+
+def reconcile_pne_internet_details(payload: Mapping[str, Any]) -> tuple[str, ...]:
+    """Valida, sem efeitos, todos os pontos mistos de Internet no payload."""
+    series = payload.get("series_dependencia")
+    if not isinstance(series, list):
+        return ("Internet series_dependencia must be a list.",)
+
+    mixed_points = []
+    dependency_cuts = set(PNE_INTERNET_DEPENDENCY_CUTS) - {"publica"}
+    for index, point in enumerate(series):
+        if not isinstance(point, Mapping):
+            continue
+        fields = set(point) - {"ano"}
+        if "publica" in fields and fields & dependency_cuts:
+            mixed_points.append((index, point))
+
+    if not mixed_points:
+        return ()
+
+    errors: list[str] = []
+    if len(mixed_points) != 1:
+        errors.append(
+            f"Internet {REFERENCE_YEAR}: series_dependencia must contain exactly "
+            f"one reconciled mixed point; found {len(mixed_points)}."
+        )
+    for index, point in mixed_points:
+        for message in validate_pne_internet_dependency_point(
+            point,
+            series_total=payload.get("series_total"),
+            series_components=payload.get("series_components"),
+        ):
+            errors.append(f"series_dependencia[{index}]: {message}")
+    return tuple(errors)
+
+
 def _replace_year_value(
     rows: list[dict[str, Any]], field: str, value: Any, **identity: Any
 ) -> None:
@@ -224,13 +435,15 @@ def adapt_pne_internet_details(
                 "percentual": total["percentage"],
             }
         )
-    dependencies = {
-        cut: result_for(contract, "internet", cut)["numerator"]
-        for cut in ("publica", "privada", "estadual", "municipal", "federal")
-    }
     adapted.setdefault("series_dependencia", []).append(
-        {"ano": REFERENCE_YEAR, **dependencies}
+        build_pne_internet_dependency_point(contract)
     )
+    reconciliation_errors = reconcile_pne_internet_details(adapted)
+    if reconciliation_errors:
+        raise ValueError(
+            "Contrato canônico de Internet inválido: "
+            + "; ".join(reconciliation_errors)
+        )
     return adapted
 
 

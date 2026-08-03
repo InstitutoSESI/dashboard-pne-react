@@ -149,6 +149,13 @@ contém os detalhes dos indicadores e conteúdos municipais compartilhados em
 aposentado. O Diagnóstico PNE completo permanece separado e é carregado da
 release ativa apontada por `pne2026-diagnostic-v3/current.json`.
 
+No detalhe de Internet do ano de referência da infraestrutura escolar,
+`publica` é o subtotal de `federal + estadual + municipal`, e `privada`
+completa o total. A coexistência do subtotal com sua decomposição é aceita
+somente quando `series_total.valor` e `series_components.numerador` também
+reconciliam com `publica + privada`. O padrão misto de `temporarios` permanece
+uma compatibilidade histórica separada, sinalizada por warning.
+
 ## Pipeline
 
 As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, os contratos financeiros usam `data_pipeline/export/municipal_finance` e a Educação principal usa runs efêmeros em `data_pipeline/.staging/education`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).
