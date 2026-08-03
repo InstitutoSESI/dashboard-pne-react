@@ -156,6 +156,52 @@ somente quando `series_total.valor` e `series_components.numerador` também
 reconciliam com `publica + privada`. O padrão misto de `temporarios` permanece
 uma compatibilidade histórica separada, sinalizada por warning.
 
+### Fingerprint shadow da Educação principal (5D2A)
+
+A tarefa piloto tem identidade estável `education.core.rs`, estado explícito
+`RS`, schema `education-task-fingerprint-v1` e algoritmo tabular
+`education-source-digest-v1`. O modo shadow recebe o registro municipal e as 18
+relações efetivamente entregues ao materializador. Cada DataFrame já carregado
+produz um digest sensível a valores, nulls, colunas, dtypes e multiplicidade de
+linhas, mas independente da ordem não semântica das linhas. Os campos
+operacionais `DATA_EXPORTACAO`, `data_carga`, `updated_at`, `generated_at`,
+`runId` e paths de staging ficam fora da identidade; sua produção pública não
+foi alterada. Valores float continuam participando após o cânone versionado
+`round-float-to-12-decimal-places-v1`, que elimina apenas os últimos bits
+instáveis de agregações PostgreSQL em precisão muito superior à publicação.
+
+O `inputFingerprint` combina os 19 digests tabulares, estado, registro dos 497
+municípios, compatibilidade dos 182 slugs, definição dos blocos, contrato de
+infraestrutura escolar, materialização, publicação transacional, repositório de
+dados, identificadores das relações/queries, adaptador `utils_educacao`,
+`uv.lock` e versões de Python, pandas e numpy. A allowlist usa caminhos
+explícitos relativos ao repositório; o adaptador externo participa somente por
+identificador lógico, tamanho e SHA-256, nunca por seu path local.
+
+Após uma promoção ou no-op confirmado, o piloto calcula o manifesto forte dos
+499 outputs administrados: `index.json`, `municipios_index.json` e os 497
+`municipios/<IBGE>.json`. Cada entrada guarda path relativo, tamanho e SHA-256;
+o conjunto completo recebe um SHA-256 agregado. Subárvores de outros domínios
+não entram no manifesto. O estado local é escrito atomicamente somente depois
+da confirmação dos outputs finais em
+`data_pipeline/export/task-state/RS/education-core.json`, fora de dados,
+staging e profiles e sob uma raiz ignorada pelo Git. Arquivo ausente ou
+corrompido é sempre miss seguro e nunca serve como fonte de dados.
+
+`wouldSkip=true` exige task state válido, mesmo `inputFingerprint` e paridade
+forte dos outputs públicos. Os motivos incluem `first_run`, `manifest_missing`,
+`manifest_invalid`, `input_changed`, `contract_changed`, `output_missing`,
+`output_changed`, `output_extra`, `state_mismatch` e `eligible`. Erro ou
+incerteza produz `wouldSkip=false`. Mesmo quando o motivo é `eligible`, a flag
+shadow continua executando consultas, materialização, staging, validações e
+promoção/no-op. **5D2A mede elegibilidade, mas ainda executa a Educação
+integralmente.** O skip real permanece reservado à futura 5D2B.
+
+O task state e os profiles não armazenam credenciais, URL de conexão, ambiente
+completo, paths pessoais ou valores analíticos municipais. Profiling mede
+tempo e volume de operações; fingerprint identifica entradas e integridade de
+outputs. São contratos complementares, não equivalentes.
+
 ## Pipeline
 
 As regras dos ciclos ficam em `data_pipeline/src/pne`, os detalhes em `pne/indicator_details.py` e os exportadores especializados em módulos Python puros. O pipeline não inicializa aplicação web, páginas, layouts ou callbacks. Stagings são isolados por domínio: o particionamento estático usa `data_pipeline/export/static_partitioned`, os contratos financeiros usam `data_pipeline/export/municipal_finance` e a Educação principal usa runs efêmeros em `data_pipeline/.staging/education`. Cada sincronizador só pode remover arquivos pertencentes ao próprio contrato. O fluxo operacional está em [OPERACAO.md](OPERACAO.md).

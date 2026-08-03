@@ -57,6 +57,18 @@ from src.education_transactional_publication import (  # noqa: E402
     render_education_json,
     validate_education_staging,
 )
+from src.education_task_fingerprint import (  # noqa: E402
+    TASK_ID as EDUCATION_TASK_ID,
+    build_input_fingerprint,
+    build_output_manifest,
+    build_task_state,
+    default_task_state_path,
+    digest_contract_files,
+    digest_education_sources,
+    evaluate_shadow_eligibility,
+    load_task_state,
+    write_task_state_atomic,
+)
 from src.pipeline_profiling import (  # noqa: E402
     get_active_profile_session,
     profile_operation,
@@ -3364,6 +3376,14 @@ def main(argv=None):
         action="store_true",
         help="Gera e valida integralmente, mas preserva o staging sem publicar.",
     )
+    parser.add_argument(
+        "--fingerprint-shadow",
+        action="store_true",
+        help=(
+            "Mede se a tarefa educacional seria reutilizavel, mas continua "
+            "executando o fluxo integral sem skip real."
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -3420,6 +3440,11 @@ def main(argv=None):
         print(f"[education] Destino após validação integral: {public_root}.")
         if args.no_promote:
             print("[education] Promoção: desativada por --no-promote.")
+        if args.fingerprint_shadow:
+            print(
+                "[education] Fingerprint shadow solicitado: o dry-run não calcula "
+                "digests nem lê ou grava task state."
+            )
         with profile_operation(
             "orchestration",
             "education.plan",
@@ -3484,6 +3509,128 @@ def main(argv=None):
         if args.diagnostic:
             log(f"Anos disponiveis por view: {available_years}")
 
+        if args.fingerprint_shadow:
+            try:
+                source_frames = {"municipalities": municipalities, **frames}
+                with profile_operation(
+                    "compute",
+                    "education.fingerprint.sources",
+                    metadata={"eventGranularity": "aggregate"},
+                ) as source_event:
+                    source_digests = digest_education_sources(source_frames)
+                    source_event.add_counters(**source_digests["stats"])
+
+                with profile_operation(
+                    "read",
+                    "education.fingerprint.contracts",
+                    metadata={"allowlist": "education-explicit-v1"},
+                ) as contract_event:
+                    contract_digests = digest_contract_files(
+                        REPO_ROOT,
+                        external_contracts={
+                            "utils_educacao": SESI_DB_DIR / "utils_educacao.py"
+                        },
+                    )
+                    contract_event.add_counters(
+                        contracts=contract_digests["fileCount"],
+                        bytesHashed=contract_digests["bytesHashed"],
+                    )
+
+                with profile_operation(
+                    "compute",
+                    "education.fingerprint.input",
+                    metadata={"taskId": EDUCATION_TASK_ID},
+                ) as input_event:
+                    input_fingerprint = build_input_fingerprint(
+                        source_digests,
+                        contract_digests,
+                        state_code=state_config.state_code,
+                        execution_parameters={
+                            "municipalityCount": registry.municipality_count,
+                            "publicationContract": "transactional-full-v1",
+                            "outputCount": registry.municipality_count + 2,
+                        },
+                    )
+                    input_event.add_counter(
+                        "bytesHashed", input_fingerprint["bytesHashed"]
+                    )
+
+                task_state_path = default_task_state_path(DATA_PIPELINE_DIR)
+                previous_state = load_task_state(task_state_path)
+                with profile_operation(
+                    "validation",
+                    "education.fingerprint.output_integrity",
+                    metadata={"phase": "shadow_decision"},
+                ) as output_event:
+                    decision = evaluate_shadow_eligibility(
+                        previous_state,
+                        input_fingerprint,
+                        contract_digests,
+                        public_root,
+                        municipality_ids,
+                    )
+                    output_event.add_counters(
+                        managedOutputs=decision.output_integrity.managed_outputs,
+                        outputBytesVerified=(
+                            decision.output_integrity.output_bytes_verified
+                        ),
+                        manifestInvalid=int(decision.manifest_invalid),
+                    )
+                with profile_operation(
+                    "orchestration",
+                    "education.fingerprint.shadow_decision",
+                    counters={
+                        "fingerprintHit": int(decision.fingerprint_hit),
+                        "wouldSkip": int(decision.would_skip),
+                        "manifestInvalid": int(decision.manifest_invalid),
+                    },
+                    metadata={
+                        "taskId": EDUCATION_TASK_ID,
+                        "reason": decision.reason,
+                        "shadowOnly": True,
+                    },
+                ):
+                    pass
+                generation_summary["fingerprint"] = {
+                    "sourceDigests": source_digests,
+                    "contractDigests": contract_digests,
+                    "inputFingerprint": input_fingerprint,
+                    "decision": decision,
+                    "taskStatePath": task_state_path,
+                }
+                log(
+                    "Fingerprint shadow: "
+                    f"taskId={EDUCATION_TASK_ID} "
+                    f"inputFingerprint={input_fingerprint['inputFingerprint']} "
+                    f"wouldSkip={str(decision.would_skip).lower()} "
+                    f"reason={decision.reason}"
+                )
+                log(
+                    "Fingerprint shadow não pula trabalho: consultas, materialização, "
+                    "validação e promoção continuam."
+                )
+            except Exception as exc:
+                generation_summary["fingerprintError"] = str(exc)
+                with profile_operation(
+                    "orchestration",
+                    "education.fingerprint.shadow_decision",
+                    counters={
+                        "fingerprintHit": 0,
+                        "wouldSkip": 0,
+                        "manifestInvalid": 1,
+                    },
+                    metadata={
+                        "taskId": EDUCATION_TASK_ID,
+                        "reason": "fingerprint_error",
+                        "shadowOnly": True,
+                    },
+                ):
+                    pass
+                log(
+                    "Fingerprint shadow indisponível; wouldSkip=false "
+                    f"reason=fingerprint_error ({type(exc).__name__})."
+                )
+
         generated, written, sizes = materialize_education_outputs(
             output_root,
             municipalities,
@@ -3521,6 +3668,76 @@ def main(argv=None):
     except EducationPublicationError as exc:
         print(f"[education] Publicação recusada: {exc}", file=sys.stderr)
         return 1
+
+    if args.fingerprint_shadow:
+        fingerprint = generation_summary.get("fingerprint")
+        if result.stats is None:
+            with profile_operation(
+                "write",
+                "education.fingerprint.state_write",
+                counters={"manifestWritten": 0},
+                metadata={"reason": "no_promote"},
+            ):
+                pass
+            log("Fingerprint shadow: task state não gravado por --no-promote.")
+        elif fingerprint is None:
+            with profile_operation(
+                "write",
+                "education.fingerprint.state_write",
+                counters={"manifestWritten": 0},
+                metadata={"reason": "fingerprint_error"},
+            ):
+                pass
+        else:
+            try:
+                with profile_operation(
+                    "validation",
+                    "education.fingerprint.output_integrity",
+                    metadata={"phase": "post_publication"},
+                ) as output_event:
+                    output_manifest = build_output_manifest(
+                        public_root,
+                        (
+                            record.ibge_code
+                            for record in registry.ordered_records
+                        ),
+                        state_code=state_config.state_code,
+                    )
+                    output_event.add_counters(
+                        managedOutputs=output_manifest["managedOutputCount"],
+                        outputBytesVerified=output_manifest["totalBytes"],
+                    )
+                task_state = build_task_state(
+                    input_fingerprint=fingerprint["inputFingerprint"],
+                    source_digests=fingerprint["sourceDigests"],
+                    contract_digests=fingerprint["contractDigests"],
+                    output_manifest=output_manifest,
+                    decision=fingerprint["decision"],
+                )
+                with profile_operation(
+                    "write",
+                    "education.fingerprint.state_write",
+                    metadata={"taskId": EDUCATION_TASK_ID},
+                ) as state_event:
+                    write_task_state_atomic(
+                        fingerprint["taskStatePath"],
+                        task_state,
+                    )
+                    state_event.add_counters(
+                        manifestWritten=1,
+                        managedOutputs=output_manifest["managedOutputCount"],
+                    )
+                log(
+                    "Fingerprint shadow: task state atômico gravado somente após "
+                    "a publicação final confirmada."
+                )
+            except Exception as exc:
+                print(
+                    "[education] Falha ao confirmar task state shadow: "
+                    f"{type(exc).__name__}: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
 
     log("")
     log("=" * 60)

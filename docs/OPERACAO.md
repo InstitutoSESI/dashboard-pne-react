@@ -113,6 +113,9 @@ npm run update:data
 # Atualiza e valida somente Educação e o recorte de desigualdade derivado dela
 npm run update:education-data
 
+# Mede elegibilidade shadow e ainda executa a Educação integralmente
+npm run update:education-data:fingerprint-shadow
+
 # Alias histórico do fluxo padrão sem build
 npm run update:data:skip-build
 
@@ -152,6 +155,9 @@ npm run test:pipeline-education-state
 
 # Valida staging, fail-closed, no-op, promoção, rollback e orquestração
 npm run test:pipeline-education-publication
+
+# Valida digests, contratos, manifesto de 499 outputs e decisão shadow
+npm run test:pipeline-education-fingerprint
 
 # Validação rápida do código da aplicação
 npm run check:fast
@@ -344,6 +350,76 @@ O baseline de auditoria da Etapa 5B2 fica somente no diretório ignorado
 `data_pipeline/export/debug`. A etapa não executou `update:data`,
 `update:education-data`, consulta a banco, regeneração nem promoção de dados
 reais.
+
+### Fingerprint shadow 5D2A
+
+O comando operacional explícito é:
+
+```powershell
+npm run update:education-data:fingerprint-shadow
+```
+
+Ele propaga `--education-fingerprint-shadow` ao orquestrador e
+`--fingerprint-shadow` ao exportador. Sem essas flags, nenhum digest novo é
+calculado e nenhum task state é lido ou escrito. `--help` não cria diretório;
+em `--dry-run`, a CLI apenas informa que o shadow foi solicitado, sem banco ou
+digest tabular. Lotes parciais continuam recusados. `AL` continua falhando
+antes do primeiro efeito. `--no-promote` pode calcular a decisão para inspeção,
+mas não grava estado porque não representa publicação final.
+
+O contrato usa `taskId=education.core.rs`, estado `RS`, schema
+`education-task-fingerprint-v1`, algoritmo de fontes
+`education-source-digest-v1` e algoritmo de input
+`education-input-fingerprint-v1`. Os source digests cobrem os 19 DataFrames
+reais: a tabela municipal, 15 views PostgreSQL e três tabelas PostgreSQL
+alimentadas por snapshots locais de Educação/População Indígena. Transformações
+em memória, como os contratos municipais de infraestrutura escolar e os blocos
+de apresentação, são cobertas pela allowlist de código e contrato.
+
+O digest tabular trata as linhas como multiconjunto: reordená-las não muda a
+identidade, mas valor, null, coluna, ordem contratual de colunas, dtype ou
+multiplicidade mudam. Ausências seguem a política única
+`pandas-isna-single-null-v1`; booleano não equivale a inteiro e código IBGE
+textual não equivale a número. `DATA_EXPORTACAO`, `data_carga`, `updated_at`,
+`generated_at`, run IDs e paths de staging são operacionais e não entram no
+`inputFingerprint`. Floats permanecem analíticos e participantes, com cânone
+`round-float-to-12-decimal-places-v1`: a regra remove somente ruído de
+representação abaixo de 12 casas decimais observado em agregações PostgreSQL,
+seis casas além da maior precisão publicada; mudança acima desse limiar
+invalida o digest.
+
+O task state local fica em
+`data_pipeline/export/task-state/RS/education-core.json`. A escrita usa arquivo
+temporário, `fsync` e substituição atômica. O arquivo não é versionado, não é
+compartilhado entre estados e nunca é usado como fonte analítica. Ele contém
+somente digests, metadados de schema/versão/contagem e o manifesto forte dos
+499 outputs administrados. Não contém credenciais, ambiente completo, URL de
+conexão, path pessoal nem valores municipais analíticos.
+
+A decisão exige manifesto anterior válido, mesmo `inputFingerprint` e os 499
+outputs atuais com mesmo tamanho/SHA-256/conjunto. `wouldSkip=false` registra
+motivos como `first_run`, `manifest_missing`, `manifest_invalid`,
+`input_changed`, `contract_changed`, `output_missing`, `output_changed`,
+`output_extra` ou `state_mismatch`; `eligible` é o único hit. Em qualquer caso,
+o shadow continua consultando, materializando, validando e promovendo. O task
+state novo só é gravado depois de promoção bem-sucedida ou no-op validado e da
+confirmação dos outputs finais. Falha de materialização, validação ou promoção
+nunca grava estado.
+
+Quando `--profile` também está ativo, os eventos agregados
+`education.fingerprint.sources`, `.contracts`, `.input`, `.output_integrity`,
+`.shadow_decision` e `.state_write` medem tempo, linhas, colunas, bytes e a
+decisão, sem eventos por linha ou município. Profiling responde quanto o fluxo
+custou; fingerprint responde se entradas e outputs são idênticos. **5D2A mede
+elegibilidade, mas ainda executa a Educação integralmente.** A 5D2B futura
+poderá avaliar skip real somente depois desta prova, sem changed-only, cache por
+fonte/município ou redução de validações nesta etapa.
+
+Validação dedicada:
+
+```powershell
+npm run test:pipeline-education-fingerprint
+```
 
 ## Validação para entrega
 

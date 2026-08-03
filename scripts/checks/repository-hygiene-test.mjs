@@ -477,6 +477,7 @@ const expectedBuildScripts = {
   'update:data:skip-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --skip-build',
   'update:data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --build',
   'update:education-data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only',
+  'update:education-data:fingerprint-shadow': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --education-fingerprint-shadow',
   'update:education-data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --education-only --build',
 }
 for (const [name, expected] of Object.entries(expectedBuildScripts)) {
@@ -518,8 +519,10 @@ const expectedUvPythonScripts = [
   'test:pipeline-state-config',
   'test:pipeline-education-state',
   'test:pipeline-education-publication',
+  'test:pipeline-education-fingerprint',
   'test:pipeline-build-decoupling',
   'test:pipeline-profiling',
+  'update:education-data:fingerprint-shadow',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
@@ -1048,6 +1051,144 @@ assert.equal(
   'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_education_transactional_publication.py',
   'A suíte transacional da Educação deve permanecer exposta no package.json.',
 )
+
+const educationFingerprintPath = 'data_pipeline/src/education_task_fingerprint.py'
+const educationFingerprintTestPath = 'data_pipeline/tests/test_education_task_fingerprint.py'
+const educationFingerprintAbsolutePath = resolve(repoRoot, educationFingerprintPath)
+const educationFingerprintTestAbsolutePath = resolve(repoRoot, educationFingerprintTestPath)
+assert.ok(
+  existsSync(educationFingerprintAbsolutePath),
+  `Contrato de fingerprint educacional ausente: ${educationFingerprintPath}.`,
+)
+assert.ok(
+  existsSync(educationFingerprintTestAbsolutePath),
+  `Suite de fingerprint educacional ausente: ${educationFingerprintTestPath}.`,
+)
+const educationFingerprintSource = readFileSync(educationFingerprintAbsolutePath, 'utf8')
+const educationFingerprintTestSource = readFileSync(educationFingerprintTestAbsolutePath, 'utf8')
+const trackedEducationTaskState = tracked.filter((path) => (
+  /^data_pipeline\/export\/task-state\//.test(path)
+  || /^public\/data\/.*task-state/.test(path)
+))
+assert.deepEqual(
+  trackedEducationTaskState,
+  [],
+  `Task state educacional nao pode ser rastreado:\n${trackedEducationTaskState.join('\n')}`,
+)
+assert.match(
+  gitignoreSource,
+  /^data_pipeline\/export\/$/m,
+  'Task state deve permanecer sob a raiz ignorada data_pipeline/export.',
+)
+assert.equal(
+  packageJson.scripts?.['test:pipeline-education-fingerprint'],
+  'uv run --project data_pipeline --group test --frozen python -m pytest data_pipeline/tests/test_education_task_fingerprint.py',
+  'A suite permanente do fingerprint deve usar uv e lock congelado.',
+)
+assert.match(
+  educationExporterSource,
+  /['"]--fingerprint-shadow['"][\s\S]{0,160}?action=['"]store_true['"]/,
+  'O fingerprint do exportador deve permanecer opt-in.',
+)
+assert.match(
+  updateSource,
+  /['"]--education-fingerprint-shadow['"][\s\S]{0,180}?action=['"]store_true['"]/,
+  'A propagacao do fingerprint deve permanecer opt-in.',
+)
+assert.doesNotMatch(
+  educationFingerprintSource,
+  /\bhash\s*\(/,
+  'O fingerprint educacional nao pode usar hash() nativo do Python.',
+)
+assert.match(
+  educationFingerprintSource,
+  /hash_pandas_object\([\s\S]*?sha256\(/,
+  'O digest tabular deve combinar valores tabulares e SHA-256.',
+)
+assert.doesNotMatch(
+  educationFingerprintSource,
+  /(?:rowCount|mtime)[\s\S]{0,120}?inputFingerprint\s*=/,
+  'Row count ou mtime nao podem autorizar o input fingerprint isoladamente.',
+)
+for (const requiredContract of [
+  'config/states/rs.json',
+  'config/municipalities/rs.json',
+  'config/compatibility/education-municipality-routes/rs.json',
+  'data_pipeline/src/education_municipality_routes.py',
+  'data_pipeline/src/education_transactional_publication.py',
+]) {
+  assert.ok(
+    educationFingerprintSource.includes(`"${requiredContract}"`),
+    `Allowlist do fingerprint excluiu contrato obrigatorio: ${requiredContract}.`,
+  )
+}
+assert.doesNotMatch(
+  educationFingerprintSource,
+  /EDUCATION_CONTRACT_FILE_ALLOWLIST[\s\S]{0,180}?['"](?:src|data_pipeline\/src)\/\*\*?/,
+  'A allowlist do fingerprint nao pode usar glob amplo de src.',
+)
+assert.doesNotMatch(
+  educationFingerprintSource,
+  /os\.environ|os\.getenv/,
+  'O task state nao pode capturar o ambiente completo nem credenciais.',
+)
+assert.match(
+  educationFingerprintSource,
+  /_OPERATIONAL_COLUMN_NAMES[\s\S]{0,240}?["']data_carga["']/,
+  'O timestamp operacional data_carga nao pode voltar a invalidar o fingerprint.',
+)
+assert.match(
+  educationFingerprintSource,
+  /FLOAT_NORMALIZATION_DECIMAL_PLACES\s*=\s*12/,
+  'O canone de floats deve permanecer explicito e mais preciso que a publicacao.',
+)
+assert.match(
+  educationFingerprintSource,
+  /def _current_managed_paths\([\s\S]*?municipios[\s\S]*?\\d\{7\}\\\.json/,
+  'O output manifest deve permanecer restrito aos outputs da Educacao principal.',
+)
+const fingerprintMain = educationExporterSource.slice(
+  educationExporterSource.indexOf('def main(argv=None):'),
+)
+const shadowDecisionPosition = fingerprintMain.indexOf(
+  'education.fingerprint.shadow_decision',
+)
+const municipalMaterializationPosition = fingerprintMain.indexOf(
+  'generated, written, sizes = materialize_education_outputs(',
+)
+const publicationResultPosition = fingerprintMain.indexOf(
+  'result = publish_education_transactionally(',
+)
+const stateWritePosition = fingerprintMain.indexOf('write_task_state_atomic(')
+assert.ok(
+  shadowDecisionPosition >= 0
+    && shadowDecisionPosition < municipalMaterializationPosition
+    && municipalMaterializationPosition < publicationResultPosition
+    && publicationResultPosition < stateWritePosition,
+  'Shadow deve decidir antes, executar o fluxo integral e gravar state somente depois da publicacao.',
+)
+assert.doesNotMatch(
+  fingerprintMain,
+  /if\s+decision\.would_skip\s*:/,
+  'wouldSkip shadow jamais pode pular materializacao.',
+)
+for (const requiredTest of [
+  'test_digest_is_stable_between_controlled_processes',
+  'test_output_manifest_contains_exactly_499_files',
+  'test_second_identical_input_and_intact_outputs_reports_would_skip_true',
+  'test_eligible_shadow_continues_the_complete_flow',
+  'test_pipeline_failure_never_writes_task_state',
+  'test_without_flag_no_fingerprint_state_is_read_or_written',
+  'test_source_load_timestamp_does_not_affect_tabular_digest',
+  'test_float_representation_noise_is_canonicalized',
+  'test_float_change_above_canonical_noise_changes_digest',
+]) {
+  assert.match(
+    educationFingerprintTestSource,
+    new RegExp(`def ${requiredTest}\\b`),
+    `Protecao permanente do fingerprint ausente: ${requiredTest}.`,
+  )
+}
 
 const migratedPipelineSources = new Map([
   ['data_pipeline/src/pne_macro_ingestion.py', readFileSync(

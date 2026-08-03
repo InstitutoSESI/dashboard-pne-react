@@ -96,6 +96,7 @@ projeto que fornece `utils_educacao`:
 ```powershell
 npm run update:data
 npm run update:education-data
+npm run update:education-data:fingerprint-shadow
 ```
 
 O primeiro comando exporta, particiona, atualiza Educação, incorpora o documento
@@ -103,6 +104,10 @@ municipal de desigualdade em `details.json`, sincroniza `public/data` e valida o
 detalhes. O segundo atualiza somente Educação, materializa a desigualdade
 derivada e valida. `update:data:skip-build` permanece aceito como alias histórico
 do fluxo padrão sem build.
+
+`npm run update:education-data:fingerprint-shadow` executa a mesma Educação
+integral e apenas reporta se a tarefa `education.core.rs` poderia ser pulada;
+nenhum skip de produção é ativado.
 
 O perfil de planejamento é opt-in e não executa subprocessos, banco, staging,
 sincronização ou build:

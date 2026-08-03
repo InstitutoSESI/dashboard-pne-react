@@ -664,6 +664,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Exporta somente Educacao, materializa a desigualdade e valida.",
     )
+    parser.add_argument(
+        "--education-fingerprint-shadow",
+        action="store_true",
+        help=(
+            "Propaga o piloto de fingerprint shadow para a Educacao; mede "
+            "wouldSkip, mas nao pula nenhuma etapa."
+        ),
+    )
     build_group = parser.add_mutually_exclusive_group()
     build_group.add_argument(
         "--build",
@@ -719,6 +727,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def run_pipeline(args: argparse.Namespace) -> int:
     if args.education_only and args.skip_education:
         raise SystemExit("--education-only e --skip-education sao mutuamente exclusivos.")
+    shadow_requested = bool(getattr(args, "education_fingerprint_shadow", False))
+    if shadow_requested and args.skip_education:
+        raise SystemExit(
+            "--education-fingerprint-shadow requer a etapa de Educacao ativa."
+        )
+    if shadow_requested and args.validate_only:
+        raise SystemExit(
+            "--education-fingerprint-shadow nao pode ser combinado com --validate-only."
+        )
     try:
         with profile_operation(
             "validation",
@@ -760,6 +777,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
         "--state",
         state_config.state_code,
     ]
+    if shadow_requested:
+        education_command.append("--fingerprint-shadow")
     validate_command = [
         NPM,
         "run",
@@ -828,6 +847,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
     planned_commands.append(("validate", validate_command))
 
     if args.dry_run:
+        if shadow_requested:
+            print(
+                "[update-data] Fingerprint shadow solicitado no plano: nenhum "
+                "digest tabular ou task state sera acessado no dry-run."
+            )
         print_dry_run(planned_commands, run_sync=run_sync, run_build=run_build)
         return 0
 
@@ -919,6 +943,9 @@ def _profile_parameters(args: argparse.Namespace) -> dict[str, object]:
         "skipExport": args.skip_export,
         "skipPartition": args.skip_partition,
         "skipEducation": args.skip_education,
+        "educationFingerprintShadow": bool(
+            getattr(args, "education_fingerprint_shadow", False)
+        ),
         "includeDerived": not args.no_include_derived,
     }
 
