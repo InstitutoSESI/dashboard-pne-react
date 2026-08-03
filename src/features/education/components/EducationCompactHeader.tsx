@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react'
+import { EducationDomainIcon, isEducationDomain } from '../../../components/icons/EducationDomainIcon'
+import { NavGlyphIcon, isNavGlyphName } from '../../../components/icons/NavGlyphIcon'
 
 type EducationHeaderVariant = 'section' | 'detail' | 'scenarios' | 'methodology'
 
@@ -33,6 +35,7 @@ interface EducationCompactHeaderProps {
   className?: string
   contextItems?: ReadonlyArray<EducationContextItem>
   description?: ReactNode
+  domain?: string
   eyebrow?: string
   headingRef?: Ref<HTMLHeadingElement>
   title: ReactNode
@@ -45,6 +48,7 @@ export function EducationCompactHeader({
   className = '',
   contextItems = [],
   description,
+  domain,
   eyebrow = 'Indicadores de Educação',
   headingRef,
   title,
@@ -57,7 +61,14 @@ export function EducationCompactHeader({
     <header className={`education-compact-header education-compact-header--${variant} platform-page-header platform-page-header--${visualVariant}${className ? ` ${className}` : ''}`}>
       <div className="education-compact-header__copy">
         {backLink && !inlineBackLink ? <EducationHeaderBackLink backLink={backLink} /> : null}
-        <span className="education-compact-header__eyebrow">{eyebrow}</span>
+        <span className="education-compact-header__eyebrow">
+          {isEducationDomain(domain)
+            ? <EducationDomainIcon domain={domain} size="md" />
+            : isNavGlyphName(domain)
+              ? <NavGlyphIcon name={domain} size="md" />
+              : null}
+          {eyebrow}
+        </span>
         <h1 ref={headingRef} tabIndex={-1}>{title}</h1>
         {description ? <p className="education-compact-header__description">{description}</p> : null}
       </div>

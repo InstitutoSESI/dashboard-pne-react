@@ -128,7 +128,7 @@ export function projectionAssumptionText(
     return 'Combina o histórico de matrículas do município e do Rio Grande do Sul com a mudança esperada da população da faixa etária.'
   }
   if (selectedBasis === 'state_aggregate_damped_holt') {
-    return 'Considera a evolução das matrículas no Rio Grande do Sul e a mudança esperada da população da faixa etária no município.'
+    return 'A evolução das matrículas considerada é a do Rio Grande do Sul. Para o município, o cenário considera a mudança esperada da população da faixa etária.'
   }
   return 'Mantém como referência o número mais recente de matrículas e considera a mudança esperada da população da faixa etária no município.'
 }

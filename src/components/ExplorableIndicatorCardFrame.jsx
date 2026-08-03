@@ -41,10 +41,16 @@ export function ExplorableIndicatorCardFrame({
   const statusTone = status?.tone ?? 'default'
   const valueLength = Array.from(String(value?.display ?? '')).length
   const denseValueLength = anatomy === 'financial' ? 11 : 9
+  // O valor destacado usa sempre o token Data (32px) nos cartões uniformes:
+  // cartões irmãos de uma fileira precisam nascer no mesmo tamanho, e a linha
+  // do valor comporta com folga qualquer grandeza real (percentual ou contagem
+  // de sete dígitos). O auto-encolhimento por comprimento fica reservado aos
+  // cartões grandes de panorama (não-uniform), onde o overflow é risco real.
+  // O tier `--dense` permanece como guarda universal para valores muito longos.
   const valueScaleClass = isEditorialCard
     ? valueLength >= denseValueLength
       ? ' indicator-card-shell__value-row--dense'
-      : valueLength >= 6
+      : !isUniform && valueLength >= 6
         ? ' indicator-card-shell__value-row--compact'
         : ''
     : ''

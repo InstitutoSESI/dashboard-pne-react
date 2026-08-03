@@ -691,8 +691,9 @@ export function MunicipalTechnicalReport({
                 {MUNICIPAL_REPORT_SECTIONS.slice(chapter.startIndex, chapter.endIndex + 1).map((section, index) => (
                   <li key={section.id}>
                     <a href={`#${section.id}`} onClick={(event) => scrollToReportTarget(event, section.id)}>
-                      <span>{String(chapter.startIndex + index + 1).padStart(2, '0')}</span>
-                      {section.shortTitle}
+                      <span className="municipal-technical-report__summary-item-title">{section.shortTitle}</span>
+                      <span className="municipal-technical-report__summary-leader" aria-hidden="true" />
+                      <span className="municipal-technical-report__summary-locator">{String(chapter.startIndex + index + 1).padStart(2, '0')}</span>
                     </a>
                   </li>
                 ))}

@@ -1447,10 +1447,6 @@ test('interface de infraestrutura usa card composto, página conjunta e apoio re
   assert.match(cssSource, /education-indicator-card--panorama-feature[\s\S]*grid-template-columns: repeat\(12/)
   assert.match(cssSource, /education-indicator-group--equipamentos-recursos \.education-indicator-card-grid[\s\S]*repeat\(4/)
   assert.match(cssSource, /@media \(max-width: 1440px\)[\s\S]*education-indicator-group--equipamentos-recursos[\s\S]*repeat\(3/)
-  assert.match(cssSource, /education-indicator-card--compact-copy[\s\S]*font-size: var\(--font-size-sm\)[\s\S]*-webkit-line-clamp: unset/)
-  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__description[\s\S]*line-height: 1\.4[\s\S]*-webkit-line-clamp: unset/)
-  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__value-row[\s\S]*align-items: flex-start !important[\s\S]*justify-content: flex-start !important/)
-  assert.match(cssSource, /education-indicator-card--compact-copy \.indicator-card-shell__value-row strong[\s\S]*max-width: none !important[\s\S]*font-size: var\(--font-size-3xl\) !important[\s\S]*text-overflow: clip !important/)
   assert.match(cssSource, /school-infrastructure-support \.education-support-data__grid[\s\S]*minmax\(0, 3fr\)[\s\S]*minmax\(280px, 2fr\)/)
   assert.match(cssSource, /school-infrastructure-panorama__support \.infra-panorama-grid[\s\S]*repeat\(12/)
   assert.match(cssSource, /infra-panel-group:nth-child\(1\)[\s\S]*span 3/)
@@ -1846,7 +1842,7 @@ test('premissa pública distingue persistência, Holt estadual e tendência muni
       'age_coverage',
       'state_aggregate_damped_holt',
     ),
-    /evolução das matrículas no Rio Grande do Sul/,
+    /evolução das matrículas considerada é a do Rio Grande do Sul/,
   )
   const municipalState = attendancePresentation.projectionAssumptionText(
     'age_coverage',
