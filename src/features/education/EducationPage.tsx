@@ -351,6 +351,7 @@ export function EducationPage({
         { icon: 'period', label: 'Ano de referência', value: String(municipalOverviewState.data?.reference.year ?? 2025) },
       ]}
       description="Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município."
+      domain={EDUCATION_SECTION_KEYS.panorama}
       eyebrow="Educação municipal"
       title="Panorama educacional"
       variant="section"
@@ -364,6 +365,7 @@ export function EducationPage({
         { icon: 'period', label: 'Período', value: String(sistemaS.ultimo_ano ?? 'Último disponível') },
       ]}
       description="Histórico dos indicadores, distribuição das matrículas por etapa e escolas vinculadas no município."
+      domain={EDUCATION_SECTION_KEYS.modalities}
       eyebrow="Indicador educacional"
       title="Sistema S"
       variant="detail"
@@ -387,6 +389,7 @@ export function EducationPage({
         },
       ]}
       description="Cobertura estimada para 4 a 17 anos e síntese municipal das matrículas, estabelecimentos, docentes e turmas da Educação Escolar Indígena."
+      domain={EDUCATION_SECTION_KEYS.modalities}
       eyebrow="Indicador educacional"
       title="Educação Escolar Indígena"
       variant="detail"
@@ -416,6 +419,7 @@ export function EducationPage({
       description={activeIndicator.key === 'infraestrutura-basica'
         ? 'Compare a disponibilidade de serviços básicos e espaços escolares nas escolas do município.'
         : activeIndicator.description}
+      domain={selectedSectionKey}
       eyebrow="Indicador educacional"
       title={normalizeEducationIndicatorLabel(
         activeIndicator.cardVariant === 'exploratory'
@@ -448,6 +452,7 @@ export function EducationPage({
           : []),
       ]}
       description={pageCopy.description}
+      domain={selectedSectionKey}
       eyebrow={pageCopy.eyebrow}
       title={pageCopy.title}
       variant="section"

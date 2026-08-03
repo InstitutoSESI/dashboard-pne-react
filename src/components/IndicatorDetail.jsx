@@ -931,6 +931,9 @@ function DiscreteGoalProgress({ label, presentation, status, tone }) {
   const kind = presentation.valueKind === 'binaryDeclaration'
     ? 'binary'
     : 'requirements'
+  const scaleDescription = kind === 'binary'
+    ? 'Declaração municipal em relação à referência de acompanhamento'
+    : 'Requisitos declarados em relação à referência de acompanhamento'
 
   return (
     <section
@@ -938,8 +941,11 @@ function DiscreteGoalProgress({ label, presentation, status, tone }) {
       aria-label={`${label}. ${presentation.currentText}. ${status}.`}
     >
       <header className="discrete-goal-progress__heading">
-        <span>{label}</span>
-        <strong>{status}</strong>
+        <div className="discrete-goal-progress__heading-copy">
+          <span>{label}</span>
+          <p>{scaleDescription}</p>
+        </div>
+        <strong className="discrete-goal-progress__status">{status}</strong>
       </header>
       <div className="discrete-goal-progress__segments" aria-hidden="true">
         {Array.from({ length: presentation.segmentCount }, (_value, index) => (
@@ -949,11 +955,20 @@ function DiscreteGoalProgress({ label, presentation, status, tone }) {
           />
         ))}
       </div>
-      <div className="discrete-goal-progress__labels">
-        <span>{presentation.scaleStartLabel}</span>
-        <strong>{presentation.currentText}</strong>
-        <span>{presentation.scaleEndLabel}</span>
-      </div>
+      <dl className="discrete-goal-progress__scale">
+        <div>
+          <dt>Início da escala</dt>
+          <dd>{presentation.scaleStartLabel}</dd>
+        </div>
+        <div className="discrete-goal-progress__scale-current">
+          <dt>{presentation.currentLabel}</dt>
+          <dd>{presentation.currentText}</dd>
+        </div>
+        <div>
+          <dt>{presentation.referenceLabel}</dt>
+          <dd>{presentation.scaleEndLabel}</dd>
+        </div>
+      </dl>
     </section>
   )
 }
@@ -1038,7 +1053,7 @@ function PnePresentationDataTable({ columns, rows }) {
             <tr key={`${row.year ?? 'row'}-${rowIndex}`}>
               {columns.map((column) => (
                 <td data-label={column.label} key={column.key}>
-                  {formatPresentationTableValue(row[column.key])}
+                  {formatPresentationTableValue(row[column.key], column.key)}
                 </td>
               ))}
             </tr>
@@ -1049,8 +1064,14 @@ function PnePresentationDataTable({ columns, rows }) {
   )
 }
 
-function formatPresentationTableValue(value) {
+function formatPresentationTableValue(value, key) {
   if (value === null || value === undefined || value === '') return '—'
+  if (key === 'year') {
+    const year = Number(value)
+    return Number.isFinite(year)
+      ? year.toLocaleString('pt-BR', { maximumFractionDigits: 0, useGrouping: false })
+      : String(value)
+  }
   if (typeof value === 'number') {
     return value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
   }
@@ -1125,8 +1146,11 @@ function PneQuickReading({
   tone,
 }) {
   const hasInsights = Array.isArray(insights) && insights.length > 0
-  const goalSummary = getPneGoalSummary(legalGoal)
-  const hasGoalReference = Boolean(legalGoal && goalSummary)
+  const isRelatedGoal = ['tracking', 'complementary'].includes(presentation?.mode)
+  const goalDescription = isRelatedGoal
+    ? getPneGoalFullText(legalGoal)
+    : getPneGoalSummary(legalGoal)
+  const hasGoalReference = Boolean(legalGoal && goalDescription)
 
   return (
     <aside className={`indicator-quick-reading interpretation-box interpretation-box--${tone}`} aria-label="Leitura rápida">
@@ -1140,10 +1164,10 @@ function PneQuickReading({
                 <span>{presentation?.quickReadingLabels?.goal ?? 'Meta do PNE'}</span>
                 <p>
                   {goalContextLabel
-                    ? <><strong>{goalContextLabel}.</strong> {goalSummary}</>
+                    ? <><strong>{goalContextLabel}.</strong> {goalDescription}</>
                     : presentation?.mode === 'tracking'
-                    ? <>Este indicador apoia o acompanhamento da Meta {metaRef}. {goalSummary}</>
-                    : <><strong>Meta {metaRef} —</strong> {goalSummary}</>}
+                    ? <>Este indicador apoia o acompanhamento da Meta {metaRef}. {goalDescription}</>
+                    : <><strong>Meta {metaRef} —</strong> {goalDescription}</>}
                 </p>
               </div>
             </li>
@@ -1307,6 +1331,11 @@ function buildPneQuickReadingInsights({
   }
 
   return insights
+}
+
+function getPneGoalFullText(goal) {
+  if (!goal) return ''
+  return goal.originalText || goal.displayText || goal.dashboardText || ''
 }
 
 function PneRecentIndicatorChart({ cycle, details, domainOverride, item, model, result }) {

@@ -102,11 +102,23 @@ Para validar um indicador sem publicar dados:
 npm run verify:indicator -- --cycle pne_2026_2036 --indicator creche --municipio "São Leopoldo"
 ```
 
-Para regenerar somente `public/data/educacao`, defina `SESI_DB_DIR` para o projeto que fornece `utils_educacao` e execute:
+Para atualizar Educação, defina `SESI_DB_DIR` para o projeto que fornece
+`utils_educacao` e escolha explicitamente o modo:
 
 ```powershell
+# Execução integral tradicional
 npm run update:education-data
+
+# Mede elegibilidade, mas executa tudo
+npm run update:education-data:fingerprint-shadow
+
+# Pula Educação se input e os 499 outputs estiverem íntegros
+npm run update:education-data:incremental
 ```
+
+O modo incremental é fail-closed: input, código ou qualquer output divergente
+faz o comando executar a atualização integral. O estado de integridade é local,
+ignorado pelo Git e nunca substitui os dados analíticos publicados.
 
 Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.env.example`. Nunca inclua segredos em `public/data`.
 

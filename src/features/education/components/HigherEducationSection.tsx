@@ -23,6 +23,7 @@ import {
   publicHigherEducationTitle,
 } from '../higherEducationPresentation'
 import { EducationCompactHeader } from './EducationCompactHeader'
+import { EducationSectionBar } from './EducationSectionBar'
 
 type HigherEducationPayload = { viewModel: HigherEducationViewModel } | null
 
@@ -135,6 +136,12 @@ function HigherEducationLanding({
     : viewModel.availability === 'historical_only'
       ? 'Informações históricas'
       : 'Sem informações integradas'
+  const availableCount = viewModel.indicators.filter(
+    (indicator) => indicator.latestPoint && indicator.group !== 'composition',
+  ).length
+  const countLabel = availableCount === 0
+    ? 'Sem indicadores disponíveis'
+    : `${availableCount} ${availableCount === 1 ? 'indicador' : 'indicadores'}`
   return (
     <main className="higher-education-page higher-education-landing">
       <EducationCompactHeader
@@ -146,10 +153,23 @@ function HigherEducationLanding({
             ? []
             : [{ icon: 'source' as const, label: 'Situação da informação', value: situation }]),
         ]}
-        description="Panorama municipal das matrículas, instituições, polos, acesso, fluxo e docentes da Educação Superior."
-        eyebrow="Indicadores educacionais"
-        title="Educação Superior"
+        description="Indicadores de atendimento, trajetória escolar, profissionais, infraestrutura, modalidades e condições da oferta educacional no município."
+        eyebrow="Indicadores de Educação"
+        title="Indicadores de Educação"
         variant="section"
+      />
+      <EducationSectionBar
+        id="higher-education-section-title"
+        title="Educação Superior"
+        description="Panorama municipal das matrículas, instituições, polos, acesso, fluxo e docentes da Educação Superior."
+        search={(
+          <div className="education-section-bar__search">
+            <div>
+              <span className="eyebrow">Indicadores da seção</span>
+              <strong className="education-section-filter-count">{countLabel}</strong>
+            </div>
+          </div>
+        )}
       />
       {viewModel.availability === 'historical_only' ? (
         <ContentState kind="unavailable" className="state-box higher-education-information-state">
@@ -170,7 +190,7 @@ function HigherEducationLanding({
           {viewModel.quickReads.length ? (
             <section className="higher-education-entry-reading" aria-labelledby="higher-education-quick-title">
               <div className="education-indicator-group__heading">
-                <div><span className="eyebrow">Leitura rápida</span><h2 id="higher-education-quick-title">Destaques do município</h2></div>
+                <div><span className="eyebrow">Leitura rápida</span><h3 id="higher-education-quick-title">Destaques do município</h3></div>
               </div>
               <EducationQuickReading
                 className="higher-education-entry-quick-reading"
@@ -196,7 +216,7 @@ function HigherEducationLanding({
               return (
                 <section className="education-indicator-group" aria-labelledby={`higher-education-${group.id}-title`} key={group.id}>
                   <div className="education-indicator-group__heading">
-                    <div><h2 id={`higher-education-${group.id}-title`}>{group.title}</h2></div>
+                    <div><span className="eyebrow">Indicadores relacionados</span><h3 id={`higher-education-${group.id}-title`}>{group.title}</h3></div>
                     <span>{countLabel}</span>
                   </div>
                   <p className="education-indicator-group__description">{group.description}</p>
@@ -525,7 +545,7 @@ function InstitutionalComposition({ viewModel }: { viewModel: HigherEducationVie
   if (!breakdowns.length) return null
   return (
     <section className="education-indicator-group higher-education-composition-section" aria-labelledby="higher-education-composition-title">
-      <div className="education-indicator-group__heading"><div><h2 id="higher-education-composition-title">Composição institucional</h2></div></div>
+      <div className="education-indicator-group__heading"><div><h3 id="higher-education-composition-title">Composição institucional</h3></div></div>
       <p className="education-indicator-group__description">Síntese do último ano utilizável próprio de cada decomposição.</p>
       <div className="higher-education-support-grid">{breakdowns.map((item) => <BreakdownCard breakdown={item} compact key={item.id} />)}</div>
     </section>
@@ -580,7 +600,7 @@ function SourceAndReading() {
     <section className="page-card higher-education-sources" aria-labelledby="higher-education-reading-title">
       <div className="higher-education-methodology">
         <span className="eyebrow">Orientação de leitura</span>
-        <h2 id="higher-education-reading-title">Como ler estes dados</h2>
+        <h3 id="higher-education-reading-title">Como ler estes dados</h3>
         <ul>
           <li>Os dados se referem à localização da oferta registrada no município.</li>
           <li>As matrículas não representam necessariamente residentes do município.</li>

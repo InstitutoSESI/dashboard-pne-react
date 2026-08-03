@@ -516,50 +516,77 @@
 
 .cycle-page--detail .discrete-goal-progress {
   min-width: 0;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border: var(--border-default);
   border-radius: var(--radius-sm);
-  background: var(--surface-soft);
+  background: var(--surface-card);
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-.cycle-page--detail .discrete-goal-progress__heading,
-.cycle-page--detail .discrete-goal-progress__labels {
+.cycle-page--detail .discrete-goal-progress__heading {
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-.cycle-page--detail .discrete-goal-progress__heading span,
-.cycle-page--detail .discrete-goal-progress__labels span {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
+.cycle-page--detail .discrete-goal-progress__heading-copy {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.cycle-page--detail .discrete-goal-progress__heading-copy span {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
 }
 
-.cycle-page--detail .discrete-goal-progress__heading strong,
-.cycle-page--detail .discrete-goal-progress__labels strong {
+.cycle-page--detail .discrete-goal-progress__heading-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.cycle-page--detail .discrete-goal-progress__status {
   min-width: 0;
-  color: var(--text-strong);
-  font-size: var(--font-size-sm);
+  max-width: 42ch;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--status-muted-bg);
+  color: var(--status-muted-ink);
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-snug);
   text-align: center;
   overflow-wrap: anywhere;
 }
 
+.cycle-page--detail .discrete-goal-progress--success .discrete-goal-progress__status {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-ink);
+}
+
+.cycle-page--detail .discrete-goal-progress--warning .discrete-goal-progress__status {
+  background: var(--status-warn-bg);
+  color: var(--status-warn-ink);
+}
+
+.cycle-page--detail .discrete-goal-progress--danger .discrete-goal-progress__status {
+  background: var(--status-far-bg);
+  color: var(--status-far-ink);
+}
+
 .cycle-page--detail .discrete-goal-progress__segments {
   min-width: 0;
-  height: var(--space-3);
-  padding: var(--space-1);
-  border: var(--border-default);
+  height: var(--space-2);
   border-radius: var(--radius-pill);
-  background: var(--surface-card);
   display: flex;
   gap: var(--space-1);
+  overflow: hidden;
 }
 
 .cycle-page--detail .discrete-goal-progress__segments > span {
@@ -576,6 +603,57 @@
 
 .cycle-page--detail .discrete-goal-progress--warning .discrete-goal-progress__segments > .is-filled {
   background: var(--status-warn-line);
+}
+
+.cycle-page--detail .discrete-goal-progress--danger .discrete-goal-progress__segments > .is-filled {
+  background: var(--status-far-line);
+}
+
+.cycle-page--detail .discrete-goal-progress__scale {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.cycle-page--detail .discrete-goal-progress__scale > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.cycle-page--detail .discrete-goal-progress__scale > div:nth-child(2) {
+  text-align: center;
+}
+
+.cycle-page--detail .discrete-goal-progress__scale > div:last-child {
+  text-align: right;
+}
+
+.cycle-page--detail .discrete-goal-progress__scale :is(dt, dd) {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cycle-page--detail .discrete-goal-progress__scale dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page--detail .discrete-goal-progress__scale dd {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.cycle-page--detail .discrete-goal-progress__scale-current dd {
+  color: var(--green-deep);
+  font-weight: var(--font-weight-bold);
 }
 
 .cycle-page--detail .indicator-primary-analysis {
@@ -3369,9 +3447,36 @@
     grid-column: auto;
   }
 
-  .cycle-page--detail .discrete-goal-progress__labels {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+  .cycle-page--detail .discrete-goal-progress__heading {
+    flex-direction: column;
+  }
+
+  .cycle-page--detail .discrete-goal-progress__status {
+    max-width: none;
+    text-align: left;
+  }
+
+  .cycle-page--detail .discrete-goal-progress__scale {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .cycle-page--detail .discrete-goal-progress__scale > div {
+    padding: var(--space-2) 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: left;
+  }
+
+  .cycle-page--detail .discrete-goal-progress__scale > div + div {
+    border-top: var(--border-divider);
+  }
+
+  .cycle-page--detail .discrete-goal-progress__scale > div:nth-child(2),
+  .cycle-page--detail .discrete-goal-progress__scale > div:last-child {
+    text-align: left;
   }
 
   .cycle-page--detail .detail-navigation--single-item .cycle-detail-nav__sequence {

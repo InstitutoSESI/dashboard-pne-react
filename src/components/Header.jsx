@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
+import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
+import { NavGlyphIcon, isNavGlyphName } from './icons/NavGlyphIcon'
 import { SidebarAccordionGroup } from './SidebarAccordionGroup'
 import { SidebarInstitutionalSignature } from './SidebarInstitutionalSignature'
 
@@ -10,7 +12,14 @@ const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG
     key: section.key,
     label: section.label,
     target: `educacao?secao=${section.key}`,
+    icon: isEducationDomain(section.key)
+      ? () => <EducationDomainIcon domain={section.key} size="sm" />
+      : isNavGlyphName(section.key)
+        ? () => <NavGlyphIcon name={section.key} size="sm" />
+        : null,
   }))
+
+const navGlyph = (name) => () => <NavGlyphIcon name={name} size="sm" />
 
 const NAV_BLOCKS = [
   {
@@ -18,11 +27,11 @@ const NAV_BLOCKS = [
     id: 'pne',
     label: 'PNE',
     items: [
-      { key: 'pne-overview', label: 'O que é o PNE', target: 'pne-overview' },
-      { key: 'pne-legal-goals', label: 'Metas legais', target: 'pne-legal-goals' },
-      { key: 'pne2014', label: 'PNE 2014–2024', target: 'pne2014' },
-      { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026' },
-      { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico' },
+      { key: 'pne-overview', label: 'O que é o PNE', target: 'pne-overview', icon: navGlyph('pne-overview') },
+      { key: 'pne-legal-goals', label: 'Metas legais', target: 'pne-legal-goals', icon: navGlyph('pne-legal-goals') },
+      { key: 'pne2014', label: 'PNE 2014–2024', target: 'pne2014', icon: navGlyph('pne2014') },
+      { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026', icon: navGlyph('pne2026') },
+      { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico', icon: navGlyph('diagnostico') },
     ],
   },
   {
@@ -39,6 +48,7 @@ const NAV_BLOCKS = [
       key: item.pageKey,
       label: item.label,
       target: item.pageKey,
+      icon: navGlyph(item.pageKey),
     })),
   },
 ]

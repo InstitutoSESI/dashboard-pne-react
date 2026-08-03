@@ -11722,6 +11722,24 @@ p.data-source-note {
   stroke-width: 2.8;
 }
 
+/* A serie principal do detalhe (cartao "Evolucao do indicador") assume o acento
+   escuro da secao, dando identidade a cada dominio. Vem depois das regras verdes
+   acima e adiciona .educacao-main-chart-card, entao vence por especificidade e
+   ordem -- sem !important. So o grafico principal muda; os graficos de apoio
+   (comparacoes por faixa) mantem o verde. O acento-ink tem contraste >=6:1
+   sobre o cartao branco. Fora das 5 secoes, o token cai para verde-profundo. */
+.educacao-page .education-detail-view .educacao-main-chart-card .education-chart svg > path[fill="none"] {
+  stroke: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-detail-view .educacao-main-chart-card .education-chart svg > path:not([fill="none"]) {
+  fill: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-detail-view .educacao-main-chart-card .education-chart circle {
+  stroke: var(--education-section-accent-ink);
+}
+
 .education-detail-view .education-chart .chart-axis-label,
 .education-detail-view .education-chart .chart-x-label,
 .education-detail-view .history-chart .chart-grid text,

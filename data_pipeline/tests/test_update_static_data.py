@@ -324,6 +324,45 @@ class StaticDataSyncTests(unittest.TestCase):
         )
         self.assertFalse(print_dry_run.call_args.kwargs["run_sync"])
         self.assertIn("--state", dict(commands)["inequality"])
+        education_command = dict(commands)["education"]
+        self.assertNotIn("--fingerprint-shadow", education_command)
+        self.assertNotIn("--fingerprint-incremental", education_command)
+
+    def test_education_fingerprint_modes_propagate_only_the_selected_mode(self) -> None:
+        for attribute, expected_flag in (
+            ("education_fingerprint_shadow", "--fingerprint-shadow"),
+            ("education_fingerprint_incremental", "--fingerprint-incremental"),
+        ):
+            args = SimpleNamespace(
+                dry_run=True,
+                skip_export=False,
+                skip_partition=False,
+                skip_education=False,
+                education_only=True,
+                education_fingerprint_shadow=False,
+                education_fingerprint_incremental=False,
+                skip_build=True,
+                validate_only=False,
+                no_include_derived=False,
+                profile=False,
+                state="RS",
+            )
+            setattr(args, attribute, True)
+            with (
+                self.subTest(mode=attribute),
+                patch.object(update, "parse_args", return_value=args),
+                patch.object(update, "print_dry_run") as print_dry_run,
+            ):
+                self.assertEqual(update.main(), 0)
+
+            education_command = dict(print_dry_run.call_args.args[0])["education"]
+            self.assertEqual(education_command[-1], expected_flag)
+            other_flag = (
+                "--fingerprint-incremental"
+                if expected_flag == "--fingerprint-shadow"
+                else "--fingerprint-shadow"
+            )
+            self.assertNotIn(other_flag, education_command)
 
     def test_full_update_materializes_staging_from_current_education_output(self) -> None:
         args = SimpleNamespace(

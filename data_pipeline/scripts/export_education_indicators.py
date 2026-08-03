@@ -33,6 +33,18 @@ from src.education_municipality_routes import (  # noqa: E402
     build_education_municipalities_index_payload,
     load_education_municipality_route_compatibility,
 )
+from src.education_task_fingerprint import (  # noqa: E402
+    TASK_ID as EDUCATION_TASK_ID,
+    build_input_fingerprint,
+    build_output_manifest,
+    build_task_state,
+    default_task_state_path,
+    digest_contract_files,
+    digest_education_sources,
+    evaluate_shadow_eligibility,
+    load_task_state,
+    write_task_state_atomic,
+)
 from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
 from src.municipality_registry import (  # noqa: E402
     MunicipalityRegistry,
@@ -3091,6 +3103,23 @@ def main(argv=None):
         default=DEFAULT_STATE_CODE,
         help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
     )
+    fingerprint_group = parser.add_mutually_exclusive_group()
+    fingerprint_group.add_argument(
+        "--fingerprint-shadow",
+        action="store_true",
+        help=(
+            "Calcula a elegibilidade por fingerprint, mas executa a exportacao "
+            "integral mesmo quando os artefatos poderiam ser reutilizados."
+        ),
+    )
+    fingerprint_group.add_argument(
+        "--fingerprint-incremental",
+        action="store_true",
+        help=(
+            "Pula a materializacao da Educacao somente quando input e todos os "
+            "outputs administrados forem comprovadamente integros."
+        ),
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -3128,6 +3157,20 @@ def main(argv=None):
     log("")
 
     eh_parcial = bool(args.limit or args.municipios)
+    fingerprint_mode = (
+        "incremental"
+        if args.fingerprint_incremental
+        else "shadow"
+        if args.fingerprint_shadow
+        else None
+    )
+    if fingerprint_mode and eh_parcial:
+        print(
+            "Fingerprint educacional requer o lote municipal integral; "
+            "--limit e --municipios nao sao aceitos neste modo.",
+            file=sys.stderr,
+        )
+        return 2
 
     engine = _get_education_engine()
 
@@ -3169,6 +3212,79 @@ def main(argv=None):
             dfs[key] = df
         log(f"  {view_name}: {len(df)} linhas")
 
+    fingerprint_context = None
+    if fingerprint_mode:
+        try:
+            with Timer("Calcular fingerprint das fontes educacionais"):
+                source_digests = digest_education_sources(
+                    {"municipalities": mun_rs, **dfs}
+                )
+            with Timer("Calcular fingerprint dos contratos educacionais"):
+                contract_digests = digest_contract_files(
+                    REPO_ROOT,
+                    external_contracts={
+                        "utils_educacao": SESI_DB_DIR / "utils_educacao.py"
+                    },
+                )
+            input_fingerprint = build_input_fingerprint(
+                source_digests,
+                contract_digests,
+                state_code=state_config.state_code,
+                execution_parameters={
+                    "municipalityCount": registry.municipality_count,
+                    "outputCount": registry.municipality_count + 2,
+                    "publicationContract": "education-full-v1",
+                },
+            )
+            task_state_path = default_task_state_path(DATA_PIPELINE_DIR)
+            decision = evaluate_shadow_eligibility(
+                load_task_state(task_state_path),
+                input_fingerprint,
+                contract_digests,
+                SAIDA,
+                municipality_ids,
+            )
+            fingerprint_context = {
+                "source_digests": source_digests,
+                "contract_digests": contract_digests,
+                "input_fingerprint": input_fingerprint,
+                "decision": decision,
+                "task_state_path": task_state_path,
+            }
+            log(
+                "Fingerprint educacional: "
+                f"taskId={EDUCATION_TASK_ID} "
+                f"mode={fingerprint_mode} "
+                f"wouldSkip={str(decision.would_skip).lower()} "
+                f"reason={decision.reason}"
+            )
+        except Exception as exc:
+            log(
+                "Fingerprint educacional indisponivel; "
+                "wouldSkip=false reason=fingerprint_error "
+                f"({type(exc).__name__}: {exc})."
+            )
+
+        if fingerprint_mode == "shadow":
+            log(
+                "Modo shadow: a Educacao sera executada integralmente, "
+                "independentemente da elegibilidade."
+            )
+        elif (
+            fingerprint_context is not None
+            and fingerprint_context["decision"].would_skip
+        ):
+            log(
+                "Modo incremental: input inalterado e 499 outputs integros; "
+                "materializacao da Educacao pulada."
+            )
+            return 0
+        else:
+            log(
+                "Modo incremental: elegibilidade nao comprovada; "
+                "a Educacao sera executada integralmente."
+            )
+
     # 3. Anos por bloco
     anos_por_bloco = {}
     for nome, df in dfs.items():
@@ -3193,6 +3309,12 @@ def main(argv=None):
         log(f"Falhas: {len(falhas_mun)} municipios com erro")
         for id_mun, nome, err in falhas_mun:
             log(f"  {id_mun} ({nome}): {err}")
+        if fingerprint_mode:
+            log(
+                "Fingerprint educacional: lote incompleto; task state nao sera "
+                "gravado e a execucao falhara."
+            )
+            return 1
 
     # Em modo parcial, nao regerar indices globais (evitar inconsistencia)
     if eh_parcial:
@@ -3210,6 +3332,36 @@ def main(argv=None):
 
         # 7. Validar
         validar_jsons(gerados_mun)
+
+    if fingerprint_context is not None:
+        try:
+            output_manifest = build_output_manifest(
+                SAIDA,
+                (record.ibge_code for record in registry.ordered_records),
+                state_code=state_config.state_code,
+            )
+            task_state = build_task_state(
+                input_fingerprint=fingerprint_context["input_fingerprint"],
+                source_digests=fingerprint_context["source_digests"],
+                contract_digests=fingerprint_context["contract_digests"],
+                output_manifest=output_manifest,
+                decision=fingerprint_context["decision"],
+            )
+            write_task_state_atomic(
+                fingerprint_context["task_state_path"],
+                task_state,
+            )
+            log(
+                "Fingerprint educacional: task state atomico gravado apos "
+                f"confirmar {output_manifest['managedOutputCount']} outputs."
+            )
+        except Exception as exc:
+            print(
+                "Falha ao confirmar task state educacional: "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            return 1
 
     # 8. Resumo final
     log("")

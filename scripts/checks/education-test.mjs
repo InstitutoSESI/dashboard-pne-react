@@ -1846,7 +1846,7 @@ test('premissa pública distingue persistência, Holt estadual e tendência muni
       'age_coverage',
       'state_aggregate_damped_holt',
     ),
-    /evolução das matrículas no Rio Grande do Sul/,
+    /evolução das matrículas considerada é a do Rio Grande do Sul/,
   )
   const municipalState = attendancePresentation.projectionAssumptionText(
     'age_coverage',

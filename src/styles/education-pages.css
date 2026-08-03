@@ -4895,6 +4895,18 @@
   text-transform: none;
 }
 
+/* O selo de dominio acompanha o rotulo de contexto -- e o unico lugar em que
+   ele aparece dentro do conteudo. Ver docs/DESIGN.md, "Assinatura". */
+.education-compact-header__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.education-compact-header__eyebrow .education-domain-icon {
+  color: var(--green-primary);
+}
+
 .education-compact-header h1 {
   max-width: 30ch;
   margin: 0;
@@ -7664,15 +7676,6 @@
   gap: var(--space-1);
 }
 
-.municipal-technical-report__hero h1 {
-  font-family: var(--font-serif);
-  font-size: var(--header-title-editorial);
-  line-height: 1.03;
-  letter-spacing: -0.018em;
-  color: var(--green-brand-dark);
-  text-wrap: balance;
-}
-
 .municipal-technical-report__hero-subject {
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
@@ -7680,10 +7683,6 @@
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: var(--green-deep);
-}
-
-.municipal-technical-report__hero-copy > p {
-  margin-top: var(--space-2);
 }
 
 .content-area .municipal-technical-report .municipal-technical-report__excel {
@@ -7695,13 +7694,6 @@
 .content-area .municipal-technical-report .municipal-technical-report__excel:hover:not(:disabled) {
   background: var(--green-deep);
   border-color: var(--green-deep);
-}
-
-.municipal-technical-report__hero-copy > p {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.55;
-  text-wrap: pretty;
 }
 
 .municipal-technical-report__hero-actions {
@@ -7773,16 +7765,6 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
-}
-
-.municipal-technical-report__summary {
-  padding: var(--card-pad-base);
-  border: var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  display: grid;
-  gap: var(--space-2);
-  box-shadow: none;
 }
 
 .municipal-technical-report__synthesis {
@@ -7864,12 +7846,6 @@
   text-transform: uppercase;
 }
 
-.municipal-technical-report__summary-chapter h3 {
-  color: var(--text-strong);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-snug);
-}
-
 .municipal-technical-report__summary-chapter h3 a {
   color: inherit;
   text-decoration: none;
@@ -7941,40 +7917,6 @@
   scroll-margin-top: 96px;
 }
 
-.municipal-technical-report__chapter {
-  min-width: 0;
-  padding: var(--space-5) 0 0;
-  border: 0;
-  border-top: 2px solid var(--border-strong-line);
-  border-radius: 0;
-  background: transparent;
-  display: grid;
-  gap: 0;
-  box-shadow: none;
-}
-
-.municipal-technical-report__chapter-header {
-  padding: 0 0 var(--space-3);
-  border: 0;
-  display: grid;
-  gap: var(--space-1);
-}
-
-.municipal-technical-report__chapter-header h2 {
-  max-width: 30ch;
-  color: var(--text-strong);
-  font-family: var(--font-serif);
-  font-size: 1.75rem;
-  line-height: var(--line-height-tight);
-}
-
-.municipal-technical-report__chapter-header p {
-  max-width: 72ch;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-}
-
 .municipal-technical-report__chapter-sections {
   min-width: 0;
   display: block;
@@ -8004,16 +7946,6 @@
   gap: var(--space-4);
 }
 
-.municipal-technical-report__section-number {
-  padding-inline-end: var(--space-3);
-  border-inline-end: 2px solid color-mix(in srgb, var(--green-deep) 26%, var(--border-faint));
-  color: var(--green-deep);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-snug);
-  font-variant-numeric: tabular-nums;
-}
-
 .municipal-technical-report__section header > div {
   display: grid;
   gap: var(--space-1);
@@ -8024,13 +7956,6 @@
   font-size: var(--font-size-xl);
   line-height: var(--line-height-snug);
   text-wrap: balance;
-}
-
-.municipal-technical-report__section-subtitle {
-  max-width: 76ch;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-snug);
 }
 
 .municipal-technical-report__section-metadata {
@@ -8126,24 +8051,12 @@
   gap: 2px;
 }
 
-.municipal-technical-report__metrics dt {
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-snug);
-}
-
 .municipal-technical-report__metrics dd {
   color: var(--text-strong);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   font-variant-numeric: tabular-nums;
-}
-
-.municipal-technical-report__metrics span {
-  color: var(--text-subtle);
-  font-size: var(--font-size-xs);
 }
 
 .municipal-technical-report__table-scroll {
@@ -8606,10 +8519,6 @@
   gap: var(--space-2);
 }
 
-.municipal-technical-report__hero h1 {
-  max-width: 22ch;
-}
-
 .municipal-technical-report__hero-actions {
   align-items: flex-start;
 }
@@ -8685,22 +8594,8 @@
   background: color-mix(in srgb, var(--surface-card) 88%, var(--surface-soft));
 }
 
-.municipal-technical-report__metrics dt {
-  font-size: var(--font-size-xs);
-  line-height: 1.35;
-}
-
 .municipal-technical-report__metrics dd {
   font-size: var(--font-size-2xl);
-}
-
-.municipal-technical-report__summary {
-  gap: var(--space-3);
-  margin-top: var(--space-6);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
 }
 
 .municipal-technical-report__summary-grid {
@@ -8723,12 +8618,6 @@
   box-shadow: none;
 }
 
-.municipal-technical-report__summary-chapter h3 {
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid color-mix(in srgb, var(--green-primary) 72%, transparent);
-  font-size: var(--font-size-sm);
-}
-
 .municipal-technical-report__summary-chapter:last-child ol {
   display: block;
 }
@@ -8738,35 +8627,6 @@
   gap: var(--space-3);
   min-height: 44px;
   padding: var(--space-2) 0;
-}
-
-.municipal-technical-report__chapter {
-  margin-top: var(--space-6);
-  padding: var(--space-5) 0 0;
-  border: 0;
-  border-top: 2px solid var(--green-primary);
-  background: transparent;
-}
-
-.municipal-technical-report__summary + .municipal-technical-report__chapter {
-  margin-top: var(--space-6);
-}
-
-.municipal-technical-report__chapter-header {
-  gap: var(--space-1);
-  margin-bottom: var(--space-4);
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.municipal-technical-report__chapter-header h2 {
-  font-size: var(--font-size-2xl);
-}
-
-.municipal-technical-report__chapter-header p {
-  max-width: 76ch;
-  font-size: var(--type-support);
 }
 
 .municipal-technical-report__section,
@@ -8787,22 +8647,8 @@
   gap: var(--space-3);
 }
 
-.municipal-technical-report__section-number {
-  min-height: 24px;
-  padding-top: 1px;
-  border-inline-end: 0;
-  color: var(--brand-green-dark);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-
 .municipal-technical-report__section > header h3 {
   font-size: var(--font-size-xl);
-}
-
-.municipal-technical-report__section-subtitle {
-  max-width: 78ch;
-  font-size: var(--type-support);
 }
 
 .municipal-technical-report__section-body,
@@ -9812,12 +9658,21 @@
 
 .municipal-technical-report__hero h1 {
   max-width: none;
+  font-family: var(--font-serif);
   font-size: var(--font-size-3xl);
+  line-height: 1.03;
+  letter-spacing: -0.018em;
+  color: var(--green-brand-dark);
+  text-wrap: balance;
 }
 
 .municipal-technical-report__hero-copy > p {
   max-width: 74ch;
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .municipal-technical-report__hero-actions {
@@ -10006,8 +9861,14 @@
 }
 
 .municipal-technical-report__summary {
-  margin-top: var(--space-10);
+  display: grid;
   gap: var(--space-6);
+  margin-top: var(--space-10);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .municipal-technical-report__summary-grid {
@@ -10025,7 +9886,9 @@
 .municipal-technical-report__summary-chapter h3 {
   padding: 0;
   border: 0;
+  color: var(--text-strong);
   font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
 }
 
 .municipal-technical-report__summary li a {
@@ -10035,9 +9898,15 @@
 }
 
 .municipal-technical-report__chapter {
+  min-width: 0;
   margin-top: var(--space-6);
   padding: 0;
   border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  gap: 0;
+  box-shadow: none;
 }
 
 .municipal-technical-report__summary + .municipal-technical-report__chapter {
@@ -10045,6 +9914,7 @@
 }
 
 .municipal-technical-report__chapter-header {
+  display: grid;
   gap: var(--space-1);
   margin: 0 0 var(--space-4);
   padding: var(--space-3) var(--space-4);
@@ -10071,12 +9941,18 @@
 
 .municipal-technical-report__chapter-header h2 {
   max-width: none;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
   font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
   letter-spacing: var(--tracking-title);
 }
 
 .municipal-technical-report__chapter-header p {
+  max-width: 76ch;
+  color: var(--text-secondary);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
 }
 
 .municipal-technical-report__section,
@@ -10096,12 +9972,15 @@
 }
 
 .municipal-technical-report__section-number {
+  min-height: 24px;
   padding: 0;
+  border-inline-end: 0;
   color: color-mix(in srgb, var(--green-deep) 82%, var(--text-secondary));
   font-family: var(--font-serif);
   font-size: 1.75rem;
   font-weight: var(--font-weight-semibold);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .municipal-technical-report__section > header h3 {
@@ -10109,6 +9988,8 @@
 }
 
 .municipal-technical-report__section-subtitle {
+  max-width: 78ch;
+  color: var(--text-secondary);
   font-size: var(--type-support);
   line-height: 1.55;
 }
@@ -10176,7 +10057,10 @@
 }
 
 .municipal-technical-report__metrics dt {
+  color: var(--text-secondary);
   font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
 }
 
 .municipal-technical-report__metrics dd {
@@ -10184,6 +10068,7 @@
 }
 
 .municipal-technical-report__metrics span {
+  color: var(--text-subtle);
   font-size: var(--font-size-2xs);
 }
 
@@ -13612,7 +13497,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  margin: var(--space-4) 0 0;
+  margin: var(--space-2) 0 0;
   padding: var(--space-3) var(--card-padding);
   min-height: var(--card-footer-min-height);
   border-top: var(--border-divider);
@@ -13629,5 +13514,299 @@
   display: inline-flex;
   align-items: center;
   color: var(--green-primary);
+}
+
+/* =================================================================
+   Redesenho visual v2 — cards, grupos, seções, tabelas, detalhe.
+   Tudo abaixo carrega por último e vence a cascata.
+   ================================================================= */
+
+/* --- 1. Cards: faixa de acento + hover dramatico ------------------- */
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform {
+  border-left: 3px solid var(--education-section-accent);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform:hover {
+  border-color: var(--border-line);
+  border-left-color: var(--education-section-accent-ink);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform.is-selected {
+  border-left-color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__topline {
+  padding-top: var(--space-3);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__footer--uniform {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 40%, var(--surface-soft));
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__footer-action {
+  color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__action {
+  color: var(--education-section-accent);
+}
+
+/* --- 2. Group headers: barra de acento + tipografia reforçada ------ */
+
+.educacao-page .education-indicator-group,
+.educacao-page .education-special-group {
+  padding-top: var(--space-8);
+  border-top: 0;
+}
+
+.educacao-page .education-indicator-group__heading {
+  padding-left: var(--space-4);
+  border-left: 4px solid var(--education-section-accent);
+}
+
+.educacao-page .education-indicator-group__heading h3 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+.educacao-page .education-indicator-group__heading > span {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 60%, var(--surface-card));
+  border-color: var(--education-section-accent-border);
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-indicator-group__description {
+  padding-left: calc(var(--space-4) + 4px);
+}
+
+/* --- 3. Section bar: faixa inferior de acento + tipografia --------- */
+
+.educacao-page .education-section-bar {
+  padding-block: var(--space-5);
+  border-bottom: 3px solid var(--education-section-accent);
+  background: color-mix(in srgb, var(--education-section-accent-soft) 25%, var(--surface-muted));
+}
+
+.educacao-page .education-section-bar__identity h2 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+.educacao-page .education-section-filter-count {
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 4. Compact header: borda inferior com acento da seção --------- */
+
+.educacao-page .education-compact-header {
+  border-bottom: 3px solid var(--education-section-accent);
+}
+
+.educacao-page .education-compact-header__eyebrow .education-domain-icon {
+  color: var(--education-section-accent);
+}
+
+.educacao-page .education-context-chip {
+  border-left: 3px solid var(--education-section-accent-border);
+}
+
+/* --- 5. Tables: listras + cabeçalho com acento --------------------- */
+
+.educacao-page .education-table thead th,
+.educacao-page .education-detail-view .platform-data-table thead th {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--surface-moss));
+  color: var(--education-section-accent-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.educacao-page .education-table tbody tr:nth-child(even),
+.educacao-page .education-detail-view .platform-data-table tbody tr:nth-child(even) {
+  background: var(--surface-raised);
+}
+
+.educacao-page .education-table tbody tr:nth-child(odd),
+.educacao-page .education-detail-view .platform-data-table tbody tr:nth-child(odd) {
+  background: var(--surface-card);
+}
+
+.educacao-page .education-table tbody tr:hover,
+.educacao-page .education-detail-view .platform-data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 50%, var(--surface-card));
+}
+
+/* --- 6. Detail: metric cards com acento + chart framing ------------ */
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__icon {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--green-soft));
+  color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card--large .metric-card__value {
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-detail-view .indicator-chart-card,
+.educacao-page .education-detail-view .educacao-explore {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.educacao-page .education-detail-view .education-quick-reading {
+  border-left: 4px solid var(--education-section-accent);
+  border-color: var(--education-section-accent-border);
+  background: color-mix(in srgb, var(--education-section-accent-soft) 40%, var(--card-surface-emphasis));
+}
+
+/* --- 7. Support data sections: borda de acento --------------------- */
+
+.educacao-page--detail .education-detail-view .education-support-data--organized {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.educacao-page--detail .education-support-data__icon {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--green-soft));
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 8. School infrastructure composite card ----------------------- */
+
+.educacao-page .school-infrastructure-composite-card {
+  border-left: 3px solid var(--education-section-accent);
+}
+
+.educacao-page .school-infrastructure-composite-card:hover {
+  border-left-color: var(--education-section-accent-ink);
+}
+
+/* =================================================================
+   Redesenho visual v3 — Panorama alinhado ao padrao de grupo e
+   respiro geral das paginas de indicadores.
+   ================================================================= */
+
+/* --- 1. Panorama: cabecalhos de secao com a mesma barra de acento
+   e tipografia serif usadas nos grupos de indicadores das demais
+   secoes. --------------------------------------------------------- */
+
+.educacao-page .municipal-education-overview__section-heading {
+  padding-left: var(--space-4);
+  border-left: 4px solid var(--education-section-accent);
+}
+
+.educacao-page .municipal-education-overview__section-heading h2 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+/* --- 2. Respiro: grade de cartoes, grupos e fim de pagina --------- */
+
+.educacao-page .education-indicator-card-grid {
+  gap: var(--space-6);
+}
+
+.educacao-page .education-indicator-groups {
+  gap: var(--space-10);
+}
+
+.educacao-page .educacao-workspace {
+  padding-bottom: var(--space-10);
+}
+
+.educacao-page .higher-education-page {
+  padding-bottom: var(--space-10);
+}
+
+/* =================================================================
+   Redesenho visual v4 — eyebrows, estados vazios e polish de graficos
+   ================================================================= */
+
+/* --- 1. Eyebrows com identidade de secao ---------------------------- */
+
+.educacao-page .education-indicator-group__heading .eyebrow {
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-section-bar__eyebrow {
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 2. Estados vazios, sem resultados e de carregamento: superficie
+   solida e serena no lugar do tracejado plano. --------------------- */
+
+.educacao-page .education-indicator-grid-empty,
+.educacao-page .meta-grid-empty {
+  min-height: var(--content-state-loading-min-height);
+  padding: var(--space-8);
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  display: grid;
+  place-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  text-align: center;
+}
+
+.educacao-page .education-indicator-grid-empty p,
+.educacao-page .meta-grid-empty p {
+  max-width: 48ch;
+  margin: 0;
+}
+
+.educacao-page .special-education-load-state {
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+/* --- 3. Grafico do detalhe: estado vazio alinhado e destaque sutil no
+   ultimo ponto. Cor de traco/area/pontos permanece via JS. --------- */
+
+.educacao-page .education-detail-view .education-chart-empty,
+.educacao-page .education-detail-view .chart-empty-state {
+  background: var(--surface-raised);
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.educacao-page .education-detail-view .education-chart .chart-point-label.is-last {
+  fill: var(--text-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ==========================================================================
+   Redesenho visual v6 — harmoniza Panorama e Educacao Superior com as demais
+   paginas. Os blocos de destaque usavam menta saturada (--surface-moss /
+   --green-soft #e1f2e8), que pesava perto dos cartoes brancos das 5 secoes.
+   Trocamos pela superficie sutil (--surface-raised) e mantemos a hierarquia
+   com um fio de acento, no mesmo idioma das faixas laterais dos cartoes.
+   ========================================================================== */
+
+/* Panorama: bloco "Educacao Basica" (total) deixa de ser menta cheia. */
+.educacao-page .municipal-education-summary__primary {
+  background: var(--surface-raised);
+  border-left: 3px solid var(--education-section-accent);
+}
+
+/* Educacao Superior: caixa "Destaques do municipio" (Leitura rapida) sai da
+   menta para a mesma superficie sutil; borda vira o hairline neutro. */
+.educacao-page .higher-education-entry-quick-reading {
+  background: var(--surface-raised);
+  border-color: var(--border-card);
 }
 

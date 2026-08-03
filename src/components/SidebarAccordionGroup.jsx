@@ -35,6 +35,7 @@ export function SidebarAccordionGroup({
         <ul>
           {items.map((item) => {
             const isCurrent = item.key === activeItemKey
+            const ItemIcon = item.icon
 
             return (
               <li key={item.key}>
@@ -47,6 +48,11 @@ export function SidebarAccordionGroup({
                     onNavigate(item.target)
                   }}
                 >
+                  {ItemIcon ? (
+                    <span className="nav-subitem__icon" aria-hidden="true">
+                      <ItemIcon />
+                    </span>
+                  ) : null}
                   <span>{item.label}</span>
                 </a>
               </li>

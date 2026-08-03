@@ -457,6 +457,23 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exporta somente Educacao, valida e, salvo --skip-build, recompila a aplicacao.",
     )
+    education_fingerprint_group = parser.add_mutually_exclusive_group()
+    education_fingerprint_group.add_argument(
+        "--education-fingerprint-shadow",
+        action="store_true",
+        help=(
+            "Calcula a elegibilidade da Educacao, mas mantem a execucao "
+            "integral tradicional."
+        ),
+    )
+    education_fingerprint_group.add_argument(
+        "--education-fingerprint-incremental",
+        action="store_true",
+        help=(
+            "Pula a Educacao somente quando input e outputs forem "
+            "comprovadamente integros."
+        ),
+    )
     parser.add_argument("--skip-build", action="store_true", help="Pula npm run build.")
     parser.add_argument("--validate-only", action="store_true", help="Roda apenas npm run validate:details.")
     parser.add_argument(
@@ -481,6 +498,20 @@ def main() -> int:
     args = parse_args()
     if args.education_only and args.skip_education:
         raise SystemExit("--education-only e --skip-education sao mutuamente exclusivos.")
+    fingerprint_shadow = bool(
+        getattr(args, "education_fingerprint_shadow", False)
+    )
+    fingerprint_incremental = bool(
+        getattr(args, "education_fingerprint_incremental", False)
+    )
+    if (fingerprint_shadow or fingerprint_incremental) and args.skip_education:
+        raise SystemExit(
+            "O modo de fingerprint requer a etapa de Educacao ativa."
+        )
+    if (fingerprint_shadow or fingerprint_incremental) and args.validate_only:
+        raise SystemExit(
+            "O modo de fingerprint nao pode ser combinado com --validate-only."
+        )
     try:
         state_config = load_state_config(args.state)
         registry = load_municipality_registry(state_config)
@@ -507,6 +538,10 @@ def main() -> int:
         "--state",
         state_config.state_code,
     ]
+    if fingerprint_shadow:
+        education_command.append("--fingerprint-shadow")
+    elif fingerprint_incremental:
+        education_command.append("--fingerprint-incremental")
     validate_command = [
         NPM,
         "run",

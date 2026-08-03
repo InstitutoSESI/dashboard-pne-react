@@ -27,8 +27,9 @@ uv export --project data_pipeline --frozen --format requirements.txt `
 ```
 
 Uma segunda sincronização sem mudanças reutiliza o ambiente local em
-`data_pipeline/.venv`. O uv reduz o custo de preparação do ambiente, mas não
-substitui a futura otimização incremental da materialização dos dados.
+`data_pipeline/.venv`. O uv reduz o custo de preparação do ambiente; a
+reutilização incremental da Educação é uma decisão separada, ativada somente
+pelo comando explícito documentado abaixo.
 
 As fontes reproduzíveis e os insumos de regeneração permanecem em
 `data_pipeline/data`. Os artefatos públicos são gerados pelo pipeline e não
@@ -97,8 +98,14 @@ Comandos úteis:
 # Atualiza os dados sem recompilar a aplicação
 npm run update:data:skip-build
 
-# Atualiza somente Educação e o recorte de desigualdade derivado dela
+# Executa integralmente Educação e o recorte de desigualdade derivado dela
 npm run update:education-data
+
+# Calcula a elegibilidade, mas ainda executa Educação integralmente
+npm run update:education-data:fingerprint-shadow
+
+# Pula Educação somente quando input e outputs estiverem comprovadamente íntegros
+npm run update:education-data:incremental
 
 # Mostra as etapas e tempos sem executar
 uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --dry-run --profile
@@ -112,9 +119,31 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/update_stat
 # Valida a parametrização dos quatro domínios educacionais
 npm run test:pipeline-education-state
 
+# Valida fingerprint, integridade dos outputs e propagação dos três modos
+npm run test:pipeline-education-fingerprint
+
 # Validação rápida do código da aplicação
 npm run check:fast
 ```
+
+Os três comandos educacionais têm contratos distintos:
+
+- `update:education-data` preserva a execução integral tradicional e não lê nem
+  grava estado de fingerprint;
+- `update:education-data:fingerprint-shadow` calcula `wouldSkip`, mas executa
+  consultas, materialização e validações mesmo quando o resultado é elegível;
+- `update:education-data:incremental` pula apenas a materialização educacional
+  quando o fingerprint de input é idêntico e o manifesto confirma tamanho e
+  SHA-256 de todos os 499 outputs administrados. Qualquer ausência, arquivo
+  extra, conteúdo alterado, contrato diferente ou estado inválido força a
+  execução integral.
+
+O estado local fica em
+`data_pipeline/export/task-state/RS/education-core.json`, diretório ignorado
+pelo Git. Ele é gravado atomicamente somente depois de uma execução integral
+bem-sucedida e da confirmação dos outputs finais; não é fonte analítica. O modo
+incremental ainda executa o recorte derivado de desigualdade, a validação dos
+detalhes e o build conforme o fluxo já existente.
 
 ## Conteúdo municipal compartilhado
 

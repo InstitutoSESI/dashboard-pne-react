@@ -477,6 +477,8 @@ const expectedUvPythonScripts = [
   'test:python',
   'check:python-deps',
   'update:education-data',
+  'update:education-data:fingerprint-shadow',
+  'update:education-data:incremental',
   'update:indigenous-coverage',
   'update:data',
   'update:data:skip-build',
@@ -484,6 +486,7 @@ const expectedUvPythonScripts = [
   'validate:details',
   'test:pipeline-state-config',
   'test:pipeline-education-state',
+  'test:pipeline-education-fingerprint',
 ]
 for (const name of expectedUvPythonScripts) {
   const command = String(packageJson.scripts?.[name] ?? '')
