@@ -8,21 +8,60 @@
  */
 
 :root {
-  /* Tipografia existente */
-  --font-sans: "Public Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Tipografia institucional. Source Sans 3 resolve texto de interface e
+     densidade pequena; Source Serif 4 fica reservada para hierarquia
+     editorial. As duas familias pertencem ao mesmo sistema Source. */
+  --font-sans: "Source Sans 3", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
 
-  /* Escala tipografica. Passo fixo em rem: UI de produto e lida em DPI
-     constante, e titulo fluido encolhe onde nao deveria. */
-  --font-size-2xs: 0.6875rem;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 2rem;
-  --font-size-4xl: 2.5rem;
+  /* Contrato tipografico por papel. Tamanho, peso, entrelinha e tracking
+     pertencem ao papel; componentes nao inventam combinacoes locais. */
+  --type-micro-size: 0.8125rem;
+  --type-micro-weight: 500;
+  --type-micro-line-height: 1.35;
+
+  --type-label-size: 0.8125rem;
+  --type-label-weight: 500;
+  --type-label-strong-weight: 600;
+  --type-label-line-height: 1.35;
+
+  --type-support-size: 0.875rem;
+  --type-support-weight: 400;
+  --type-support-line-height: 1.5;
+
+  --type-body-size: 0.9375rem;
+  --type-body-weight: 400;
+  --type-body-line-height: 1.5;
+
+  --type-card-title-size: 1rem;
+  --type-card-title-weight: 600;
+  --type-card-title-line-height: 1.35;
+
+  --type-compact-title-size: 1.125rem;
+  --type-subsection-title-size: 1.25rem;
+  --type-section-title-size: 1.5rem;
+  --type-detail-title-size: 1.75rem;
+  --type-page-title-size: 2rem;
+  --type-display-size: 2.375rem;
+  --type-heading-weight: 600;
+  --type-heading-line-height: 1.2;
+
+  --type-data-compact-size: 1.5rem;
+  --type-data-size: 2rem;
+  --type-data-weight: 700;
+  --type-data-line-height: 1.2;
+
+  /* Aliases de escala preservados para CSS de dominio. Todos apontam para
+     papeis nomeados; o piso de leitura passa a 13px e 40px deixa de existir. */
+  --font-size-2xs: var(--type-micro-size);
+  --font-size-xs: var(--type-label-size);
+  --font-size-sm: var(--type-body-size);
+  --font-size-md: var(--type-card-title-size);
+  --font-size-lg: var(--type-compact-title-size);
+  --font-size-xl: var(--type-subsection-title-size);
+  --font-size-2xl: var(--type-section-title-size);
+  --font-size-3xl: var(--type-page-title-size);
+  --font-size-4xl: var(--type-display-size);
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
@@ -35,20 +74,25 @@
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.65;
 
-  /* Hierarquia tipografica compartilhada */
-  --type-page-title: var(--font-size-3xl);
-  --type-section-title: var(--font-size-2xl);
-  --type-subsection-title: var(--font-size-xl);
-  --type-body: var(--font-size-sm);
-  --type-support: 0.8125rem;
-  --type-label: var(--font-size-xs);
-  --header-title-editorial: 2.375rem;
-  --header-title-listing: var(--font-size-3xl);
-  --header-title-detail: 1.75rem;
+  /* Aliases semanticos legados, agora resolvidos pelo contrato acima. */
+  --type-page-title: var(--type-page-title-size);
+  --type-section-title: var(--type-section-title-size);
+  --type-subsection-title: var(--type-subsection-title-size);
+  --type-body: var(--type-body-size);
+  --type-support: var(--type-support-size);
+  --type-label: var(--type-label-size);
+  --header-title-editorial: var(--type-display-size);
+  --header-title-listing: var(--type-page-title-size);
+  --header-title-detail: var(--type-detail-title-size);
   --header-subtitle-max: 62ch;
   --header-padding-editorial: var(--space-8);
   --header-padding-listing: var(--space-6);
   --header-padding-detail: var(--space-5);
+  /* Respiro vertical do cabecalho analitico. Separado do padding total para que
+     a altura possa cair (~30%) sem mexer no inline, que segue o painel da pagina
+     e mantem o titulo alinhado a grade de cartoes abaixo. */
+  --header-pad-block-listing: var(--space-4);
+  --header-pad-block-detail: var(--space-4);
 
   /* Ajuste otico dos titulos. Serif editorial fecha levemente; rotulos e
      dados em sans ficam neutros. Piso de tracking: -0.02em. */
@@ -408,6 +452,14 @@
   --card-shadow: var(--shadow-sm);
   --card-shadow-hover: var(--shadow-md);
   --indicator-card-gap: clamp(16px, 1.35vw, 20px);
+  /* Largura minima da coluna de cartao de indicador. A grade e resolvida pela
+     largura do conteudo (auto-fit), nao pela contagem fixa por viewport: abaixo
+     deste minimo a grade quebra para menos colunas, evitando cartao espremido
+     ou coluna vazia. Ver docs/DESIGN.md, secao Layout. */
+  --indicator-card-min: 240px;
+  /* Cartao de meta do ciclo PNE: mais largo que o cartao de indicador (titulo,
+     referencia legal e status), min proprio para a grade por largura de conteudo. */
+  --meta-card-min: 420px;
   --indicator-card-padding: var(--space-4);
   --indicator-card-height-desktop: 324px;
   --indicator-card-height-mobile: 364px;
@@ -434,7 +486,7 @@
   --page-padding-inline: 40px;
   --page-padding-inline-tablet: 24px;
   --page-padding-inline-mobile: 16px;
-  --context-bar-height: 72px;
+  --context-bar-height: 68px;
   --control-height: 44px;
   --control-height-lg: 48px;
   --control-font-size: var(--font-size-sm);

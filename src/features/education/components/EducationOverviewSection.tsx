@@ -1,3 +1,4 @@
+import { ArrowRight } from 'lucide-react'
 import { buildAppHash } from '../../../app/appHash'
 import { hasRelevantNetworkComparison } from '../enrollmentComparisonPresentation'
 import type {
@@ -272,7 +273,7 @@ function HighSchoolStageSnapshot({ data }: Pick<EducationOverviewSectionProps, '
         <EducationSnapshotMatrix id="high-school-location-title" rows={LOCATION_ROWS} splitSingleStage columnsLabel="Localização da escola" stages={[{ label: 'Ensino Médio', value: data.highSchool.total }]} title="Localização da escola" />
       </div>
       <a className="municipal-education-stage__detail-link" href={detailsHref}>
-        <span>Ver indicadores do Ensino Médio</span><span aria-hidden="true">→</span>
+        <span>Ver indicadores do Ensino Médio</span><ArrowRight aria-hidden="true" size={16} />
       </a>
     </section>
   )
@@ -498,7 +499,7 @@ function EducationStageSnapshot({
         />
       </div>
       <a className="municipal-education-stage__detail-link" href={detailsHref}>
-        <span>{detailsLabel}</span><span aria-hidden="true">→</span>
+        <span>{detailsLabel}</span><ArrowRight aria-hidden="true" size={16} />
       </a>
     </section>
   )

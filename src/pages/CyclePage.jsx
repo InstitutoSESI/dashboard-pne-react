@@ -324,10 +324,9 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
             </>
           )}
         </dl>}
-        context={<>Município em foco: <strong>{selectedMunicipio}</strong></>}
         description={cycleCopy.supportText}
         eyebrow={cycleCopy.eyebrow}
-        title={title}
+        title={<>{title}<span className="pne-page-header__print-context"> · {selectedMunicipio}</span></>}
         variant="listing"
       /> : null}
 
@@ -440,13 +439,15 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
               </div>
             )}
 
-            <DataSourceNote className="cycle-source-line" source={CYCLE_SOURCE_NOTE} />
-            {cycle === 'pne_2026_2036' ? (
-              <p className="cycle-complementary-note">
-                As referências de acompanhamento são aproximações municipais úteis e
-                não comprovam, isoladamente, o cumprimento integral da meta legal.
-              </p>
-            ) : null}
+            <footer className="cycle-card-workspace__notes">
+              <DataSourceNote className="cycle-source-line" source={CYCLE_SOURCE_NOTE} />
+              {cycle === 'pne_2026_2036' ? (
+                <p className="cycle-complementary-note">
+                  As referências de acompanhamento são aproximações municipais úteis e
+                  não comprovam, isoladamente, o cumprimento integral da meta legal.
+                </p>
+              ) : null}
+            </footer>
           </>
         )}
       </section>
@@ -543,7 +544,10 @@ function appendPne2026ComparableItems(categories, cycle) {
 
 function PneHeaderMetric({ detail, label, tone, value }) {
   return (
-    <div className={`pne-page-header__metric pne-page-header__metric--${tone}`}>
+    <div
+      className={`pne-page-header__metric pne-page-header__metric--${tone}`}
+      title={typeof detail === 'string' ? detail : undefined}
+    >
       <dt>{label}</dt>
       <dd>{value}</dd>
       <small>{detail}</small>

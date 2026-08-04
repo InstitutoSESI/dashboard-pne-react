@@ -1,4 +1,14 @@
 import { useEffect, useState } from 'react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  BusFront,
+  ChartColumnIncreasing,
+  ChartNoAxesColumnIncreasing,
+  Landmark,
+  ShieldCheck,
+} from 'lucide-react'
 import { ErrorState } from '../components/ErrorState'
 import { FinancialSectionHeader } from '../components/FinancialIndicatorPrimitives'
 import { FinancialCompactModuleSelector } from '../components/FinancialCompactModuleSelector'
@@ -8,7 +18,7 @@ import { LoadingState } from '../components/LoadingState'
 import { PnatePanel } from '../components/PnatePanel'
 import { SiopeIndicatorsPanel } from '../components/SiopeIndicatorsPanel'
 import { VaarPanel } from '../components/VaarPanel'
-import { EducationCompactHeader } from '../features/education/components/EducationCompactHeader'
+import { PageHeader } from '../components/PageHeader'
 import { loadEducationMunicipio } from '../data/educationData'
 import {
   FINANCIAL_MODULES,
@@ -129,7 +139,7 @@ function FinancialOverviewPage() {
       </section>
 
       <section className="page-card financial-overview-panorama" aria-labelledby="financial-panorama-title">
-        <div className="financial-overview-panorama__icon" aria-hidden="true"><PanoramaIcon /></div>
+        <div className="financial-overview-panorama__icon" aria-hidden="true"><ChartNoAxesColumnIncreasing /></div>
         <div className="financial-overview-panorama__copy">
           <span className="eyebrow">{panorama.eyebrow}</span>
           <h2 id="financial-panorama-title">{panorama.title}</h2>
@@ -137,7 +147,7 @@ function FinancialOverviewPage() {
         </div>
         <a className="financial-overview-panorama__action" href={`#${FINANCIAL_PAGE_KEYS.panorama}`}>
           <span>{panorama.actionLabel}</span>
-          <span aria-hidden="true">→</span>
+          <ArrowRight aria-hidden="true" size={16} />
         </a>
       </section>
 
@@ -211,71 +221,26 @@ function FinancialOverviewPage() {
 }
 
 const FINANCIAL_OVERVIEW_MODULE_ICONS = Object.freeze({
-  siope: ApplicationIcon,
-  fundeb: FundebIcon,
-  vaar: VaarIcon,
-  pnate: PnateIcon,
+  siope: BriefcaseBusiness,
+  fundeb: Landmark,
+  vaar: ShieldCheck,
+  pnate: BusFront,
 })
-
-function PanoramaIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19h16" />
-      <path d="M6 16v-5m4 5V7m4 9v-3m4 3V4" />
-      <path d="m5 8 4-3 4 4 5-5" />
-    </svg>
-  )
-}
-
-function ApplicationIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 8.5h14v10H5z" />
-      <path d="M8 8.5V6.75A1.75 1.75 0 0 1 9.75 5h4.5A1.75 1.75 0 0 1 16 6.75V8.5" />
-      <path d="M9 13h6m-3-3v6" />
-    </svg>
-  )
-}
-
-function FundebIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 9h11l-2.5-2.5M19 15H8l2.5 2.5" />
-      <path d="M18 6.5A8 8 0 0 1 19 15M6 17.5A8 8 0 0 1 5 9" />
-    </svg>
-  )
-}
-
-function VaarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3.5 18 6v5.25c0 4.05-2.45 7.65-6 9.25-3.55-1.6-6-5.2-6-9.25V6z" />
-      <path d="m9 11.75 2 2 4-4" />
-    </svg>
-  )
-}
-
-function PnateIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 5.5h14v11H5z" />
-      <path d="M5 10h14M8 8h2m2 0h2" />
-      <path d="M8 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
-    </svg>
-  )
-}
 
 function FinancialPageHeader({ module }) {
   return (
-    <EducationCompactHeader
-      backLink={{
-        href: getFinancialOverviewHref(),
-        label: 'Voltar à visão geral de financiamento',
-      }}
+    <PageHeader
+      actions={(
+        <a className="platform-navigation-button financial-page-header__back" href={getFinancialOverviewHref()}>
+          <ArrowLeft aria-hidden="true" />
+          Voltar à visão geral de financiamento
+        </a>
+      )}
       className={`financial-page-header financial-page-header--${module.panel}`}
       description={getFinancialModuleDescription(module)}
       eyebrow="Financiamento da educação"
       title={getFinancialModuleTitle(module)}
+      variant="listing"
     />
   )
 }
@@ -356,11 +321,5 @@ function FinancialModulePanel({
 }
 
 function FinanceIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 18h16" />
-      <path d="M7 18V9h3v9M12 18V5h3v13M17 18v-6h3v6" />
-      <path d="M4 6h3" />
-    </svg>
-  )
+  return <ChartColumnIncreasing aria-hidden="true" strokeWidth={1.7} />
 }

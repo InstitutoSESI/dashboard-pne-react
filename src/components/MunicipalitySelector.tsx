@@ -11,6 +11,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react'
+import { ChevronDown, X } from 'lucide-react'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import {
   filterMunicipalitiesByName,
@@ -191,7 +192,7 @@ export const MunicipalitySelector = forwardRef<
               inputRef.current?.focus()
             }}
           >
-            ×
+            <X aria-hidden="true" size={14} />
           </button>
         ) : null}
         <button
@@ -208,9 +209,7 @@ export const MunicipalitySelector = forwardRef<
             }
           }}
         >
-          <svg className="municipio-selector__chevron" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+          <ChevronDown aria-hidden="true" className="municipio-selector__chevron" strokeWidth={1.7} />
         </button>
         {isOpen ? (
           <ul

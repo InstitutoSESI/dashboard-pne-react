@@ -1,3 +1,4 @@
+import { ChartColumnIncreasing, MoveRight, TrendingDown, TrendingUp } from 'lucide-react'
 import { InteractionChevron } from './InteractionChevron'
 import { Sparkline } from './Sparkline'
 import { StatusBadge } from './StatusBadge'
@@ -171,19 +172,7 @@ export function ExplorableIndicatorCardFrame({
                 <>
                   {insight.marker ? (
                     <span className="indicator-card-shell__insight-marker" aria-hidden="true">
-                      {insight.direction === 'up' ? (
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="m4 16 5-5 4 4 7-7M15 8h5v5" />
-                        </svg>
-                      ) : insight.direction === 'down' ? (
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="m4 8 5 5 4-4 7 7M15 16h5v-5" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" focusable="false">
-                          <path d="M4 12h16M16 8l4 4-4 4" />
-                        </svg>
-                      )}
+                      <IndicatorTrendIcon direction={insight.direction} />
                     </span>
                   ) : null}
                   <span className="indicator-card-shell__insight-copy">
@@ -231,9 +220,7 @@ export function ExplorableIndicatorCardFrame({
         {footer.primary ? (
           <span title={footer.primary}>
             {footer.icon === 'history' ? (
-              <svg className="indicator-card-shell__footer-icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                <path d="M5 19V12M12 19V5M19 19V9" />
-              </svg>
+              <ChartColumnIncreasing aria-hidden="true" className="indicator-card-shell__footer-icon" focusable="false" />
             ) : null}
             {footer.primary}
           </span>
@@ -255,4 +242,9 @@ export function ExplorableIndicatorCardFrame({
       )}
     </button>
   )
+}
+
+function IndicatorTrendIcon({ direction }) {
+  const Icon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : MoveRight
+  return <Icon aria-hidden="true" focusable="false" />
 }

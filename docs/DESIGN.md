@@ -43,6 +43,12 @@ typography:
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "-0.018em"
+  page:
+    fontFamily: "Source Serif 4, Georgia, Times New Roman, serif"
+    fontSize: "2rem"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "-0.012em"
   headline:
     fontFamily: "Source Serif 4, Georgia, Times New Roman, serif"
     fontSize: "1.75rem"
@@ -50,25 +56,31 @@ typography:
     lineHeight: 1.2
     letterSpacing: "-0.012em"
   title:
-    fontFamily: "Public Sans, system-ui, Segoe UI, sans-serif"
+    fontFamily: "Source Sans 3, system-ui, Segoe UI, sans-serif"
     fontSize: "1rem"
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: "0"
   body:
-    fontFamily: "Public Sans, system-ui, Segoe UI, sans-serif"
+    fontFamily: "Source Sans 3, system-ui, Segoe UI, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "0"
+  support:
+    fontFamily: "Source Sans 3, system-ui, Segoe UI, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "0"
   label:
-    fontFamily: "Public Sans, system-ui, Segoe UI, sans-serif"
-    fontSize: "0.75rem"
-    fontWeight: 600
+    fontFamily: "Source Sans 3, system-ui, Segoe UI, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 500
     lineHeight: 1.35
     letterSpacing: "0.01em"
   data:
-    fontFamily: "Public Sans, system-ui, Segoe UI, sans-serif"
+    fontFamily: "Source Sans 3, system-ui, Segoe UI, sans-serif"
     fontSize: "2rem"
     fontWeight: 700
     lineHeight: 1.2
@@ -221,23 +233,28 @@ Uma família verde institucional sobre uma rampa de neutros tingida na mesma mat
 ## Tipografia
 
 **Fonte de destaque:** Source Serif 4 (alternativas Georgia, Times New Roman, serif)
-**Fonte de texto:** Public Sans (alternativas system-ui, Segoe UI, sans-serif)
+**Fonte de texto:** Source Sans 3 (alternativas system-ui, Segoe UI, sans-serif)
 
 Um par contrastante e deliberado: serifa editorial para o título que abre um documento, sem serifa funcional para tudo que é trabalho — rótulo, dado, controle, tabela. A serifa dá autoridade de publicação institucional; a sem serifa dá legibilidade em densidade alta e em número tabular.
 
 ### Hierarquia
-- **Display** (600, 2,375rem, 1.1, -0,018em): título de página. Serifa. Um por tela.
-- **Headline** (600, 1,75rem, 1.2, -0,012em): abertura de capítulo e de seção maior. Serifa.
+- **Display** (600, 2,375rem, 1.1, -0,018em): abertura editorial de landing page. Serifa.
+- **Page** (600, 2rem, 1.2, -0,012em): título principal de página. Serifa, sempre na mesma escala independentemente do layout.
+- **Detail** (600, 1,75rem, 1.2, -0,012em): título de uma leitura analítica dentro da página. Serifa.
+- **Section** (600, 1,5rem, 1.2, -0,012em): abertura de seção. Serifa.
+- **Subsection** (600, 1,25rem, 1.2): agrupamento funcional interno. Sem serifa.
+- **Compact title** (600, 1,125rem, 1.2): título curto intermediário. Sem serifa.
 - **Title** (600, 1rem, 1.35): título de cartão e de painel. Sem serifa.
-- **Body** (400, 0,875rem, 1.5): texto corrido e célula de tabela. Prosa longa fica em 62–72ch; tabela pode passar disso.
-- **Label** (600, 0,75rem, 1.35, 0,01em): rótulo de contexto, legenda, nome de campo. **Caixa normal.**
-- **Data** (700, 2rem, 1.2, -0,018em, tnum): o valor principal de um indicador. Sempre com numeral tabular.
+- **Body** (400, 0,9375rem, 1.5): texto corrido, descrição de página e célula de tabela. Prosa longa fica em 62–72ch; tabela pode passar disso.
+- **Support** (400, 0,875rem, 1.5): fonte, metodologia, nota técnica e descrição auxiliar.
+- **Label / Micro** (500, 0,8125rem, 1.35, 0,01em): rótulo de contexto, legenda, nome de campo e texto de gráfico. **Caixa normal.** Status e identidade podem usar 600.
+- **Data** (700, 2rem ou 1,5rem, 1.2, tnum): valor principal ou compacto de indicador. Sempre com numeral tabular.
 
 ### Regras nomeadas
 
 **A Regra da Escala Fixa.** Tamanhos vêm em `rem` fixo da escala de tokens, nunca de `clamp()`, `em` ou `%`. UI de produto é lida em DPI constante, e título fluido encolhe onde não deveria. Herança em `em` foi a origem de dezenas de tamanhos quebrados como 13,76px e 35,57px — valores que ninguém escolheu.
 
-**A Regra do Rótulo Silencioso.** Rótulo de contexto é legenda, não banner: caixa normal, peso 600, cor `--text-muted`. Caixa alta tracked é reservada a exatamente dois lugares — a assinatura do produto no topo da Home e o rótulo da barra de navegação. Uma seção que abre com kicker em caixa alta está errada.
+**A Regra do Rótulo Silencioso.** Rótulo de contexto é legenda, não banner: caixa normal, peso 500, cor `--text-muted`. Peso 600 fica reservado a status e identidade. Caixa alta tracked é reservada a exatamente dois lugares — a assinatura do produto no topo da Home e o rótulo da barra de navegação. Uma seção que abre com kicker em caixa alta está errada.
 
 ## Layout
 
@@ -272,7 +289,7 @@ Bordas são de 1px por padrão, 2px quando o elemento precisa de peso estrutural
 
 ### Ícones de interface
 
-Todo ícone de UI usa `viewBox="0 0 24 24"`, traço de **1,7** e cantos arredondados (`stroke-linecap`/`linejoin: round`). Quatro degraus de tamanho — 16px ao lado de rótulo, 18px como padrão de UI, 24px em cabeçalho de seção, 32px em cartão de entrada — e quatro de caixa (28/32/44/48px). Traço de gráfico é outra coisa: linha de série, eixo e malha têm espessura própria e não seguem a escala de ícone.
+Todo ícone de UI vem de `lucide-react`, usa a malha 24×24, traço de **1,7** e cantos arredondados. Quatro degraus de tamanho — 16px ao lado de rótulo, 18px como padrão de UI, 24px em cabeçalho de seção, 32px em cartão de entrada — e quatro de caixa (28/32/44/48px). Setas, chevrons, marcas de seleção e indicadores de expansão também usam Lucide; não use glifos Unicode nem SVGs desenhados no componente. Traço de gráfico é outra coisa: linha de série, eixo e malha têm espessura própria e não seguem a escala de ícone.
 
 ## Assinatura: selos de domínio
 
@@ -280,13 +297,13 @@ O elemento que este guia introduz para tornar a navegação reconhecível de rel
 
 | Seção | Glifo | O que evoca |
 |---|---|---|
-| Atendimento e oferta | fachada de escola | matrícula e rede de ensino |
-| Trajetória escolar | seta em degrau | fluxo entre etapas |
-| Profissionais da educação | capelo | corpo docente |
+| Atendimento e oferta | escola | matrícula e rede de ensino |
+| Trajetória escolar | rota | fluxo entre etapas |
+| Profissionais da educação | quadro de apresentação | corpo docente |
 | Infraestrutura escolar | prédio com grade de janelas | condições físicas da escola |
 | Modalidades | camadas sobrepostas | pluralidade — especial, indígena, EJA, Sistema S |
 
-Implementação de referência: `EducationDomainIcon` (`src/components/icons/EducationDomainIcon.tsx`), na mesma convenção viewBox 24×24 / traço 1,7 e na mesma escala (`--icon-sm/md/lg`) do restante do sistema de ícones.
+Implementação de referência: `EducationDomainIcon` (`src/components/icons/EducationDomainIcon.tsx`), que mapeia os domínios para componentes Lucide e preserva a escala (`--icon-sm/md/lg`) do restante do sistema de ícones.
 
 **A Regra do Selo Único.** O selo de domínio aparece em exatamente dois lugares por seção: o item correspondente na barra lateral, e o eyebrow do cabeçalho da página. Não se repete em cartão de indicador, em cabeçalho de agrupamento interno, nem em rodapé. Um selo que aparece em todo nível da hierarquia deixa de orientar e vira papel de parede — a disciplina de "um só lugar por página" é o que faz o sinal valer alguma coisa.
 

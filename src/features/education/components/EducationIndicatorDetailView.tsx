@@ -3,8 +3,10 @@
 // JSX renderers are preserved byte-for-byte in structure while the raw payload
 // adapters continue their incremental TypeScript migration.
 import { useEffect, useMemo, useState } from 'react'
+import { Clock3, ListFilter, TrendingUp } from 'lucide-react'
 import { EducationBarChart } from '../../../components/EducationBarChart.jsx'
 import { DataSourceNote } from '../../../components/DataSourceNote.jsx'
+import { DisclosureChevron } from '../../../components/DisclosureChevron.jsx'
 import { IndicatorChartHeader } from '../../../components/IndicatorChartHeader.jsx'
 import { EducationLineChart } from '../../../components/EducationLineChart.jsx'
 import { EducationStackedBarChart } from '../../../components/EducationStackedBarChart.jsx'
@@ -133,17 +135,14 @@ function EducationQuickReading({
 }
 
 function EducationInsightIcon({ name }) {
-  const paths = {
-    trend: <><path d="M5 16 10 11l3 3 6-7" /><path d="M15 7h4v4" /></>,
-    measure: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>,
-    cut: <><path d="M5 6h14M8 12h8M10 18h4" /></>,
+  const icons = {
+    trend: TrendingUp,
+    measure: Clock3,
+    cut: ListFilter,
   }
+  const Icon = icons[name] ?? Clock3
 
-  return (
-    <svg aria-hidden="true" className="education-quick-reading__icon" fill="none" viewBox="0 0 24 24">
-      {paths[name] ?? paths.measure}
-    </svg>
-  )
+  return <Icon aria-hidden="true" className="education-quick-reading__icon" />
 }
 
 export function EducationIndicatorDetailView({
@@ -980,6 +979,7 @@ function InfraDetailPanel({ indicator, blocos }) {
               <span>Histórico de conectividade e condições escolares</span>
               <p>Percentual por ano — {tableLabel}</p>
             </div>
+            <DisclosureChevron />
           </summary>
           <div className="infra-table-scroll">
             <EducationTable

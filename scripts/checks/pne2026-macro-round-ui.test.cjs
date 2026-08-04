@@ -38,7 +38,7 @@ async function openDiagnostic(page) {
   )
   await page.getByRole('heading', {
     level: 1,
-    name: `Diagnóstico educacional de ${MUNICIPALITY}`,
+    name: 'Diagnóstico educacional',
   }).waitFor({ state: 'visible' })
 }
 
@@ -155,7 +155,7 @@ async function verifyScreen(browser, viewport) {
       await option.click()
       await page.getByRole('heading', {
         level: 1,
-        name: 'Diagnóstico educacional de São Pedro da Serra',
+        name: 'Diagnóstico educacional',
       }).waitFor({ state: 'visible' })
       assert.equal(
         await getDiagnosticCard(

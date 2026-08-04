@@ -1,4 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  ArrowDown,
+  ArrowUp,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  ChartColumnIncreasing,
+  ChartLine,
+  ChartNoAxesColumnIncreasing,
+  Clock3,
+  Copy,
+  Leaf,
+  NotebookPen,
+  Printer,
+  School,
+  TrendingUp,
+  UserCheck,
+  UsersRound,
+} from 'lucide-react'
 import { CategoryTabs } from './CategoryTabs'
 import { ContentState } from './ContentState'
 import { DiagnosticPrintReport } from './DiagnosticPrintReport'
@@ -186,7 +205,7 @@ export function DiagnosticPanel({
         asideContent={<DiagnosticHeaderSummary summary={legalSummary} />}
         description={DIAGNOSTIC_DESCRIPTION}
         eyebrow="DIAGNÓSTICO MUNICIPAL · PNE 2026–2036"
-        title={`Diagnóstico educacional de ${municipio}`}
+        title={<>Diagnóstico educacional<span className="pne-page-header__print-context"> de {municipio}</span></>}
       />
 
       <section className="pne-diagnostic-summary" aria-labelledby="pne-diagnostic-summary-title">
@@ -438,7 +457,8 @@ function ThemeBlock({
 
   return (
     <article className="pne-diagnostic-theme" aria-labelledby={titleId} id={`pne-diagnostic-theme-section-${theme.id}`}>
-      <header className="pne-diagnostic-theme__header">
+      <details className="pne-diagnostic-theme__disclosure" open>
+      <summary className="pne-diagnostic-theme__header">
         <div className="pne-diagnostic-theme__heading">
           <span className="pne-diagnostic-theme__icon" aria-hidden="true">
             <DiagnosticIcon name={theme.id} />
@@ -449,7 +469,7 @@ function ThemeBlock({
           </div>
         </div>
         <ThemeSummary summary={summary} view={view} />
-      </header>
+      </summary>
       <div className="pne-diagnostic-theme__results">
         {results.map(({ goal, result }) => (
           <ResultCard
@@ -462,6 +482,7 @@ function ThemeBlock({
           />
         ))}
       </div>
+      </details>
     </article>
   )
 }
@@ -674,13 +695,8 @@ function CompareBadgeRow({ icon, label, reading }) {
 
 function DistanceIcon({ value }) {
   const down = Number(value) < 0
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      {down
-        ? <path d="M12 5v14M6 13l6 6 6-6" />
-        : <path d="M12 19V5M6 11l6-6 6 6" />}
-    </svg>
-  )
+  const Icon = down ? ArrowDown : ArrowUp
+  return <Icon aria-hidden="true" />
 }
 
 function MethodologyDisclosure({ isAccelerated = false, notes = [], result, sources = [] }) {
@@ -778,46 +794,15 @@ function getSupportingReadingBadge({ kind, lines }) {
 }
 
 function DiagnosticSupportIcon({ name }) {
-  if (name === 'comparison') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M5 19v-4h3v4M10.5 19V9h3v10M16 19V5h3v14" />
-      </svg>
-    )
+  const icons = {
+    comparison: ChartColumnIncreasing,
+    reading: BookOpen,
+    position: ChartNoAxesColumnIncreasing,
+    similar: UsersRound,
+    trajectory: TrendingUp,
   }
-
-  if (name === 'reading') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z" />
-      </svg>
-    )
-  }
-
-  if (name === 'position') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M5 19v-5h4v5M10 19V9h4v10M15 19V4h4v15" />
-      </svg>
-    )
-  }
-
-  if (name === 'similar') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <circle cx="9" cy="8" r="3" />
-        <circle cx="17" cy="9" r="2" />
-        <path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M15 14h1.5a4 4 0 0 1 4 4v1" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="m4 17 5-5 3 3 7-8" />
-      <path d="M15 7h4v4" />
-    </svg>
-  )
+  const Icon = icons[name] ?? TrendingUp
+  return <Icon aria-hidden="true" />
 }
 
 
@@ -856,103 +841,21 @@ function SourcesSection({ hasAbove100, sources }) {
 }
 
 function ActionIcon({ name }) {
-  if (name === 'copy') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="8" y="8" width="11" height="11" rx="2" />
-        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-      </svg>
-    )
-  }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 8V4h10v4" />
-      <rect x="5" y="14" width="14" height="6" rx="1" />
-      <path d="M5 16H3V9h18v7h-2" />
-      <path d="M17 11h1" />
-    </svg>
-  )
+  const Icon = name === 'copy' ? Copy : Printer
+  return <Icon aria-hidden="true" />
 }
 
 function DiagnosticIcon({ name }) {
-  if (name === 'atendimento_escolar_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 19v-7.5L12 5l8 6.5V19H4" />
-        <path d="M8 19v-5h8v5" />
-      </svg>
-    )
+  const icons = {
+    atendimento_escolar_v2: School,
+    educacao_tempo_integral_v2: Clock3,
+    aprendizagem_trajetoria_escolar_v2: BookOpen,
+    escolaridade_alfabetizacao_v2: NotebookPen,
+    educacao_profissional_eja_v2: BriefcaseBusiness,
+    profissionais_educacao_v2: UserCheck,
+    infraestrutura_escolar_v2: Building2,
+    gestao_escolar_educacao_ambiental_v2: Leaf,
   }
-
-  if (name === 'educacao_tempo_integral_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="8" />
-        <path d="M12 7v5l3 2" />
-      </svg>
-    )
-  }
-
-  if (name === 'aprendizagem_trajetoria_escolar_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h3.5a3 3 0 0 1 3 3v14.5H7a2.5 2.5 0 0 0-2.5 2.5z" />
-        <path d="M19.5 5.5A2.5 2.5 0 0 0 17 3h-3.5a3 3 0 0 0-3 3v14.5H17a2.5 2.5 0 0 1 2.5 2.5z" />
-      </svg>
-    )
-  }
-
-  if (name === 'escolaridade_alfabetizacao_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M5 6h8M5 10h6M5 14h4" />
-        <path d="m12 18 1-4 5.5-5.5 3 3L16 17z" />
-      </svg>
-    )
-  }
-
-  if (name === 'educacao_profissional_eja_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <rect x="3.5" y="7" width="17" height="12" rx="2" />
-        <path d="M9 7V5h6v2M3.5 12h17M10 12v2h4v-2" />
-      </svg>
-    )
-  }
-
-  if (name === 'profissionais_educacao_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19" />
-        <path d="m16 10 1.5 1.5L21 8" />
-      </svg>
-    )
-  }
-
-  if (name === 'infraestrutura_escolar_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M4 20V8l8-4 8 4v12" />
-        <path d="M8 11h2M14 11h2M8 15h2M14 15h2M10 20v-2h4v2" />
-      </svg>
-    )
-  }
-
-  if (name === 'gestao_escolar_educacao_ambiental_v2') {
-    return (
-      <svg viewBox="0 0 24 24">
-        <path d="M6 18c0-6 3.5-10 12-12 0 8-3.5 12-9 12z" />
-        <path d="M7 20c2-5 5-8 9-10" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg viewBox="0 0 24 24">
-      <rect x="4" y="4" width="16" height="16" rx="4" />
-      <path d="M8 15.5 10.7 12l2.2 2.1L16 9.5" />
-      <path d="M8 8.5h.01" />
-    </svg>
-  )
+  const Icon = icons[name] ?? ChartLine
+  return <Icon aria-hidden="true" />
 }

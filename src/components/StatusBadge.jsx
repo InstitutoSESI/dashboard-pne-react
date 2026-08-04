@@ -1,3 +1,5 @@
+import { MoveRight, TrendingDown, TrendingUp } from 'lucide-react'
+
 export function StatusBadge({ className = '', displayStatus, marker, status, title, tone }) {
   const classes = ['status-badge']
   if (className) {
@@ -29,10 +31,21 @@ export function StatusBadge({ className = '', displayStatus, marker, status, tit
     <span className={classes.join(' ')} title={title ?? status}>
       {marker ? (
         <>
-          <span className="status-badge__marker" aria-hidden="true">{marker}</span>
+          <StatusMarker marker={marker} />
           <span>{displayStatus ?? status}</span>
         </>
       ) : displayStatus ?? status}
     </span>
   )
+}
+
+function StatusMarker({ marker }) {
+  const icons = {
+    up: TrendingUp,
+    down: TrendingDown,
+    stable: MoveRight,
+  }
+  const Icon = icons[marker]
+  if (!Icon) return null
+  return <Icon aria-hidden="true" className="status-badge__marker" />
 }

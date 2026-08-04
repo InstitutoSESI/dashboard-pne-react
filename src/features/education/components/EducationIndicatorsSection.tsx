@@ -12,7 +12,6 @@ import {
 import { selectEducationVisibleGroups } from '../educationSelectors'
 import { formatIndicatorCount } from '../educationFormatters'
 import { EducationIndicatorDetailView } from './EducationIndicatorDetailView'
-import { EducationSectionBar } from './EducationSectionBar'
 import { SpecialEducationDetailView } from './SpecialEducationDetailView'
 import {
   isSpecialEducationIndicatorId,
@@ -192,27 +191,26 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
 
   return (
     <>
-      <EducationSectionBar
-        description={section?.description}
-        id="education-thematic-title"
-        search={(
-          <div className="education-section-bar__search">
-          <div>
-            <span className="eyebrow">{'Indicadores da seção'}</span>
-            <strong className="education-section-filter-count">{formatIndicatorCount(indicatorCount)}</strong>
-          </div>
-          <SearchField
-            ariaLabel="Buscar indicador"
-            className="cycle-search platform-search-field"
-            onChange={(event: ChangeEvent<HTMLInputElement>) => onSearchChange(event.target.value)}
-            onClear={() => onSearchChange('')}
-            placeholder="Buscar indicador..."
-            value={searchQuery}
-          />
-          </div>
-        )}
-        title={section?.label}
-      />
+      {/*
+       * Barra local compacta e sticky (docs/DESIGN.md, Layout).
+       *
+       * Antes um EducationSectionBar repetia o titulo "Indicadores disponiveis"
+       * e a MESMA descricao ja exibida no cabecalho da pagina -- 128px de
+       * redundancia entre o titulo unico e a primeira linha de dado. Sobra so o
+       * que e util em pagina longa: contagem e busca, presos ao topo para nao
+       * sumirem no rolar.
+       */}
+      <div className="education-filter-bar" role="search" aria-label="Buscar indicadores da seção">
+        <span className="education-filter-bar__count">{formatIndicatorCount(indicatorCount)}</span>
+        <SearchField
+          ariaLabel="Buscar indicador"
+          className="platform-search-field education-filter-bar__field"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => onSearchChange(event.target.value)}
+          onClear={() => onSearchChange('')}
+          placeholder="Buscar indicador..."
+          value={searchQuery}
+        />
+      </div>
 
       {selectedSectionKey === EDUCATION_SECTION_KEYS.modalities && specialEducationState.loading ? (
         <ContentState as="p" kind="loading" className="state-box state-box--loading special-education-load-state">
@@ -238,10 +236,7 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
           {visibleGroups.map((group) => (
             <section className={`education-indicator-group education-indicator-group--${group.key}`} key={group.key} aria-labelledby={`education-group-${group.key}`}>
               <div className="education-indicator-group__heading">
-                <div>
-                  <span className="eyebrow">Indicadores relacionados</span>
-                  <h3 id={`education-group-${group.key}`}>{group.label}</h3>
-                </div>
+                <h3 id={`education-group-${group.key}`}>{group.label}</h3>
                 <span>{formatEducationGroupCount(group)}</span>
               </div>
               <p className="education-indicator-group__description">{group.description}</p>

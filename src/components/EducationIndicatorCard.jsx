@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import { ExplorableIndicatorCardFrame } from './ExplorableIndicatorCardFrame'
 import {
   formatSchoolInfrastructurePercentage,
@@ -106,7 +107,7 @@ export function EducationIndicatorCard({
    * O rotulo externo continua valendo quando nao ha comparacao, que e o caso
    * de "Situacao em 2025" e de series com um unico ano.
    */
-  const comparisonLabel = comparison ? getDirectionLabel(direction, indicator.neutralTrend) : null
+  const comparisonLabel = comparison ? getDirectionLabel(direction) : null
   const statusLabel = comparisonLabel ?? indicator.statusLabel ?? null
   const comparisonTone = comparison
     ? (indicator.neutralTrend ? 'muted' : getDirectionTone(direction))
@@ -269,7 +270,7 @@ function SchoolInfrastructureCompositeCard({
           <span>{indicator.description}</span>
         </span>
         <span className="school-infrastructure-composite-card__action">
-          Abrir panorama <span aria-hidden="true">›</span>
+          Abrir panorama <ChevronRight aria-hidden="true" size={16} />
         </span>
       </span>
       <span className="school-infrastructure-composite-card__metrics">
@@ -301,10 +302,10 @@ function getCardDirection({ comparison, hasCurrentValue, isExploratory }) {
   return 'stable'
 }
 
-function getDirectionLabel(direction, neutralTrend = false) {
-  if (direction === 'up') return neutralTrend ? 'Aumento' : 'Alta'
-  if (direction === 'down') return neutralTrend ? 'Redução' : 'Queda'
-  if (direction === 'stable') return neutralTrend ? 'Estabilidade' : 'Estável'
+function getDirectionLabel(direction) {
+  if (direction === 'up') return 'Aumentou'
+  if (direction === 'down') return 'Diminuiu'
+  if (direction === 'stable') return 'Sem alteração relevante'
   return null
 }
 
@@ -316,10 +317,7 @@ function getDirectionTone(direction) {
 }
 
 function getDirectionMarker(direction) {
-  if (direction === 'up') return '\u2197'
-  if (direction === 'stable') return '\u2192'
-  if (direction === 'down') return '\u2198'
-  return ''
+  return ['up', 'stable', 'down'].includes(direction) ? direction : ''
 }
 
 function getCardReading({ comparison, currentValue, direction, hasCurrentValue, initialYear, isExploratory, neutralTrend, zeroMessage }) {

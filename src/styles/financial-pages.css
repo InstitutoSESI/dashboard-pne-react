@@ -303,11 +303,11 @@
   gap: var(--space-2);
 }
 
-.financial-page--education-catalog .financial-page-header--siope .education-compact-header__copy {
+.financial-page--education-catalog .financial-page-header--siope .platform-page-header__main {
   gap: var(--space-1);
 }
 
-.financial-page--education-catalog .financial-page-header--siope .education-compact-header__back {
+.financial-page--education-catalog .financial-page-header--siope .financial-page-header__back {
   margin-bottom: 0;
 }
 
@@ -1045,16 +1045,14 @@
   gap: var(--space-3);
 }
 
-.siope-execution__stages li:not(:last-child)::after {
+.siope-execution__stage-arrow {
   position: absolute;
   top: 50%;
   right: calc(var(--space-3) * -1);
   z-index: 1;
-  width: var(--space-3);
+  width: 18px;
+  height: 18px;
   color: var(--green-primary);
-  content: '→';
-  font-weight: var(--font-weight-bold);
-  text-align: center;
   transform: translateY(-50%);
 }
 
@@ -1778,7 +1776,7 @@
   background: var(--surface-soft);
 }
 
-.financial-page .siope-method-disclosure--application .platform-support-disclosure__summary::after {
+.financial-page .siope-method-disclosure--application .platform-disclosure-chevron {
   margin-inline-start: auto;
 }
 
@@ -2307,7 +2305,7 @@
     border-top: var(--border-divider);
   }
 
-  .siope-execution__stages li:not(:last-child)::after {
+  .siope-execution__stage-arrow {
     top: auto;
     right: 50%;
     bottom: calc(var(--space-3) * -1);
@@ -2554,8 +2552,8 @@
 
 .financial-detail-view .metric-card__value {
   color: var(--text-strong);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-data-compact-size);
+  font-weight: var(--type-data-weight);
   line-height: var(--line-height-tight);
   overflow-wrap: anywhere;
 }
@@ -2567,7 +2565,7 @@
 
 .financial-detail-view .metric-card--large .metric-card__value {
   color: var(--green-deep);
-  font-size: var(--font-size-2xl);
+  font-size: var(--type-data-compact-size);
 }
 
 .financial-detail-view .metric-card__detail {
@@ -2778,7 +2776,8 @@
 
 .vaar-panel .vaar-result-metrics .metric-card__value {
   color: var(--green-deep);
-  font-size: var(--font-size-xl);
+  font-size: var(--type-data-compact-size);
+  font-weight: var(--type-data-weight);
   line-height: var(--line-height-snug);
 }
 
@@ -2956,14 +2955,6 @@
   border-radius: var(--radius-sm);
   background: var(--surface-card);
   overflow: hidden;
-}
-
-.vaar-panel .vaar-detail-toggle > summary::after {
-  content: "+";
-}
-
-.vaar-panel .vaar-detail-toggle[open] > summary::after {
-  content: "−";
 }
 
 .vaar-panel .vaar-detail-toggle[open] > summary {
@@ -3927,19 +3918,6 @@
   background: var(--surface-soft);
   display: grid;
   gap: var(--space-1);
-}
-
-.municipal-finance-execution-flow li:not(:last-child)::after {
-  position: absolute;
-  top: 50%;
-  right: calc(var(--space-3) * -1);
-  z-index: 1;
-  width: var(--space-3);
-  color: var(--green-primary);
-  content: '→';
-  font-weight: var(--font-weight-bold);
-  text-align: center;
-  transform: translateY(-50%);
 }
 
 .municipal-finance-execution-flow li > span:first-child {
@@ -5090,13 +5068,6 @@
     width: fit-content;
   }
 
-  .municipal-finance-execution-flow li:not(:last-child)::after {
-    top: auto;
-    right: 50%;
-    bottom: calc(var(--space-3) * -1);
-    transform: translate(50%, 50%) rotate(90deg);
-  }
-
   .municipal-finance-fundeb-list > li {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -5276,7 +5247,8 @@
 .financial-page--detail .financial-detail-view .metric-card__value,
 .financial-page--detail .financial-detail-view .metric-card--large .metric-card__value {
   color: var(--text-strong);
-  font-size: var(--font-size-xl);
+  font-size: var(--type-data-compact-size);
+  font-weight: var(--type-data-weight);
   line-height: var(--line-height-tight);
 }
 
@@ -6917,16 +6889,16 @@
 
 .financial-page .financial-page-header {
   min-width: 0;
-  padding: var(--space-5) var(--financial-panel-padding);
+  padding: var(--header-pad-block-listing) var(--financial-panel-padding);
   border-block: var(--border-divider);
   background: var(--surface-card);
 }
 
-.financial-page .financial-page-header .education-compact-header__description {
+.financial-page .financial-page-header .platform-page-header__description {
   max-width: var(--content-reading-max);
 }
 
-.financial-page .financial-page-header .education-compact-header__action {
+.financial-page .financial-page-header .platform-page-header__actions {
   margin-left: 0;
 }
 

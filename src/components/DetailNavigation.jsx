@@ -1,3 +1,4 @@
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 
 export function DetailNavigation({
@@ -31,7 +32,7 @@ export function DetailNavigation({
     >
       {showBack ? (
         <button className="cycle-back-button platform-navigation-button" type="button" onClick={onBack}>
-          <span aria-hidden="true">&larr;</span>
+          <ArrowLeft aria-hidden="true" size={16} />
           Voltar aos indicadores
         </button>
       ) : null}
@@ -58,7 +59,7 @@ export function DetailNavigation({
             onClick={() => previousItem && onPrevious(previousItem.key)}
             disabled={!previousItem}
           >
-            <span aria-hidden="true">&lsaquo;</span>
+            <ChevronLeft aria-hidden="true" size={16} />
             {itemLabel} anterior
           </button>
         ) : null}
@@ -74,7 +75,7 @@ export function DetailNavigation({
             disabled={!nextItem}
           >
             {nextLabel ?? `Próximo ${itemLabel.toLocaleLowerCase('pt-BR')}`}
-            <span aria-hidden="true">&rsaquo;</span>
+            <ChevronRight aria-hidden="true" size={16} />
           </button>
         ) : null}
       </div> : null}

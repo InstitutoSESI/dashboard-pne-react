@@ -3,6 +3,7 @@ import { resolveDetailSequence, useDetailViewNavigation } from '../hooks/useDeta
 import { FUNDEB_INDICATORS, formatFundebCompactValue, formatFundebValue, getLimiteReferencia } from '../data/fundebIndicators'
 import { getFinancialIndicatorMetadata } from '../data/financialIndicatorMetadata'
 import { DataSourceNote } from './DataSourceNote'
+import { DisclosureChevron } from './DisclosureChevron'
 import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { MethodNote } from './MethodNote'
 import { IndicatorHistoryChart } from '../components/IndicatorHistoryChart'
@@ -601,6 +602,7 @@ export function FundebPanel({ municipioData, embedded = false, detailKey = '', o
               <details className="platform-support-disclosure fundeb-balance-disclosure">
                 <summary className="platform-support-disclosure__summary">
                   <div><h3>Dados usados no cálculo</h3><p>Disponibilidade final e saldo conciliado coincidem no exercício exibido.</p></div>
+                  <DisclosureChevron />
                 </summary>
                 <div className="platform-support-disclosure__body">
                   <FundebPublicMetric

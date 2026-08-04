@@ -2324,9 +2324,9 @@ export function calculateVariation(initialValue, currentValue, formatType) {
 function getIndicatorStatus(currentValue, series, variation) {
   if (isMissing(currentValue)) return { label: 'Sem dados', tone: 'muted' }
   if (series.length < 2 || variation?.raw === null) return { label: 'Com dados', tone: 'info' }
-  if (variation.raw > 0) return { label: 'Alta', tone: 'success' }
-  if (variation.raw < 0) return { label: 'Queda', tone: 'warning' }
-  return { label: 'Estável', tone: 'muted' }
+  if (variation.raw > 0) return { label: 'Aumentou', tone: 'success' }
+  if (variation.raw < 0) return { label: 'Diminuiu', tone: 'warning' }
+  return { label: 'Sem alteração relevante', tone: 'muted' }
 }
 
 function buildQuickReading({ currentDisplay, currentValue, currentYear, formatType, initialValue, initialYear, label, variation }) {

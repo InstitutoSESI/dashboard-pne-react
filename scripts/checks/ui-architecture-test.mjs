@@ -15,8 +15,13 @@ const APP_STYLE_ORDER = [
   './styles/platform-ui.css',
   './styles/financial-pages.css',
   './styles/navigation-shell.css',
+  './styles/home-page.css',
 ]
-const MAIN_STYLE_ORDER = ['./index.css', './styles/institutional-refresh.css']
+const MAIN_STYLE_ORDER = [
+  './index.css',
+  './styles/institutional-refresh.css',
+  './styles/typography-system.css',
+]
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8')

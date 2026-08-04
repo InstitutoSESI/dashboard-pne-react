@@ -22,7 +22,7 @@ export type HigherEducationSeriesPresentation = {
   firstPoint: HigherEducationAnnualPoint | null
   latestPoint: HigherEducationAnnualPoint | null
   trend: 'up' | 'down' | 'stable' | 'data'
-  trendLabel: 'Alta' | 'Queda' | 'Estável' | 'Série disponível'
+  trendLabel: 'Aumentou' | 'Diminuiu' | 'Sem alteração relevante' | 'Série disponível'
   reading: string
 }
 
@@ -51,7 +51,7 @@ export function analyzeHigherEducationSeries(
   const allZero = usefulPoints.every((point) => point.value === 0)
   const difference = latestPoint.value! - firstPoint.value!
   const trend = difference > 0 ? 'up' : difference < 0 ? 'down' : 'stable'
-  const trendLabel = trend === 'up' ? 'Alta' : trend === 'down' ? 'Queda' : 'Estável'
+  const trendLabel = trend === 'up' ? 'Aumentou' : trend === 'down' ? 'Diminuiu' : 'Sem alteração relevante'
   if (allZero) {
     return {
       kind: 'constant_zero',
@@ -59,7 +59,7 @@ export function analyzeHigherEducationSeries(
       firstPoint,
       latestPoint,
       trend: 'stable',
-      trendLabel: 'Estável',
+      trendLabel: 'Sem alteração relevante',
       reading: 'Estabilidade no período',
     }
   }
@@ -81,7 +81,7 @@ export function analyzeHigherEducationSeries(
     latestPoint,
     trend,
     trendLabel,
-    reading: trend === 'up' ? 'Alta no período' : trend === 'down' ? 'Queda no período' : 'Estabilidade no período',
+    reading: trend === 'up' ? 'Aumentou no período' : trend === 'down' ? 'Diminuiu no período' : 'Sem alteração relevante no período',
   }
 }
 

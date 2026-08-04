@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { ArrowRight } from 'lucide-react'
 import { buildAppHash } from '../../app/appHash'
 import { ContentState } from '../../components/ContentState'
+import { DisclosureChevron } from '../../components/DisclosureChevron'
 import { FinancialCompactModuleSelector } from '../../components/FinancialCompactModuleSelector'
 import {
   loadMunicipalFinanceCatalog,
@@ -350,7 +352,7 @@ function FundebOverviewPanel({
           {visibleNonBeneficiaryLabels.length ? <p>Sem previsão para {visibleNonBeneficiaryLabels.join(' e ')}.</p> : null}
         </div>
         <a className="municipal-finance-row-link" href={buildAppHash(FINANCIAL_PAGE_KEYS.fundeb, { municipio: document.municipality.slug })}>
-          Ver detalhes do Fundeb <span aria-hidden="true">→</span>
+          Ver detalhes do Fundeb <ArrowRight aria-hidden="true" size={16} />
         </a>
       </div>
     </section>
@@ -376,7 +378,7 @@ function RelatedProgramsSection({
           <h2 id="municipal-finance-related-programs-title">Outros programas e repasses relacionados</h2>
         </div>
         <a className="municipal-finance-inline-action" href={buildAppHash(FINANCIAL_PAGE_KEYS.overview, { municipio: document.municipality.slug })}>
-          Ver todos os programas <span aria-hidden="true">→</span>
+          Ver todos os programas <ArrowRight aria-hidden="true" size={16} />
         </a>
       </header>
       <div className="municipal-finance-programs__related">
@@ -385,7 +387,7 @@ function RelatedProgramsSection({
             <article key={relation.key}>
               <strong>{relation.programLabel}</strong>
               <div><small>{relation.relationLabel}</small></div>
-              <span aria-hidden="true">›</span>
+              <ArrowRight aria-hidden="true" size={16} />
             </article>
           ))}
           {!relations.length ? <p>Nenhuma relação adicional documentada para este município.</p> : null}
@@ -553,6 +555,7 @@ function ConstitutionalApplicationSection({
               <h3>Fontes e metodologia</h3>
               <p>Valores por fonte, competência e critérios de conciliação.</p>
             </div>
+            <DisclosureChevron />
           </summary>
           <div className="platform-support-disclosure__body">
             <div className="municipal-finance-constitutional-source-grid">

@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { ChartColumnIncreasing } from 'lucide-react'
 
 import { loadIndicatorDetail, loadMunicipioSharedInfo } from '../data/staticData'
 import { loadEducationMunicipio } from '../data/educationData'
@@ -675,15 +676,7 @@ function AbsoluteExpansionCalculationTable({ rows }) {
 }
 
 function SupportDataIcon() {
-  return (
-    <svg aria-hidden="true" className="complementary-data__trigger-icon" fill="none" viewBox="0 0 24 24">
-      <path d="M4 19V5" />
-      <path d="M4 19h16" />
-      <rect height="5" rx="1" width="3" x="7" y="12" />
-      <rect height="9" rx="1" width="3" x="12" y="8" />
-      <rect height="12" rx="1" width="3" x="17" y="5" />
-    </svg>
-  )
+  return <ChartColumnIncreasing aria-hidden="true" className="complementary-data__trigger-icon" />
 }
 
 function ComplementaryDataItem({ fullRow = false, indicatorKey, option, wide = false }) {

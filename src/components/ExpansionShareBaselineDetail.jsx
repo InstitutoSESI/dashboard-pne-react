@@ -1,3 +1,5 @@
+import { ArrowRight } from 'lucide-react'
+import { DisclosureChevron } from './DisclosureChevron'
 import { QuickReadingHeading } from './QuickReadingHeading'
 import { selectPneYearTicks } from '../utils/pneChartSystem'
 
@@ -72,7 +74,7 @@ function BeforeAfterCard({ change, changePercent, endValue, label, startValue, y
     <article className="expansion-before-after-card">
       <header><span>{label}</span><small>{years}</small></header>
       <div className="expansion-before-after-card__values">
-        <strong>{formatCount(startValue)}</strong><span aria-hidden="true">→</span><strong>{formatCount(endValue)}</strong>
+        <strong>{formatCount(startValue)}</strong><ArrowRight aria-hidden="true" size={18} /><strong>{formatCount(endValue)}</strong>
       </div>
       <p className={isNegative ? 'is-negative' : 'is-positive'}>
         {formatSignedCount(change)} · {formatChangeLabel(changePercent)}
@@ -104,6 +106,7 @@ export function ExpansionShareTechnicalDisclosure({ model }) {
       <summary>
         <span>Metodologia e memória do cálculo</span>
         <small>Fórmula, interpretação e regras metodológicas</small>
+        <DisclosureChevron />
       </summary>
       <div className="accumulative-history-disclosure__body expansion-technical-disclosure__body">
         <section className="expansion-technical-disclosure__result" aria-labelledby="expansion-technical-formula">

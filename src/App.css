@@ -982,6 +982,13 @@
   border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
+  gap: var(--space-1);
+}
+
+.status-badge__marker {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
 }
 
 .status-badge--success {
@@ -1024,7 +1031,7 @@
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
   overflow: visible;
   border: 0;
@@ -1316,15 +1323,15 @@
 .goal-progress__target-label {
   position: absolute;
   top: calc(100% + 6px);
-  max-width: 110px;
+  max-width: 180px;
   transform: translateX(-50%);
   color: #5f6b63;
   font-size: var(--font-size-2xs);
   font-weight: 700;
   line-height: 1.1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   pointer-events: none;
 }
 
@@ -3902,15 +3909,6 @@ p.data-source-note {
   display: none;
 }
 
-.vaar-detail-toggle > summary::after {
-  content: '+';
-  font-size: var(--font-size-md);
-}
-
-.vaar-detail-toggle[open] > summary::after {
-  content: '-';
-}
-
 .vaar-detail-toggle > summary:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(47, 112, 87, 0.25);
   outline: none;
@@ -4852,7 +4850,7 @@ p.data-source-note {
   position: sticky;
   top: 0;
   z-index: 35;
-  min-height: 70px;
+  min-height: var(--context-bar-height);
   padding: var(--space-3) var(--space-8);
   border-bottom: 1px solid var(--border-line);
   background: var(--bg-context-bar);
@@ -8362,8 +8360,13 @@ p.data-source-note {
   width: 100%;
 }
 
+/*
+ * Grade de metas do ciclo por largura de conteudo (nao por contagem de
+ * viewport). auto-fill mantem o cartao de meta na largura de leitura e quebra
+ * sozinho, sem espremer nem abrir coluna orfa. Ver docs/DESIGN.md, Layout.
+ */
 .cycle-page .meta-card-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--meta-card-min), 100%), 1fr));
   gap: var(--indicator-card-gap);
 }
 
@@ -8372,12 +8375,6 @@ p.data-source-note {
 .cycle-page .indicator-chart-card .history-chart,
 .cycle-page .complementary-data {
   width: 100%;
-}
-
-@media (max-width: 1180px) {
-  .cycle-page .meta-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 1080px) {
@@ -8389,12 +8386,6 @@ p.data-source-note {
     width: 100%;
     max-width: none;
     padding-inline: var(--space-6);
-  }
-}
-
-@media (max-width: 820px) {
-  .cycle-page .meta-card-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -9570,7 +9561,7 @@ p.data-source-note {
 
 .legal-goals-summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
@@ -9597,7 +9588,7 @@ p.data-source-note {
 }
 
 .legal-goals-summary-card strong {
-  color: var(--green-deep);
+  color: var(--text-strong);
   font-family: var(--font-sans);
   font-size: var(--font-size-3xl);
   font-weight: 700;
@@ -9610,21 +9601,64 @@ p.data-source-note {
   line-height: 1.35;
 }
 
-.legal-goals-method-note {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(47, 112, 87, 0.16);
-  border-radius: var(--radius-sm);
-  background: rgba(47, 112, 87, 0.05);
-  display: grid;
-  gap: var(--space-3);
+/* Tom por categoria (mesmas chaves dos selos de cobertura): alinha o
+   cartão de resumo com o selo. O cartão "Total" fica sem tom (cinza neutro). */
+.legal-goals-summary-card--direct {
+  --lg-tone: var(--status-ok-ink);
+}
+.legal-goals-summary-card--partial {
+  --lg-tone: var(--status-warn-ink);
+}
+.legal-goals-summary-card--complementary {
+  --lg-tone: var(--signal-blue);
+}
+.legal-goals-summary-card--without_indicator {
+  --lg-tone: var(--status-muted-ink);
 }
 
-.legal-goals-method-note > div:first-child > span {
+.dashboard-shell .content-area .legal-goals-summary-card {
+  box-shadow: inset 0 3px 0 0 var(--lg-tone, var(--border-strong-line));
+}
+
+/* Nota metodológica + leitura dos selos: recolhida por padrão para que os
+   dados das metas apareçam mais cedo (síntese antes da referência). */
+.legal-goals-method-note {
+  border: var(--border-width) solid var(--border-card);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.legal-goals-method-note > summary {
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-4);
   color: var(--green-deep);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  list-style: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.legal-goals-method-note > summary::-webkit-details-marker {
+  display: none;
+}
+
+.legal-goals-method-note[open] > summary {
+  border-bottom: var(--border-width) solid var(--border-card);
+}
+
+.legal-goals-method-note[open] > summary .legal-goal-chevron::before {
+  top: 11px;
+  transform: rotate(225deg);
+}
+
+.legal-goals-method-note__body {
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  gap: var(--space-3);
 }
 
 .legal-goals-method-note p {
@@ -9634,14 +9668,9 @@ p.data-source-note {
   line-height: 1.5;
 }
 
-.legal-goals-method-note > div:first-child {
-  display: grid;
-  gap: var(--space-1);
-}
-
 .legal-goals-legend {
   padding-top: var(--space-2);
-  border-top: 1px solid rgba(47, 112, 87, 0.14);
+  border-top: var(--border-width) solid var(--border-card);
   display: grid;
   gap: var(--space-2);
 }
@@ -9720,10 +9749,10 @@ p.data-source-note {
 }
 
 .legal-goals-filter-panel__heading h2 {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   color: var(--text-strong);
   font-family: var(--font-sans);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.2;
@@ -10068,48 +10097,6 @@ p.data-source-note {
   font-weight: 700;
   line-height: 1;
   text-align: center;
-}
-
-.coverage-badge--direta {
-  border-color: rgba(47, 112, 87, 0.18);
-  background: rgba(47, 112, 87, 0.1);
-  color: var(--green-deep);
-}
-
-.coverage-badge--parcial {
-  border-color: rgba(176, 138, 52, 0.22);
-  background: rgba(176, 138, 52, 0.12);
-  color: #80611e;
-}
-
-.coverage-badge--aproximada {
-  border-color: rgba(91, 116, 145, 0.2);
-  background: rgba(91, 116, 145, 0.1);
-  color: #4d637b;
-}
-
-.coverage-badge--contexto {
-  border-color: rgba(91, 116, 145, 0.2);
-  background: rgba(91, 116, 145, 0.1);
-  color: #4d637b;
-}
-
-.coverage-badge--proxy {
-  border-color: rgba(134, 102, 56, 0.22);
-  background: rgba(134, 102, 56, 0.1);
-  color: #735737;
-}
-
-.coverage-badge--sem_indicador {
-  border-color: rgba(172, 184, 177, 0.2);
-  background: rgba(172, 184, 177, 0.12);
-  color: #6f6a60;
-}
-
-.coverage-badge--sem_comparavel {
-  border-color: rgba(172, 184, 177, 0.22);
-  background: rgba(172, 184, 177, 0.12);
-  color: #5f5a52;
 }
 
 .legal-goal-chevron {
@@ -11981,8 +11968,9 @@ p.data-source-note {
 }
 
 body:has(.educacao-page) .context-bar {
-  position: static;
-  z-index: auto;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .education-detail-view .siope-detail {
@@ -12702,6 +12690,11 @@ body:has(.educacao-page) .context-bar {
   letter-spacing: 0;
   line-height: var(--line-height-snug);
   text-transform: none;
+}
+
+/* Rótulo herda o tom da categoria; cartão "Total" mantém --text-soft. */
+.legal-goals-summary-card > span {
+  color: var(--lg-tone, var(--text-soft));
 }
 
 .legal-goals-summary-card strong {

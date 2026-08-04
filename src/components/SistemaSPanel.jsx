@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowRight } from 'lucide-react'
 import { EducationLineChart } from './EducationLineChart'
 import { ChartEmptyState } from './ChartPrimitives'
 import { DataSourceNote } from './DataSourceNote'
@@ -165,7 +166,7 @@ export function SistemaSPanel({ blocos, initialIndicatorKey = 'total_escolas', m
                 <span className="sistema-s-shortcut__label">{indicator.shortLabel}</span>
                 <strong>{!isMissing(value) ? formatNumber(value) : EM}</strong>
                 <small>Ano {anoResumo}</small>
-                <span className="sistema-s-shortcut__action">Ver indicador <span aria-hidden="true">→</span></span>
+                <span className="sistema-s-shortcut__action">Ver indicador <ArrowRight aria-hidden="true" size={16} /></span>
               </button>
             )
           })}
@@ -174,7 +175,7 @@ export function SistemaSPanel({ blocos, initialIndicatorKey = 'total_escolas', m
           <DataSourceNote context={SISTEMA_S_SOURCE_CONTEXT} />
           <button className="platform-navigation-button sistema-s-open-detail" onClick={() => onOpenDetails?.('total_escolas')} type="button">
             Abrir detalhamento
-            <span aria-hidden="true">→</span>
+            <ArrowRight aria-hidden="true" size={16} />
           </button>
         </div>
       </div>

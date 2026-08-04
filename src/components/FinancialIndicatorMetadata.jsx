@@ -1,3 +1,5 @@
+import { DisclosureChevron } from './DisclosureChevron'
+
 function hasText(value) {
   return value !== null && value !== undefined && String(value).trim().length > 0
 }
@@ -17,6 +19,7 @@ function DisclosureSummary({ description, title }) {
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
+      <DisclosureChevron />
     </summary>
   )
 }

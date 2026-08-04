@@ -91,7 +91,83 @@
     line-height: var(--line-height-snug);
   }
 
+  /* Semantic anatomy shared by neutral, PNE, and domain-composed headers.
+     Domain components retain their own interaction behaviour; this only gives
+     the named slots a compact, stable screen layout. */
+  .content-area .platform-page-header {
+    min-width: 0;
+  }
+
+  .content-area .platform-page-header:not(.pne-page-header):not(.education-compact-header) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-4);
+  }
+
+  .content-area .platform-page-header__main {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: var(--space-2);
+  }
+
+  .content-area .platform-page-header__eyebrow,
+  .content-area .platform-page-header__description,
+  .content-area .platform-page-header__context {
+    margin: 0;
+  }
+
+  .content-area .platform-page-header__eyebrow {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    line-height: var(--line-height-snug);
+    text-transform: none;
+  }
+
+  .content-area .platform-page-header__description {
+    max-width: var(--header-subtitle-max);
+    color: var(--text-body);
+    font-size: var(--type-body);
+    line-height: var(--line-height-normal);
+    text-wrap: pretty;
+  }
+
+  .content-area .platform-page-header__context {
+    padding-top: var(--space-2);
+    border-top: var(--border-divider);
+    color: var(--text-body);
+    font-size: var(--type-support);
+    line-height: var(--line-height-normal);
+  }
+
+  .content-area .pne-page-header__print-context {
+    display: none;
+  }
+
+  .content-area .platform-page-header__aside {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+  }
+
+  .content-area .platform-page-header__aside-content,
+  .content-area .platform-page-header__actions {
+    min-width: 0;
+  }
+
+  .content-area .platform-page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
   .content-area :where(.eyebrow, .section-eyebrow, .hero-eyebrow),
+  .content-area .platform-page-header__eyebrow,
   .content-area :where(.educacao-explore__eyebrow, .indicator-chart-eyebrow),
   .content-area :where(.indicator-control-bar__label, .indicator-stage-segmented-label) {
     color: var(--text-muted);
@@ -1126,15 +1202,12 @@
   ) .indicator-card-shell__title {
     grid-area: title;
     min-height: 0;
-    max-height: 2.7em;
-    display: -webkit-box;
-    overflow: hidden;
+    max-height: none;
+    display: block;
+    overflow: visible;
     font-size: var(--font-size-md);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-snug);
-    text-overflow: ellipsis;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .indicator-card-shell:is(
@@ -1595,6 +1668,18 @@
 
 @media screen and (max-width: 620px) {
 
+  .content-area .platform-page-header:not(.pne-page-header):not(.education-compact-header) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .content-area .platform-page-header__aside {
+    width: 100%;
+  }
+
+  .content-area .platform-page-header__actions > * {
+    width: 100%;
+  }
+
   .content-area .platform-filter-list {
     flex-wrap: nowrap;
     padding-bottom: var(--space-1);
@@ -1810,16 +1895,16 @@
   display: none;
 }
 
-.content-area .platform-support-disclosure__summary::after {
-  content: "+";
+.content-area .platform-disclosure-chevron {
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   color: var(--green-deep);
-  font-size: var(--font-size-xl);
-  line-height: 1;
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.content-area .platform-support-disclosure[open] > .platform-support-disclosure__summary::after {
-  content: "−";
+.content-area .platform-support-disclosure[open] > .platform-support-disclosure__summary > .platform-disclosure-chevron {
+  transform: rotate(180deg);
 }
 
 .content-area .platform-support-disclosure__summary > div {

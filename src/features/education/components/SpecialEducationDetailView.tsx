@@ -567,9 +567,9 @@ function buildVariation(initialValue: number | undefined, currentValue: number |
 
 function trendLabel(raw: number | null) {
   if (raw == null) return 'Sem série'
-  if (raw > 0) return 'Alta'
-  if (raw < 0) return 'Queda'
-  return 'Estável'
+  if (raw > 0) return 'Aumentou'
+  if (raw < 0) return 'Diminuiu'
+  return 'Sem alteração relevante'
 }
 
 function buildEvolutionReading(

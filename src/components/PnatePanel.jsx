@@ -3,6 +3,7 @@ import { resolveDetailSequence, useDetailViewNavigation } from '../hooks/useDeta
 import { PNATE_INDICATORS, formatPnateValue } from '../data/pnateIndicators'
 import { getFinancialIndicatorMetadata } from '../data/financialIndicatorMetadata'
 import { DataSourceNote } from './DataSourceNote'
+import { DisclosureChevron } from './DisclosureChevron'
 import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { IndicatorHistoryChart } from '../components/IndicatorHistoryChart'
 import {
@@ -546,6 +547,7 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
                 <h3>Dados usados no cálculo</h3>
                 <p>Tabela anual, unidade e regra da leitura exibida. <span>{indicatorModels.length} indicadores</span></p>
               </div>
+              <DisclosureChevron />
             </summary>
             <div className="pnate-calculation-disclosure__body">
               <table>

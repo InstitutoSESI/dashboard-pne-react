@@ -7,6 +7,7 @@ const PAGE_CRUMBS = {
   educacao: 'Indicadores de Educação',
   financeiros: FINANCIAL_PAGE_COPY.parentLabel,
   home: 'Home',
+  'matriz-prioridades': 'Metas do PNE / Planejamento municipal / Matriz de Prioridades',
   'pne-legal-goals': 'Metas legais do PNE 2026-2036 / Ciclo vigente',
   pne2014: 'Metas do PNE / Ciclo encerrado / Resultado consolidado',
   pne2026: 'Metas do PNE / Ciclo vigente / Acompanhamento atual',

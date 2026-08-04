@@ -177,6 +177,11 @@ export function PneLegalGoalsPage({
     ),
     [filteredGoals],
   )
+  const trackedGoalGroups = useMemo(
+    () => groupGoalsByTheme(trackedGoals, itemByKey),
+    [itemByKey, trackedGoals],
+  )
+  const hasActiveFilters = themeFilter !== ALL_THEMES_FILTER || Boolean(searchQuery.trim())
 
   function toggleGoal(goalId) {
     setExpandedGoalIds((current) => {
@@ -207,10 +212,9 @@ export function PneLegalGoalsPage({
             </p>
           </>
         )}
-        context={selectedMunicipio ? <>Município em foco: <strong>{selectedMunicipio}</strong></> : null}
         description="Consulte as metas legais do ciclo vigente e veja como elas se conectam aos indicadores municipais disponíveis no painel."
         eyebrow="PLANO NACIONAL DE EDUCAÇÃO · CICLO VIGENTE"
-        title="Metas legais do PNE 2026–2036"
+        title={<>Metas legais do PNE 2026–2036{selectedMunicipio ? <span className="pne-page-header__print-context"> · {selectedMunicipio}</span> : null}</>}
         variant="listing"
       />
 
@@ -221,38 +225,37 @@ export function PneLegalGoalsPage({
           value={summary.total}
         />
         <SummaryCard
-          detail="relação pública diretamente aderente"
-          label="Acompanhamento direto"
-          value={summary.direct}
-        />
-        <SummaryCard
-          detail="relação pública parcial ou aproximativa"
-          label="Acompanhamento parcial"
-          value={summary.partial}
-        />
-        <SummaryCard
-          detail="relação pública sem comparação municipal"
-          label="Informação complementar"
-          value={summary.complementary}
+          breakdown={[
+            { label: 'Direto', tone: PNE_LEGAL_GOAL_CATEGORIES.DIRECT, value: summary.direct },
+            { label: 'Parcial', tone: PNE_LEGAL_GOAL_CATEGORIES.PARTIAL, value: summary.partial },
+            { label: 'Complementar', tone: PNE_LEGAL_GOAL_CATEGORIES.COMPLEMENTARY, value: summary.complementary },
+          ]}
+          detail="classificações metodológicas com relação pública"
+          label="Categorias com relação pública"
         />
         <SummaryCard
           detail="sem relação pública utilizável"
           label="Sem indicador municipal"
+          tone={PNE_LEGAL_GOAL_CATEGORIES.WITHOUT_INDICATOR}
           value={summary.withoutIndicator}
         />
       </section>
 
-      <section className="legal-goals-method-note" role="note">
-        <div>
-          <span>Aviso metodológico</span>
+      <details className="legal-goals-method-note">
+        <summary>
+          <span>Como ler os selos e a nota metodológica</span>
+          <span className="legal-goal-chevron" aria-hidden="true" />
+        </summary>
+        <div className="legal-goals-method-note__body">
           <p>
             A classificação descreve a aderência metodológica entre meta e
-            indicador; não avalia o desempenho municipal. As quatro categorias
-            são mutuamente exclusivas e totalizam as 73 metas legais.
+            indicador; não avalia o desempenho municipal nem representa
+            previsão de cumprimento em 2036. As quatro categorias são
+            mutuamente exclusivas e totalizam as 73 metas legais.
           </p>
+          <CoverageLegend />
         </div>
-        <CoverageLegend />
-      </section>
+      </details>
 
       {!selectedMunicipalityId ? (
         <section className="page-card legal-goals-empty-municipio">
@@ -276,16 +279,7 @@ export function PneLegalGoalsPage({
         <>
           <section className="legal-goals-filter-panel platform-filter-panel">
             <div className="legal-goals-filter-panel__heading platform-exploration-toolbar">
-              <div>
-                <span className="eyebrow">Ciclo vigente · acompanhamento atual</span>
-                <h2>Metas do ciclo vigente e acompanhamento municipal</h2>
-                <p>
-                  A lista mostra a situação observada até o ano mais recente disponível,
-                  sem representar uma previsão de cumprimento em 2036.
-                  Use os temas para navegar por área e a busca para localizar
-                  código, texto legal ou indicador.
-                </p>
-              </div>
+              <h2>Metas e acompanhamento municipal</h2>
               <SearchField
                 ariaLabel="Buscar metas legais"
                 className="legal-goals-search platform-search-field"
@@ -294,6 +288,18 @@ export function PneLegalGoalsPage({
                 placeholder="Buscar por código, texto legal ou indicador..."
                 value={searchQuery}
               />
+              {hasActiveFilters ? (
+                <button
+                  className="legal-goals-clear-filters platform-navigation-button"
+                  onClick={() => {
+                    setThemeFilter(ALL_THEMES_FILTER)
+                    setSearchQuery('')
+                  }}
+                  type="button"
+                >
+                  Limpar filtros
+                </button>
+              ) : null}
             </div>
 
             <div className="legal-goals-theme-filter platform-filter-group">
@@ -317,8 +323,7 @@ export function PneLegalGoalsPage({
           <div className="legal-goals-results-meta platform-results-summary">
             <span>{trackedGoals.length} metas com informação municipal</span>
             <p>
-              {getSelectedThemeLabel(themeOptions, themeFilter)} · {selectedMunicipio} ·
-              Lei nº 15.388/2026
+              {getSelectedThemeLabel(themeOptions, themeFilter)} · Lei nº 15.388/2026
             </p>
           </div>
 
@@ -328,17 +333,27 @@ export function PneLegalGoalsPage({
             </section>
           ) : (
             <section className="legal-goals-accordion" aria-label="Metas legais do PNE 2026-2036">
-              {trackedGoals.map((goal) => (
-                <LegalGoalAccordionItem
-                  goal={goal}
-                  isExpanded={expandedGoalIds.has(goal.legalGoalId)}
-                  itemByKey={itemByKey}
-                  key={goal.legalGoalId}
-                  normalizedResults={normalizedResults}
-                  diagnosticResultByRelation={diagnosticResultByRelation}
-                  onNavigate={onNavigate}
-                  onToggle={() => toggleGoal(goal.legalGoalId)}
-                />
+              {trackedGoalGroups.map((group) => (
+                <details className="legal-goals-theme-group" key={group.label} open>
+                  <summary>
+                    <span>{group.label}</span>
+                    <small>{group.goals.length} metas com acompanhamento</small>
+                  </summary>
+                  <div className="legal-goals-theme-group__items">
+                    {group.goals.map((goal) => (
+                      <LegalGoalAccordionItem
+                        goal={goal}
+                        isExpanded={expandedGoalIds.has(goal.legalGoalId)}
+                        itemByKey={itemByKey}
+                        key={goal.legalGoalId}
+                        normalizedResults={normalizedResults}
+                        diagnosticResultByRelation={diagnosticResultByRelation}
+                        onNavigate={onNavigate}
+                        onToggle={() => toggleGoal(goal.legalGoalId)}
+                      />
+                    ))}
+                  </div>
+                </details>
               ))}
             </section>
           )}
@@ -354,11 +369,23 @@ export function PneLegalGoalsPage({
   )
 }
 
-function SummaryCard({ detail, label, value }) {
+function SummaryCard({ breakdown = [], detail, label, tone, value }) {
   return (
-    <article className="legal-goals-summary-card">
+    <article
+      className={`legal-goals-summary-card${tone ? ` legal-goals-summary-card--${tone}` : ''}`}
+    >
       <span>{label}</span>
-      <strong>{value}</strong>
+      {value !== undefined ? <strong>{value}</strong> : null}
+      {breakdown.length ? (
+        <dl className="legal-goals-summary-card__breakdown">
+          {breakdown.map((item) => (
+            <div className={`legal-goals-summary-card__breakdown-item legal-goals-summary-card__breakdown-item--${item.tone}`} key={item.label}>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       <small>{detail}</small>
     </article>
   )
@@ -416,6 +443,12 @@ function LegalGoalAccordionItem({
   const goalCoverage = getPneLegalGoalCategory(goal)
   const visibleRelations = getVisibleGoalRelations(goal)
   const goalThemeLabel = getGoalThemeSummary(goal, itemByKey)
+  const referenceType = visibleRelations.some((relation) => relation.monitoringMode === PNE_2026_RELATIONSHIP_MODES.TRACKING)
+    ? 'Acompanhamento'
+    : 'Referência legal'
+  const monitoringAvailability = visibleRelations.length
+    ? `${visibleRelations.length} indicador${visibleRelations.length === 1 ? '' : 'es'} disponível${visibleRelations.length === 1 ? '' : 'is'}`
+    : 'Sem acompanhamento municipal'
 
   return (
     <article className={`legal-goal-card${isExpanded ? ' is-expanded' : ''}`}>
@@ -431,8 +464,10 @@ function LegalGoalAccordionItem({
             <span className="legal-goal-code">Meta {goal.legalGoalId}</span>
             <span className="legal-goal-theme">{goalThemeLabel}</span>
           </span>
-          <span className="legal-goal-text">{goal.legalText}</span>
+          <span className="legal-goal-short-title">{getShortGoalTitle(goal.legalText)}</span>
           <span className="legal-goal-badge-row">
+            <span className="legal-goal-reference-type">{referenceType}</span>
+            <span className="legal-goal-monitoring-availability">{monitoringAvailability}</span>
             <CoverageBadge coverage={goalCoverage} />
           </span>
         </span>
@@ -751,6 +786,23 @@ function getSelectedThemeLabel(themeOptions, themeFilter) {
     themeOptions.find((theme) => theme.value === themeFilter)?.label ??
     'Todos os temas'
   )
+}
+
+function groupGoalsByTheme(goals, itemByKey) {
+  const groups = new Map()
+  goals.forEach((goal) => {
+    const label = getGoalThemeSummary(goal, itemByKey)
+    const group = groups.get(label) ?? { label, goals: [] }
+    group.goals.push(goal)
+    groups.set(label, group)
+  })
+  return [...groups.values()].sort((left, right) => left.label.localeCompare(right.label, 'pt-BR'))
+}
+
+function getShortGoalTitle(legalText) {
+  const normalized = String(legalText ?? '').replace(/\s+/g, ' ').trim()
+  const sentenceEnd = normalized.search(/[.;](?:\s|$)/)
+  return sentenceEnd > 0 ? normalized.slice(0, sentenceEnd + 1) : normalized
 }
 
 function getUntrackedReasonLabel(goal) {

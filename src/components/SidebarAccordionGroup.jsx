@@ -1,3 +1,5 @@
+import { ChevronDown } from 'lucide-react'
+
 export function SidebarAccordionGroup({
   activeItemKey,
   icon: Icon,
@@ -65,9 +67,5 @@ export function SidebarAccordionGroup({
 }
 
 function ChevronIcon({ className = '' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m8 10 4 4 4-4" />
-    </svg>
-  )
+  return <ChevronDown aria-hidden="true" className={className} />
 }

@@ -3,6 +3,22 @@ import { EditorialExpandableGrid } from '../components/EditorialExpandableGrid'
 import { PnePageHeader } from '../components/PnePageHeader'
 import { pneOverviewContent } from '../data/pneOverviewContent'
 
+const INTERNAL_NAV_ITEMS = [
+  { label: 'Diretrizes', targetId: 'pne-diretrizes' },
+  { label: 'Objetivos', targetId: 'pne-objetivos' },
+  { label: 'Metas', targetId: 'pne-metas' },
+  { label: 'Estratégias', targetId: 'pne-estrategias' },
+  { label: 'Monitoramento', targetId: 'pne-monitoramento' },
+]
+
+function navigateWithinPage(targetId) {
+  const target = document.getElementById(targetId)
+  if (!target) return
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+}
+
 export function PneOverviewPage({ onNavigate }) {
   const {
     conceptCards,
@@ -45,6 +61,14 @@ export function PneOverviewPage({ onNavigate }) {
         variant="editorial"
       />
 
+      <nav className="pne-overview-internal-nav" aria-label="Navegação nesta página">
+        {INTERNAL_NAV_ITEMS.map((item) => (
+          <button key={item.targetId} type="button" onClick={() => navigateWithinPage(item.targetId)}>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
       <section className="page-card pne-overview-intro">
         <div className="pne-overview-intro__heading">
           <span className="eyebrow">{introduction.eyebrow}</span>
@@ -83,7 +107,7 @@ export function PneOverviewPage({ onNavigate }) {
         </div>
       </section>
 
-      <section className="page-card pne-overview-section pne-overview-section--guided">
+      <section className="page-card pne-overview-section pne-overview-section--guided" id="pne-diretrizes">
         <div className="pne-overview-section__heading">
           <span className="eyebrow">{guidelineSection.eyebrow}</span>
           <h2>{guidelineSection.title}</h2>
@@ -97,7 +121,7 @@ export function PneOverviewPage({ onNavigate }) {
         <EditorialExpandableGrid items={guidelineGroups} />
       </section>
 
-      <section className="pne-overview-section">
+      <section className="pne-overview-section" id="pne-objetivos">
         <div className="pne-overview-section__heading">
           <span className="eyebrow">{objectiveSection.eyebrow}</span>
           <h2>{objectiveSection.title}</h2>
@@ -106,7 +130,7 @@ export function PneOverviewPage({ onNavigate }) {
         <EditorialExpandableGrid items={objectiveGroups} />
       </section>
 
-      <section className="page-card pne-overview-section pne-overview-section--guided">
+      <section className="page-card pne-overview-section pne-overview-section--guided" id="pne-metas">
         <div className="pne-overview-section__heading">
           <span className="eyebrow">{goalStrategySection.eyebrow}</span>
           <h2>{goalStrategySection.title}</h2>
@@ -120,10 +144,12 @@ export function PneOverviewPage({ onNavigate }) {
             </article>
           ))}
         </div>
-        <EditorialExpandableGrid className="pne-expandable-grid--wide" items={goalStrategyExplainers} />
+        <div id="pne-estrategias">
+          <EditorialExpandableGrid className="pne-expandable-grid--wide" items={goalStrategyExplainers} />
+        </div>
       </section>
 
-      <section className="pne-overview-section">
+      <section className="pne-overview-section" id="pne-monitoramento">
         <div className="pne-overview-section__heading">
           <span className="eyebrow">{governanceSection.eyebrow}</span>
           <h2>{governanceSection.title}</h2>

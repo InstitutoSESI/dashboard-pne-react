@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import { ContentState } from '../../../components/ContentState'
 import { DetailNavigation } from '../../../components/DetailNavigation'
+import { DisclosureChevron } from '../../../components/DisclosureChevron'
 import { EducationBarChart } from '../../../components/EducationBarChart'
 import { EducationIndicatorCard } from '../../../components/EducationIndicatorCard'
 import { EducationLineChart } from '../../../components/EducationLineChart'
@@ -126,7 +127,6 @@ export function HigherEducationSection(props: HigherEducationSectionProps) {
 }
 
 function HigherEducationLanding({
-  municipalityName,
   onOpenIndicator,
   registerCard,
   viewModel,
@@ -146,7 +146,6 @@ function HigherEducationLanding({
     <main className="higher-education-page higher-education-landing">
       <EducationCompactHeader
         contextItems={[
-          { icon: 'municipality', label: 'Município', value: municipalityName },
           { icon: 'period', label: 'Período publicado', value: viewModel.globalPeriod },
           { icon: 'period', label: 'Última referência municipal', value: viewModel.latestMunicipalUsableYear ? String(viewModel.latestMunicipalUsableYear) : 'Sem referência' },
           ...(viewModel.availability === 'current'
@@ -154,13 +153,13 @@ function HigherEducationLanding({
             : [{ icon: 'source' as const, label: 'Situação da informação', value: situation }]),
         ]}
         description="Indicadores de atendimento, trajetória escolar, profissionais, infraestrutura, modalidades e condições da oferta educacional no município."
-        eyebrow="Indicadores de Educação"
-        title="Indicadores de Educação"
+        eyebrow="Indicadores de Educação / Educação Superior"
+        title="Educação Superior"
         variant="section"
       />
       <EducationSectionBar
         id="higher-education-section-title"
-        title="Educação Superior"
+        title="Indicadores disponíveis"
         description="Panorama municipal das matrículas, instituições, polos, acesso, fluxo e docentes da Educação Superior."
         search={(
           <div className="education-section-bar__search">
@@ -187,22 +186,6 @@ function HigherEducationLanding({
         </>
       ) : (
         <>
-          {viewModel.quickReads.length ? (
-            <section className="higher-education-entry-reading" aria-labelledby="higher-education-quick-title">
-              <div className="education-indicator-group__heading">
-                <div><span className="eyebrow">Leitura rápida</span><h3 id="higher-education-quick-title">Destaques do município</h3></div>
-              </div>
-              <EducationQuickReading
-                className="higher-education-entry-quick-reading"
-                items={viewModel.quickReads.map((read, index) => ({
-                  icon: index === 0 ? 'measure' : 'cut',
-                  key: read,
-                  label: index === 0 ? 'Panorama municipal' : 'Contexto da oferta',
-                  text: read,
-                }))}
-              />
-            </section>
-          ) : null}
           <div className="education-indicator-groups higher-education-indicator-groups">
             {viewModel.groups.filter((group) => group.id !== 'composition').map((group) => {
               const indicators = viewModel.indicators.filter((item) => item.group === group.id)
@@ -345,7 +328,7 @@ function HigherEducationDetail({
           />
         </div>
         <details className="platform-support-disclosure higher-education-series-disclosure">
-          <summary className="platform-support-disclosure__summary"><div><h3>Ver valores da série</h3><p>Consulte os valores anuais e o estado de cada observação.</p></div></summary>
+          <summary className="platform-support-disclosure__summary"><div><h3>Ver valores da série</h3><p>Consulte os valores anuais e o estado de cada observação.</p></div><DisclosureChevron /></summary>
           <div className="platform-support-disclosure__body">
             <EducationTable
               caption={`Série histórica de ${publicTitle}`}

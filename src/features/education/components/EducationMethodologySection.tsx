@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  Database,
+  Search,
+  TriangleAlert,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+import {
   EDUCATION_SECTION_LABELS,
   EDUCATION_SOURCE_CATALOG,
 } from '../../../data/educationIndicatorCatalog.js'
@@ -217,8 +229,8 @@ export function EducationMethodologySection({ catalog, items }: EducationMethodo
           </div>
         </div>
         <div className="education-methodology-links__list">
-          <a href="#pne-overview">Metas e resultados do PNE <span aria-hidden="true">→</span></a>
-          <a href="#financeiros">Indicadores Financeiros da Educação <span aria-hidden="true">→</span></a>
+          <a href="#pne-overview">Metas e resultados do PNE <ArrowRight aria-hidden="true" /></a>
+          <a href="#financeiros">Indicadores Financeiros da Educação <ArrowRight aria-hidden="true" /></a>
         </div>
       </section>
 
@@ -404,22 +416,19 @@ function MethodologyTextSection({ children, icon, title, variant }: MethodologyT
 }
 
 function MethodologyIcon({ name }: { name: MethodologyIconName }) {
-  const paths: Record<MethodologyIconName, ReactNode> = {
-    book: <><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H11v17H7.5A3.5 3.5 0 0 0 4 22z" /><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H13v17h3.5A3.5 3.5 0 0 1 20 22z" /></>,
-    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></>,
-    chevron: <path d="m9 18 6-6-6-6" />,
-    close: <path d="M18 6 6 18M6 6l12 12" />,
-    coverage: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6M15 15c3 0 5 1.5 6 4" /></>,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
-    sources: <><ellipse cx="12" cy="5" rx="7" ry="3" /><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></>,
-    warning: <><path d="M10.3 3.6 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></>,
+  const icons: Record<MethodologyIconName, LucideIcon> = {
+    book: BookOpen,
+    calendar: CalendarDays,
+    chevron: ChevronRight,
+    close: X,
+    coverage: UsersRound,
+    search: Search,
+    sources: Database,
+    warning: TriangleAlert,
   }
+  const Icon = icons[name]
 
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      {paths[name]}
-    </svg>
-  )
+  return <Icon aria-hidden="true" strokeWidth={1.7} />
 }
 
 function groupIndicatorsBySection(indicators: MethodologyIndicator[]) {

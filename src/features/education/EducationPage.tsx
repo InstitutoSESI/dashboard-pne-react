@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { GraduationCap } from 'lucide-react'
 import { ContentState } from '../../components/ContentState.jsx'
 import { ErrorState } from '../../components/ErrorState.jsx'
 import { loadEducationMunicipio } from '../../data/educationData.js'
@@ -134,7 +135,7 @@ export function EducationPage({
   const isHigherEducationRoute = selectedSectionKey === EDUCATION_SECTION_KEYS.higherEducation
   const municipalOverviewState = useMunicipalEducationOverview(
     selectedId,
-    isMunicipalOverviewRoute || isTechnicalReportRoute,
+    isMunicipalOverviewRoute || isTechnicalReportRoute || isEducationLandingRoute,
   )
   const municipalDiagnosticState = useMunicipioDiagnostic(
     isTechnicalReportRoute ? selectedId : null,
@@ -208,7 +209,10 @@ export function EducationPage({
   if (isEducationLandingRoute) {
     return (
       <div className="page-stack educacao-page education-landing-shell">
-        <EducationLandingPage municipalitySlug={municipalitySlug} />
+        <EducationLandingPage
+          municipalitySlug={municipalitySlug}
+          overview={municipalOverviewState}
+        />
       </div>
     )
   }
@@ -223,9 +227,7 @@ export function EducationPage({
         />
         <section className="empty-state">
           <div className="empty-state__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 10L12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 3 2.5 6 2.5s6-1.5 6-2.5v-5" />
-            </svg>
+            <GraduationCap strokeWidth={1.7} />
           </div>
           <h2>Selecione um município</h2>
           <p>{pageCopy.emptyDescription}</p>
@@ -347,7 +349,6 @@ export function EducationPage({
         </button>
       ) : undefined}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: municipalOverviewState.data?.municipality.name ?? selectedMunicipio },
         { icon: 'period', label: 'Ano de referência', value: String(municipalOverviewState.data?.reference.year ?? 2025) },
       ]}
       description="Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município."
@@ -360,7 +361,6 @@ export function EducationPage({
     <EducationCompactHeader
       backLink={{ label: 'Voltar aos indicadores', onClick: handleBackFromSistemaS }}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: selectedMunicipio },
         { icon: 'cut', label: 'Recorte', value: 'Sistema S' },
         { icon: 'period', label: 'Período', value: String(sistemaS.ultimo_ano ?? 'Último disponível') },
       ]}
@@ -374,7 +374,6 @@ export function EducationPage({
     <EducationCompactHeader
       backLink={{ label: 'Voltar aos indicadores', onClick: handleBackToIndicators }}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: selectedMunicipio },
         {
           icon: 'cut',
           label: 'Recorte',
@@ -398,7 +397,6 @@ export function EducationPage({
     <EducationCompactHeader
       backLink={{ onClick: handleBackToIndicators }}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: selectedMunicipio },
         isSpecialEducationDetail
           ? {
               icon: 'cut' as const,
@@ -432,7 +430,6 @@ export function EducationPage({
     <EducationCompactHeader
       backLink={{ onClick: handleBackToEducationOverview }}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: selectedMunicipio },
         { icon: 'scope', label: 'Escopo', value: `${EDUCATION_INDICATOR_CATALOG.length} indicadores` },
         { icon: 'source', label: 'Referência', value: 'Fontes oficiais' },
       ]}
@@ -444,17 +441,15 @@ export function EducationPage({
     <EducationCompactHeader
       backLink={isOverviewSection ? undefined : { onClick: handleBackToEducationOverview }}
       contextItems={[
-        { icon: 'municipality', label: 'Município', value: selectedMunicipio },
-        { icon: 'section', label: 'Seção', value: section?.label ?? 'Visão geral' },
         { icon: 'scope', label: 'Escopo', value: isOverviewSection ? '7 destaques' : contextScope },
         ...((isOverviewSection ? overviewLatestYear : sectionLatestYear)
           ? [{ icon: 'period' as const, label: 'Atualização', value: String(isOverviewSection ? overviewLatestYear : sectionLatestYear) }]
           : []),
       ]}
-      description={pageCopy.description}
+      description={isOverviewSection ? pageCopy.description : section?.description}
       domain={selectedSectionKey}
-      eyebrow={pageCopy.eyebrow}
-      title={pageCopy.title}
+      eyebrow={isOverviewSection ? pageCopy.eyebrow : `Indicadores de Educação / ${section?.label ?? 'Seção'}`}
+      title={isOverviewSection ? pageCopy.title : section?.label ?? pageCopy.title}
       variant="section"
     />
   )

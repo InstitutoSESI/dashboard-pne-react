@@ -6,6 +6,7 @@ export type AppPageKey =
   | 'home'
   | 'pne-overview'
   | 'pne-legal-goals'
+  | 'matriz-prioridades'
   | 'pne2014'
   | 'pne2026'
   | 'diagnostico'

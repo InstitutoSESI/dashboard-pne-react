@@ -22,6 +22,12 @@ async function selectMunicipality(page, municipality = MUNICIPALITY) {
   await page.getByRole('button', { name: 'Limpar seleção' }).first().waitFor({ state: 'visible' })
 }
 
+async function assertGlobalMunicipalitySelection(page, municipality) {
+  const input = page.locator('input[role="combobox"]:visible')
+  assert.equal(await input.count(), 1, 'há exatamente um seletor municipal global visível')
+  assert.equal(await input.inputValue(), municipality, 'o seletor municipal global preserva a seleção')
+}
+
 async function readStoredMunicipalityContext(page) {
   return page.evaluate((storageKey) => {
     const raw = localStorage.getItem(storageKey)
@@ -74,7 +80,7 @@ async function verifyViewport(browser, viewport) {
     await page.getByRole('heading', { level: 1 }).waitFor({ state: 'visible' })
     await selectMunicipality(page)
     await selectMunicipality(page, SECOND_MUNICIPALITY)
-    await page.getByText(SECOND_MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await assertGlobalMunicipalitySelection(page, SECOND_MUNICIPALITY)
     await selectMunicipality(page)
     await assertCanonicalMunicipalityStorage(page, MUNICIPALITY_ID)
     await page.getByRole('button', { name: 'Limpar seleção' }).first().click()
@@ -84,12 +90,12 @@ async function verifyViewport(browser, viewport) {
 
     await page.goto(`${BASE_URL}/#educacao?municipio=${SECOND_MUNICIPALITY_ID}&secao=panorama`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', { level: 1, name: 'Panorama educacional' }).first().waitFor({ state: 'visible' })
-    await page.getByText(SECOND_MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await assertGlobalMunicipalitySelection(page, SECOND_MUNICIPALITY)
     await page.waitForFunction((slug) => new URLSearchParams(window.location.hash.split('?')[1]).get('municipio') === slug, SECOND_MUNICIPALITY_SLUG)
     await assertCanonicalMunicipalityStorage(page, SECOND_MUNICIPALITY_ID)
 
     await page.goto(`${BASE_URL}/#educacao?municipio=${encodeURIComponent(MUNICIPALITY)}&secao=panorama`, { waitUntil: 'domcontentloaded' })
-    await page.getByText(MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await assertGlobalMunicipalitySelection(page, MUNICIPALITY)
     await page.waitForFunction((slug) => new URLSearchParams(window.location.hash.split('?')[1]).get('municipio') === slug, MUNICIPALITY_SLUG)
     await assertCanonicalMunicipalityStorage(page, MUNICIPALITY_ID)
 
@@ -117,8 +123,25 @@ async function verifyViewport(browser, viewport) {
 
     await page.goto(`${BASE_URL}/#educacao?municipio=${MUNICIPALITY_SLUG}&secao=panorama`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', { level: 1, name: 'Panorama educacional' }).first().waitFor({ state: 'visible' })
-    await page.getByText(MUNICIPALITY, { exact: true }).first().waitFor({ state: 'visible' })
+    await assertGlobalMunicipalitySelection(page, MUNICIPALITY)
+    assert.doesNotMatch(
+      await page.locator('main').innerText(),
+      new RegExp(`Município:\\s*${MUNICIPALITY}`),
+      `${label}: a seleção municipal não é repetida no conteúdo principal`,
+    )
     await assertNoHorizontalOverflow(page, `Panorama educacional ${label}`)
+
+    await page.goto(`${BASE_URL}/#pne-legal-goals?municipio=${MUNICIPALITY_SLUG}`, { waitUntil: 'domcontentloaded' })
+    await page.getByRole('heading', { level: 1, name: 'Metas legais do PNE 2026–2036' }).waitFor({ state: 'visible' })
+    const legalGoalsMainText = await page.locator('main').innerText()
+    assert.doesNotMatch(
+      legalGoalsMainText,
+      new RegExp(MUNICIPALITY),
+      `${label}: a seleção municipal não é repetida nas metas legais`,
+    )
+    assert.match(legalGoalsMainText, /Direto/)
+    assert.match(legalGoalsMainText, /Parcial/)
+    assert.match(legalGoalsMainText, /Complementar/)
 
     await page.goto(`${BASE_URL}/#educacao?municipio=${MUNICIPALITY_SLUG}&secao=relatorio-tecnico-municipal`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', { level: 1, name: 'Relatório Técnico Municipal' }).waitFor({ state: 'visible' })
@@ -128,7 +151,7 @@ async function verifyViewport(browser, viewport) {
     await page.goto(`${BASE_URL}/#diagnostico?municipio=${MUNICIPALITY_SLUG}`, { waitUntil: 'domcontentloaded' })
     await page.getByRole('heading', {
       level: 1,
-      name: `Diagnóstico educacional de ${MUNICIPALITY}`,
+      name: 'Diagnóstico educacional',
     }).waitFor({ state: 'visible' })
     await page.getByRole('heading', { name: 'Resultados por tema' }).waitFor({ state: 'visible' })
     assert.equal(financeRequests.length, 0, `${label}: financeiro permanece lazy fora da rota`)

@@ -1,4 +1,17 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react'
+import {
+  ArrowLeft,
+  ChartSpline,
+  Check,
+  ChevronDown,
+  Clock3,
+  FileText,
+  House,
+  List,
+  SlidersHorizontal,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react'
 import { EducationDomainIcon, isEducationDomain } from '../../../components/icons/EducationDomainIcon'
 import { NavGlyphIcon, isNavGlyphName } from '../../../components/icons/NavGlyphIcon'
 
@@ -56,6 +69,12 @@ export function EducationCompactHeader({
 }: EducationCompactHeaderProps) {
   const inlineBackLink = variant === 'detail' ? undefined : backLink
   const visualVariant = variant === 'section' ? 'listing' : 'detail'
+  const passiveContextItems = contextItems.filter((item) => !(
+    item.options?.length && item.selectedKey && item.onSelect
+  ))
+  const interactiveContextItems = contextItems.filter((item) => (
+    item.options?.length && item.selectedKey && item.onSelect
+  ))
 
   return (
     <header className={`education-compact-header education-compact-header--${variant} platform-page-header platform-page-header--${visualVariant}${className ? ` ${className}` : ''}`}>
@@ -77,7 +96,17 @@ export function EducationCompactHeader({
         <div className="education-compact-header__context-row">
           {contextItems.length ? (
             <div className="education-compact-header__context" aria-label="Contexto desta página">
-              {contextItems.map((item) => (
+              {passiveContextItems.length ? (
+                <div className="education-compact-header__context-summary">
+                  {passiveContextItems.map((item, index) => (
+                    <span key={item.key ?? `${item.label}-${String(item.value)}`}>
+                      {index ? <span aria-hidden="true"> · </span> : null}
+                      {item.label === 'Escopo' ? item.value : <>{item.label}: {item.value}</>}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {interactiveContextItems.map((item) => (
                 <EducationContextChip item={item} key={item.key ?? `${item.label}-${String(item.value)}`} />
               ))}
             </div>
@@ -184,7 +213,7 @@ function EducationContextMenu({ item }: { item: EducationContextItem }) {
           <span className="education-context-chip__label">{item.label}</span>
           <strong className="education-context-chip__value">{item.value}</strong>
         </span>
-        <span aria-hidden="true" className="education-context-chip__chevron">⌄</span>
+        <ChevronDown aria-hidden="true" className="education-context-chip__chevron" />
       </button>
       {open ? (
         <div aria-label={`Selecionar ${item.label.toLocaleLowerCase('pt-BR')}`} className="education-context-chip__menu" id={menuId} role="menu">
@@ -204,7 +233,7 @@ function EducationContextMenu({ item }: { item: EducationContextItem }) {
               type="button"
             >
               <span>{option.label}</span>
-              {option.key === item.selectedKey ? <span aria-hidden="true">✓</span> : null}
+              {option.key === item.selectedKey ? <span aria-hidden="true"><Check /></span> : null}
             </button>
           ))}
         </div>
@@ -216,7 +245,7 @@ function EducationContextMenu({ item }: { item: EducationContextItem }) {
 function EducationHeaderBackLink({ backLink }: { backLink: EducationBackLink }) {
   const content = (
     <>
-      <span aria-hidden="true">←</span>
+      <ArrowLeft aria-hidden="true" />
       {backLink.label ?? 'Voltar aos indicadores'}
     </>
   )
@@ -233,19 +262,16 @@ function EducationHeaderBackLink({ backLink }: { backLink: EducationBackLink }) 
 }
 
 function EducationContextIconGlyph({ name }: { name: EducationContextIcon }) {
-  const paths: Record<EducationContextIcon, ReactNode> = {
-    municipality: <><path d="M4 20h16" /><path d="M6 20V9l6-4 6 4v11" /><path d="M9 20v-5h6v5" /></>,
-    section: <><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h10" /></>,
-    scope: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6" /><path d="M15 15c3 0 5 1.5 6 4" /></>,
-    period: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></>,
-    cut: <><path d="M4 7h16" /><path d="M7 4v6" /><path d="M4 17h16" /><path d="M16 14v6" /></>,
-    source: <><path d="M5 4h11l3 3v13H5z" /><path d="M16 4v4h4" /><path d="M8 12h8" /><path d="M8 16h6" /></>,
-    projection: <><path d="M4 18V6" /><path d="M4 18h16" /><path d="m7 14 4-4 3 2 5-6" /></>,
+  const icons: Record<EducationContextIcon, LucideIcon> = {
+    municipality: House,
+    section: List,
+    scope: UsersRound,
+    period: Clock3,
+    cut: SlidersHorizontal,
+    source: FileText,
+    projection: ChartSpline,
   }
+  const Icon = icons[name]
 
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      {paths[name]}
-    </svg>
-  )
+  return <Icon aria-hidden="true" strokeWidth={1.7} />
 }

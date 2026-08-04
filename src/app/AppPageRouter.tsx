@@ -30,6 +30,7 @@ const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => (
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
 const LazyEducationPage = lazy(() => import('../features/education/EducationPage').then((module) => ({ default: module.EducationPage })))
 const LazyFinancialPage = lazy(() => import('../pages/FinancialPage').then((module) => ({ default: module.FinancialPage })))
+const LazyPriorityMatrixPage = lazy(() => import('../pages/PriorityMatrixPage').then((module) => ({ default: module.PriorityMatrixPage })))
 const LazyMunicipalFinancePanoramaPage = lazy(() => import('../features/municipal-finance/MunicipalFinancePanoramaPage').then((module) => ({ default: module.MunicipalFinancePanoramaPage })))
 const LazyPneLegalGoalsPage = lazy(() => import('../pages/PneLegalGoalsPage').then((module) => ({ default: module.PneLegalGoalsPage })))
 const LazyPneOverviewPage = lazy(() => import('../pages/PneOverviewPage').then((module) => ({ default: module.PneOverviewPage })))
@@ -197,13 +198,21 @@ export function AppPageRouter({
   }
 
   if (activePage === 'home') {
-    return <Home onNavigate={onNavigate} selectedMunicipio={selectedMunicipio} />
+    return <Home onNavigate={onNavigate} />
   }
 
   if (activePage === 'pne-overview') {
     return (
       <LazyPageBoundary page={activePage}>
         <LazyPneOverviewPage onNavigate={onNavigate} />
+      </LazyPageBoundary>
+    )
+  }
+
+  if (activePage === 'matriz-prioridades') {
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyPriorityMatrixPage onNavigate={onNavigate} />
       </LazyPageBoundary>
     )
   }

@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  ArrowRight,
+  BookOpen,
+  ChartColumnIncreasing,
+  CreditCard,
+  GraduationCap,
+  TrendingUp,
+  UsersRound,
+} from 'lucide-react'
 import { DataSourceNote } from './DataSourceNote'
+import { DisclosureChevron } from './DisclosureChevron'
 import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { ContentState } from './ContentState'
 import {
@@ -319,19 +329,19 @@ function buildSiopeIndicatorModel(indicator, municipality, activeGroup) {
 }
 
 function SiopeMetricIcon({ name = 'education' }) {
-  const paths = {
-    application: <><path d="M5 19h14" /><path d="M7 16V9h3v7m2 0V5h3v11m2 0v-4h2v4" /></>,
-    education: <><path d="m3 9 9-5 9 5-9 5z" /><path d="M7 12v4c2.7 2 7.3 2 10 0v-4" /></>,
-    payment: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18M7 15h4" /></>,
-    students: <><circle cx="8" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 20c.5-4 2.5-6 5-6s4.5 2 5 6m2-5c3 0 5 1.5 6 4" /></>,
-    trend: <><path d="M4 18V6m0 12h16" /><path d="m7 14 4-4 3 2 5-6" /></>,
-    book: <><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v17H7.5A3.5 3.5 0 0 0 4 22z" /><path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H12v17h4.5A3.5 3.5 0 0 1 20 22z" /></>,
+  const icons = {
+    application: ChartColumnIncreasing,
+    education: GraduationCap,
+    payment: CreditCard,
+    students: UsersRound,
+    trend: TrendingUp,
+    book: BookOpen,
   }
+  const Icon = icons[name] ?? GraduationCap
+
   return (
     <span className="siope-metric-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        {paths[name] ?? paths.education}
-      </svg>
+      <Icon strokeWidth={1.7} />
     </span>
   )
 }
@@ -415,6 +425,7 @@ function ExecutionSection({ execution }) {
                 <strong><FinancialAmount value={stage.value} /></strong>
                 <b>Período: {stage.value.referenceYear}</b>
               </div>
+              {index < stages.length - 1 ? <ArrowRight aria-hidden="true" className="siope-execution__stage-arrow" /> : null}
             </li>
           ))}
         </ol>
@@ -500,6 +511,7 @@ function ExecutionSection({ execution }) {
       <details className="platform-support-disclosure siope-method-disclosure siope-method-disclosure--execution">
         <summary className="platform-support-disclosure__summary">
           <div><h3>Conceitos e fórmulas da execução</h3><p>Como interpretar as etapas, pendências e percentuais.</p></div>
+          <DisclosureChevron />
         </summary>
         <div className="platform-support-disclosure__body">
           <p>Empenhado, liquidado e pago são etapas da mesma despesa e não devem ser somados.</p>
@@ -762,6 +774,7 @@ export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChan
                 <summary className="platform-support-disclosure__summary">
                   <SiopeMetricIcon name="book" />
                   <div><h3>Fonte e método da aplicação constitucional</h3><p>Período, referência e cálculo da margem.</p></div>
+                  <DisclosureChevron />
                 </summary>
                 <div className="platform-support-disclosure__body">
                   <div className="siope-method-disclosure__columns">

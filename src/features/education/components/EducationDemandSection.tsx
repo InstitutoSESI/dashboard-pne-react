@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { ChartSpline, Ruler, Target, TrendingUp } from 'lucide-react'
 import { CategoryTabs } from '../../../components/CategoryTabs.jsx'
 import { IndicatorProjectionPanel } from '../../../components/IndicatorProjectionPanel.jsx'
 import { getBoundedDomain } from '../../../utils/chartDomain.js'
@@ -399,18 +399,15 @@ function AttendanceQuickReading({ indicator, projection }: {
 }
 
 function AttendanceInsightIcon({ name }: { name: string }) {
-  const paths: Record<string, ReactNode> = {
-    distance: <><path d="M5 18 18 5" /><path d="M6 8v10h10" /><path d="M14 5h4v4" /></>,
-    projection: <><path d="M4 18c4-1 5-5 8-7s5-1 8-6" /><path d="M16 5h4v4" /></>,
-    target: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></>,
-    trend: <><path d="M5 16 10 11l3 3 6-7" /><path d="M15 7h4v4" /></>,
+  const icons = {
+    distance: Ruler,
+    projection: ChartSpline,
+    target: Target,
+    trend: TrendingUp,
   }
+  const Icon = icons[name as keyof typeof icons] ?? ChartSpline
 
-  return (
-    <svg aria-hidden="true" className="education-quick-reading__icon" fill="none" viewBox="0 0 24 24">
-      {paths[name] ?? paths.projection}
-    </svg>
-  )
+  return <Icon aria-hidden="true" className="education-quick-reading__icon" />
 }
 
 function buildObservedEvolution(

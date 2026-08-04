@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ChartColumnIncreasing } from 'lucide-react'
 import { MetricCard } from '../../../components/MetricCard.jsx'
 
 const EM = '\u2014'
@@ -178,19 +179,11 @@ export function EducationSupportDataCard({
 
 function variationStatusLabel(variation?: Variation) {
   if (variation?.raw === null || variation?.raw === undefined) return 'Sem série'
-  if (variation.raw > 0) return 'Alta'
-  if (variation.raw < 0) return 'Queda'
-  return 'Estável'
+  if (variation.raw > 0) return 'Aumentou'
+  if (variation.raw < 0) return 'Diminuiu'
+  return 'Sem alteração relevante'
 }
 
 function EducationSupportDataIcon() {
-  return (
-    <svg aria-hidden="true" className="education-support-data__icon" fill="none" viewBox="0 0 24 24">
-      <path d="M4 19V5" />
-      <path d="M4 19h16" />
-      <rect height="5" rx="1" width="3" x="7" y="12" />
-      <rect height="9" rx="1" width="3" x="12" y="8" />
-      <rect height="12" rx="1" width="3" x="17" y="5" />
-    </svg>
-  )
+  return <ChartColumnIncreasing aria-hidden="true" className="education-support-data__icon" />
 }

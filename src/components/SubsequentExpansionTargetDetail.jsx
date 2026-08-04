@@ -1,3 +1,4 @@
+import { CalendarCheck2, CalendarDays } from 'lucide-react'
 import { QuickReadingHeading } from './QuickReadingHeading'
 
 const countFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 })
@@ -11,11 +12,7 @@ export function SubsequentExpansionTracking({ model }) {
   if (!hasPostStartingPointData) {
     return (
       <section className="absolute-expansion-tracking absolute-expansion-tracking--waiting" aria-label="Início do acompanhamento">
-        <svg aria-hidden="true" className="absolute-expansion-tracking__icon" fill="none" viewBox="0 0 24 24">
-          <rect height="16" rx="2" width="18" x="3" y="5" />
-          <path d="M7 3v4M17 3v4M3 10h18" />
-          <path d="M8 14h3M8 18h6" />
-        </svg>
+        <CalendarDays aria-hidden="true" className="absolute-expansion-tracking__icon" />
         <div>
           <span>Acompanhamento</span>
           <strong>Começa com os dados de 2026</strong>
@@ -104,13 +101,7 @@ function EquationTerm({ label, note, tone = 'start', value }) {
 }
 
 function CalendarIcon() {
-  return (
-    <svg aria-hidden="true" className="absolute-expansion-analysis__summary-icon" fill="none" viewBox="0 0 24 24">
-      <rect height="16" rx="2" width="18" x="3" y="5" />
-      <path d="M7 3v4M17 3v4M3 10h18" />
-      <path d="m8 15 2 2 5-5" />
-    </svg>
-  )
+  return <CalendarCheck2 aria-hidden="true" className="absolute-expansion-analysis__summary-icon" />
 }
 
 export function SubsequentExpansionQuickReading({ legalGoal, metaRef, model }) {

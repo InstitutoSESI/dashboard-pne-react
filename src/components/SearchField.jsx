@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Search, X } from 'lucide-react'
 
 export function SearchField({ ariaLabel, className, clearLabel = 'Limpar busca', disabled = false, onChange, onClear, placeholder, value }) {
   const inputRef = useRef(null)
@@ -15,10 +16,7 @@ export function SearchField({ ariaLabel, className, clearLabel = 'Limpar busca',
 
   return (
     <div className={resolvedClassName} data-filled={value ? 'true' : 'false'}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="11" cy="11" r="6.5" />
-        <path d="m16 16 4 4" />
-      </svg>
+      <Search aria-hidden="true" />
       <input
         ref={inputRef}
         type="search"
@@ -30,9 +28,7 @@ export function SearchField({ ariaLabel, className, clearLabel = 'Limpar busca',
       />
       {value && onClear && !disabled ? (
         <button className="platform-search-field__clear" type="button" aria-label={clearLabel} onClick={handleClear}>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m7 7 10 10M17 7 7 17" />
-          </svg>
+          <X aria-hidden="true" />
         </button>
       ) : null}
     </div>

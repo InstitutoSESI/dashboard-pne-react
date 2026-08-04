@@ -203,7 +203,8 @@
   /* Context bar: municipal identity first, page breadcrumb as a reading cue. */
   .dashboard-shell .context-bar {
     min-height: var(--context-bar-height);
-    padding: 12px var(--page-padding-inline);
+    padding-block: var(--space-1);
+    padding-inline: var(--page-padding-inline);
     border-bottom-color: var(--border-line);
     background: var(--bg-context-bar);
     box-shadow: 0 1px 0 rgba(20, 54, 40, 0.02);
@@ -233,6 +234,14 @@
     color: var(--green-deep);
     font-size: var(--font-size-2xs);
     letter-spacing: 0.12em;
+  }
+
+  .dashboard-shell .context-bar .municipio-selector {
+    gap: 0;
+  }
+
+  .dashboard-shell .context-bar :is(.municipio-selector__field, .municipio-selector__input) {
+    min-height: calc(var(--control-height) - var(--space-1));
   }
 
   .dashboard-shell .context-bar .municipio-selector__field {
@@ -375,7 +384,7 @@
   }
 
   .dashboard-shell .content-area .home-hero--institutional {
-    grid-template-columns: minmax(0, 1.9fr) minmax(195px, 0.76fr) minmax(220px, 0.9fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--card-gap);
     align-items: stretch;
   }
@@ -388,8 +397,8 @@
   }
 
   .dashboard-shell .content-area .home-hero__content {
-    min-height: 286px;
-    padding: var(--card-pad-hero);
+    min-height: calc(var(--control-height) * 4);
+    padding: var(--card-pad-dense);
     border-top: var(--border-width) solid var(--green-accent);
     background: linear-gradient(
       135deg,
@@ -639,7 +648,7 @@
   .dashboard-shell .content-area .home-page .home-entry-card__icon svg {
     width: var(--icon-lg);
     height: var(--icon-lg);
-    stroke-width: 1.65;
+    stroke-width: 1.7;
   }
 
   .dashboard-shell .content-area .home-entry-card strong {
@@ -937,7 +946,7 @@
   }
 
   .dashboard-shell .content-area .legal-goals-summary-card {
-    min-height: 126px;
+    min-height: calc(var(--control-height) * 2);
     border: 0;
     border-right: 1px solid var(--border-line);
     border-radius: 0;
@@ -946,6 +955,38 @@
 
   .dashboard-shell .content-area .legal-goals-summary-card:last-child {
     border-right: 0;
+  }
+
+  .dashboard-shell .content-area .legal-goals-summary-card__breakdown {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .legal-goals-summary-card__breakdown-item {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .dashboard-shell .content-area .legal-goals-summary-card__breakdown-item dt {
+    color: var(--text-muted);
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-snug);
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-shell .content-area .legal-goals-summary-card__breakdown-item dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    line-height: var(--line-height-tight);
   }
 
   .dashboard-shell .content-area .legal-goal-card,
@@ -1370,6 +1411,48 @@
   }
 }
 
+@container workspace (min-width: 821px) and (max-width: 1180px) {
+  .dashboard-shell .content-area .home-hero--institutional {
+    grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+    grid-template-areas:
+      "hero hero"
+      "context guidance";
+  }
+
+  .dashboard-shell .content-area .home-hero__content {
+    grid-area: hero;
+    min-height: 244px;
+  }
+
+  .dashboard-shell .content-area .home-context-card {
+    grid-area: context;
+  }
+
+  .dashboard-shell .content-area .home-guidance-card {
+    grid-area: guidance;
+  }
+
+  .dashboard-shell .content-area .home-context-card,
+  .dashboard-shell .content-area .home-guidance-card {
+    min-height: 0;
+  }
+
+  .dashboard-shell .content-area .home-guidance-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4) var(--space-5);
+  }
+
+  .dashboard-shell .content-area .home-guidance-step:not(:last-child) {
+    min-height: 0;
+  }
+
+  .dashboard-shell .content-area .home-guidance-step:not(:last-child)::after {
+    content: none;
+  }
+
+}
+
 @media screen and (max-width: 820px) {
   .dashboard-shell .content-area {
     padding-top: var(--space-6);
@@ -1736,9 +1819,9 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education .status-badge__marker {
+  width: 1em;
+  height: 1em;
   color: currentColor;
-  font-size: 0.9em;
-  line-height: 1;
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education .indicator-card-shell__value-row strong {
@@ -2358,17 +2441,17 @@
 
 .dashboard-shell .content-area .financial-page .vaar-result-metrics .metric-card__label {
   color: var(--green-deep);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.04em;
-  line-height: var(--line-height-snug);
-  text-transform: uppercase;
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--type-label-line-height);
+  text-transform: none;
 }
 
 .dashboard-shell .content-area .financial-page .vaar-result-metrics .metric-card__value {
   color: var(--green-ink);
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-data-compact-size);
+  font-weight: var(--type-data-weight);
   line-height: var(--line-height-tight);
   text-align: left;
 }
@@ -2749,7 +2832,8 @@
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education-reference .status-badge__marker {
-  font-size: 1.1em;
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--education.indicator-card-shell--education-reference .indicator-card-shell__title {
@@ -3153,7 +3237,8 @@
 }
 
 .dashboard-shell .content-area .financial-page--education-catalog .financial-indicator-card.indicator-card-shell--education-reference .status-badge__marker {
-  font-size: 1.1em;
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .dashboard-shell .content-area .financial-page--education-catalog .financial-indicator-card.indicator-card-shell--education-reference .indicator-card-shell__title {
@@ -4046,6 +4131,31 @@
     color: var(--text);
   }
 
+  /* Cor por categoria de aderência (matriz legal). Esquema NÃO-semáforo:
+     verde=direto, ocre=parcial, azul=complementar, cinza=sem indicador
+     (ausência, nunca vermelho). Antes os modificadores usavam chaves antigas
+     (--direta/--parcial/...) e todos os selos caíam no cinza neutro. */
+  .dashboard-shell .content-area .coverage-badge--direct {
+    color: var(--status-ok-ink);
+    background: color-mix(in srgb, var(--status-ok-ink) 10%, var(--surface-card));
+    border-color: color-mix(in srgb, var(--status-ok-ink) 28%, var(--surface-card));
+  }
+  .dashboard-shell .content-area .coverage-badge--partial {
+    color: var(--status-warn-ink);
+    background: color-mix(in srgb, var(--status-warn-ink) 12%, var(--surface-card));
+    border-color: color-mix(in srgb, var(--status-warn-ink) 30%, var(--surface-card));
+  }
+  .dashboard-shell .content-area .coverage-badge--complementary {
+    color: var(--signal-blue);
+    background: color-mix(in srgb, var(--signal-blue) 10%, var(--surface-card));
+    border-color: color-mix(in srgb, var(--signal-blue) 28%, var(--surface-card));
+  }
+  .dashboard-shell .content-area .coverage-badge--without_indicator {
+    color: var(--status-muted-ink);
+    background: color-mix(in srgb, var(--status-muted-ink) 10%, var(--surface-card));
+    border-color: color-mix(in srgb, var(--status-muted-ink) 26%, var(--surface-card));
+  }
+
   .dashboard-shell .content-area .legal-goal-card__body,
   .dashboard-shell .content-area .legal-goal-monitoring,
   .dashboard-shell .content-area .legal-goal-result,
@@ -4207,6 +4317,159 @@
 
   .dashboard-shell .content-area .legal-goal-indicator__footer {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Matriz de Prioridades: apresentação pública do recurso ainda em construção. */
+@media screen {
+  .dashboard-shell .content-area .priority-matrix-page__status {
+    width: fit-content;
+    padding: var(--space-1) var(--space-3);
+    border: var(--border-width) solid var(--status-info-line);
+    border-radius: var(--radius-sm);
+    color: var(--status-info-ink);
+    background: var(--status-info-bg);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-strong-weight);
+    line-height: var(--type-label-line-height);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__preview {
+    padding: var(--panel-inset);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-card);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__heading {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 72ch;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__label {
+    color: var(--green-deep);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-strong-weight);
+    letter-spacing: var(--tracking-label);
+    line-height: var(--type-label-line-height);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__heading :is(h2, p),
+  .dashboard-shell .content-area .priority-matrix-page__questions :is(h3, p),
+  .dashboard-shell .content-area .priority-matrix-page__notice :is(h2, p) {
+    margin: 0;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__heading h2,
+  .dashboard-shell .content-area .priority-matrix-page__notice h2 {
+    color: var(--text-strong);
+    font-family: var(--font-serif);
+    font-size: var(--type-section-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    text-wrap: balance;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__heading p,
+  .dashboard-shell .content-area .priority-matrix-page__questions p,
+  .dashboard-shell .content-area .priority-matrix-page__notice p {
+    color: var(--text-body);
+    font-size: var(--type-body-size);
+    line-height: var(--type-body-line-height);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+    margin: var(--space-6) 0 0;
+    border-block: var(--border-default);
+    list-style: none;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions li {
+    min-width: 0;
+    min-height: calc(var(--control-height) * 4);
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-5);
+    border-right: var(--border-divider);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions li:last-child {
+    border-right: 0;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__question-index {
+    color: var(--signal-ochre);
+    font-family: var(--font-serif);
+    font-size: var(--type-subsection-title-size);
+    line-height: var(--line-height-tight);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions li > div {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions h3 {
+    color: var(--green-deep);
+    font-size: var(--type-card-title-size);
+    font-weight: var(--type-card-title-weight);
+    line-height: var(--type-card-title-line-height);
+    text-wrap: balance;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding: var(--panel-inset-intermediate);
+    border: var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__notice > div:first-child {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 64ch;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__actions {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+}
+
+@container workspace (max-width: 820px) {
+  .dashboard-shell .content-area .priority-matrix-page__questions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions li {
+    min-height: 0;
+    border-right: 0;
+    border-bottom: var(--border-divider);
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__questions li:last-child {
+    border-bottom: 0;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-shell .content-area .priority-matrix-page__actions {
+    justify-content: flex-start;
   }
 }
 
@@ -4861,11 +5124,11 @@
   }
 
   .dashboard-shell .content-area .pne-diagnostic-legend__card-icon {
-    width: 18px;
-    height: 18px;
+    width: var(--icon-md);
+    height: var(--icon-md);
     display: grid;
     place-items: center;
-    flex: 0 0 18px;
+    flex: 0 0 var(--icon-md);
     color: var(--green-deep);
   }
 
@@ -5541,9 +5804,9 @@
     align-content: center;
     gap: var(--space-3);
     min-width: 0;
-    padding: var(--panel-inset-intermediate);
+    padding: var(--header-pad-block-listing) var(--panel-inset-intermediate);
     border-left: var(--border-divider);
-    background: var(--surface-card);
+    background: var(--surface-raised);
   }
 
   .dashboard-shell .content-area .pne-page-header__aside-content {
@@ -5566,9 +5829,16 @@
   }
 
   .dashboard-shell .content-area .pne-page-header__facts,
+  /*
+   * Resumo do ciclo: lista compacta de uma coluna, uma linha por metrica
+   * (rotulo a esquerda, valor a direita). Antes era uma tira de 3 colunas em
+   * que o valor-frase e o detalhe quebravam em 4-5 linhas por celula, inflando
+   * o cabecalho a ~240px. O detalhe passou a apoio nao-visual (title + leitor
+   * de tela), entao rotulo e valor bastam para a sintese. Ver docs/DESIGN.md.
+   */
   .dashboard-shell .content-area .pne-page-header__metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0;
     min-width: 0;
     margin: 0;
@@ -5576,6 +5846,13 @@
 
   .dashboard-shell .content-area .pne-page-header__facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-shell .content-area .pne-page-header__metrics {
+    overflow: hidden;
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--surface-card);
   }
 
   .dashboard-shell .content-area .pne-page-header__facts > div,
@@ -5588,8 +5865,19 @@
     border-top: var(--border-divider);
   }
 
-  .dashboard-shell .content-area .pne-page-header__facts > div:nth-child(even),
-  .dashboard-shell .content-area .pne-page-header__metric + .pne-page-header__metric {
+  .dashboard-shell .content-area .pne-page-header__metrics .pne-page-header__metric {
+    grid-template-columns: 1fr auto;
+    align-content: start;
+    align-items: baseline;
+    column-gap: var(--space-3);
+    row-gap: 0;
+  }
+
+  .dashboard-shell .content-area .pne-page-header__metrics .pne-page-header__metric:first-child {
+    border-top: 0;
+  }
+
+  .dashboard-shell .content-area .pne-page-header__facts > div:nth-child(even) {
     border-left: var(--border-divider);
   }
 
@@ -5600,6 +5888,20 @@
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     line-height: var(--line-height-snug);
+  }
+
+  /* Detalhe da metrica vira apoio nao-visual: sai do fluxo para nao inflar o
+     cabecalho, mas continua no title (hover) e legivel por leitor de tela. */
+  .dashboard-shell .content-area .pne-page-header__metric small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .dashboard-shell .content-area .pne-page-header__facts dd,
@@ -5613,9 +5915,12 @@
 
   .dashboard-shell .content-area .pne-page-header__metric dd {
     color: var(--green-deep);
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-md);
     font-variant-numeric: tabular-nums;
-    line-height: var(--line-height-tight);
+    line-height: var(--line-height-snug);
+    justify-self: end;
+    text-align: right;
+    text-wrap: nowrap;
   }
 
   .dashboard-shell .content-area .pne-page-header__metric--attention dd {
@@ -5660,14 +5965,17 @@
   .dashboard-shell .content-area .pne-page-header h1 {
     font-size: var(--font-size-2xl);
   }
+}
 
-  .dashboard-shell .content-area .pne-page-header__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@container workspace (min-width: 821px) and (max-width: 1180px) {
+  .dashboard-shell .content-area .pne-page-header {
+    grid-template-columns: minmax(0, 1.5fr) minmax(240px, 0.85fr);
+    min-height: 0;
   }
 
-  .dashboard-shell .content-area .pne-page-header__metric:nth-child(3) {
-    border-top: var(--border-divider);
-    border-left: 0;
+  .dashboard-shell .content-area .pne-page-header__aside {
+    border-top: 0;
+    border-left: var(--border-divider);
   }
 }
 
@@ -5685,13 +5993,18 @@
     padding: var(--header-padding-editorial);
   }
 
-  .dashboard-shell .content-area .platform-page-header--listing .pne-page-header__main,
+  .dashboard-shell .content-area .platform-page-header--listing .pne-page-header__main {
+    padding: var(--header-pad-block-listing) var(--panel-inset-intermediate);
+  }
+
+  /* Cabecalho analitico da Educacao (piloto do respiro reduzido): vertical
+     menor pelo token de bloco, inline alinhado ao painel da pagina. */
   .dashboard-shell .content-area .platform-page-header--listing.education-compact-header {
-    padding: var(--header-padding-listing);
+    padding: var(--header-pad-block-listing) var(--education-panel-padding);
   }
 
   .dashboard-shell .content-area .platform-page-header--detail.education-compact-header {
-    padding: var(--header-padding-detail);
+    padding: var(--header-pad-block-detail) var(--education-panel-padding);
   }
 
   .dashboard-shell .content-area :where(
@@ -5782,9 +6095,9 @@
   }
 
   .dashboard-shell .content-area .platform-page-header .education-context-chip__icon {
-    width: 18px;
-    height: 18px;
-    flex-basis: 18px;
+    width: var(--icon-md);
+    height: var(--icon-md);
+    flex-basis: var(--icon-md);
   }
 
   .dashboard-shell .content-area :where(
@@ -5899,7 +6212,6 @@
 
 /* Detail headers: shared hierarchy with domain-specific composition intact. */
 @media screen {
-  .dashboard-shell .content-area .platform-page-header--detail.education-compact-header h1,
   .dashboard-shell .content-area .cycle-page--detail .detail-heading h2,
   .dashboard-shell .content-area .cycle-page--detail .detail-heading h3,
   .dashboard-shell .content-area .financial-page--detail .financial-detail-heading h1,
@@ -5909,6 +6221,16 @@
     color: var(--text-strong);
     font-family: var(--font-serif);
     font-size: var(--header-title-detail);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    text-wrap: balance;
+  }
+
+  .dashboard-shell .content-area .platform-page-header--detail.education-compact-header h1 {
+    max-width: 34ch;
+    color: var(--text-strong);
+    font-family: var(--font-serif);
+    font-size: var(--type-page-title-size);
     font-weight: var(--font-weight-semibold);
     line-height: var(--line-height-tight);
     text-wrap: balance;

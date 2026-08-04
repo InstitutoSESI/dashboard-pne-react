@@ -1,5 +1,15 @@
 import type { ReactNode } from 'react'
-import { EducationCompactHeader } from '../education/components/EducationCompactHeader'
+import {
+  ArrowLeft,
+  ChartColumnIncreasing,
+  CreditCard,
+  FileText,
+  Landmark,
+  TrendingUp,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react'
+import { PageHeader } from '../../components/PageHeader'
 
 export type FinancialIconName = 'allocation' | 'budget' | 'fundeb' | 'payment' | 'resources' | 'trend'
 
@@ -11,12 +21,18 @@ export function FinancialCompactHeader({
   description: string
 }) {
   return (
-    <EducationCompactHeader
-      backLink={{ href: backHref, label: 'Voltar à visão geral de financiamento' }}
+    <PageHeader
+      actions={(
+        <a className="platform-navigation-button financial-page-header__back" href={backHref}>
+          <ArrowLeft aria-hidden="true" />
+          Voltar à visão geral de financiamento
+        </a>
+      )}
       className="financial-page-header financial-page-header--panorama"
       description={description}
       eyebrow="Financiamento da educação"
       title="Panorama financeiro"
+      variant="listing"
     />
   )
 }
@@ -62,17 +78,14 @@ export function FinancialDisclosure({
 }
 
 export function FinancialIcon({ name }: { name: FinancialIconName }) {
-  const paths: Record<FinancialIconName, ReactNode> = {
-    allocation: <><path d="M4 19h16" /><path d="M6 16V9" /><path d="M12 16V5" /><path d="M18 16v-4" /></>,
-    budget: <><path d="M5 5h14v14H5z" /><path d="M8 9h8" /><path d="M8 13h5" /></>,
-    fundeb: <><path d="m3 9 9-5 9 5" /><path d="M5 10v8" /><path d="M9 10v8" /><path d="M15 10v8" /><path d="M19 10v8" /><path d="M3 20h18" /></>,
-    payment: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M3 10h18" /><path d="M7 15h4" /></>,
-    resources: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6" /><path d="M15 15c3 0 5 1.5 6 4" /></>,
-    trend: <><path d="M4 18V6" /><path d="M4 18h16" /><path d="m7 14 4-4 3 2 5-6" /></>,
+  const icons: Record<FinancialIconName, LucideIcon> = {
+    allocation: ChartColumnIncreasing,
+    budget: FileText,
+    fundeb: Landmark,
+    payment: CreditCard,
+    resources: UsersRound,
+    trend: TrendingUp,
   }
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      {paths[name]}
-    </svg>
-  )
+  const Icon = icons[name]
+  return <Icon aria-hidden="true" strokeWidth={1.7} />
 }

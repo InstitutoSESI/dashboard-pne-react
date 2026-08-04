@@ -244,7 +244,7 @@ test('relation-specific source copy resolves from the canonical contract', () =>
   }
 })
 
-test('cycle cards keep the compact 2014 layout and move technical metadata to detail notes', () => {
+test('cycle cards keep metrics on one row and move technical metadata to detail notes', () => {
   const cardSource = readFileSync(
     new URL('../../src/components/MetaCard.jsx', import.meta.url),
     'utf8',
@@ -253,12 +253,19 @@ test('cycle cards keep the compact 2014 layout and move technical metadata to de
     new URL('../../src/styles/pne-cycle-experience.css', import.meta.url),
     'utf8',
   )
+  const cyclePageSource = readFileSync(
+    new URL('../../src/pages/CyclePage.jsx', import.meta.url),
+    'utf8',
+  )
 
   assert.doesNotMatch(cardSource, /meta-card__metadata/)
   assert.doesNotMatch(cardSource, /meta-card__metric--trend/)
   assert.match(cardSource, /toPnePercentDisplay\(result\?\.end_value\)\.displayValue/)
+  assert.match(cyclePageSource, /<footer className="cycle-card-workspace__notes">/)
   assert.doesNotMatch(cardCss, /\.meta-card--cycle \.meta-card__metadata/)
-  assert.match(cardCss, /grid-template-columns: minmax\(min-content, 1\.2fr\) repeat\(2, minmax\(0, 1fr\)\)/)
+  assert.match(cardCss, /grid-template-columns: minmax\(min-content, 1fr\) minmax\(0, 1\.8fr\) minmax\(0, 1fr\)/)
+  assert.match(cardCss, /\.meta-card--cycle \.meta-card__metric > span \{[\s\S]*?white-space: nowrap/)
+  assert.match(cardCss, /\.cycle-card-workspace__notes \{[\s\S]*?padding: 0 var\(--space-4\) var\(--space-4\)/)
 
   const detailNote = getDataSourceParts({
     cycle: CYCLE,

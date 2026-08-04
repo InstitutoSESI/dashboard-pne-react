@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useState } from 'react'
+import { Clock3, Database, Flag, Ruler, TrendingDown, TrendingUp } from 'lucide-react'
 import {
   floorValueForGoal,
   formatIndicatorValue,
@@ -17,6 +18,7 @@ import {
   projectValueToPercent,
 } from '../utils/visualDomain'
 import { IndicatorComplementaryData } from './IndicatorComplementaryData'
+import { DisclosureChevron } from './DisclosureChevron'
 import { IndicatorHistoryChart } from './IndicatorHistoryChart'
 import { ChartEmptyState } from './ChartPrimitives'
 import { isDemographicCensusIndicator, buildDisplayIndicatorSeries } from '../utils/indicatorSeries'
@@ -1007,11 +1009,7 @@ function PneSingleYearDataCard({
         <p>Valores disponíveis para o município no ano de referência</p>
       </header>
       <div className="indicator-data-card__notice">
-        <svg aria-hidden="true" className="indicator-data-card__notice-icon" fill="none" viewBox="0 0 24 24">
-          <ellipse cx="12" cy="6" rx="7" ry="3" />
-          <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
-          <path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
-        </svg>
+        <Database aria-hidden="true" className="indicator-data-card__notice-icon" />
         <div>
           <strong>Disponibilidade do dado</strong>
           <p>
@@ -1191,19 +1189,16 @@ function PneQuickReading({
 }
 
 function PneInsightIcon({ name }) {
-  const paths = {
-    current: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" /></>,
-    distance: <><path d="M4 18 18 4" /><path d="M5 7v11h11" /><path d="M14 4h4v4" /></>,
-    variation: <><path d="M5 16 10 11l3 3 6-7" /><path d="M15 7h4v4" /></>,
-    variationDown: <><path d="M5 8 10 13l3-3 6 7" /><path d="M15 17h4v-4" /></>,
-    reference: <><path d="M6 4v16" /><path d="M7 5h10l-2.5 4L17 13H7" /></>,
+  const icons = {
+    current: Clock3,
+    distance: Ruler,
+    variation: TrendingUp,
+    variationDown: TrendingDown,
+    reference: Flag,
   }
+  const Icon = icons[name] ?? Clock3
 
-  return (
-    <svg aria-hidden="true" className="indicator-quick-reading__icon" fill="none" viewBox="0 0 24 24">
-      {paths[name] ?? paths.current}
-    </svg>
-  )
+  return <Icon aria-hidden="true" className="indicator-quick-reading__icon" />
 }
 
 function PneCurrentMetrics({ model }) {
@@ -1393,6 +1388,7 @@ function PneMethodologyDisclosure({ model }) {
       <summary>
         <span>Linha de base e metodologia</span>
         <small>{model.methodSummary}</small>
+        <DisclosureChevron />
       </summary>
       <div className="accumulative-history-disclosure__body">
         {model.methodology.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}

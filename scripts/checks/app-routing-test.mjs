@@ -92,6 +92,8 @@ const ROUTE_CASES = [
   ['#pne-legal-goals', 'pne-legal-goals'],
   ['#pnelegalgoals', 'pne-legal-goals'],
   ['#metas-legais', 'pne-legal-goals'],
+  ['#matriz-prioridades', 'matriz-prioridades'],
+  ['#matrizprioridades', 'matriz-prioridades'],
   ['#pne2014', 'pne2014'],
   ['#pne2014?detalhe=alfabetizacao', 'pne2014'],
   ['#pne2024', 'pne2014'],

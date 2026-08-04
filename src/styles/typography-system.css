@@ -1,0 +1,453 @@
+/*
+ * Contrato tipografico final da interface.
+ *
+ * Este arquivo e carregado depois dos estilos de dominio para impedir que o
+ * mesmo papel visual volte a ganhar familia, tamanho ou peso diferentes em
+ * cada pagina. Geometria e composicao continuam nos arquivos de dominio;
+ * aqui ficam somente familia, escala, peso, entrelinha e tracking.
+ */
+
+@media screen {
+  .dashboard-shell,
+  .app-header,
+  .context-bar,
+  .content-area,
+  .content-area button,
+  .content-area input,
+  .content-area select,
+  .content-area textarea,
+  .content-area table,
+  .content-area svg text {
+    font-family: var(--font-sans);
+  }
+
+  .dashboard-shell .content-area {
+    font-size: var(--type-body-size);
+    font-weight: var(--type-body-weight);
+    line-height: var(--type-body-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* Titulos de pagina e aberturas editoriais. */
+  .dashboard-shell .content-area h1 {
+    font-family: var(--font-serif);
+    font-size: var(--type-page-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .dashboard-shell .content-area :is(
+    .home-hero__content h1,
+    .platform-page-header--editorial h1
+  ) {
+    font-size: var(--type-display-size);
+    line-height: 1.1;
+    letter-spacing: var(--tracking-display);
+  }
+
+  .dashboard-shell .content-area :is(
+    .platform-page-header--listing h1,
+    .education-landing-page h1,
+    .financial-overview-page h1
+  ) {
+    font-size: var(--type-page-title-size);
+  }
+
+  .dashboard-shell .content-area :is(
+    .cycle-page--detail .detail-heading h2,
+    .cycle-page--detail .detail-heading h3,
+    .financial-page--detail .financial-detail-heading h1,
+    .financial-page--detail .financial-detail-heading h2,
+    .financial-page--detail .financial-detail-heading h3
+  ) {
+    font-family: var(--font-serif);
+    font-size: var(--type-detail-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  /* Variante de layout nao reduz hierarquia: todo h1 de cabecalho de pagina
+     regular usa a mesma escala, inclusive cenarios, metodologia e detalhes. */
+  .dashboard-shell .content-area .platform-page-header--detail h1 {
+    font-family: var(--font-serif);
+    font-size: var(--type-page-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  /* Secoes ganham a mesma voz editorial; niveis internos voltam para Sans. */
+  .dashboard-shell .content-area h2 {
+    font-family: var(--font-serif);
+    font-size: var(--type-section-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .dashboard-shell .content-area h3 {
+    font-family: var(--font-sans);
+    font-size: var(--type-subsection-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* Alguns cabecalhos de grupo possuem seletores de dominio mais especificos.
+     Eles continuam sendo subtitulos funcionais, portanto usam a voz Sans. */
+  .dashboard-shell .content-area :is(
+    .education-indicator-group__heading,
+    .pne-diagnostic-theme__heading
+  ) h3 {
+    font-family: var(--font-sans);
+    font-size: var(--type-subsection-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* O titulo de cada leitura detalhada e um titulo de detalhe, mesmo quando
+     varias leituras aparecem na mesma pagina de demanda. */
+  .dashboard-shell .content-area .education-attendance-detail__header .detail-heading__copy > h2 {
+    font-family: var(--font-serif);
+    font-size: var(--type-detail-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .dashboard-shell .content-area :is(h4, h5, h6) {
+    font-family: var(--font-sans);
+    font-size: var(--type-card-title-size);
+    font-weight: var(--type-card-title-weight);
+    line-height: var(--type-card-title-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* Titulos editoriais dos anexos usam a escala compacta; a chamada curta de
+     leitura municipal funciona como rotulo, nao como novo nivel de titulo. */
+  .dashboard-shell .content-area .municipal-technical-report__annex > h4 {
+    font-family: var(--font-sans);
+    font-size: var(--type-compact-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  .dashboard-shell .content-area .municipal-technical-report__municipal-reading h4 {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-strong-weight);
+    line-height: var(--type-label-line-height);
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* Titulos de cartao: uma unica combinacao em todas as areas. */
+  .dashboard-shell .content-area :is(
+    .indicator-card-shell__title,
+    .meta-card__title,
+    .education-indicator-card__title,
+    .financial-indicator-card__title,
+    .stat-card__title,
+    .education-section-link__title,
+    .educacao-module-card__title,
+    .educacao-scope-card__title,
+    .education-support-data__item-heading,
+    .education-methodology-text__title,
+    .siope-exercise-reading__title,
+    .municipal-technical-report__summary-item-title,
+    .platform-entry-card__title,
+    .pne-entry-card__title,
+    .home-entry-card strong
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-card-title-size);
+    font-weight: var(--type-card-title-weight);
+    line-height: var(--type-card-title-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* Descricao e prosa funcional. */
+  .dashboard-shell .content-area :is(
+    .pne-page-header__description,
+    .education-compact-header__description,
+    .home-hero__description,
+    .platform-entry-card__description,
+    .pne-entry-card__description,
+    .home-section__intro,
+    .education-section-link__description,
+    .detail-heading__copy > p,
+    .indicator-quick-reading__copy,
+    .municipal-technical-report__section-subtitle
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-body-size);
+    font-weight: var(--type-body-weight);
+    line-height: var(--type-body-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  /* Rotulos silenciosos. Peso 500 evita a mancha quadrada em 13px; somente
+     status e identidade de produto sobem para 600. */
+  .dashboard-shell .content-area :is(
+    .eyebrow,
+    .section-eyebrow,
+    .hero-eyebrow,
+    .pne-page-header__eyebrow,
+    .education-compact-header__eyebrow,
+    .home-context-card__label,
+    .home-entry-card__eyebrow,
+    .home-section__label,
+    .stat-card__eyebrow,
+    .education-card__label,
+    .education-card__year,
+    .education-summary-card__label,
+    .metric-card__label,
+    .meta-card__identifier,
+    .indicator-card-shell__context,
+    .indicator-card-shell__metadata-label,
+    .indicator-control-bar__label,
+    .indicator-stage-segmented-label,
+    .educacao-stage-context__label,
+    .education-context-chip__label,
+    .infra-row__label,
+    .infra-row__year,
+    .sistema-s-shortcut__label,
+    .municipal-finance-summary-card__label,
+    .municipal-finance-constitutional-metric__label,
+    .pnate-student-metric__label,
+    .siope-public-summary__label,
+    .vaar-field-label
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-label-line-height);
+    letter-spacing: var(--tracking-label);
+    text-transform: none;
+  }
+
+  .dashboard-shell .content-area :is(dt, legend) {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-label-line-height);
+    letter-spacing: var(--tracking-label);
+  }
+
+  .dashboard-shell .content-area :is(
+    .status-badge,
+    .indicator-stage-badge,
+    .coverage-badge,
+    .pne-diagnostic-result__status,
+    .pne-diagnostic-support-reading__badge,
+    .home-hero__identity
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-strong-weight);
+    line-height: var(--type-label-line-height);
+  }
+
+  /* Apoio textual em elementos sem classe (por exemplo, a sigla SICONFI no
+     titulo) nao deve herdar a serifada do cabecalho. */
+  .dashboard-shell .content-area small {
+    font-family: var(--font-sans);
+    font-size: var(--type-support-size);
+    font-weight: var(--type-support-weight);
+    line-height: var(--type-support-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  .dashboard-shell .content-area :is(p, li, dt, dd, legend) strong {
+    font-weight: var(--type-label-strong-weight);
+  }
+
+  /* Fontes, metodologia, notas e rastreabilidade compartilham a mesma
+     medida de apoio. O rotulo interno permanece curto e semibold. */
+  .dashboard-shell .content-area :is(
+    .data-source-note,
+    .data-source-note__text,
+    .cycle-source-line,
+    .cycle-complementary-note,
+    .pne-overview-source,
+    .pne-diagnostic-sources,
+    .pne-diagnostic-complementary-note,
+    .pne-diagnostic-result__methodology,
+    .pne-diagnostic-result__compare-note,
+    .education-landing-sources,
+    .education-summary-note,
+    .education-attendance-year-note,
+    .education-attendance-chart-source,
+    .education-methodology-lead,
+    .education-methodology-text,
+    .education-methodology-source__metadata,
+    .education-methodology-source-row__periodicity,
+    .education-methodology-source-row__years,
+    .higher-education-panel-source,
+    .higher-education-method-note,
+    .higher-education-table-note,
+    .higher-education-territorial-note,
+    .municipal-school-performance__note,
+    .municipal-education-stage__note,
+    .municipal-education-summary__notes,
+    .municipal-enrollment-comparison__note,
+    .financial-overview-source,
+    .financial-inline-note,
+    .financial-methodology-note,
+    .financial-technical-note,
+    .financial-indicator-metadata,
+    .financial-sources-footer,
+    .municipal-finance-hero__note,
+    .municipal-finance-method-note,
+    .municipal-finance-reconciliation-note,
+    .municipal-finance-source-reference,
+    .municipal-finance-sources,
+    .fundeb-indicator-note,
+    .pnate-source-note,
+    .pnate-section-note,
+    .siope-public-source,
+    .siope-public-period-note,
+    .siope-municipality-note,
+    .vaar-source,
+    .vaar-subtle-note,
+    .municipal-technical-report__section-metadata,
+    .municipal-technical-report__block-metadata,
+    .municipal-technical-report__note,
+    .municipal-technical-report__sources,
+    .municipal-technical-report__pme-sources,
+    .municipal-technical-report__table-caption--semantic
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-support-size);
+    font-weight: var(--type-support-weight);
+    line-height: var(--type-support-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  .dashboard-shell .content-area :is(
+    .data-source-note__label,
+    .education-methodology-source__heading,
+    .financial-indicator-metadata__heading,
+    .financial-sources-footer__heading,
+    .municipal-finance-sources__heading,
+    .municipal-finance-reference-heading
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-strong-weight);
+    line-height: var(--type-label-line-height);
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* Controles e navegacao usam corpo medio, nunca bold. */
+  .dashboard-shell :is(
+    .nav-item,
+    .nav-subitem,
+    .platform-selector,
+    .context-bar button,
+    .context-bar input,
+    .content-area button,
+    .content-area input,
+    .content-area select,
+    .content-area textarea,
+    .platform-filter-option,
+    .platform-navigation-button,
+    .platform-segmented-option,
+    .platform-tab
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-body-size);
+    font-weight: var(--type-label-weight);
+    line-height: var(--type-card-title-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+
+  .dashboard-shell :is(.nav-item, .nav-subitem).is-active,
+  .dashboard-shell .content-area :is(
+    .platform-filter-option,
+    .platform-segmented-option,
+    .platform-tab
+  ).is-active {
+    font-weight: var(--type-label-strong-weight);
+  }
+
+  /* Dados preservam duas densidades deliberadas: 32px para valor principal e
+     24px para cartao compacto. Nao ha terceiro tamanho de destaque. */
+  .dashboard-shell .content-area :is(
+    .education-indicator-card__value,
+    .education-summary-card__value,
+    .education-card__value,
+    .meta-card__metric--current,
+    .municipal-finance-summary-card__value,
+    .municipal-finance-constitutional-card__primary-value,
+    .school-infrastructure-composite-card__value,
+    .pne-diagnostic-result__compare-value
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-data-size);
+    font-weight: var(--type-data-weight);
+    line-height: var(--type-data-line-height);
+    letter-spacing: var(--tracking-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* O relatorio municipal usa as mesmas duas escalas de dado do dashboard. */
+  .dashboard-shell .content-area .municipal-technical-report__synthesis-primary dd {
+    font-family: var(--font-sans);
+    font-size: var(--type-data-size);
+    font-weight: var(--type-data-weight);
+    line-height: var(--type-data-line-height);
+    letter-spacing: var(--tracking-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-shell .content-area .municipal-technical-report__metrics-list dd {
+    font-family: var(--font-sans);
+    font-size: var(--type-data-compact-size);
+    font-weight: var(--type-data-weight);
+    line-height: var(--type-data-line-height);
+    letter-spacing: var(--tracking-title);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-shell .content-area :is(
+    .metric-card__value,
+    .indicator-card-shell__value-row--compact,
+    .complementary-projection__card-value,
+    .municipal-finance-constitutional-card__secondary-value,
+    .municipal-finance-execution-bridge__value,
+    .pnate-student-metric strong
+  ) {
+    font-family: var(--font-sans);
+    font-size: var(--type-data-compact-size);
+    font-weight: var(--type-data-weight);
+    line-height: var(--type-data-line-height);
+    letter-spacing: var(--tracking-title);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Texto de grafico e tabela densa tem um unico piso de 13px/500. */
+  .dashboard-shell .content-area :is(
+    .chart-axis-label,
+    .chart-x-label,
+    .chart-x-label--angled,
+    .chart-bar-label,
+    .chart-bar-cat,
+    .chart-bar-value,
+    .chart-point-label,
+    .chart-meta-label,
+    .chart-missing-label,
+    .complementary-chart__x-label,
+    .complementary-chart__value-label
+  ),
+  .dashboard-shell .content-area svg text {
+    font-family: var(--font-sans);
+    font-size: var(--type-micro-size);
+    font-weight: var(--type-micro-weight);
+    line-height: var(--type-micro-line-height);
+    letter-spacing: var(--tracking-flat);
+  }
+}

@@ -1,6 +1,7 @@
 import { isMissing } from '../utils/educationFormatters'
 import { isPublishableFinancialValue } from '../utils/financialPresentation'
 import { FinancialSection, FinancialSourcesFooter } from './FinancialIndicatorPrimitives'
+import { DisclosureChevron } from './DisclosureChevron'
 import { MetricCard } from './MetricCard'
 import { StatusBadge } from './StatusBadge'
 
@@ -313,7 +314,7 @@ function VaarResultMetric({ label, value, note }) {
 
 function VaarAccordionSummary({ children }) {
   return (
-    <div><h3>{children}</h3></div>
+    <><div><h3>{children}</h3></div><DisclosureChevron /></>
   )
 }
 
@@ -667,6 +668,7 @@ function VaarCalculationData({ attendance, historicalRows, learning }) {
     <details className="platform-support-disclosure vaar-calculation-data">
       <summary className="platform-support-disclosure__summary">
         <div><h3>Dados usados no cálculo</h3><p>Valores e parâmetros publicados para consulta do cálculo.</p></div>
+        <DisclosureChevron />
       </summary>
       <div className="platform-support-disclosure__body vaar-calculation-data__items">
         {hasLearning ? <TechnicalDetails title="Dados de Aprendizagem" rows={learning} metrics={LEARNING_DETAIL_METRICS} /> : null}

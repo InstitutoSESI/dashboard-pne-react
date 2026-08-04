@@ -1,4 +1,5 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react'
+import { ArrowUp } from 'lucide-react'
 
 export interface ReportSectionDefinition {
   id: string
@@ -77,7 +78,7 @@ export function ReportChapter({
           Sumário
         </a>
         <a className="municipal-technical-report__back" href="#inicio-relatorio" onClick={(event) => scrollToReportTarget(event, 'inicio-relatorio')}>
-          Voltar ao início ↑
+          Voltar ao início <ArrowUp aria-hidden="true" size={14} />
         </a>
       </nav>
     </section>

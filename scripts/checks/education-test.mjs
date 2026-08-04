@@ -416,7 +416,7 @@ test('apresentação de série distingue zero constante, ponto único e igualdad
   }
   const zeroPresentation = higherEducationPresentation.analyzeHigherEducationSeries(zeroSeries)
   assert.equal(zeroPresentation.kind, 'constant_zero')
-  assert.equal(zeroPresentation.trendLabel, 'Estável')
+  assert.equal(zeroPresentation.trendLabel, 'Sem alteração relevante')
   assert.equal(zeroPresentation.reading, 'Estabilidade no período')
   assert.equal(zeroPresentation.latestPoint.value, 0)
 
@@ -864,7 +864,7 @@ test('view model preserva oito recortes, lacunas e retrato bilíngue somente em 
     'educacao-bilingue-surdos',
   ])
   assert.equal(items.find((item) => item.key === 'aee').unit, 'escolas')
-  assert.match(items.find((item) => item.key === 'educacao-especial-matriculas').statusLabel, /Alta|Queda|Estável/)
+  assert.match(items.find((item) => item.key === 'educacao-especial-matriculas').statusLabel, /Aumentou|Diminuiu|Sem alteração relevante/)
   assert.equal(items.find((item) => item.key === 'educacao-bilingue-surdos').statusLabel, 'Retrato 2025')
   assert.equal(items.find((item) => item.key === 'educacao-bilingue-surdos').cardReading, 'Retrato disponível em 2025')
   const enrollments = items.find((item) => item.key === 'educacao-especial-matriculas')
@@ -1627,7 +1627,7 @@ test('cards principais preservam zero, ausência, percentuais e série insuficie
   })
   assert.equal(percent.currentDisplay, '12,0%')
   assert.equal(percent.variationDisplay, '+2 p.p.')
-  assert.equal(percent.statusLabel, 'Alta')
+  assert.equal(percent.statusLabel, 'Aumentou')
 })
 
 test('projeção preserva alinhamento entre ano, ausência e população', () => {

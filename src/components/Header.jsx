@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
@@ -23,7 +24,7 @@ const navGlyph = (name) => () => <NavGlyphIcon name={name} size="sm" />
 
 const NAV_BLOCKS = [
   {
-    icon: TargetIcon,
+    icon: Target,
     id: 'pne',
     label: 'PNE',
     items: [
@@ -32,16 +33,17 @@ const NAV_BLOCKS = [
       { key: 'pne2014', label: 'PNE 2014–2024', target: 'pne2014', icon: navGlyph('pne2014') },
       { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026', icon: navGlyph('pne2026') },
       { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico', icon: navGlyph('diagnostico') },
+      { key: 'matriz-prioridades', label: 'Matriz de Prioridades', target: 'matriz-prioridades', icon: navGlyph('matriz-prioridades') },
     ],
   },
   {
-    icon: EducationIcon,
+    icon: GraduationCap,
     id: 'educacao',
     label: 'Indicadores educacionais',
     items: EDUCATION_NAV_ITEMS,
   },
   {
-    icon: FinanceIcon,
+    icon: Landmark,
     id: 'financeiros',
     label: 'Financiamento',
     items: FINANCIAL_NAV_ITEMS.map((item) => ({
@@ -53,7 +55,7 @@ const NAV_BLOCKS = [
   },
 ]
 
-const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico'])
+const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
 
 export function Header({ activeEducationSection, activePage, onNavigate }) {
@@ -165,7 +167,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
             type="button"
             onClick={() => closeDrawer(true)}
           >
-            <CloseIcon />
+            <X aria-hidden="true" />
           </button>
         </div>
 
@@ -181,7 +183,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
               navigate('home')
             }}
           >
-            <span className="nav-item__icon" aria-hidden="true"><HomeIcon /></span>
+            <span className="nav-item__icon" aria-hidden="true"><House /></span>
             <span className="nav-item__label">Home</span>
           </a>
 
@@ -208,7 +210,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
               navigate('relatorio-tecnico-municipal')
             }}
           >
-            <span className="nav-item__icon" aria-hidden="true"><ReportIcon /></span>
+            <span className="nav-item__icon" aria-hidden="true"><FileText /></span>
             <span className="nav-item__label">Relatório Técnico Municipal</span>
           </a>
         </nav>
@@ -225,7 +227,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
           type="button"
           onClick={openDrawer}
         >
-          <MenuIcon />
+          <Menu aria-hidden="true" />
           <span>Menu</span>
         </button>
         <div className="sidebar-mobile-bar__brand" aria-label="Painel SESI-RS de Inteligência Analítica Municipal">
@@ -257,67 +259,4 @@ function getActiveItemKey(groupId, activePage, activeEducationSection) {
   if (groupId === 'educacao') return activePage === 'educacao' ? activeEducationSection : null
   if (groupId === 'financeiros' && activePage === 'financeiros') return FINANCIAL_PAGE_KEYS.overview
   return activePage
-}
-
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 10.8 12 3l9 7.8" />
-      <path d="M5.5 9.5V21h5v-6h3v6h5V9.5" />
-    </svg>
-  )
-}
-
-function TargetIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="m14.5 9.5 4-4M18.5 5.5h-4v4" />
-    </svg>
-  )
-}
-
-function EducationIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M22 10 12 5 2 10l10 5 10-5z" />
-      <path d="M6 12v5c0 1 3 2.5 6 2.5s6-1.5 6-2.5v-5" />
-    </svg>
-  )
-}
-
-function FinanceIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 18h16" />
-      <path d="M7 18V9h3v9M12 18V5h3v13M17 18v-6h3v6" />
-      <path d="M4 6h3" />
-    </svg>
-  )
-}
-
-function ReportIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 3.5h8l4 4V20.5H6z" />
-      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" />
-    </svg>
-  )
-}
-
-function MenuIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 7h16M4 12h16M4 17h16" />
-    </svg>
-  )
-}
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
-  )
 }

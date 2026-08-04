@@ -1,3 +1,5 @@
+import { Clock3, ListFilter, TrendingUp } from 'lucide-react'
+import { DisclosureChevron } from './DisclosureChevron'
 import { DetailNavigation } from './DetailNavigation'
 import { DetailHeadingText } from './HeadingText'
 import { IndicatorChartHeader } from './IndicatorChartHeader'
@@ -144,17 +146,14 @@ export function FinancialMetricGrid({ indicator }) {
 }
 
 function FinancialQuickReadingIcon({ name }) {
-  const paths = {
-    measure: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>,
-    period: <><path d="M5 6h14M8 12h8M10 18h4" /></>,
-    trend: <><path d="m5 15 4-4 3 3 7-7" /><path d="M15 7h4v4" /></>,
+  const icons = {
+    measure: Clock3,
+    period: ListFilter,
+    trend: TrendingUp,
   }
+  const Icon = icons[name] ?? Clock3
 
-  return (
-    <svg aria-hidden="true" className="education-quick-reading__icon" fill="none" viewBox="0 0 24 24">
-      {paths[name] ?? paths.measure}
-    </svg>
-  )
+  return <Icon aria-hidden="true" className="education-quick-reading__icon" />
 }
 
 function getFinancialReadingItems({ description, indicator, metadata, readingGuide, text }) {
@@ -239,6 +238,7 @@ function DisclosureSummary({ description, title }) {
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
+      <DisclosureChevron />
     </summary>
   )
 }

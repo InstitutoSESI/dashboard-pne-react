@@ -8,6 +8,7 @@ const HASH_PAGE_MAP: Readonly<Record<string, AppPageKey>> = Object.freeze({
   pneoverview: 'pne-overview',
   pnelegalgoals: 'pne-legal-goals',
   metaslegais: 'pne-legal-goals',
+  matrizprioridades: 'matriz-prioridades',
   pne2014: 'pne2014',
   pne2024: 'pne2014',
   pne2026: 'pne2026',
