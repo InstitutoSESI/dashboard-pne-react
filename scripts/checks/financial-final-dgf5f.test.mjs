@@ -93,7 +93,58 @@ test('gráficos e detalhes seguem as regras compartilhadas de leitura e reflow',
   assert.equal((fundebSource.match(/<FinancialDetailNavigation/g) ?? []).length, 1)
   assert.equal((pnateSource.match(/<FinancialDetailNavigation/g) ?? []).length, 1)
   assert.equal((siopeSource.match(/<FinancialDetailNavigation/g) ?? []).length, 1)
-  assert.match(styleSource, /\.siope-public-summary__grid[\s\S]*grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/)
-  assert.match(styleSource, /@media screen and \(max-width: 1024px\)[\s\S]*?\.siope-public-summary__grid\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
-  assert.match(styleSource, /@media screen and \(max-width: 720px\)[\s\S]*?\.siope-public-summary__grid[\s\S]*?grid-template-columns: 1fr/)
+  assert.match(styleSource, /\.financial-page \.financial-kpi-grid\s*\{[\s\S]*?repeat\(auto-fit, minmax\(min\(var\(--indicator-card-min\), 100%\), 1fr\)\)/)
+  assert.match(styleSource, /@media screen and \(max-width: 620px\)[\s\S]*?\.financial-page \.financial-kpi-card\s*\{\s*min-height: 0/)
+})
+
+test('cartões financeiros equivalentes usam as primitivas compartilhadas sem herdar a Home', async () => {
+  const [
+    primitivesSource,
+    fundebSource,
+    pnateSource,
+    siopeSource,
+    vaarSource,
+    panoramaSource,
+    navigationSource,
+    financialPageSource,
+    municipalPanoramaSource,
+    qseSource,
+    financialStylesSource,
+    typographySource,
+  ] = await Promise.all([
+    readText('src/components/FinancialIndicatorPrimitives.jsx'),
+    readText('src/components/FundebPanel.jsx'),
+    readText('src/components/PnatePanel.jsx'),
+    readText('src/components/SiopeIndicatorsPanel.jsx'),
+    readText('src/components/VaarPanel.jsx'),
+    readText('src/features/municipal-finance/FinancialPanoramaComponents.tsx'),
+    readText('src/components/NavigationEntryCard.jsx'),
+    readText('src/pages/FinancialPage.jsx'),
+    readText('src/features/municipal-finance/MunicipalFinancePanoramaPage.tsx'),
+    readText('src/features/municipal-finance/QseAnnualPanel.tsx'),
+    readText('src/styles/financial-pages.css'),
+    readText('src/styles/typography-system.css'),
+  ])
+
+  assert.match(primitivesSource, /export function FinancialKpiGrid/)
+  assert.match(primitivesSource, /export function FinancialKpiCard/)
+  assert.match(primitivesSource, /export function FinancialDataRow/)
+  assert.match(primitivesSource, /export function FinancialLeadCard/)
+  assert.match(primitivesSource, /export function FinancialProcessStepCard/)
+  assert.match(fundebSource, /<FinancialKpiCard/)
+  assert.match(pnateSource, /<FinancialKpiCard/)
+  assert.match(siopeSource, /<FinancialKpiGrid>/)
+  assert.match(vaarSource, /<FinancialKpiGrid className="vaar-result-metrics">/)
+  assert.match(panoramaSource, /<FinancialKpiCard/)
+  assert.doesNotMatch(navigationSource, /home-entry-card/)
+  assert.match(financialPageSource, /className="financial-module-entry-card"/)
+  assert.match(financialPageSource, /!detailKey \? <FinancialCompactModuleSelector/)
+  assert.ok((municipalPanoramaSource.match(/<FinancialSection/g) ?? []).length >= 5)
+  assert.ok((municipalPanoramaSource.match(/financial-composite-card/g) ?? []).length >= 4)
+  assert.match(qseSource, /<FinancialSection/)
+  assert.match(qseSource, /<FinancialKpiGrid className="municipal-finance-qse-kpis">/)
+  assert.match(financialStylesSource, /\.dashboard-shell \.content-area \.financial-page \.financial-card h3\s*\{[\s\S]*?font-size: var\(--font-size-md\)/)
+  assert.match(financialStylesSource, /\.dashboard-shell \.content-area \.financial-page \.platform-support-disclosure__summary h3/)
+  assert.match(financialStylesSource, /\.dashboard-shell \.content-area \.financial-sources-footer h2/)
+  assert.doesNotMatch(typographySource, /\n\s*\.municipal-finance-constitutional-card__secondary-value,\n/)
 })

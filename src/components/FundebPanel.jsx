@@ -9,8 +9,12 @@ import { MethodNote } from './MethodNote'
 import { IndicatorHistoryChart } from '../components/IndicatorHistoryChart'
 import {
   FinancialChartFrame,
+  FinancialDataRow,
   FinancialDetailHeader,
   FinancialDetailNavigation,
+  FinancialKpiCard,
+  FinancialKpiGrid,
+  FinancialLeadCard,
   FinancialMetricGrid,
   FinancialQuickReading,
   FinancialPrimaryAnalysis,
@@ -230,42 +234,36 @@ function hasSameFundebSnapshot(left, right) {
 function FundebSummaryMetric({ icon, label, model }) {
   if (!model) return null
   return (
-    <article className="siope-public-summary__item">
-      <div className="siope-public-summary__label">
-        <span className="siope-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
-        <span>{label}</span>
-      </div>
-      <strong>{model.currentDisplay}</strong>
-      <small>{model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}</small>
-    </article>
+    <FinancialKpiCard
+      icon={<FinancialIcon name={icon} />}
+      label={label}
+      meta={model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function FundebPublicMetric({ label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className="siope-public-metric fundeb-public-metric">
-      <div>
-        <span>{label}</span>
-        <strong>{model.currentDisplay}</strong>
-        <small>{model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}</small>
-      </div>
-      <FundebDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />
-    </article>
+    <FinancialDataRow
+      action={<FundebDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />}
+      label={label}
+      meta={model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function FundebLeadMetric({ label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className="siope-application__lead fundeb-lead-metric">
-      <span>{label}</span>
-      <strong>{model.currentDisplay}</strong>
-      <div>
-        <small>{model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}</small>
-      </div>
-      <FundebDetailButton label="Ver detalhe e evolução" model={model} onSelect={onSelect} registerButton={registerButton} />
-    </article>
+    <FinancialLeadCard
+      action={<FundebDetailButton label="Ver detalhe e evolução" model={model} onSelect={onSelect} registerButton={registerButton} />}
+      label={label}
+      meta={model.currentYear ? `Período: ${model.currentYear}` : 'Período não informado'}
+      value={model.currentDisplay}
+    />
   )
 }
 
@@ -461,11 +459,11 @@ export function FundebPanel({ municipioData, embedded = false, detailKey = '', o
                 <span className="eyebrow">Resumo principal</span>
                 <h2 id="fundeb-summary-title">Números mais recentes</h2>
               </div>
-              <div className="siope-public-summary__grid">
+              <FinancialKpiGrid>
                 {summaryMetrics.map(({ icon, label, model }) => (
                   <FundebSummaryMetric key={model.key} icon={icon} label={label} model={model} />
                 ))}
-              </div>
+              </FinancialKpiGrid>
             </section>
           ) : null}
 

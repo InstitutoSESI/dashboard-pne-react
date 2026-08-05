@@ -52,6 +52,18 @@ export function FinancialSectionHeader({ actions = null, description, eyebrow, m
   )
 }
 
+/**
+ * @param {{
+ *   actions?: import('react').ReactNode,
+ *   children?: import('react').ReactNode,
+ *   className?: string,
+ *   description?: import('react').ReactNode,
+ *   eyebrow?: import('react').ReactNode,
+ *   meta?: import('react').ReactNode,
+ *   title: import('react').ReactNode,
+ *   titleId: string,
+ * }} props
+ */
 export function FinancialSection({
   actions,
   children,
@@ -81,7 +93,97 @@ export function FinancialSection({
 }
 
 export function FinancialMetricStrip({ children, className = '' }) {
-  return <div className={`education-summary-grid financial-summary-grid${className ? ` ${className}` : ''}`}>{children}</div>
+  return <FinancialKpiGrid className={className}>{children}</FinancialKpiGrid>
+}
+
+export function FinancialKpiGrid({ children, className = '' }) {
+  return <div className={`financial-kpi-grid${className ? ` ${className}` : ''}`}>{children}</div>
+}
+
+/**
+ * @param {{
+ *   action?: import('react').ReactNode,
+ *   children?: import('react').ReactNode,
+ *   className?: string,
+ *   icon?: import('react').ReactNode,
+ *   label: import('react').ReactNode,
+ *   meta?: import('react').ReactNode,
+ *   title?: string,
+ *   tone?: string,
+ *   value?: import('react').ReactNode,
+ * }} props
+ */
+export function FinancialKpiCard({
+  action,
+  children,
+  className = '',
+  icon,
+  label,
+  meta,
+  title,
+  tone = 'default',
+  value,
+}) {
+  const displayedValue = value ?? children
+
+  return (
+    <article className={`financial-card financial-kpi-card financial-kpi-card--${tone}${className ? ` ${className}` : ''}`}>
+      <div className="financial-kpi-card__heading">
+        {icon ? <span className="financial-kpi-card__icon" aria-hidden="true">{icon}</span> : null}
+        <span className="financial-kpi-card__label">{label}</span>
+      </div>
+      <strong className="financial-kpi-card__value" title={title}>{displayedValue}</strong>
+      {meta ? <small className="financial-kpi-card__meta">{meta}</small> : null}
+      {action ? <div className="financial-card__action">{action}</div> : null}
+    </article>
+  )
+}
+
+export function FinancialLeadCard({ action = null, children, className = '', label, meta = null, value }) {
+  return (
+    <article className={`financial-card financial-lead-card${className ? ` ${className}` : ''}`}>
+      <span className="financial-lead-card__label">{label}</span>
+      <strong className="financial-lead-card__value">{value}</strong>
+      {meta ? <small className="financial-lead-card__meta">{meta}</small> : null}
+      {children}
+      {action ? <div className="financial-card__action">{action}</div> : null}
+    </article>
+  )
+}
+
+export function FinancialDataRow({ action = null, children, className = '', icon = null, label, meta = null, value }) {
+  return (
+    <article className={`financial-data-row${className ? ` ${className}` : ''}`}>
+      <div className="financial-data-row__content">
+        <div className="financial-data-row__heading">
+          {icon ? <span className="financial-data-row__icon" aria-hidden="true">{icon}</span> : null}
+          <span className="financial-data-row__label">{label}</span>
+        </div>
+        <strong className="financial-data-row__value">{value}</strong>
+        {meta ? <small className="financial-data-row__meta">{meta}</small> : null}
+        {children}
+      </div>
+      {action ? <div className="financial-data-row__action">{action}</div> : null}
+    </article>
+  )
+}
+
+export function FinancialNarrativeCard({ children, className = '' }) {
+  return <article className={`financial-card financial-narrative-card${className ? ` ${className}` : ''}`}>{children}</article>
+}
+
+export function FinancialProcessStepCard({ connector = null, label, meta, number, value }) {
+  return (
+    <li className="financial-process-step-card">
+      <span className="financial-process-step-card__number">{number}</span>
+      <div>
+        <small>{label}</small>
+        <strong>{value}</strong>
+        {meta ? <b>{meta}</b> : null}
+      </div>
+      {connector ? <span className="financial-process-step-card__connector" aria-hidden="true">{connector}</span> : null}
+    </li>
+  )
 }
 
 export function FinancialDetailHeader({ indicator }) {

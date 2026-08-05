@@ -1,8 +1,13 @@
 import { isMissing } from '../utils/educationFormatters'
 import { isPublishableFinancialValue } from '../utils/financialPresentation'
-import { FinancialSection, FinancialSourcesFooter } from './FinancialIndicatorPrimitives'
+import {
+  FinancialKpiCard,
+  FinancialKpiGrid,
+  FinancialNarrativeCard,
+  FinancialSection,
+  FinancialSourcesFooter,
+} from './FinancialIndicatorPrimitives'
 import { DisclosureChevron } from './DisclosureChevron'
-import { MetricCard } from './MetricCard'
 import { StatusBadge } from './StatusBadge'
 
 const EM = '\u2014'
@@ -307,9 +312,9 @@ function VaarStatusPill({ value }) {
   return <StatusBadge className="vaar-status-badge" displayStatus={formatReceived(value)} status={formatReceived(value)} tone={tone} />
 }
 
-function VaarResultMetric({ label, value, note }) {
+function VaarResultMetric({ label, value, note, tone = 'default' }) {
   if (value === EM || value === null || value === undefined) return null
-  return <MetricCard detail={note} label={label} value={value} />
+  return <FinancialKpiCard label={label} meta={note} tone={tone} value={value} />
 }
 
 function VaarAccordionSummary({ children }) {
@@ -382,7 +387,7 @@ function VaarHistoryCards({ rows, lastYear }) {
       {rows.map((row) => {
         const isLatest = Number(row.ano_fundeb) === Number(lastYear)
         return (
-          <article className={`platform-info-card vaar-history-card${isLatest ? ' is-latest' : ''}`} key={row.ano_fundeb}>
+          <FinancialNarrativeCard className={`platform-info-card vaar-history-card${isLatest ? ' is-latest' : ''}`} key={row.ano_fundeb}>
             <div className="vaar-history-card__top">
               <strong>{row.ano_fundeb}</strong>
               {isLatest ? <StatusBadge status="Mais recente" tone="info" /> : null}
@@ -395,7 +400,7 @@ function VaarHistoryCards({ rows, lastYear }) {
                 <div><dt>Atendimento</dt><dd>{formatBoolean(row.recebe_atendimento)}</dd></div>
               ) : null}
             </dl>
-          </article>
+          </FinancialNarrativeCard>
         )
       })}
     </div>
@@ -411,13 +416,13 @@ function TechnicalDetails({ title, rows, metrics }) {
       <summary className="platform-support-disclosure__summary"><VaarAccordionSummary>{title}</VaarAccordionSummary></summary>
       <div className="vaar-year-grid">
         {visibleRows.map((row) => (
-          <article className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
+          <FinancialNarrativeCard className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
             <div className="vaar-year-card__header">
               <span>Exercício financeiro</span>
               <strong>{row.ano_fundeb ?? EM}</strong>
             </div>
             <MetricList row={row} metrics={metrics} />
-          </article>
+          </FinancialNarrativeCard>
         ))}
       </div>
     </details>
@@ -433,13 +438,13 @@ function VaarHistoricalDetails({ rows }) {
       <summary className="platform-support-disclosure__summary"><VaarAccordionSummary>Consultar dados históricos de 2023/2024</VaarAccordionSummary></summary>
       <div className="vaar-year-grid">
           {visibleRows.map((row) => (
-            <article className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
+            <FinancialNarrativeCard className="platform-info-card vaar-year-card" key={row.ano_fundeb}>
               <div className="vaar-year-card__header">
                 <span>Exercício financeiro</span>
                 <strong>{row.ano_fundeb ?? EM}</strong>
               </div>
               <MetricList row={row} metrics={HISTORICAL_METRICS} />
-            </article>
+            </FinancialNarrativeCard>
           ))}
       </div>
       <div className="vaar-reading__notes">
@@ -471,7 +476,7 @@ function VaarMainSummary({ financialData, summary, lastYear }) {
       titleId="vaar-result-title"
     >
       {resultText ? <p className="vaar-executive-result__reading">{resultText}</p> : null}
-      <div className={`vaar-result-metrics metric-grid ${hasForecast ? 'metric-grid--four' : 'metric-grid--three'}`}>
+      <FinancialKpiGrid className="vaar-result-metrics">
         <VaarResultMetric label="Habilitação" value={formatBoolean(summary.habilitado_condicionalidades)} note="Condicionalidades" />
         <VaarResultMetric label="Componente Aprendizagem" value={formatReceived(summary.recebe_aprendizagem)} note="Resultado no exercício" />
         <VaarResultMetric label="Componente Atendimento" value={formatReceived(summary.recebe_atendimento)} note="Resultado no exercício" />
@@ -480,9 +485,10 @@ function VaarMainSummary({ financialData, summary, lastYear }) {
             label="Previsão VAAR"
             value={formatCurrency(forecast.value)}
             note={`Previsão oficial${forecast.referenceYear ? ` · ${forecast.referenceYear}` : ''}`}
+            tone="forecast"
           />
         ) : null}
-      </div>
+      </FinancialKpiGrid>
     </FinancialSection>
   )
 }
@@ -491,7 +497,7 @@ function VaarComponentReason({ label, labels, metrics, reason, row, status, vari
   const visibleMetrics = metrics.filter(([key, type]) => hasMetricValue(row, key, type))
 
   return (
-    <article className="platform-info-card vaar-component-card">
+    <FinancialNarrativeCard className="platform-info-card vaar-component-card">
       <div className="vaar-component-card__header">
         <h3>{label}</h3>
         <VaarStatusPill value={status} />
@@ -512,7 +518,7 @@ function VaarComponentReason({ label, labels, metrics, reason, row, status, vari
           <MetricList labels={labels} row={row} metrics={metrics} />
         </div>
       ) : null}
-    </article>
+    </FinancialNarrativeCard>
   )
 }
 
@@ -638,7 +644,7 @@ function VaarDataReadings({ cards }) {
     >
       <div className="vaar-attention-grid">
         {cards.map((card) => (
-          <article className="platform-info-card vaar-insight-card" key={`${card.title}-${card.text}`}>
+          <FinancialNarrativeCard className="platform-info-card vaar-insight-card" key={`${card.title}-${card.text}`}>
             <strong>{card.title}</strong>
             <p>{card.text}</p>
             {card.values.length ? (
@@ -651,7 +657,7 @@ function VaarDataReadings({ cards }) {
                 ))}
               </dl>
             ) : null}
-          </article>
+          </FinancialNarrativeCard>
         ))}
       </div>
     </FinancialSection>

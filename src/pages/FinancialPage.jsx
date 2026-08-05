@@ -71,7 +71,7 @@ export function FinancialPage({
       {!detailKey ? (
         <FinancialPageHeader module={module} />
       ) : null}
-      {!detailKey && !usesEducationCatalogLayout ? <FinancialCompactModuleSelector activePageKey={pageKey} /> : null}
+      {!detailKey ? <FinancialCompactModuleSelector activePageKey={pageKey} /> : null}
 
       {!selectedId ? (
         <FinancialModuleEmpty module={module} />
@@ -160,6 +160,7 @@ function FinancialOverviewPage() {
             <NavigationEntryCard
               ariaLabel={`Abrir ${module.title}`}
               bodyText={module.overview.description}
+              className="financial-module-entry-card"
               footerText={dashboard.actionLabel}
               href={`#${module.pageKey}`}
               icon={FINANCIAL_OVERVIEW_MODULE_ICONS[module.key]}

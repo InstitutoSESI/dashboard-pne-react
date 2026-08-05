@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
+import { FinancialKpiCard } from '../../components/FinancialIndicatorPrimitives'
 
 export type FinancialIconName = 'allocation' | 'budget' | 'fundeb' | 'payment' | 'resources' | 'trend'
 
@@ -51,12 +52,13 @@ export function FinancialMetricCard({
   tone?: 'forecast' | 'observed'
 }) {
   return (
-    <article className={`page-card municipal-finance-summary-card municipal-finance-summary-card--${tone}`}>
-      <span className="municipal-finance-summary-card__icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
-      <span className="municipal-finance-summary-card__label">{label}</span>
-      <div className="municipal-finance-summary-card__value">{children}</div>
-      <p>{meta}</p>
-    </article>
+    <FinancialKpiCard
+      icon={<FinancialIcon name={icon} />}
+      label={label}
+      meta={meta}
+      tone={tone}
+      value={children}
+    />
   )
 }
 

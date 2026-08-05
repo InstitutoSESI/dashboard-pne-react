@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChartLegend } from '../../components/ChartPrimitives'
 import { IndicatorHistoryChart } from '../../components/IndicatorHistoryChart'
 import { QuickReadingHeading } from '../../components/QuickReadingHeading'
+import { FinancialKpiCard, FinancialKpiGrid, FinancialSection } from '../../components/FinancialIndicatorPrimitives'
 import {
   calculateQseAnnualVariation,
   prepareQseAnnualSeries,
@@ -62,10 +63,15 @@ export function QseAnnualPanel({ document }: { document: MunicipalFinanceDocumen
   const hasEstimate = typeof estimate.value === 'number' && Number.isFinite(estimate.value)
 
   return (
-    <section className="page-card municipal-finance-section municipal-finance-qse" aria-labelledby="municipal-finance-qse-title">
-      <h2 id="municipal-finance-qse-title">QSE — Quota Salário Educação</h2>
+    <FinancialSection
+      className="municipal-finance-section municipal-finance-qse"
+      description="Distribuição anual realizada, valor por matrícula e evolução do período publicado."
+      eyebrow="Transferência vinculada"
+      title="QSE — Quota Salário Educação"
+      titleId="municipal-finance-qse-title"
+    >
 
-      <div className="municipal-finance-qse-kpis">
+      <FinancialKpiGrid className="municipal-finance-qse-kpis">
         <QseKpi
           label={`QSE distribuída em ${distributedYear}`}
           value={typeof distributedAmount === 'number' ? formatCompactCurrency(distributedAmount) : 'Não disponível'}
@@ -83,7 +89,7 @@ export function QseAnnualPanel({ document }: { document: MunicipalFinanceDocumen
             ? `${formatCount(perEnrollmentPoint.enrollmentBasis)} matrículas em ${perEnrollmentPoint.year}`
             : undefined}
         />
-      </div>
+      </FinancialKpiGrid>
 
       {history.status === 'loading' || history.status === 'idle' ? (
         <div className="municipal-finance-qse-history-state state-skeleton" role="status" aria-label="Carregando histórico anual da QSE">
@@ -117,7 +123,7 @@ export function QseAnnualPanel({ document }: { document: MunicipalFinanceDocumen
           Fonte: <a href={FNDE_QSE_CONSULTATIONS_URL} rel="noreferrer" target="_blank">FNDE — consultas do Salário-Educação</a>. Anos ausentes não são preenchidos; zero oficial é preservado.
         </p>
       </FinancialDisclosure>
-    </section>
+    </FinancialSection>
   )
 }
 
@@ -135,11 +141,13 @@ function QseKpi({
   value: string
 }) {
   return (
-    <article className={`municipal-finance-qse-kpi${tone ? ` municipal-finance-qse-kpi--${tone}` : ''}`}>
-      <span>{label}</span>
-      <strong title={fullValue}>{value}</strong>
-      {supporting ? <small>{supporting}</small> : null}
-    </article>
+    <FinancialKpiCard
+      label={label}
+      meta={supporting}
+      title={fullValue}
+      tone={tone}
+      value={value}
+    />
   )
 }
 

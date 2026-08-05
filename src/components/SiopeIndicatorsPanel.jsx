@@ -14,9 +14,13 @@ import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { ContentState } from './ContentState'
 import {
   FinancialChartFrame,
+  FinancialDataRow,
   FinancialDetailHeader,
   FinancialDetailNavigation,
+  FinancialKpiCard,
+  FinancialKpiGrid,
   FinancialMetricGrid,
+  FinancialProcessStepCard,
   FinancialQuickReading,
   FinancialPrimaryAnalysis,
   FinancialSourcesFooter,
@@ -348,27 +352,24 @@ function SiopeMetricIcon({ name = 'education' }) {
 
 function PublicMetric({ icon = null, label, model, compact = false }) {
   return (
-    <article className={`siope-public-metric${compact ? ' siope-public-metric--compact' : ''}`}>
-      {icon ? <SiopeMetricIcon name={icon} /> : null}
-      <div>
-        <span>{label}</span>
-        <strong>{model.currentDisplay}</strong>
-        {model.currentYear ? <small>Período: {model.currentYear}</small> : null}
-      </div>
-    </article>
+    <FinancialDataRow
+      className={compact ? 'financial-data-row--compact' : ''}
+      icon={icon ? <SiopeMetricIcon name={icon} /> : null}
+      label={label}
+      meta={model.currentYear ? `Período: ${model.currentYear}` : null}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function SummaryMetric({ icon, label, value, year }) {
   return (
-    <article className="siope-public-summary__item">
-      <div className="siope-public-summary__label">
-        <SiopeMetricIcon name={icon} />
-        <span>{label}</span>
-      </div>
-      <strong>{value}</strong>
-      {year ? <small>Período: {year}</small> : null}
-    </article>
+    <FinancialKpiCard
+      icon={<SiopeMetricIcon name={icon} />}
+      label={label}
+      meta={year ? `Período: ${year}` : null}
+      value={value}
+    />
   )
 }
 
@@ -416,17 +417,16 @@ function ExecutionSection({ execution }) {
         <p>As etapas mostram momentos da mesma despesa e não devem ser somadas.</p>
       </div>
       <div className="siope-execution__layout">
-        <ol className="siope-execution__stages">
+        <ol className="financial-process-grid">
           {stages.map((stage, index) => (
-            <li key={stage.key}>
-              <span>{index + 1}</span>
-              <div>
-                <small>{stage.label}</small>
-                <strong><FinancialAmount value={stage.value} /></strong>
-                <b>Período: {stage.value.referenceYear}</b>
-              </div>
-              {index < stages.length - 1 ? <ArrowRight aria-hidden="true" className="siope-execution__stage-arrow" /> : null}
-            </li>
+            <FinancialProcessStepCard
+              connector={index < stages.length - 1 ? <ArrowRight /> : null}
+              key={stage.key}
+              label={stage.label}
+              meta={`Período: ${stage.value.referenceYear}`}
+              number={index + 1}
+              value={<FinancialAmount value={stage.value} />}
+            />
           ))}
         </ol>
         {rates.length ? (
@@ -655,7 +655,7 @@ export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChan
               <span className="eyebrow">Resumo principal</span>
               <h2 id="siope-summary-title">Números mais recentes</h2>
             </div>
-            <div className="siope-public-summary__grid">
+            <FinancialKpiGrid>
               {publicModelByKey.get('aplicacao_mde_percentual') ? (
                 <SummaryMetric
                   icon="application"
@@ -691,7 +691,7 @@ export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChan
                   year={publicModelByKey.get('investimento_aluno_basica_reais').currentYear}
                 />
               ) : null}
-            </div>
+            </FinancialKpiGrid>
             {hasMixedScopeValues ? (
               <div className="siope-public-summary__scope-note">
                 <span className="siope-info-icon" aria-hidden="true">i</span>

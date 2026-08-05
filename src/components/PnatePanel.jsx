@@ -8,8 +8,12 @@ import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { IndicatorHistoryChart } from '../components/IndicatorHistoryChart'
 import {
   FinancialChartFrame,
+  FinancialDataRow,
   FinancialDetailHeader,
   FinancialDetailNavigation,
+  FinancialKpiCard,
+  FinancialKpiGrid,
+  FinancialLeadCard,
   FinancialSection,
   FinancialMetricStrip,
   FinancialMetricGrid,
@@ -221,56 +225,52 @@ function PnateDetailButton({ model, onSelect, registerButton }) {
 function PnateSummaryMetric({ icon, label, model }) {
   if (!model) return null
   return (
-    <article className="pnate-summary-card">
-      <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
-      <span>{label}</span>
-      <strong>{model.currentDisplay}</strong>
-      <small>{formatPeriod(model.currentYear)}</small>
-    </article>
+    <FinancialKpiCard
+      icon={<FinancialIcon name={icon} />}
+      label={label}
+      meta={formatPeriod(model.currentYear)}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function PnateDataRow({ label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className="pnate-data-row">
-      <div>
-        <span>{label}</span>
-        <strong>{model.currentDisplay}</strong>
-        <small>{formatPeriod(model.currentYear)}</small>
-      </div>
-      <PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />
-    </article>
+    <FinancialDataRow
+      action={<PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />}
+      label={label}
+      meta={formatPeriod(model.currentYear)}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function PnateStudentMetric({ icon, label, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className="pnate-student-metric">
-      <div className="pnate-student-metric__label">
-        <span className="pnate-metric-icon" aria-hidden="true"><FinancialIcon name={icon} /></span>
-        <span>{label}</span>
-      </div>
-      <strong>{model.currentDisplay}</strong>
-      <small>{formatPeriod(model.currentYear)}</small>
-      <PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />
-    </article>
+    <FinancialKpiCard
+      action={<PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />}
+      icon={<FinancialIcon name={icon} />}
+      label={label}
+      meta={formatPeriod(model.currentYear)}
+      value={model.currentDisplay}
+    />
   )
 }
 
 function PnateAdjustmentRow({ explanation, model, onSelect, registerButton }) {
   if (!model) return null
   return (
-    <article className="pnate-adjustment-row">
-      <div>
-        <span>{model.label}</span>
-        <strong>{model.currentDisplay}</strong>
-        <small>{formatPeriod(model.currentYear)}</small>
-        <p>{explanation}</p>
-      </div>
-      <PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />
-    </article>
+    <FinancialDataRow
+      action={<PnateDetailButton model={model} onSelect={onSelect} registerButton={registerButton} />}
+      className="financial-data-row--described"
+      label={model.label}
+      meta={formatPeriod(model.currentYear)}
+      value={model.currentDisplay}
+    >
+      <p>{explanation}</p>
+    </FinancialDataRow>
   )
 }
 
@@ -390,7 +390,7 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
           title="Números mais recentes"
           titleId="pnate-summary-title"
         >
-          <FinancialMetricStrip className="pnate-summary-grid">
+          <FinancialMetricStrip>
             <PnateSummaryMetric icon="payment" label={getPnatePublicLabel(reportedModel?.key, reportedModel?.label)} model={reportedModel} />
             <PnateSummaryMetric icon="resources" label={getPnatePublicLabel(totalStudentsModel?.key, totalStudentsModel?.label)} model={totalStudentsModel} />
             <PnateSummaryMetric icon="allocation" label={getPnatePublicLabel(perCapitaModel?.key, perCapitaModel?.label)} model={perCapitaModel} />
@@ -483,12 +483,12 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
             </div>
             {programLead ? (
               <div className="pnate-program-layout">
-                <article className="pnate-program-lead">
-                  <span>{programLead.label}</span>
-                  <strong>{programLead.currentDisplay}</strong>
-                  <small>{formatPeriod(programLead.currentYear)}</small>
-                  <PnateDetailButton model={programLead} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
-                </article>
+                <FinancialLeadCard
+                  action={<PnateDetailButton model={programLead} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />}
+                  label={programLead.label}
+                  meta={formatPeriod(programLead.currentYear)}
+                  value={programLead.currentDisplay}
+                />
                 <div className="pnate-program-rows" aria-label="Outros valores informados pelo programa">
                   <PnateDataRow label="Valor autorizado após desconto" model={authorizedModel?.key === programLead.key ? null : authorizedModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
                   <PnateDataRow label="Valor associado à rede municipal" model={municipalAmountModel?.key === programLead.key ? null : municipalAmountModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
@@ -510,11 +510,11 @@ export function PnatePanel({ pnateData, detailKey = '', onDetailChange }) {
               <span className="eyebrow">Estudantes considerados</span>
               <h2 id="pnate-students-title">Quem entrou no cálculo?</h2>
             </div>
-            <div className="pnate-students-layout">
+            <FinancialKpiGrid className="pnate-students-layout">
               <PnateStudentMetric icon="resources" label="Total de estudantes considerados" model={totalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
               <PnateStudentMetric icon="fundeb" label="Estudantes da rede municipal" model={municipalStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
               <PnateStudentMetric icon="fundeb" label="Estudantes da rede estadual" model={stateStudentsModel} onSelect={handleIndicatorSelect} registerButton={detailNavigation.registerCard} />
-            </div>
+            </FinancialKpiGrid>
             <p className="pnate-section-note">Os estudantes da rede estadual compõem a base territorial do programa e não representam automaticamente despesa executada pelo município.</p>
           </section>
 

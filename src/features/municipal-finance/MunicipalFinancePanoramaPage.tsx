@@ -27,6 +27,7 @@ import {
   splitFinanceContextIds,
 } from './municipalFinancePresentation'
 import { QseAnnualPanel } from './QseAnnualPanel'
+import { FinancialKpiGrid, FinancialSection } from '../../components/FinancialIndicatorPrimitives'
 import {
   FinancialCompactHeader,
   FinancialIcon,
@@ -189,12 +190,13 @@ export function MunicipalFinancePanoramaPage({
   return (
     <PageFrame returnHref={buildAppHash(FINANCIAL_PAGE_KEYS.overview, { municipio: document.municipality.slug })}>
       {summaryCards.length ? (
-      <section className="page-card municipal-finance-summary" aria-labelledby="municipal-finance-summary-title">
-        <div className="siope-public-section-heading">
-          <span className="eyebrow">Resumo principal</span>
-          <h2 id="municipal-finance-summary-title">Números mais recentes</h2>
-        </div>
-        <div className="municipal-finance-summary-grid">
+      <FinancialSection
+        className="municipal-finance-summary"
+        eyebrow="Resumo principal"
+        title="Números mais recentes"
+        titleId="municipal-finance-summary-title"
+      >
+        <FinancialKpiGrid className="municipal-finance-summary-grid">
           {summaryCards.map((card) => (
             <FinancialMetricCard
               icon={summaryIconFor(card.key)}
@@ -206,8 +208,8 @@ export function MunicipalFinancePanoramaPage({
               <FinanceValue value={card.amount} label={card.title} emphasized />
             </FinancialMetricCard>
           ))}
-        </div>
-      </section>
+        </FinancialKpiGrid>
+      </FinancialSection>
       ) : null}
 
       <ConstitutionalApplicationSection document={document} catalog={loadState.catalog} />
@@ -259,10 +261,12 @@ function BudgetExecutionSection({ document }: { document: MunicipalFinanceDocume
   if (!stages.length) return null
 
   return (
-    <section className="page-card municipal-finance-budget" aria-labelledby="municipal-finance-execution-title">
-      <div className="municipal-finance-reference-heading">
-        <h2 id="municipal-finance-execution-title">Execução orçamentária{sharedExecutionYear ? ` — ${sharedExecutionYear}` : ''} <small>(SICONFI)</small></h2>
-      </div>
+    <FinancialSection
+      className="municipal-finance-budget"
+      eyebrow="Execução das despesas"
+      title={`Execução orçamentária${sharedExecutionYear ? ` — ${sharedExecutionYear}` : ''} (SICONFI)`}
+      titleId="municipal-finance-execution-title"
+    >
       <div className="municipal-finance-budget__layout">
         <ol className="municipal-finance-budget__bars">
           {stages.map((stage) => (
@@ -292,7 +296,7 @@ function BudgetExecutionSection({ document }: { document: MunicipalFinanceDocume
           </div>
         </aside>
       </div>
-    </section>
+    </FinancialSection>
   )
 }
 
@@ -322,22 +326,21 @@ function FundebOverviewPanel({
   const visibleNonBeneficiaryLabels = nonBeneficiaryLabels.filter((label) => label !== 'VAAF')
 
   return (
-    <section className="page-card municipal-finance-fundeb-overview" aria-labelledby="municipal-finance-fundeb-overview-title">
-      <header className="municipal-finance-fundeb-overview__header">
-        <div>
-          <span className="eyebrow">Previsão oficial — {document.periods.annualForecastYear}</span>
-          <h2 id="municipal-finance-fundeb-overview-title">Fundeb e complementações</h2>
-          <p>Síntese das previsões aplicáveis ao município, sem somar componentes novamente ao total.</p>
-        </div>
-      </header>
+    <FinancialSection
+      className="municipal-finance-fundeb-overview"
+      description="Síntese das previsões aplicáveis ao município, sem somar componentes novamente ao total."
+      eyebrow={`Previsão oficial — ${document.periods.annualForecastYear}`}
+      title="Fundeb e complementações"
+      titleId="municipal-finance-fundeb-overview-title"
+    >
       <div className="municipal-finance-fundeb-overview__grid">
-        <article className="municipal-finance-fundeb-overview__total">
+        <article className="financial-card financial-composite-card municipal-finance-fundeb-overview__total">
           <span>Fundeb total previsto</span>
           <FinanceValue value={document.amounts.fundebTotalAnnualForecast} label="Fundeb total previsto" emphasized />
           <small>Previsão total · {document.periods.annualForecastYear}</small>
         </article>
         {components.map((component) => (
-          <article key={component.key}>
+          <article className="financial-card financial-composite-card" key={component.key}>
             <span>{component.label} (previsto)</span>
             {isPublishableFinancialValue(component.amount)
               ? <FinanceValue value={component.amount} label={`${component.label} previsto`} emphasized />
@@ -355,7 +358,7 @@ function FundebOverviewPanel({
           Ver detalhes do Fundeb <ArrowRight aria-hidden="true" size={16} />
         </a>
       </div>
-    </section>
+    </FinancialSection>
   )
 }
 
@@ -371,16 +374,15 @@ function RelatedProgramsSection({
   }[]
 }) {
   return (
-    <section className="page-card municipal-finance-programs municipal-finance-related-programs" aria-labelledby="municipal-finance-related-programs-title">
-      <header className="municipal-finance-related-programs__header">
-        <div>
-          <span className="eyebrow">Apoios relacionados</span>
-          <h2 id="municipal-finance-related-programs-title">Outros programas e repasses relacionados</h2>
-        </div>
-        <a className="municipal-finance-inline-action" href={buildAppHash(FINANCIAL_PAGE_KEYS.overview, { municipio: document.municipality.slug })}>
+    <FinancialSection
+      actions={<a className="municipal-finance-inline-action" href={buildAppHash(FINANCIAL_PAGE_KEYS.overview, { municipio: document.municipality.slug })}>
           Ver todos os programas <ArrowRight aria-hidden="true" size={16} />
-        </a>
-      </header>
+        </a>}
+      className="municipal-finance-programs municipal-finance-related-programs"
+      eyebrow="Apoios relacionados"
+      title="Outros programas e repasses relacionados"
+      titleId="municipal-finance-related-programs-title"
+    >
       <div className="municipal-finance-programs__related">
         <div className="municipal-finance-programs__rows">
           {relations.slice(0, 3).map((relation) => (
@@ -393,7 +395,7 @@ function RelatedProgramsSection({
           {!relations.length ? <p>Nenhuma relação adicional documentada para este município.</p> : null}
         </div>
       </div>
-    </section>
+    </FinancialSection>
   )
 }
 
@@ -456,18 +458,16 @@ function ConstitutionalApplicationSection({
   if (!hasMdeRate && !hasMdeAmount && !hasFundebRate && !hasFundebRevenue) return null
 
   return (
-    <section
-      className="page-card municipal-finance-section municipal-finance-constitutional-application"
-      aria-labelledby="municipal-finance-constitutional-title"
+    <FinancialSection
+      className="municipal-finance-section municipal-finance-constitutional-application"
+      eyebrow="Aplicação constitucional"
+      title={`Aplicação constitucional da educação${sharedDisplayedYear ? ` — ${sharedDisplayedYear}` : ''}`}
+      titleId="municipal-finance-constitutional-title"
     >
-      <div className="municipal-finance-reference-heading">
-        <h2 id="municipal-finance-constitutional-title">Aplicação constitucional da educação{sharedDisplayedYear ? ` — ${sharedDisplayedYear}` : ''}</h2>
-      </div>
-
       <div className="municipal-finance-constitutional-primary-grid">
         {hasMdeRate || hasMdeAmount ? (
         <article
-          className="municipal-finance-constitutional-card municipal-finance-constitutional-card--mde"
+          className="financial-card financial-composite-card municipal-finance-constitutional-card municipal-finance-constitutional-card--mde"
         >
           <header className="municipal-finance-constitutional-card__header">
             <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="allocation" /></span>
@@ -503,7 +503,7 @@ function ConstitutionalApplicationSection({
         ) : null}
 
         {hasFundebRate ? (
-        <article className="municipal-finance-constitutional-card municipal-finance-constitutional-card--remuneration">
+        <article className="financial-card financial-composite-card municipal-finance-constitutional-card municipal-finance-constitutional-card--remuneration">
           <header className="municipal-finance-constitutional-card__header">
             <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="resources" /></span>
             <h3>Remuneração dos profissionais</h3>
@@ -524,11 +524,8 @@ function ConstitutionalApplicationSection({
           <p className="municipal-finance-constitutional-card__footer">Mínimo: 70% do Fundeb</p>
         </article>
         ) : null}
-      </div>
-
       {hasFundebRevenue ? (
-      <div className="municipal-finance-constitutional-strip">
-        <article className="municipal-finance-constitutional-card municipal-finance-constitutional-card--revenue">
+        <article className="financial-card financial-composite-card municipal-finance-constitutional-card municipal-finance-constitutional-card--revenue">
           <header className="municipal-finance-constitutional-card__header">
             <span className="municipal-finance-constitutional-card__icon" aria-hidden="true"><FinancialIcon name="fundeb" /></span>
             <h3>Receita Fundeb declarada</h3>
@@ -544,9 +541,8 @@ function ConstitutionalApplicationSection({
           <p className="municipal-finance-constitutional-card__notice">Valor declarado pelo município. Não equivale a uma transferência efetiva confirmada.</p>
           <p className="municipal-finance-constitutional-card__footer">Fonte: SIOPE/RREO · Período: {application.fundebRevenueReceivedDeclared.referenceYear}</p>
         </article>
-
-      </div>
       ) : null}
+      </div>
 
       <div className="municipal-finance-constitutional-disclosures">
         <details className="platform-support-disclosure municipal-finance-constitutional-disclosure">
@@ -592,7 +588,7 @@ function ConstitutionalApplicationSection({
           </div>
         </details>
       </div>
-    </section>
+    </FinancialSection>
   )
 }
 
@@ -666,11 +662,11 @@ function PageFrame({
 }) {
   return (
     <div className="page-stack financial-page municipal-finance-panorama">
-      <FinancialCompactModuleSelector activePageKey={FINANCIAL_PAGE_KEYS.panorama} />
       <FinancialCompactHeader
         backHref={returnHref}
         description="Visão geral dos recursos e da aplicação na educação do município."
       />
+      <FinancialCompactModuleSelector activePageKey={FINANCIAL_PAGE_KEYS.panorama} />
       {children}
     </div>
   )

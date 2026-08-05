@@ -3,6 +3,7 @@ import { InteractionChevron } from './InteractionChevron'
 export function NavigationEntryCard({
   ariaLabel,
   bodyText,
+  className = '',
   footerText,
   href,
   icon: Icon,
@@ -18,11 +19,11 @@ export function NavigationEntryCard({
   return (
     <Tag
       aria-label={ariaLabel ?? `Abrir ${title}`}
-      className="platform-entry-card home-entry-card interaction-card--navigation"
+      className={`platform-entry-card interaction-card--navigation${className ? ` ${className}` : ''}`}
       {...interactionProps}
     >
       {Icon ? (
-        <span className="platform-entry-card__icon home-entry-card__icon" aria-hidden="true">
+        <span className="platform-entry-card__icon" aria-hidden="true">
           <Icon />
         </span>
       ) : (
@@ -33,7 +34,7 @@ export function NavigationEntryCard({
       )}
       <strong className="platform-entry-card__title">{title}</strong>
       {bodyText ? <p className="platform-entry-card__description">{bodyText}</p> : null}
-      <span className="platform-entry-card__footer home-entry-card__footer">
+      <span className="platform-entry-card__footer">
         <span>{footerText}</span>
         <InteractionChevron className="interaction-chevron--navigation" />
       </span>

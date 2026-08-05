@@ -3997,8 +3997,10 @@
 .educacao-page--detail .education-detail-view .education-primary-analysis .education-quick-reading {
   margin: 0;
   padding: var(--space-4);
-  border-color: color-mix(in srgb, var(--green-primary) 18%, var(--border-card));
-  background: color-mix(in srgb, var(--surface-moss) 58%, var(--surface-card));
+  border: var(--border-width) solid color-mix(in srgb, var(--green-primary) 22%, var(--border-card));
+  border-left: var(--border-width-strong) solid var(--green-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-moss) 55%, var(--surface-card));
   display: flex;
   flex-direction: column;
   grid-template-columns: none;
@@ -4006,20 +4008,30 @@
   gap: var(--space-3);
 }
 
+/* Leitura rapida: bloco editorial de leitura, nao lista de FAQ. Rotulo em
+   eyebrow, texto de leitura em contraste cheio, sem caixa branca aninhada nem
+   pilula por linha. Altura definida pelo conteudo (todo o texto visivel); o
+   grafico ao lado preenche para igualar a linha. */
 .education-quick-reading .indicator-quick-reading__heading {
   color: var(--green-deep);
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--font-size-sm);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid color-mix(in srgb, var(--green-accent) 55%, var(--border-faint));
+  font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
 }
 
-.education-quick-reading .indicator-quick-reading__heading-icon,
-.education-quick-reading__icon {
+.education-quick-reading .indicator-quick-reading__heading-icon {
   box-sizing: border-box;
-  border-radius: var(--radius-pill);
+  width: var(--icon-box-sm);
+  height: var(--icon-box-sm);
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
   background: var(--green-soft);
   color: var(--green-deep);
   flex: 0 0 auto;
@@ -4029,44 +4041,40 @@
   stroke-width: 1.8;
 }
 
-.education-quick-reading .indicator-quick-reading__heading-icon {
-  width: var(--icon-lg);
-  height: var(--icon-lg);
-  padding: var(--space-1);
-}
-
 .education-quick-reading__icon {
-  width: var(--icon-box-sm);
-  height: var(--icon-box-sm);
-  padding: var(--space-2);
+  box-sizing: border-box;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-top: 2px;
+  color: var(--green-primary);
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .education-quick-reading__list {
   min-height: 0;
   margin: 0;
   padding: 0;
-  border: var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-card);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   list-style: none;
-  overflow: hidden;
 }
 
 .education-quick-reading__list li {
-  min-height: 76px;
-  padding: var(--space-3);
+  padding: var(--space-3) 0;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: var(--icon-md) minmax(0, 1fr);
   flex: 1 1 auto;
-  align-items: center;
+  align-items: start;
   gap: var(--space-3);
 }
 
 .education-quick-reading__list li + li {
-  border-top: var(--border-divider);
+  border-top: var(--border-width) solid var(--border-faint);
 }
 
 .education-quick-reading__list li > div {
@@ -4076,15 +4084,17 @@
 }
 
 .education-quick-reading__list li > div > span {
-  color: var(--text-strong);
-  font-size: var(--font-size-xs);
+  color: var(--green-deep);
+  font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
 }
 
 .education-quick-reading__list p {
   margin: 0;
-  color: var(--text-secondary);
+  color: var(--text);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
   text-wrap: pretty;
@@ -4095,14 +4105,22 @@
   font-weight: var(--font-weight-bold);
 }
 
-.content-area .education-primary-analysis .educacao-main-chart-card .education-chart,
+.content-area .education-primary-analysis .educacao-main-chart-card .education-chart {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--chart-height-md);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
 .content-area .education-primary-analysis .educacao-main-chart-card .education-chart__canvas,
 .content-area .education-primary-analysis .educacao-main-chart-card .education-chart svg {
   width: 100%;
   min-width: 0;
-  min-height: 300px;
-  height: 300px;
-  max-height: 300px;
+  min-height: var(--chart-height-md);
+  height: 100%;
+  flex: 1 1 auto;
 }
 
 .content-area .education-primary-analysis .educacao-main-chart-card .education-chart {
