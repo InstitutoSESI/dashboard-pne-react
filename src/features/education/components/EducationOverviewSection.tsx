@@ -17,6 +17,13 @@ import {
   getMunicipalOverviewMethodologyHighlights,
   getOverviewNumericValue,
 } from '../municipalEducationOverviewPresentation'
+import {
+  formatMunicipalLearningChange,
+  formatMunicipalLearningValue,
+  getMunicipalLearningChangeTone,
+  type MunicipalLearningMetricSnapshot,
+  type MunicipalLearningStageSnapshot,
+} from '../municipalEducationLearningPresentation'
 
 /*
  * Etapa e uma sequencia (Infantil -> Fundamental -> Medio), entao a composicao
@@ -25,6 +32,7 @@ import {
  */
 interface EducationOverviewSectionProps {
   data: MunicipalEducationOverviewV1
+  learningStages: readonly MunicipalLearningStageSnapshot[]
 }
 
 interface SnapshotMatrixRow {
@@ -45,7 +53,7 @@ const LOCATION_ROWS: ReadonlyArray<SnapshotMatrixRow> = [
   { label: 'Rural', select: (stage) => stage.bySchoolLocation.rural },
 ]
 
-export function EducationOverviewSection({ data }: EducationOverviewSectionProps) {
+export function EducationOverviewSection({ data, learningStages }: EducationOverviewSectionProps) {
   return (
     <div className="municipal-education-overview">
       <EducationOverviewSummary data={data} />
@@ -74,6 +82,7 @@ export function EducationOverviewSection({ data }: EducationOverviewSectionProps
       />
       <HighSchoolStageSnapshot data={data} />
       <SchoolPerformanceSection data={data} />
+      <LearningOutcomesSection stages={learningStages} />
       <EnrollmentComparisonSection data={data} />
       <EducationOverviewSources data={data} />
     </div>
@@ -302,6 +311,71 @@ function SchoolPerformanceSection({ data }: Pick<EducationOverviewSectionProps, 
       </div>
       <p className="municipal-school-performance__note">As taxas correspondem ao resultado escolar informado pelo INEP para o conjunto das redes do município. Aprovação, reprovação e abandono totalizam 100%.</p>
     </section>
+  )
+}
+
+function LearningOutcomesSection({
+  stages,
+}: {
+  stages: readonly MunicipalLearningStageSnapshot[]
+}) {
+  return (
+    <section className="municipal-education-overview__section municipal-learning-outcomes" aria-labelledby="municipal-learning-outcomes-title">
+      <div className="municipal-education-overview__section-heading">
+        <h2 id="municipal-learning-outcomes-title">IDEB e notas do SAEB</h2>
+        <p>Resultados mais recentes por etapa. A variação mostra a diferença, em pontos, para a edição anterior disponível.</p>
+      </div>
+      <div className="municipal-learning-outcomes__table-region" tabIndex={0}>
+        <table>
+          <caption>IDEB e notas do SAEB por etapa, com variação desde a edição anterior disponível</caption>
+          <thead>
+            <tr>
+              <th scope="col">Etapa</th>
+              <th scope="col">IDEB</th>
+              <th scope="col">SAEB Língua Portuguesa</th>
+              <th scope="col">SAEB Matemática</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stages.map((stage) => (
+              <tr key={stage.key}>
+                <th scope="row">{stage.label}</th>
+                <LearningMetricCell label="IDEB" metric={stage.metrics.ideb} />
+                <LearningMetricCell label="SAEB Língua Portuguesa" metric={stage.metrics.saebLp} />
+                <LearningMetricCell label="SAEB Matemática" metric={stage.metrics.saebMt} />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="municipal-learning-outcomes__note">IDEB e SAEB são divulgados pelo INEP. O ano de referência pode variar quando não houver resultado municipal publicável para uma etapa.</p>
+    </section>
+  )
+}
+
+function LearningMetricCell({
+  label,
+  metric,
+}: {
+  label: string
+  metric: MunicipalLearningMetricSnapshot
+}) {
+  const tone = getMunicipalLearningChangeTone(metric)
+  const changePeriod = metric.previousYear && metric.currentYear
+    ? `${metric.previousYear}–${metric.currentYear}`
+    : null
+
+  return (
+    <td data-label={label}>
+      <span className="municipal-learning-outcomes__value">
+        <strong>{formatMunicipalLearningValue(metric)}</strong>
+        {metric.currentYear ? <small>{metric.currentYear}</small> : null}
+      </span>
+      <span className={`municipal-learning-outcomes__change municipal-learning-outcomes__change--${tone}`}>
+        {formatMunicipalLearningChange(metric)}
+        {changePeriod ? <small>{changePeriod}</small> : null}
+      </span>
+    </td>
   )
 }
 

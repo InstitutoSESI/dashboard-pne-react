@@ -11,6 +11,11 @@ import {
 } from '../../../data/educationIndicatorCatalog.js'
 import { selectEducationVisibleGroups } from '../educationSelectors'
 import { formatIndicatorCount } from '../educationFormatters'
+import {
+  buildTrajectoryStageGroups,
+  trajectoryStageCardKey,
+  type TrajectoryStageCard,
+} from '../educationTrajectoryStages'
 import { EducationIndicatorDetailView } from './EducationIndicatorDetailView'
 import { SpecialEducationDetailView } from './SpecialEducationDetailView'
 import {
@@ -33,7 +38,7 @@ interface EducationDetailNavigationController {
 interface EducationIndicatorsSectionActions {
   onAdjacentIndicator: (indicatorKey: EducationIndicatorKey) => void
   onBackToIndicators: () => void
-  onIndicatorCardSelect: (indicatorKey: EducationIndicatorKey) => void
+  onIndicatorCardSelect: (indicatorKey: EducationIndicatorKey, stageKey?: string) => void
   onOpenSistemaS: (indicatorKey?: string) => void
   onSearchChange: (value: string) => void
 }
@@ -58,6 +63,7 @@ interface EducationIndicatorsSectionViewModel {
   selectedSistemaSIndicator: string
   selectedIndigenousUnit: string
   selectedIndicatorKey: EducationIndicatorKey
+  selectedIndicatorStageKey: string
   selectedSectionKey: EducationSectionKey
   selectedSpecialEducationCut: SpecialEducationCut
   specialEducationState: {
@@ -106,6 +112,7 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
     selectedSistemaSIndicator,
     selectedIndigenousUnit,
     selectedIndicatorKey,
+    selectedIndicatorStageKey,
     selectedSectionKey,
     selectedSpecialEducationCut,
     specialEducationState,
@@ -120,6 +127,17 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
   const groups = EDUCATION_SECTION_GROUPS[selectedSectionKey] ?? []
   const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase('pt-BR')
   const visibleGroups = selectEducationVisibleGroups(groups, filteredItems)
+  const trajectoryStageGroups = selectedSectionKey === EDUCATION_SECTION_KEYS.trajectory
+    ? buildTrajectoryStageGroups(filteredItems)
+    : []
+  const renderedGroups: Array<{
+    description?: string
+    items: Array<EducationIndicatorResult | TrajectoryStageCard>
+    key?: string
+    label?: string
+  }> = selectedSectionKey === EDUCATION_SECTION_KEYS.trajectory
+    ? trajectoryStageGroups
+    : visibleGroups
   const showSistemaSGroup =
     selectedSectionKey === EDUCATION_SECTION_KEYS.modalities &&
     hasSistemaS &&
@@ -170,6 +188,7 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
         ) : (
           <EducationIndicatorDetailView
             blocos={blocos}
+            initialStageKey={selectedIndicatorStageKey}
             indicator={activeIndicator}
           />
         )}
@@ -233,7 +252,7 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
         </div>
       ) : (
         <div className="education-indicator-groups">
-          {visibleGroups.map((group) => (
+          {renderedGroups.map((group) => (
             <section className={`education-indicator-group education-indicator-group--${group.key}`} key={group.key} aria-labelledby={`education-group-${group.key}`}>
               <div className="education-indicator-group__heading">
                 <h3 id={`education-group-${group.key}`}>{group.label}</h3>
@@ -241,15 +260,23 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
               </div>
               <p className="education-indicator-group__description">{group.description}</p>
               <div className="education-indicator-card-grid">
-                {group.items.map((item) => (
+                {group.items.map((groupItem) => {
+                  const isTrajectoryCard = isTrajectoryStageCard(groupItem)
+                  const item = isTrajectoryCard ? groupItem.indicator : groupItem
+                  const stageKey = isTrajectoryCard ? groupItem.stageKey : ''
+                  const cardKey = isTrajectoryCard
+                    ? groupItem.cardKey
+                    : trajectoryStageCardKey(item.key)
+                  return (
                   <EducationIndicatorCard
-                    buttonRef={(node: HTMLButtonElement | null) => detailNavigation.registerCard(item.key, node)}
+                    buttonRef={(node: HTMLButtonElement | null) => detailNavigation.registerCard(cardKey, node)}
                     indicator={item}
-                    isSelected={isDetailOpen && item.key === selectedIndicatorKey}
-                    key={item.key}
-                    onSelect={() => onIndicatorCardSelect(item.key)}
+                    isSelected={isDetailOpen && item.key === selectedIndicatorKey && stageKey === selectedIndicatorStageKey}
+                    key={cardKey}
+                    onSelect={() => onIndicatorCardSelect(item.key, stageKey)}
                   />
-                ))}
+                  )
+                })}
               </div>
             </section>
           ))}
@@ -275,6 +302,12 @@ function formatEducationGroupCount(group: { key?: string; items?: unknown[]; ind
   const count = group.indicatorCount ?? group.items?.length ?? 0
   if (group.key === 'rede-escolar') return `${count} ${count === 1 ? 'panorama' : 'panoramas'}`
   return formatIndicatorCount(count)
+}
+
+function isTrajectoryStageCard(
+  value: EducationIndicatorResult | TrajectoryStageCard,
+): value is TrajectoryStageCard {
+  return 'indicator' in value && Boolean(value.indicator)
 }
 
 function EducationDetailNavigation({

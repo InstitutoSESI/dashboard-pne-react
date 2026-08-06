@@ -8,10 +8,10 @@ import {
   formatNumber,
   formatRatio,
   isMissing,
-  normalizeYearSeries,
 } from '../../../utils/educationFormatters.js'
 import {
   buildTurmasExplore,
+  applyEducationIndicatorStageOption,
   calculateVariation,
   filterRenderableExplore,
   safeValueSeries,
@@ -79,6 +79,7 @@ interface EducationIndicatorDetailModel extends EducationIndicatorResult {
 
 interface EducationIndicatorDetailViewProps {
   blocos: unknown
+  initialStageKey?: string
   indicator: EducationIndicatorDetailModel | null
 }
 
@@ -107,12 +108,13 @@ interface TurmasCut {
 export function EducationIndicatorDetailView({
   indicator,
   blocos,
+  initialStageKey = '',
 }: EducationIndicatorDetailViewProps) {
-  const [selectedStageKey, setSelectedStageKey] = useState('')
+  const [selectedStageKey, setSelectedStageKey] = useState(initialStageKey)
 
   useEffect(() => {
-    setSelectedStageKey('')
-  }, [indicator?.key])
+    setSelectedStageKey(initialStageKey)
+  }, [indicator?.key, initialStageKey])
 
   if (!indicator) {
     return (
@@ -145,21 +147,24 @@ export function EducationIndicatorDetailView({
 
   const stageOptions: readonly EducationStageOption[] = indicator.stageFilterOptions ?? []
   const selectedStageOption = stageOptions.find((option) => option.key === selectedStageKey) ?? stageOptions[0] ?? null
-  const displayIndicator = applyStageOption(indicator, selectedStageOption)
+  const displayIndicator = applyEducationIndicatorStageOption(
+    indicator,
+    selectedStageOption?.key ?? '',
+  )
   const hasMainSeries = (displayIndicator.series?.length ?? 0) >= 2
   const showStageFilter = stageOptions.length > 1
   const stageFilterLabel = indicator.stageFilterLabel ?? 'Etapa exibida'
   return (
     <EducationIndicatorDetailShell
       summary={<EducationMetricSummary
-        currentValue={indicator.currentDisplay}
-        currentYear={indicator.currentYear}
-        initialValue={indicator.initialDisplay}
-        initialYear={indicator.initialYear}
-        statusLabel={indicator.statusLabel}
-        statusDetail={indicator.statusDetail}
-        statusTone={indicator.statusTone}
-        variation={{ display: indicator.variationDisplay, raw: indicator.variationRaw, tone: indicator.variationTone }}
+        currentValue={displayIndicator.currentDisplay}
+        currentYear={displayIndicator.currentYear}
+        initialValue={displayIndicator.initialDisplay}
+        initialYear={displayIndicator.initialYear}
+        statusLabel={displayIndicator.statusLabel}
+        statusDetail={displayIndicator.statusDetail}
+        statusTone={displayIndicator.statusTone}
+        variation={{ display: displayIndicator.variationDisplay, raw: displayIndicator.variationRaw, tone: displayIndicator.variationTone }}
       />}
       primaryPanel={(
         <div className="indicator-chart-card educacao-main-chart-card">
@@ -206,8 +211,8 @@ export function EducationIndicatorDetailView({
       quickReading={(
         <EducationIndicatorQuickReading
           cutLabel={displayIndicator.mainCutLabel}
-          description={indicator.description}
-          text={indicator.quickReading}
+          description={displayIndicator.description}
+          text={displayIndicator.quickReading}
         />
       )}
     >
@@ -216,22 +221,6 @@ export function EducationIndicatorDetailView({
       ) : null}
     </EducationIndicatorDetailShell>
   )
-}
-
-
-function applyStageOption(
-  indicator: EducationIndicatorDetailModel,
-  option: EducationStageOption | null,
-): EducationIndicatorDetailModel {
-  if (!option) return indicator
-  return {
-    ...indicator,
-    explore: filterRenderableExplore(option.explore ?? indicator.explore ?? []),
-    mainCutLabel: option.mainCutLabel ?? indicator.mainCutLabel,
-    scaleType: option.scaleType ?? indicator.scaleType,
-    series: normalizeYearSeries(option.series ?? indicator.series),
-    showPointLabels: option.showPointLabels ?? indicator.showPointLabels,
-  }
 }
 
 

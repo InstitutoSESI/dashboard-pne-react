@@ -22,10 +22,12 @@ process.on('exit', () => rmSync(output, { force: true, recursive: true }))
 const moduleUrl = (relativePath) => pathToFileURL(path.join(output, relativePath)).href
 const selectors = await import(moduleUrl('src/features/education/educationSelectors.js'))
 const viewModels = await import(moduleUrl('src/features/education/educationViewModels.js'))
+const trajectoryStages = await import(moduleUrl('src/features/education/educationTrajectoryStages.js'))
 const formatters = await import(moduleUrl('src/features/education/educationFormatters.js'))
 const attendancePresentation = await import(moduleUrl('src/features/education/educationAttendancePresentation.js'))
 const attendanceFilters = await import(moduleUrl('src/features/education/educationAttendanceFilters.js'))
 const overviewPresentation = await import(moduleUrl('src/features/education/municipalEducationOverviewPresentation.js'))
+const learningPresentation = await import(moduleUrl('src/features/education/municipalEducationLearningPresentation.js'))
 const overviewLoader = await import(moduleUrl('src/data/municipalEducationOverview.js'))
 const pmeReferenceTable = await import(moduleUrl('src/features/education/pmeReferenceTableViewModel.js'))
 const technicalReportWorkbook = await import(moduleUrl('src/features/education/municipalTechnicalReportWorkbook.js'))
@@ -1089,6 +1091,148 @@ test('busca normalizada, filtragem e ordenação preservam o contrato', () => {
   assert.equal(selectors.normalizeEducationSearch('  ÁLFA  '), 'álfa')
   assert.deepEqual(selectors.filterEducationIndicators(indicators, 'trajetória').map((item) => item.key), ['a'])
   assert.deepEqual(selectors.sortEducationIndicators(indicators).map((item) => item.key), ['a', 'b'])
+})
+
+test('panorama organiza IDEB e SAEB por etapa e compara edições distintas', () => {
+  const stages = learningPresentation.buildMunicipalLearningStages({
+    series: {
+      ideb: {
+        fundamental_anos_iniciais: [
+          { ano: 2023, ideb: 6.2, saeb_lp: 224.3, saeb_mt: 228 },
+          { ano: 2025, ideb: 5.8, saeb_lp: 203.9, saeb_mt: 222 },
+        ],
+        fundamental_anos_finais: [
+          { ano: 2023, ideb: 4.6, saeb_lp: 251.2, saeb_mt: 249.9 },
+          { ano: 2023, ideb: 4.6, saeb_lp: 251.2, saeb_mt: 249.9 },
+          { ano: 2025, ideb: 5.3, saeb_lp: 279.1, saeb_mt: 264.1 },
+        ],
+        medio: [
+          { ano: 2017, ideb: 3.1, saeb_lp: null, saeb_mt: null },
+          { ano: 2023, ideb: 4, saeb_lp: 290.2, saeb_mt: 276.8 },
+          { ano: 2025, ideb: 4.9, saeb_lp: 298.4, saeb_mt: 294.8 },
+        ],
+      },
+    },
+  })
+
+  assert.deepEqual(stages.map(({ key }) => key), [
+    'fundamental_anos_iniciais',
+    'fundamental_anos_finais',
+    'medio',
+  ])
+  assert.deepEqual(stages[1].metrics.ideb, {
+    change: 0.7000000000000002,
+    currentValue: 5.3,
+    currentYear: 2025,
+    previousValue: 4.6,
+    previousYear: 2023,
+  })
+  assert.equal(learningPresentation.formatMunicipalLearningValue(stages[0].metrics.ideb), '5,8')
+  assert.equal(learningPresentation.formatMunicipalLearningChange(stages[1].metrics.ideb), '+0,7 pontos')
+  assert.equal(learningPresentation.getMunicipalLearningChangeTone(stages[0].metrics.saebLp), 'negative')
+})
+
+test('panorama preserva valor único e ausência sem fabricar variação', () => {
+  const stages = learningPresentation.buildMunicipalLearningStages({
+    series: {
+      ideb: {
+        fundamental_anos_iniciais: [{ ano: 2025, ideb: 0, saeb_lp: 203.9, saeb_mt: null }],
+      },
+    },
+  })
+  assert.equal(stages[0].metrics.ideb.currentValue, 0)
+  assert.equal(stages[0].metrics.ideb.change, null)
+  assert.equal(learningPresentation.formatMunicipalLearningValue(stages[0].metrics.ideb), '0')
+  assert.equal(learningPresentation.formatMunicipalLearningChange(stages[0].metrics.ideb), 'Variação indisponível')
+  assert.equal(stages[0].metrics.saebMt.currentValue, null)
+  assert.equal(learningPresentation.formatMunicipalLearningValue(stages[0].metrics.saebMt), '—')
+})
+
+test('trajetória organiza os cards por etapa e preserva o recorte escolhido', () => {
+  const stageSeries = (initialValue, currentValue) => [
+    { ano: 2023, valor: initialValue },
+    { ano: 2025, valor: currentValue },
+  ]
+  const stageOptions = [
+    { key: 'fundamental', label: 'Ensino Fundamental', mainCutLabel: 'Ensino Fundamental', series: stageSeries(80, 90) },
+    { key: 'medio', label: 'Ensino Médio', mainCutLabel: 'Ensino Médio', series: stageSeries(70, 85) },
+  ]
+  const approval = viewModels.createIndicator({
+    key: 'fluxo-aprovacao',
+    label: 'Taxa de aprovação',
+    formatType: 'percent',
+    series: stageSeries(80, 90),
+    stageFilterOptions: stageOptions,
+  })
+  const highSchoolApproval = viewModels.createIndicator({
+    key: 'fluxo-aprovacao-medio',
+    label: 'Taxa de aprovação no ensino médio',
+    formatType: 'percent',
+    series: stageSeries(70, 85),
+    stageFilterOptions: stageOptions,
+  })
+  const ideb = viewModels.createIndicator({
+    key: 'apr-ideb',
+    label: 'IDEB',
+    formatType: 'value',
+    series: stageSeries(4, 5),
+    stageFilterOptions: [
+      { key: 'fundamental_anos_iniciais', label: 'Anos iniciais', series: stageSeries(4, 5.2) },
+      { key: 'fundamental_anos_finais', label: 'Anos finais', series: stageSeries(3.8, 4.7) },
+      { key: 'medio', label: 'Ensino Médio', series: stageSeries(3.5, 4.4) },
+    ],
+  })
+  const literacy = viewModels.createIndicator({
+    key: 'apr-alfabetizacao',
+    label: 'Alfabetização',
+    categories: ['fundamental'],
+    formatType: 'percent',
+    series: stageSeries(50, 60),
+  })
+
+  const groups = trajectoryStages.buildTrajectoryStageGroups([
+    approval,
+    highSchoolApproval,
+    ideb,
+    literacy,
+  ])
+  assert.deepEqual(groups.map((group) => group.key), [
+    'fundamental',
+    'fundamental_anos_iniciais',
+    'fundamental_anos_finais',
+    'medio',
+  ])
+  assert.deepEqual(groups[0].items.map((item) => item.indicator.key), ['fluxo-aprovacao'])
+  assert.deepEqual(groups[1].items.map((item) => item.indicator.key), ['apr-ideb', 'apr-alfabetizacao'])
+  assert.deepEqual(groups[3].items.map((item) => item.indicator.key), ['fluxo-aprovacao-medio', 'apr-ideb'])
+
+  const highSchoolCard = groups[3].items[0]
+  assert.equal(highSchoolCard.stageKey, 'medio')
+  assert.equal(highSchoolCard.indicator.mainCutLabel, 'Ensino Médio')
+  assert.equal(highSchoolCard.indicator.currentValue, 85)
+  assert.equal(highSchoolCard.indicator.currentDisplay, '85,0%')
+  assert.equal(highSchoolCard.indicator.currentYear, 2025)
+  assert.equal(highSchoolCard.indicator.initialYear, 2023)
+  assert.equal(highSchoolCard.indicator.variationRaw, 15)
+  assert.equal(highSchoolCard.cardKey, 'fluxo-aprovacao-medio:medio')
+
+  const detailSequence = trajectoryStages.buildTrajectoryDetailSequence([
+    approval,
+    highSchoolApproval,
+    ideb,
+    literacy,
+  ])
+  assert.equal(detailSequence.length, groups.reduce((total, group) => total + group.items.length, 0))
+  assert.deepEqual(detailSequence.map((item) => item.key), [
+    'fluxo-aprovacao:fundamental',
+    'apr-ideb:fundamental_anos_iniciais',
+    'apr-alfabetizacao:fundamental_anos_iniciais',
+    'apr-ideb:fundamental_anos_finais',
+    'fluxo-aprovacao-medio:medio',
+    'apr-ideb:medio',
+  ])
+  assert.equal(detailSequence[4].indicatorKey, 'fluxo-aprovacao-medio')
+  assert.equal(detailSequence[4].stageKey, 'medio')
 })
 
 test('indisponibilidade, zero e seleção de detalhe são distintos', () => {

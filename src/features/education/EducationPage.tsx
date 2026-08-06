@@ -38,13 +38,19 @@ import {
   buildEducationModel,
   buildEducationPageViewModel,
   buildPneComplementaryTheme,
+  applyEducationIndicatorStageOption,
 } from './educationViewModels'
+import {
+  buildTrajectoryDetailSequence,
+  trajectoryStageCardKey,
+} from './educationTrajectoryStages'
 import { useEducationPageState } from './hooks/useEducationPageState'
 import {
   useMunicipalEducationOverview,
   type MunicipalEducationOverviewState,
 } from './hooks/useMunicipalEducationOverview'
 import { normalizeEducationIndicatorLabel } from './educationFormatters'
+import { buildMunicipalLearningStages } from './municipalEducationLearningPresentation'
 import type { EducationIndicatorKey, EducationPageProps } from './educationTypes'
 import { useMunicipioDiagnostic } from '../../hooks/useMunicipioDiagnostic'
 import { useHigherEducation } from './hooks/useHigherEducation'
@@ -150,6 +156,9 @@ export function EducationPage({
   )
   const [printEmissionDate, setPrintEmissionDate] = useState(() => printDateFormatter.format(new Date()))
   const [selectedSistemaSIndicator, setSelectedSistemaSIndicator] = useState('total_escolas')
+  const [selectedIndicatorStageKey, setSelectedIndicatorStageKey] = useState(
+    navigationContext?.params.get('etapa') ?? '',
+  )
   const [selectedSpecialEducationCut, setSelectedSpecialEducationCut] = useState<SpecialEducationCut>('total')
   const [selectedIndigenousUnit, setSelectedIndigenousUnit] = useState(
     navigationContext?.params.get('medida') ?? 'matriculas',
@@ -204,6 +213,7 @@ export function EducationPage({
     if (requestedUnit && Object.values(INDIGENOUS_INDICATOR_UNITS).includes(requestedUnit)) {
       setSelectedIndigenousUnit(requestedUnit)
     }
+    setSelectedIndicatorStageKey(navigationContext?.params.get('etapa') ?? '')
   }, [navigationContext])
 
   if (isEducationLandingRoute) {
@@ -279,9 +289,24 @@ export function EducationPage({
     ),
     ...(specialEducationState.data?.viewModel.items ?? []),
   ]
+  const municipalLearningStages = buildMunicipalLearningStages(dados.blocos?.aprendizagem)
   const allSpecialEducationItems = specialEducationState.data?.viewModel.allItems ?? []
   const section = EDUCATION_SECTION_CATALOG.find((item) => item.key === selectedSectionKey)
   const sectionItems = selectEducationSectionItems(allEducationItems, section)
+  const isTrajectorySection = selectedSectionKey === EDUCATION_SECTION_KEYS.trajectory
+  const trajectoryDetailSequence = isTrajectorySection
+    ? buildTrajectoryDetailSequence(sectionItems)
+    : []
+  const activeTrajectoryItem = isTrajectorySection
+    ? trajectoryDetailSequence.find((item) => (
+        item.indicatorKey === selectedIndicatorKey
+        && (!selectedIndicatorStageKey || item.stageKey === selectedIndicatorStageKey)
+      )) ?? null
+    : null
+  const effectiveIndicatorStageKey = activeTrajectoryItem?.stageKey ?? selectedIndicatorStageKey
+  const displayedIndicatorCount = isTrajectorySection
+    ? trajectoryDetailSequence.length
+    : section?.indicatorCount ?? sectionItems.length
   const isSistemaSTheme = selectedThemeKey === PANORAMA_THEME_KEYS.escolasSistemaS && hasSistemaS
   const filteredItems = filterEducationIndicators(sectionItems, searchQuery)
   const activeIndicator = selectActiveEducationIndicator(sectionItems, selectedIndicatorKey)
@@ -290,11 +315,19 @@ export function EducationPage({
       ? selectActiveEducationIndicator(allEducationItems, selectedIndicatorKey)
       : null)
   const isSpecialEducationDetail = isSpecialEducationIndicatorId(selectedIndicatorKey)
-  const detailSequenceItems = activeIndicator?.key === 'rede-infraestrutura'
-    ? [activeIndicator, ...sectionItems]
-    : sectionItems
-  const { activeIndex: activeIndicatorIndex, previousItem: previousIndicator, nextItem: nextIndicator } = selectEducationDetailSequence(detailSequenceItems, activeIndicator?.key)
+  const detailSequenceItems = isTrajectorySection
+    ? trajectoryDetailSequence
+    : activeIndicator?.key === 'rede-infraestrutura'
+      ? [activeIndicator, ...sectionItems]
+      : sectionItems
+  const activeDetailSequenceKey = isTrajectorySection
+    ? activeTrajectoryItem?.key
+    : activeIndicator?.key
+  const { activeIndex: activeIndicatorIndex, previousItem: previousIndicator, nextItem: nextIndicator } = selectEducationDetailSequence(detailSequenceItems, activeDetailSequenceKey)
   const isShowingIndicatorDetail = Boolean(isDetailOpen && activeIndicator)
+  const displayActiveIndicator = activeIndicator
+    ? applyEducationIndicatorStageOption(activeIndicator, effectiveIndicatorStageKey)
+    : null
   const isIndigenousDetail = Boolean(
     isDetailOpen && selectedIndicatorKey === 'educacao-indigena',
   )
@@ -304,7 +337,7 @@ export function EducationPage({
     isMethodologySection,
     isOverviewSection,
   } = buildEducationPageViewModel({
-    indicatorCount: section?.indicatorCount ?? sectionItems.length,
+    indicatorCount: displayedIndicatorCount,
     selectedSectionKey,
     sectionKeys: EDUCATION_SECTION_KEYS,
   })
@@ -393,7 +426,7 @@ export function EducationPage({
       title="Educação Escolar Indígena"
       variant="detail"
     />
-  ) : isShowingIndicatorDetail && activeIndicator ? (
+  ) : isShowingIndicatorDetail && activeIndicator && displayActiveIndicator ? (
     <EducationCompactHeader
       backLink={{ onClick: handleBackToIndicators }}
       contextItems={[
@@ -410,13 +443,13 @@ export function EducationPage({
           : {
               icon: 'cut' as const,
               label: 'Recorte',
-              value: String(activeIndicator.mainCutLabel ?? activeIndicator.themeLabel ?? section?.label ?? 'Municipal'),
+              value: String(displayActiveIndicator.mainCutLabel ?? displayActiveIndicator.themeLabel ?? section?.label ?? 'Municipal'),
             },
-        { icon: 'period', label: 'Período', value: isSpecialEducationDetail ? specialEducationPeriod : activeIndicator.currentYear ? String(activeIndicator.currentYear) : 'Último disponível' },
+        { icon: 'period', label: 'Período', value: isSpecialEducationDetail ? specialEducationPeriod : displayActiveIndicator.currentYear ? String(displayActiveIndicator.currentYear) : 'Último disponível' },
       ]}
-      description={activeIndicator.key === 'infraestrutura-basica'
+      description={displayActiveIndicator.key === 'infraestrutura-basica'
         ? 'Compare a disponibilidade de serviços básicos e espaços escolares nas escolas do município.'
-        : activeIndicator.description}
+        : displayActiveIndicator.description}
       domain={selectedSectionKey}
       eyebrow="Indicador educacional"
       title={normalizeEducationIndicatorLabel(
@@ -454,19 +487,21 @@ export function EducationPage({
     />
   )
 
-  function handleIndicatorCardSelect(indicatorKey: EducationIndicatorKey) {
+  function handleIndicatorCardSelect(indicatorKey: EducationIndicatorKey, stageKey = '') {
     const indigenousUnit = INDIGENOUS_INDICATOR_UNITS[indicatorKey]
     if (indigenousUnit) {
       handleOpenIndigenousEducation(indicatorKey, indigenousUnit)
       return
     }
-    detailNavigation.prepareDetail(indicatorKey, { captureGridPosition: true })
+    detailNavigation.prepareDetail(trajectoryStageCardKey(indicatorKey, stageKey), { captureGridPosition: true })
+    setSelectedIndicatorStageKey(stageKey)
     setSelectedIndicatorKey(indicatorKey)
     setIsDetailOpen(true)
     mergeHashContext(navigationContext?.rawRoute || 'educacao', {
       secao: navigationContext?.params.get('secao') ?? resolveEducationSection({ detailKey: indicatorKey }),
       detalhe: indicatorKey,
       dimensao: null,
+      etapa: stageKey || null,
     })
   }
 
@@ -474,26 +509,33 @@ export function EducationPage({
     const returnKey = isIndigenousDetail
       ? Object.entries(INDIGENOUS_INDICATOR_UNITS)
         .find(([, unit]) => unit === selectedIndigenousUnit)?.[0] ?? ''
-      : selectedIndicatorKey
+      : trajectoryStageCardKey(selectedIndicatorKey, effectiveIndicatorStageKey)
     setIsDetailOpen(false)
     setSelectedIndicatorKey('')
+    setSelectedIndicatorStageKey('')
     mergeHashContext(navigationContext?.rawRoute || 'educacao', {
       secao: navigationContext?.params.get('secao') ?? selectedSectionKey,
       detalhe: null,
       dimensao: null,
+      etapa: null,
       medida: null,
     })
     detailNavigation.restoreGrid(returnKey)
   }
 
-  function handleAdjacentIndicator(indicatorKey: EducationIndicatorKey) {
-    detailNavigation.prepareDetail(indicatorKey)
+  function handleAdjacentIndicator(sequenceKey: EducationIndicatorKey) {
+    const trajectoryItem = trajectoryDetailSequence.find((item) => item.key === sequenceKey)
+    const indicatorKey = trajectoryItem?.indicatorKey ?? sequenceKey
+    const stageKey = trajectoryItem?.stageKey ?? ''
+    detailNavigation.prepareDetail(sequenceKey)
+    setSelectedIndicatorStageKey(stageKey)
     setSelectedIndicatorKey(indicatorKey)
     setIsDetailOpen(true)
     mergeHashContext(navigationContext?.rawRoute || 'educacao', {
       secao: navigationContext?.params.get('secao') ?? resolveEducationSection({ detailKey: indicatorKey }),
       detalhe: indicatorKey,
       dimensao: null,
+      etapa: stageKey || null,
     })
   }
 
@@ -584,7 +626,10 @@ export function EducationPage({
           state={higherEducationState}
         />
       ) : isMunicipalOverviewRoute ? (
-        <MunicipalEducationOverviewContent state={municipalOverviewState} />
+        <MunicipalEducationOverviewContent
+          learningStages={municipalLearningStages}
+          state={municipalOverviewState}
+        />
       ) : isTechnicalReportRoute ? (
         <MunicipalTechnicalReportContent
           diagnosticState={municipalDiagnosticState}
@@ -632,7 +677,7 @@ export function EducationPage({
               detailNavigation,
               filteredItems,
               hasSistemaS,
-              indicatorCount: section?.indicatorCount ?? sectionItems.length,
+              indicatorCount: displayedIndicatorCount,
               isDetailOpen,
               isIndigenousDetail,
               isShowingIndicatorDetail,
@@ -645,6 +690,7 @@ export function EducationPage({
               selectedSistemaSIndicator,
               selectedIndigenousUnit,
               selectedIndicatorKey,
+              selectedIndicatorStageKey: effectiveIndicatorStageKey,
               selectedSectionKey,
               selectedSpecialEducationCut,
               specialEducationState,
@@ -657,6 +703,7 @@ export function EducationPage({
         <MunicipalEducationOverviewPrintReport
           data={municipalOverviewState.data}
           emissionDate={printEmissionDate}
+          learningStages={municipalLearningStages}
         />
       ) : null}
     </div>
@@ -755,8 +802,10 @@ function MunicipalTechnicalReportContent({
 }
 
 function MunicipalEducationOverviewContent({
+  learningStages,
   state,
 }: {
+  learningStages: ReturnType<typeof buildMunicipalLearningStages>
   state: MunicipalEducationOverviewState
 }) {
   if (state.status === 'idle' || state.status === 'loading') {
@@ -795,5 +844,5 @@ function MunicipalEducationOverviewContent({
     )
   }
 
-  return <EducationOverviewSection data={state.data} />
+  return <EducationOverviewSection data={state.data} learningStages={learningStages} />
 }

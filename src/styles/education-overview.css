@@ -476,9 +476,191 @@
   border-bottom: 0;
 }
 
+.municipal-learning-outcomes {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.municipal-learning-outcomes .municipal-education-overview__section-heading {
+  margin-bottom: 0;
+}
+
+.municipal-learning-outcomes .municipal-education-overview__section-heading p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-learning-outcomes__table-region {
+  min-width: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.municipal-learning-outcomes__table-region:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.municipal-learning-outcomes table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-learning-outcomes caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.municipal-learning-outcomes :is(th, td) {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.municipal-learning-outcomes :is(th, td):first-child {
+  width: 34%;
+}
+
+.municipal-learning-outcomes thead th {
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-learning-outcomes tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.municipal-learning-outcomes tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.municipal-learning-outcomes__value,
+.municipal-learning-outcomes__change {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.municipal-learning-outcomes__value strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-learning-outcomes__value small,
+.municipal-learning-outcomes__change small {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.municipal-learning-outcomes__change {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-learning-outcomes__change--positive {
+  color: var(--status-ok-ink);
+}
+
+.municipal-learning-outcomes__change--negative {
+  color: var(--status-far-ink);
+}
+
+.municipal-learning-outcomes__change--neutral {
+  color: var(--text-strong);
+}
+
+.municipal-learning-outcomes__change--missing {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-regular);
+}
+
+.municipal-learning-outcomes__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
 .municipal-enrollment-comparison {
   display: grid;
   gap: var(--space-5);
+}
+
+@media (max-width: 620px) {
+  .municipal-learning-outcomes table {
+    min-width: 0;
+  }
+
+  .municipal-learning-outcomes thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .municipal-learning-outcomes :is(tbody, tr) {
+    display: grid;
+  }
+
+  .municipal-learning-outcomes tr {
+    grid-template-columns: minmax(0, 1fr);
+    border-bottom: var(--border-divider);
+  }
+
+  .municipal-learning-outcomes tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .municipal-learning-outcomes tbody :is(th, td),
+  .municipal-learning-outcomes tbody :is(th, td):first-child {
+    width: auto;
+    border-bottom: 0;
+  }
+
+  .municipal-learning-outcomes tbody th {
+    background: var(--surface-soft);
+  }
+
+  .municipal-learning-outcomes tbody td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+  }
+
+  .municipal-learning-outcomes tbody td::before {
+    content: attr(data-label);
+    grid-column: 1 / -1;
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .municipal-learning-outcomes__change {
+    margin-top: 0;
+    justify-content: flex-end;
+  }
 }
 
 .municipal-enrollment-comparison__section-heading p,
@@ -1788,6 +1970,63 @@
     font-size: 7pt;
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+}
+
+@media print {
+  .municipal-education-print-learning {
+    margin-top: 5mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-learning > p {
+    margin: 0 0 2.5mm;
+    color: #4d5550;
+    font-size: 7.5pt;
+  }
+
+  .municipal-education-print-learning table {
+    width: 100%;
+    border: 0.25mm solid #aeb4b0;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7.5pt;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-learning :is(th, td) {
+    padding: 1.5mm 2mm;
+    border-bottom: 0.25mm solid #d1d5d2;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .municipal-education-print-learning :is(th, td):first-child {
+    width: 34%;
+  }
+
+  .municipal-education-print-learning thead th {
+    background: var(--border-faint);
+    font-weight: var(--font-weight-bold);
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-learning td strong,
+  .municipal-education-print-learning td span,
+  .municipal-education-print-learning td small {
+    display: block;
+  }
+
+  .municipal-education-print-learning td strong {
+    font-size: 9pt;
+  }
+
+  .municipal-education-print-learning td span,
+  .municipal-education-print-learning td small {
+    margin-top: 0.4mm;
+    color: #4d5550;
+    font-size: 6.8pt;
   }
 }
 

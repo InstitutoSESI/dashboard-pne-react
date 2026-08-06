@@ -793,7 +793,7 @@ FONTES = [
 AVISOS_GLOBAIS = [
     "null significa dado ausente, nao zero.",
     "Cobertura varia por indicador: Censo 2014-2025, Rendimento 2018-2025, "
-    "Distorcao 2019-2025, IDEB bienal 2011-2023, INSE 2019/2021/2023.",
+    "Distorcao 2019-2025, IDEB bienal 2011-2025, INSE 2019/2021/2023.",
 ]
 
 AVISOS_FLUXO = [
@@ -813,7 +813,7 @@ AVISOS_ALUNOS_TURMA = [
 ]
 
 AVISOS_APRENDIZAGEM = [
-    "IDEB e avaliado bienalmente (2011-2023). Anos sem avalicao tem null.",
+    "IDEB e avaliado bienalmente (2011-2025). Anos sem avalicao tem null.",
     "Alfabetizacao disponivel apenas para 2023-2025.",
     "INSE disponivel para 2019, 2021 e 2023.",
 ]

@@ -14,10 +14,17 @@ import {
   getMunicipalOverviewMethodologyHighlights,
 } from '../municipalEducationOverviewPresentation'
 import { hasRelevantNetworkComparison } from '../enrollmentComparisonPresentation'
+import {
+  formatMunicipalLearningChange,
+  formatMunicipalLearningValue,
+  type MunicipalLearningMetricSnapshot,
+  type MunicipalLearningStageSnapshot,
+} from '../municipalEducationLearningPresentation'
 
 interface MunicipalEducationOverviewPrintReportProps {
   data: MunicipalEducationOverviewV1
   emissionDate: string
+  learningStages: readonly MunicipalLearningStageSnapshot[]
 }
 
 interface PrintMatrixRow {
@@ -42,6 +49,7 @@ const LOCATION_ROWS: ReadonlyArray<PrintMatrixRow> = [
 export function MunicipalEducationOverviewPrintReport({
   data,
   emissionDate,
+  learningStages,
 }: MunicipalEducationOverviewPrintReportProps) {
   const methodology = getMunicipalOverviewMethodologyHighlights(data)
 
@@ -73,12 +81,17 @@ export function MunicipalEducationOverviewPrintReport({
       />
       <PrintHighSchoolSection data={data} />
       <PrintSchoolPerformance data={data} />
+      <PrintLearningOutcomes stages={learningStages} />
       <PrintEnrollmentComparison data={data} />
 
       <section className="municipal-education-print-report__sources" aria-labelledby="municipal-education-print-sources-title">
         <h2 id="municipal-education-print-sources-title">Fontes das informações</h2>
         {data.sources.length ? (
           <ul>
+            <li>
+              <strong>INEP</strong>
+              <span>Sistema de Avaliação da Educação Básica (SAEB) e Índice de Desenvolvimento da Educação Básica (IDEB)</span>
+            </li>
             {data.sources.map((source) => (
               <li key={source.id}>
                 <strong>{source.organization}</strong>
@@ -186,6 +199,53 @@ function PrintSchoolPerformance({ data }: { data: MunicipalEducationOverviewV1 }
     </table>
     <p>As taxas correspondem ao resultado escolar informado pelo INEP para o conjunto das redes do município. Aprovação, reprovação e abandono totalizam 100%.</p>
   </section>
+}
+
+function PrintLearningOutcomes({
+  stages,
+}: {
+  stages: readonly MunicipalLearningStageSnapshot[]
+}) {
+  return (
+    <section className="municipal-education-print-learning" aria-labelledby="municipal-education-print-learning-title">
+      <h2 id="municipal-education-print-learning-title">IDEB e notas do SAEB</h2>
+      <p>Resultados mais recentes por etapa. A variação mostra a diferença, em pontos, para a edição anterior disponível.</p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Etapa</th>
+            <th scope="col">IDEB</th>
+            <th scope="col">SAEB Língua Portuguesa</th>
+            <th scope="col">SAEB Matemática</th>
+          </tr>
+        </thead>
+        <tbody>
+          {stages.map((stage) => (
+            <tr key={stage.key}>
+              <th scope="row">{stage.label}</th>
+              <PrintLearningMetric metric={stage.metrics.ideb} />
+              <PrintLearningMetric metric={stage.metrics.saebLp} />
+              <PrintLearningMetric metric={stage.metrics.saebMt} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>Fonte: INEP — SAEB/IDEB. O ano pode variar quando não houver resultado municipal publicável para uma etapa.</p>
+    </section>
+  )
+}
+
+function PrintLearningMetric({ metric }: { metric: MunicipalLearningMetricSnapshot }) {
+  const period = metric.previousYear && metric.currentYear
+    ? `${metric.previousYear}–${metric.currentYear}`
+    : null
+  return (
+    <td>
+      <strong>{formatMunicipalLearningValue(metric)}</strong>
+      {metric.currentYear ? <span>{metric.currentYear}</span> : null}
+      <small>{formatMunicipalLearningChange(metric)}{period ? ` · ${period}` : ''}</small>
+    </td>
+  )
 }
 
 const PRINT_COMPARISON_STAGES = [
