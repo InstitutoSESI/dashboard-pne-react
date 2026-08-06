@@ -306,7 +306,7 @@ test('one semantic rule determines progress and tracking colors and texts', () =
     indicatorPresentationSource.indexOf('export function getPneDiscreteIndicatorPresentation'),
   )
   assert.doesNotMatch(statusRuleSource, /indicatorId|theme/)
-  assert.match(cyclePageSource, /Verde — referência alcançada/)
-  assert.match(cyclePageSource, /Vermelho — abaixo da referência prevista na meta/)
-  assert.match(cyclePageSource, /Amarelo — abaixo da referência de acompanhamento/)
+  assert.match(cyclePageSource, /Referência alcançada/)
+  assert.match(cyclePageSource, /Abaixo da referência prevista na meta/)
+  assert.match(cyclePageSource, /Abaixo da referência de acompanhamento/)
 })

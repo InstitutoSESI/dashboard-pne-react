@@ -32,6 +32,7 @@ export function IndicatorProjectionPanel({
   pneLayout = false,
   projection,
   showContextAlerts = true,
+  showGoalReferenceChip = false,
   showGoalReferenceLabel = true,
   showProjectedLegend = true,
   showSummaryCards = true,
@@ -127,6 +128,12 @@ export function IndicatorProjectionPanel({
     <div className={`complementary-projection${contextOnly ? ' complementary-projection--context' : ''}${compact ? ' complementary-projection--compact' : ''}${contentLabels.variant ? ` complementary-projection--${contentLabels.variant}` : ''}`}>
       <div className="complementary-projection__header">
         {showTitle ? <h5>{contentLabels.title ?? (contextOnly ? 'Cenário de persistência até 2036' : 'Linha de base de persistência até 2036')}</h5> : null}
+        {showGoalReferenceChip && target != null ? (
+          <span className="complementary-projection__meta-chip">
+            <span className="complementary-projection__meta-chip-mark" aria-hidden="true" />
+            {projection.target_label ?? 'Meta do PNE'}{projection.target_year ? ` · ${projection.target_year}` : ''} · {formatValue(target)}
+          </span>
+        ) : null}
         {!contextOnly ? (
           <p className="complementary-projection__method">
             Este cenário mantém o último número observado de matrículas e atualiza o
@@ -345,7 +352,7 @@ export function IndicatorProjectionPanel({
           </div>
         ) : null
       ) : (
-        <div className="complementary-projection__reading">
+        <div className={`complementary-projection__reading${status == null ? ' complementary-projection__reading--muted' : ''}`}>
           <p>{buildProjectionComparisonReading({ projection, status })}</p>
         </div>
       )}

@@ -889,8 +889,9 @@ export function createIndicator(config) {
   const initialValue = first?.valor
   const initialYear = first?.ano ?? null
   const formatValueForType = getFormatter(config.formatType)
-  const variation = calculateVariation(initialValue, currentValue, config.formatType)
-  const status = getIndicatorStatus(currentValue, series, variation)
+  const polarity = config.neutralTrend ? 'neutral' : (config.polarity ?? catalogItem?.polarity ?? 'neutral')
+  const variation = calculateVariation(initialValue, currentValue, config.formatType, polarity)
+  const status = getIndicatorStatus(currentValue, series, variation, polarity)
 
   return {
     ...config,
@@ -921,6 +922,7 @@ export function createIndicator(config) {
     initialYear,
     formatType: config.formatType ?? 'number',
     unit: config.unit ?? catalogItem?.unit ?? null,
+    polarity,
     notices: config.notices ?? [],
     explore: filterRenderableExplore(config.explore),
     stageFilterOptions: filterStageFilterOptions(config.stageFilterOptions),
@@ -955,8 +957,9 @@ export function applyEducationIndicatorStageOption(indicator, stageKey) {
   const initialYear = first?.ano ?? null
   const formatType = indicator.formatType ?? 'number'
   const formatValueForType = indicator.formatValue ?? getFormatter(formatType)
-  const variation = calculateVariation(initialValue, currentValue, formatType)
-  const status = getIndicatorStatus(currentValue, series, variation)
+  const polarity = indicator.neutralTrend ? 'neutral' : (indicator.polarity ?? 'neutral')
+  const variation = calculateVariation(initialValue, currentValue, formatType, polarity)
+  const status = getIndicatorStatus(currentValue, series, variation, polarity)
 
   return {
     ...indicator,
@@ -2370,20 +2373,34 @@ function getFormatter(formatType) {
   return formatNumber
 }
 
-export function calculateVariation(initialValue, currentValue, formatType) {
-  if (isMissing(initialValue) || isMissing(currentValue)) return { display: EM, tone: 'muted', raw: null }
-  const diff = Number(currentValue) - Number(initialValue)
-  if (formatType === 'percent') return { display: `${diff > 0 ? '+' : ''}${formatValue(diff)} p.p.`, tone: diff > 0 ? 'success' : diff < 0 ? 'warning' : 'muted', raw: diff }
-  if (Number(initialValue) === 0) return { display: diff === 0 ? '0' : `${diff > 0 ? '+' : ''}${getFormatter(formatType)(diff)}`, tone: diff > 0 ? 'success' : diff < 0 ? 'warning' : 'muted', raw: diff }
-  const percent = (diff / Math.abs(Number(initialValue))) * 100
-  return { display: `${percent > 0 ? '+' : ''}${formatPercent(percent)}`, tone: diff > 0 ? 'success' : diff < 0 ? 'warning' : 'muted', raw: percent }
+/*
+ * Direção ≠ desempenho: um selo de tendência não pode colorir só pelo sinal
+ * bruto da variação. Para indicadores "lower-better" (reprovação, abandono,
+ * distorção idade-série), cair é a melhora. `polarity` vem do catálogo
+ * (src/data/educationIndicatorCatalog.js) e é o único fator que inverte o
+ * mapeamento tom<->sinal abaixo.
+ */
+function getPerformanceTone(diff, polarity) {
+  if (!Number.isFinite(diff) || diff === 0) return 'muted'
+  if (polarity === 'neutral') return 'muted'
+  const isImprovement = polarity === 'lower-better' ? diff < 0 : diff > 0
+  return isImprovement ? 'success' : 'warning'
 }
 
-function getIndicatorStatus(currentValue, series, variation) {
+export function calculateVariation(initialValue, currentValue, formatType, polarity = 'higher-better') {
+  if (isMissing(initialValue) || isMissing(currentValue)) return { display: EM, tone: 'muted', raw: null }
+  const diff = Number(currentValue) - Number(initialValue)
+  if (formatType === 'percent') return { display: `${diff > 0 ? '+' : ''}${formatValue(diff)} p.p.`, tone: getPerformanceTone(diff, polarity), raw: diff }
+  if (Number(initialValue) === 0) return { display: diff === 0 ? '0' : `${diff > 0 ? '+' : ''}${getFormatter(formatType)(diff)}`, tone: getPerformanceTone(diff, polarity), raw: diff }
+  const percent = (diff / Math.abs(Number(initialValue))) * 100
+  return { display: `${percent > 0 ? '+' : ''}${formatPercent(percent)}`, tone: getPerformanceTone(diff, polarity), raw: percent }
+}
+
+function getIndicatorStatus(currentValue, series, variation, polarity = 'higher-better') {
   if (isMissing(currentValue)) return { label: 'Sem dados', tone: 'muted' }
   if (series.length < 2 || variation?.raw === null) return { label: 'Com dados', tone: 'info' }
-  if (variation.raw > 0) return { label: 'Aumentou', tone: 'success' }
-  if (variation.raw < 0) return { label: 'Diminuiu', tone: 'warning' }
+  if (variation.raw > 0) return { label: 'Aumentou', tone: getPerformanceTone(variation.raw, polarity) }
+  if (variation.raw < 0) return { label: 'Diminuiu', tone: getPerformanceTone(variation.raw, polarity) }
   return { label: 'Sem alteração relevante', tone: 'muted' }
 }
 

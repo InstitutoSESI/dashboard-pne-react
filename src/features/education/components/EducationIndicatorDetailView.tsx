@@ -264,7 +264,7 @@ function TurmasPanoramaPanel({ indicator, blocos }: TurmasPanoramaPanelProps) {
   const currentValue = lastPoint?.valor ?? null
   const initialValue = firstPoint?.valor ?? null
   const currentYear = lastPoint?.ano ?? null
-  const variation = calculateVariation(initialValue, currentValue, selectedMetricKey === 'turmas' || selectedMetricKey === 'docentes' ? 'number' : 'ratio')
+  const variation = calculateVariation(initialValue, currentValue, selectedMetricKey === 'turmas' || selectedMetricKey === 'docentes' ? 'number' : 'ratio', 'neutral')
   const hasMainSeries = displaySeries.length >= 2
   const quickReading = `Em ${currentYear ?? '—'}, o município registra ${!isMissing(currentValue) ? activeMetric.formatLabel(currentValue) : EM} em ${activeMetric.label.toLowerCase()} no recorte ${cutLabel}.`
   return (

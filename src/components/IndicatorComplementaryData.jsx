@@ -446,6 +446,8 @@ export function IndicatorComplementaryData({
             domainOverride={domainOverride}
             pneLayout
             projection={projection}
+            showGoalReferenceChip
+            showGoalReferenceLabel={false}
             showTitle={false}
           />
         ),

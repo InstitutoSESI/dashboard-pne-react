@@ -3,7 +3,7 @@ import { DataSourceNote } from './DataSourceNote'
 import { DisclosureChevron } from './DisclosureChevron'
 import { MethodNote } from './MethodNote'
 
-export function PneSourceNotes({ compact = false, context, includeMethodology = true }) {
+export function PneSourceNotes({ compact = false, context, includeMethodology = true, label = 'Fonte e cálculo' }) {
   const { methodology, source } = getDataSourceParts(context)
 
   if (!source && !(includeMethodology && methodology)) return null
@@ -12,7 +12,7 @@ export function PneSourceNotes({ compact = false, context, includeMethodology = 
     <>
       <details className={`platform-support-disclosure chart-methodology-disclosure${compact ? ' chart-methodology-disclosure--compact' : ''}`}>
         <summary className="platform-support-disclosure__summary">
-          <span>Fonte e cálculo</span>
+          <span>{label}</span>
           <DisclosureChevron />
         </summary>
         <SourceNotesBody

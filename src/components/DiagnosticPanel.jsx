@@ -21,6 +21,7 @@ import {
 import { CategoryTabs } from './CategoryTabs'
 import { ContentState } from './ContentState'
 import { DiagnosticPrintReport } from './DiagnosticPrintReport'
+import { DisclosureChevron } from './DisclosureChevron'
 import { PnePageHeader } from './PnePageHeader'
 import { PNE_2026_GOAL_TEXTS } from '../data/pne2026GoalTexts'
 import {
@@ -353,46 +354,48 @@ function SummaryCards({ summary }) {
 
 function DiagnosticLegend() {
   return (
-    <section className="pne-diagnostic-legend" aria-labelledby="pne-diagnostic-legend-title">
-      <div className="pne-diagnostic-section-heading">
-        <p>Guia de leitura</p>
-        <h2 id="pne-diagnostic-legend-title">Como ler os quadros de comparação</h2>
+    <details className="pne-diagnostic-legend platform-support-disclosure">
+      <summary className="platform-support-disclosure__summary">
+        <span>Como ler os quadros de comparação</span>
+        <DisclosureChevron />
+      </summary>
+      <div className="pne-diagnostic-legend__body platform-support-disclosure__body">
+        <p className="pne-diagnostic-legend__intro">
+          Em cada indicador, além da meta do PNE, o município aparece ao lado do Rio Grande do Sul — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
+        </p>
+        <div className="pne-diagnostic-legend__grid">
+          <LegendCard
+            desc="Onde o município está entre todos os do RS neste indicador."
+            icon="position"
+            items={[
+              ['positive', 'Faixa superior', 'entre os de resultado mais favorável'],
+              ['neutral', 'Faixa intermediária', 'no meio da distribuição estadual'],
+              ['attention', 'Faixa prioritária', 'entre os com maior espaço para avançar'],
+            ]}
+            title="Posição no RS"
+          />
+          <LegendCard
+            desc="Comparação com municípios de porte educacional parecido."
+            icon="similar"
+            items={[
+              ['positive', 'Acima da mediana', 'resultado acima do grupo semelhante'],
+              ['attention', 'Abaixo da mediana', 'resultado abaixo do grupo semelhante'],
+            ]}
+            title="Municípios semelhantes"
+          />
+          <LegendCard
+            desc="Como o indicador variou nos últimos anos disponíveis."
+            icon="reading"
+            items={[
+              ['positive', 'Melhorou nos últimos anos', 'avançou no período'],
+              ['neutral', 'Permaneceu estável', 'sem variação relevante'],
+              ['attention', 'Recuou nos últimos anos', 'perdeu terreno no período'],
+            ]}
+            title="Evolução recente"
+          />
+        </div>
       </div>
-      <p className="pne-diagnostic-legend__intro">
-        Em cada indicador, além da meta do PNE, o município aparece ao lado do Rio Grande do Sul — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
-      </p>
-      <div className="pne-diagnostic-legend__grid">
-        <LegendCard
-          desc="Onde o município está entre todos os do RS neste indicador."
-          icon="position"
-          items={[
-            ['positive', 'Faixa superior', 'entre os de resultado mais favorável'],
-            ['neutral', 'Faixa intermediária', 'no meio da distribuição estadual'],
-            ['attention', 'Faixa prioritária', 'entre os com maior espaço para avançar'],
-          ]}
-          title="Posição no RS"
-        />
-        <LegendCard
-          desc="Comparação com municípios de porte educacional parecido."
-          icon="similar"
-          items={[
-            ['positive', 'Acima da mediana', 'resultado acima do grupo semelhante'],
-            ['attention', 'Abaixo da mediana', 'resultado abaixo do grupo semelhante'],
-          ]}
-          title="Municípios semelhantes"
-        />
-        <LegendCard
-          desc="Como o indicador variou nos últimos anos disponíveis."
-          icon="reading"
-          items={[
-            ['positive', 'Melhorou nos últimos anos', 'avançou no período'],
-            ['neutral', 'Permaneceu estável', 'sem variação relevante'],
-            ['attention', 'Recuou nos últimos anos', 'perdeu terreno no período'],
-          ]}
-          title="Evolução recente"
-        />
-      </div>
-    </section>
+    </details>
   )
 }
 

@@ -557,9 +557,9 @@ function PneHeaderMetric({ detail, label, tone, value }) {
 
 function PneStatusLegend() {
   const items = [
-    { label: 'Verde — referência alcançada', tone: 'success' },
-    { label: 'Vermelho — abaixo da referência prevista na meta', tone: 'danger' },
-    { label: 'Amarelo — abaixo da referência de acompanhamento', tone: 'warning' },
+    { label: 'Referência alcançada', tone: 'success' },
+    { label: 'Abaixo da referência prevista na meta', tone: 'danger' },
+    { label: 'Abaixo da referência de acompanhamento', tone: 'warning' },
   ]
 
   return (

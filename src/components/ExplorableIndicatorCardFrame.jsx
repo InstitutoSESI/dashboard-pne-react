@@ -63,7 +63,12 @@ export function ExplorableIndicatorCardFrame({
   const modifierClass = modifiers.map((name) => ` ${classContract.root}--${name}`).join('')
   const anatomyClass = anatomy ? ` indicator-card-shell--${anatomy}` : ''
   const referenceClass = usesEducationReference ? ' indicator-card-shell--education-reference' : ''
-  const directionClass = isEditorialCard && status?.direction ? ` indicator-card-shell--direction-${status.direction}` : ''
+  // A cor do selo de direção segue `status.colorDirection` quando o
+  // viewModel o fornece (educação aplica polaridade: para indicadores
+  // "lower-better" cair é melhora). `status.direction` (movimento bruto)
+  // continua sendo o que decide a seta/rótulo factual em outro lugar.
+  const colorDirectionKey = status?.colorDirection ?? status?.direction
+  const directionClass = isEditorialCard && colorDirectionKey ? ` indicator-card-shell--direction-${colorDirectionKey}` : ''
   const uniformClass = isUniform ? ' indicator-card-shell--uniform' : ''
   const className = `${classContract.root} indicator-card-shell${anatomyClass}${referenceClass} indicator-card-shell--${statusTone}${directionClass}${uniformClass} interaction-card--explorable ${classContract.statusModifier(statusTone)}${variantClass}${modifierClass}${isSelected ? ' is-selected' : ''}`
 

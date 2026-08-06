@@ -83,6 +83,14 @@ export function EducationIndicatorCard({
     hasCurrentValue,
     isExploratory,
   })
+  // Direção != desempenho: `direction` acima é o movimento bruto (usado no
+  // rótulo factual "Aumentou"/"Diminuiu" e na seta do selo). `colorDirection`
+  // é o que decide a COR do selo, considerando a polaridade do indicador
+  // (indicators "lower-better" pintam queda como melhora). `neutralTrend`
+  // é um override por indicador (ex.: cobertura estimada indígena) que já
+  // tratava a variação como sem valência de desempenho.
+  const effectivePolarity = indicator.neutralTrend ? 'neutral' : (indicator.polarity ?? 'neutral')
+  const colorDirection = getPerformanceDirection(direction, effectivePolarity)
   const reading = indicator.cardReading ?? getCardReading({
     comparison,
     currentValue: indicator.currentValue,
@@ -110,7 +118,7 @@ export function EducationIndicatorCard({
   const comparisonLabel = comparison ? getDirectionLabel(direction) : null
   const statusLabel = comparisonLabel ?? indicator.statusLabel ?? null
   const comparisonTone = comparison
-    ? (indicator.neutralTrend ? 'muted' : getDirectionTone(direction))
+    ? getToneFromColorDirection(colorDirection)
     : null
   const statusTone = comparisonTone ?? indicator.statusTone ?? 'default'
   const unitLabel = getCardUnitLabel(indicator)
@@ -217,6 +225,7 @@ export function EducationIndicatorCard({
         : null,
     },
     status: {
+      colorDirection,
       direction,
       label: statusLabel,
       marker: getDirectionMarker(direction),
@@ -309,11 +318,22 @@ function getDirectionLabel(direction) {
   return null
 }
 
-function getDirectionTone(direction) {
-  if (direction === 'up') return 'success'
-  if (direction === 'down') return 'warning'
-  if (direction === 'stable') return 'muted'
-  return 'default'
+// Traduz o movimento bruto ('up'/'down') na direção de COR do selo,
+// considerando a polaridade do indicador. 'stable'/'data'/'missing' não têm
+// polaridade a aplicar e passam adiante sem mudança.
+function getPerformanceDirection(direction, polarity) {
+  if (direction !== 'up' && direction !== 'down') return direction
+  if (polarity === 'neutral') return 'data'
+  const isImprovement = polarity === 'lower-better' ? direction === 'down' : direction === 'up'
+  return isImprovement ? 'up' : 'down'
+}
+
+function getToneFromColorDirection(colorDirection) {
+  if (colorDirection === 'up') return 'success'
+  if (colorDirection === 'down') return 'warning'
+  if (colorDirection === 'stable') return 'muted'
+  if (colorDirection === 'missing') return 'default'
+  return 'info'
 }
 
 function getDirectionMarker(direction) {

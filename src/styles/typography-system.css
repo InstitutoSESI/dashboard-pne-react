@@ -426,6 +426,21 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /*
+   * Numeros tabulares (rigor numerico): metric-card, financial-kpi-card,
+   * education-indicator-card e as celulas de tabela ja recebem
+   * font-variant-numeric: tabular-nums nos seus proprios arquivos de dominio
+   * (institutional-refresh.css, financial-pages.css, platform-ui.css e as
+   * tabelas especificas de cada pagina). O unico papel de dado que ainda
+   * faltava era o valor de enfase da leitura rapida -- o <strong> que carrega
+   * um numero avulso dentro do texto do item (ex.: "+1,6 p.p."). Fica aqui,
+   * e nao junto do restante do componente, porque este arquivo e a unica
+   * fonte de verdade para font-variant-numeric no sistema.
+   */
+  .dashboard-shell .content-area .platform-quick-reading__list p strong {
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Texto de grafico e tabela densa tem um unico piso de 13px/500. */
   .dashboard-shell .content-area :is(
     .chart-axis-label,

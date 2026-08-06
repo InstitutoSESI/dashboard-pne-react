@@ -265,6 +265,57 @@
   margin-top: var(--space-1);
 }
 
+/*
+ * Linha de meta do grafico principal do detalhe do PNE: e uma REFERENCIA
+ * (nao entra na legenda de series), por isso ganha um traco proprio --
+ * ocre, tracejado curto -- que a distingue da linha de serie (chart-line,
+ * solida, cor de serie). Escopo restrito a .cycle-page--detail porque
+ * .chart-meta-line/.chart-meta-label sao compartilhadas com os graficos de
+ * Educacao (education-detail-view) e Financiamento; o estilo generico
+ * dessas classes (chart-system.css) continua valendo para as demais paginas.
+ */
+@media screen {
+  .cycle-page--detail .history-chart__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .history-chart__heading > div {
+    min-width: 0;
+  }
+
+  .cycle-page--detail .history-chart__meta-chip {
+    color: var(--signal-ochre);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .history-chart__meta-chip-mark {
+    width: 14px;
+    border-top: var(--border-width) dashed currentColor;
+    flex: 0 0 14px;
+  }
+
+  .cycle-page--detail .history-chart .chart-meta-line line {
+    stroke: var(--signal-ochre);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+  }
+
+  .cycle-page--detail .history-chart .chart-meta-label,
+  .cycle-page--detail .history-chart .chart-data-labels .chart-meta-label {
+    fill: var(--signal-ochre);
+    font-size: var(--type-micro-size);
+  }
+}
+
 /* Legal-goal catalogue: themes are the first reading level; individual goals
    retain their existing button disclosure and complete legal text on demand. */
 @media screen {
@@ -511,6 +562,107 @@
   line-height: var(--line-height-tight);
 }
 
+@media screen {
+  /* Prefixo .dashboard-shell .content-area: vence o :is() de data-compact
+     da typography-system (0,3,0), que empata e ganha por ordem sem ele. */
+  .dashboard-shell .content-area .cycle-page--detail .metric-card--large .metric-card__value {
+    font-size: var(--font-size-3xl);
+    width: fit-content;
+    padding-bottom: 2px;
+    border-bottom: var(--border-width-strong) solid var(--signal-blue);
+    overflow-wrap: anywhere;
+  }
+
+  .cycle-page--detail .goal-progress__heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .goal-progress__heading-ref {
+    color: var(--text-soft);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .cycle-page--detail .indicator-goal-tracking .goal-progress__track {
+    margin: var(--space-6) 0 var(--space-2);
+  }
+
+  .cycle-page--detail .complementary-projection__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .complementary-projection__header .complementary-projection__method {
+    flex-basis: 100%;
+  }
+
+  .cycle-page--detail .complementary-projection__meta-chip {
+    color: var(--signal-ochre);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .cycle-page--detail .complementary-projection__meta-chip-mark {
+    width: 14px;
+    border-top: var(--border-width) dashed currentColor;
+    flex: 0 0 14px;
+  }
+
+  .cycle-page--detail .complementary-projection__reading--muted {
+    background: var(--surface-soft);
+    color: var(--text-soft);
+  }
+
+  /* A anatomia do detalhe encolhe e densifica um nivel dentro do painel. */
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized :is(
+    .indicator-chart-card,
+    .indicator-quick-reading
+  ) {
+    border-radius: var(--card-radius-inner);
+  }
+
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .indicator-chart-card {
+    padding: var(--card-pad-dense);
+  }
+
+  /* O gap do painel (16px) mais esta margem cria a quebra de secao de 32px. */
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized > .complementary-data {
+    margin-top: var(--space-4);
+  }
+
+  .dashboard-shell .content-area .cycle-page--detail .complementary-projection__reading {
+    border: var(--border-default);
+    border-radius: var(--card-radius-inner);
+  }
+
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .pne-detail-footer {
+    padding: var(--space-3) 0 0;
+  }
+
+  /* Um unico divisor de 1px, no mesmo cinza da moldura do metric-grid. */
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .metric-card + .metric-card {
+    border-left: 0;
+  }
+
+  .dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .metric-card:not(:last-child) {
+    border-right: var(--border-default);
+  }
+
+}
+
 .cycle-page--detail .detail-panel--organized :is(
   .metric-grid,
   .metric-grid--four,
@@ -627,19 +779,6 @@
 .cycle-page--detail .indicator-goal-tracking .goal-progress__track {
   width: 100%;
   margin: var(--space-6) 0 var(--space-5);
-}
-
-.cycle-page--detail .goal-progress__target-label--edge-start {
-  left: 0;
-  transform: none;
-  text-align: left;
-}
-
-.cycle-page--detail .goal-progress__target-label--edge-end {
-  right: 0;
-  left: auto;
-  transform: none;
-  text-align: right;
 }
 
 .cycle-page--detail .discrete-goal-progress {
@@ -1216,6 +1355,22 @@
 .cycle-page--detail .detail-panel--organized .indicator-quick-reading__list li p strong {
   color: var(--text-strong);
   font-weight: var(--font-weight-bold);
+}
+
+@media screen {
+  .cycle-page--detail .detail-panel--organized .indicator-quick-reading__list li:first-child p {
+    font-family: var(--font-serif);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.45;
+    color: var(--text-strong);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .cycle-page--detail .detail-panel--organized .indicator-quick-reading__list li.indicator-quick-reading__reference p {
+    font-size: var(--font-size-md);
+    line-height: 1.5;
+  }
 }
 
 @container workspace (min-width: 701px) and (max-width: 1040px) {
@@ -2647,6 +2802,21 @@
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--centered :where(th, td) {
   text-align: center;
+}
+
+@media screen {
+  /* th/td explícitos: a variante --fit centraliza a 1ª coluna com (0,5,1)
+     na regra th:first-child/td:first-child (~1862); só elemento+pseudo empata
+     e vence por ordem. */
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table th:first-child,
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table td:first-child {
+    text-align: left;
+  }
+
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table :where(th, td):not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @media screen and (max-width: 680px) {

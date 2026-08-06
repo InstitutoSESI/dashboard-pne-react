@@ -788,7 +788,7 @@ export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChan
                             <strong>{functionShareModel.currentDisplay}</strong>
                             <small>Período: {functionShareModel.currentYear}</small>
                           </div>
-                          <div>
+                          <div className="siope-method-complement__note">
                             <span>{PUBLIC_LABELS.despesas_educacao_total_percentual}</span>
                             <p>Indicador complementar com denominador próprio: compara a função Educação com as despesas municipais e não mede o cumprimento do mínimo constitucional em MDE.</p>
                           </div>

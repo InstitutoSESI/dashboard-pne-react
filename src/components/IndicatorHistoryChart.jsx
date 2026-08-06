@@ -36,10 +36,12 @@ export function IndicatorHistoryChart({
   item,
   labelMode = undefined,
   meta = undefined,
+  metaLabelSeparator = ' ',
   missingLabel = '—',
   referenceLabel = 'Referência',
   result = undefined,
   series,
+  showMetaLabel = true,
   showMetaLine = true,
   showMissingPoints = undefined,
   startYear,
@@ -73,6 +75,7 @@ export function IndicatorHistoryChart({
         missingLabel,
         resolvedUnit,
         series,
+        showMetaLabel,
         showMetaLine,
         showMissingPoints,
         startYear,
@@ -88,7 +91,7 @@ export function IndicatorHistoryChart({
         distributeBars,
         paddingOverride: pneLayout ? PNE_CHART_GEOMETRY.main.padding : LEGACY_PADDING,
       }),
-    [adaptiveDomain, chartType, distributeBars, domainOverride, endYear, essentialLabels, floorNegativeValues, formatDataLabelProp, formatYAxisProp, labelMode, meta, missingLabel, pneLayout, resolvedUnit, responsiveChartHeight, responsiveChartWidth, series, showMetaLine, showMissingPoints, startYear, yTickCount],
+    [adaptiveDomain, chartType, distributeBars, domainOverride, endYear, essentialLabels, floorNegativeValues, formatDataLabelProp, formatYAxisProp, labelMode, meta, missingLabel, pneLayout, resolvedUnit, responsiveChartHeight, responsiveChartWidth, series, showMetaLabel, showMetaLine, showMissingPoints, startYear, yTickCount],
   )
 
   const validCount = chart.points.filter(p => p.valid !== false).length
@@ -104,6 +107,12 @@ export function IndicatorHistoryChart({
           <h4>{title}</h4>
           {subtitle ? <p className="history-chart__subtitle">{subtitle}</p> : null}
         </div>
+        {!showMetaLabel && chart.metaLine ? (
+          <span className="history-chart__meta-chip">
+            <span aria-hidden="true" className="history-chart__meta-chip-mark" />
+            Meta de referência · {chart.formatValue(chart.metaLine.value)}
+          </span>
+        ) : null}
       </div>
 
       <div className="history-chart__canvas" ref={containerRef}>
@@ -262,7 +271,7 @@ export function IndicatorHistoryChart({
                       : 'chart-point-label'
                 }
               >
-                {label.isMeta ? `${referenceLabel} ${chart.formatValue(label.value)}` : (chart.formatDataLabel ? chart.formatDataLabel(label.value) : chart.formatValue(label.value))}
+                {label.isMeta ? `${referenceLabel}${metaLabelSeparator}${chart.formatValue(label.value)}` : (chart.formatDataLabel ? chart.formatDataLabel(label.value) : chart.formatValue(label.value))}
               </text>
             ))}
           </g>
@@ -326,6 +335,7 @@ function buildChartModel({
   missingLabel,
   resolvedUnit,
   series,
+  showMetaLabel,
   showMetaLine,
   showMissingPoints,
   startYear,
@@ -505,7 +515,7 @@ function buildChartModel({
   const formatValue = (value) => formatIndicatorValue(value, resolvedUnit)
   const formatLabel = formatDataLabel || formatValue
   const labelsForCompute = labelMode === 'all' ? scaledValidPoints : scaledPoints
-  const dataLabels = computeDataLabels(labelsForCompute, metaLine, formatLabel, chartHeight, chartWidth, padding, labelMode, essentialLabels, chartType)
+  const dataLabels = computeDataLabels(labelsForCompute, metaLine, formatLabel, chartHeight, chartWidth, padding, labelMode, essentialLabels, chartType, showMetaLabel)
 
   const missingPointLabels = showMissingPoints
     ? scaledPoints.filter((p) => p.valid === false).map((p) => ({ year: p.year, x: p.x, y: chartHeight - padding.bottom + 18 }))
@@ -701,7 +711,7 @@ function computeMissingLabels(points, chartHeight) {
     .map((p) => ({ year: p.year, x: p.x, y }))
 }
 
-function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidth, padding, labelMode, essentialLabels = false, chartType = 'line') {
+function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidth, padding, labelMode, essentialLabels = false, chartType = 'line', showMetaLabel = true) {
   if (points.length === 0) return []
 
   const plotLeft = padding.left
@@ -725,6 +735,7 @@ function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidt
       plotLeft,
       plotRight,
       plotTop,
+      showMetaLabel,
       centerPointLabels: chartType === 'bar',
     })
   }
@@ -789,7 +800,7 @@ function computeDataLabels(points, metaLine, formatValue, chartHeight, chartWidt
   }
 
   // 3. Meta label (prioridade 8 - mais baixa que todos os pontos)
-  if (metaLine) {
+  if (metaLine && showMetaLabel) {
     const metaY = metaLine.y
     let metaLabelY
     if (metaY < plotTop + 30) {
@@ -907,6 +918,7 @@ function computeEssentialDataLabels({
   plotLeft,
   plotRight,
   plotTop,
+  showMetaLabel = true,
 }) {
   const labels = []
   const LABEL_OFFSET_Y = 16
@@ -957,7 +969,7 @@ function computeEssentialDataLabels({
     addPointLabel(firstPoint, 3, 'first')
   }
 
-  if (metaLine) {
+  if (metaLine && showMetaLabel) {
     const lastLabel = labels.find((label) => label.isLast)
     const metaLabelCandidates = [
       metaLine.y + 18,

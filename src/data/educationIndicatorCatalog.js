@@ -5,6 +5,44 @@ import {
 
 const MISSING_POLICY = 'null-is-missing-zero-is-value'
 
+/*
+ * Polaridade do indicador: define se "subir" é uma melhora ou uma piora,
+ * para que o selo de direção nos cartões e no detalhe codifique desempenho
+ * (ver Lote A da correção de semântica de informação), não apenas o
+ * movimento bruto do valor.
+ *
+ * - 'higher-better': indicadores de acesso, atendimento, aprendizagem e
+ *   formação — regra geral do catálogo.
+ * - 'lower-better': taxas em que reduzir é o resultado desejado
+ *   (reprovação, abandono, distorção idade-série).
+ * - 'neutral': contagens/médias sem valência clara (matrículas totais,
+ *   contagens demográficas, INSE). Na dúvida sobre um indicador
+ *   específico, a inferência abaixo cai em 'neutral'.
+ */
+const INDICATOR_POLARITY_LOWER_BETTER = Object.freeze([
+  'fluxo-reprovacao',
+  'fluxo-abandono',
+  'fluxo-distorcao',
+])
+
+// Indicadores cujo formatType sugeriria "higher-better" mas que, no catálogo
+// atual, não têm valência de desempenho estabelecida (contexto socioeconômico).
+const INDICATOR_POLARITY_NEUTRAL_OVERRIDES = Object.freeze([
+  'apr-inse',
+])
+
+function inferIndicatorPolarity(indicator) {
+  if (indicator.polarity) return indicator.polarity
+  if (INDICATOR_POLARITY_LOWER_BETTER.includes(indicator.key)) return 'lower-better'
+  if (INDICATOR_POLARITY_NEUTRAL_OVERRIDES.includes(indicator.key)) return 'neutral'
+  // Contagens (matrículas, escolas, docentes, turmas) e médias/razões
+  // (alunos por turma) não têm direção de melhora clara — ficam neutras.
+  if (indicator.formatType === 'number' || indicator.formatType === 'ratio') return 'neutral'
+  // Percentuais e índices restantes do catálogo são taxas de
+  // acesso/atendimento/aprendizagem — regra geral: subir é melhora.
+  return 'higher-better'
+}
+
 export const SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER = Object.freeze([
   'agua_potavel',
   'energia_eletrica',
@@ -757,6 +795,7 @@ const SCHOOL_INFRASTRUCTURE_COMPOSITE_INDICATOR = {
   source: SCHOOL_INFRASTRUCTURE_SOURCE,
   renderer: 'EducationIndicatorDetail',
   missingPolicy: MISSING_POLICY,
+  polarity: 'higher-better',
 }
 
 const COMPLEMENTARY_INDICATORS = [
@@ -787,7 +826,7 @@ const COMPLEMENTARY_INDICATORS = [
   ['tablet_aluno', 'Escolas com tablets para alunos', 'Percentual de escolas com tablets disponíveis para os alunos.', infrastructure, 'percent'],
 ].map(([key, label, description, section, formatType]) => {
   const isLegacyBasicInfrastructureDimension = SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER.includes(key)
-  return {
+  const complementaryIndicator = {
   key,
   label,
   description,
@@ -808,17 +847,21 @@ const COMPLEMENTARY_INDICATORS = [
   missingPolicy: MISSING_POLICY,
   legacyCompositeKey: isLegacyBasicInfrastructureDimension ? 'infraestrutura-basica' : null,
   }
+  return { ...complementaryIndicator, polarity: inferIndicatorPolarity(complementaryIndicator) }
   }),
 ]
 
-const withDefaults = (indicator) => ({
-  type: 'base',
-  renderer: 'EducationIndicatorDetail',
-  missingPolicy: MISSING_POLICY,
-  groupKey: INDICATOR_GROUP_KEYS[indicator.key] ?? null,
-  sections: indicator.sections ?? [indicator.section],
-  ...indicator,
-})
+const withDefaults = (indicator) => {
+  const withBaseDefaults = {
+    type: 'base',
+    renderer: 'EducationIndicatorDetail',
+    missingPolicy: MISSING_POLICY,
+    groupKey: INDICATOR_GROUP_KEYS[indicator.key] ?? null,
+    sections: indicator.sections ?? [indicator.section],
+    ...indicator,
+  }
+  return { ...withBaseDefaults, polarity: inferIndicatorPolarity(withBaseDefaults) }
+}
 
 const EDUCATION_BASE_INDICATOR_CATALOG = Object.freeze(BASE_INDICATORS.map(withDefaults))
 export const EDUCATION_COMPLEMENTARY_INDICATOR_CATALOG = Object.freeze(COMPLEMENTARY_INDICATORS)

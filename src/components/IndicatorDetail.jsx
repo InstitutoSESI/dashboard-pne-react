@@ -706,6 +706,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
               essentialLabels
               item={item}
               meta={showHistoryReference ? historyReferenceValue : null}
+              metaLabelSeparator=" · "
               referenceLabel={isApproximate
                 ? 'Referência 2036'
                 : isClosedPneCycle(cycle)
@@ -713,6 +714,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
                   : 'Meta'}
               result={isAccExpansion ? flooredResult : result}
               series={displaySeries}
+              showMetaLabel={false}
               showMetaLine={showHistoryReference}
               startYear={startYear}
               subtitle={isApproximate
@@ -728,6 +730,7 @@ export const IndicatorDetail = forwardRef(function IndicatorDetail(
             <PneSourceNotes
               compact
               includeMethodology={false}
+              label="Fonte"
               context={{
                 block: 'pne',
                 cycle,
@@ -1360,10 +1363,12 @@ function PneRecentIndicatorChart({ cycle, details, domainOverride, item, model, 
         essentialLabels
         item={item}
         meta={model.chart.showMetaLine ? model.chart.meta : null}
+        metaLabelSeparator=" · "
         pneLayout
         referenceLabel={model.chart.referenceLabel}
         result={result}
         series={model.chart.series}
+        showMetaLabel={false}
         showMetaLine={model.chart.showMetaLine}
         showMissingPoints={model.chart.showMissingPoints}
         startYear={model.chart.startYear}
@@ -1502,7 +1507,6 @@ function GoalProgress({ label, presentation, result, unit }) {
   const end = Number(result.end_value)
   const meta = Number(result.meta)
   const isOverLimit = Number.isFinite(end) && Number.isFinite(meta) && end > meta && result.atingida === false
-  const markersAreClose = Math.abs(progress.current - progress.meta) < 8
   const statusText = String(result?.display?.status ?? '').toLocaleLowerCase('pt-BR')
   const currentTone = result.atingida
     ? 'success'
@@ -1515,9 +1519,6 @@ function GoalProgress({ label, presentation, result, unit }) {
       : result.atingida === false
         ? 'warning'
         : 'muted'
-  const metaLabelOffsetPct = markersAreClose
-    ? Math.min(progress.meta + 14, 95)
-    : progress.meta
   const markerEdgeClass = progress.current >= 92
     ? ' goal-progress__marker--edge-end'
     : progress.current <= 8
@@ -1531,6 +1532,9 @@ function GoalProgress({ label, presentation, result, unit }) {
     >
       <div className="goal-progress__heading">
         <span>{label}</span>
+        <strong className="goal-progress__heading-ref">
+          {presentation?.referenceLabel ?? 'Meta'} · {metaMarkerLabel}
+        </strong>
       </div>
       <div className="goal-progress__track">
         {isOverLimit ? (
@@ -1557,12 +1561,6 @@ function GoalProgress({ label, presentation, result, unit }) {
           className="goal-progress__target-tick"
           style={{ left: `${progress.meta}%` }}
         />
-        <span
-          className="goal-progress__target-label"
-          style={{ left: `${metaLabelOffsetPct}%` }}
-        >
-          {presentation?.referenceLabel ?? 'Meta'} {metaMarkerLabel}
-        </span>
         <span
           className={`goal-progress__marker goal-progress__marker--${currentTone}${markerEdgeClass}`}
           style={{ left: `${progress.current}%` }}
