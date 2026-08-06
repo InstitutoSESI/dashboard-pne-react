@@ -1,13 +1,12 @@
-import { Clock3, ListFilter, TrendingUp } from 'lucide-react'
 import { DisclosureChevron } from './DisclosureChevron'
 import { DetailNavigation } from './DetailNavigation'
 import { DetailHeadingText } from './HeadingText'
 import { IndicatorChartHeader } from './IndicatorChartHeader'
 import { MetricCard } from './MetricCard'
-import { QuickReadingHeading } from './QuickReadingHeading'
 import { isPublishableFinancialDisplay } from '../utils/financialPresentation'
 
-const EM = '\u2014'
+export { FinancialQuickReading } from './FinancialQuickReading'
+
 export function FinancialDetailNavigation({
   activeIndex,
   nextIndicator,
@@ -244,53 +243,6 @@ export function FinancialMetricGrid({ indicator }) {
     <div className="metric-grid metric-grid--four financial-metric-grid">
       {metrics}
     </div>
-  )
-}
-
-function FinancialQuickReadingIcon({ name }) {
-  const icons = {
-    measure: Clock3,
-    period: ListFilter,
-    trend: TrendingUp,
-  }
-  const Icon = icons[name] ?? Clock3
-
-  return <Icon aria-hidden="true" className="education-quick-reading__icon" />
-}
-
-function getFinancialReadingItems({ description, indicator, metadata, readingGuide, text }) {
-  const period = indicator?.initialYear && indicator?.currentYear
-    ? `${indicator.initialYear} a ${indicator.currentYear}`
-    : indicator?.currentYear
-      ? String(indicator.currentYear)
-      : EM
-
-  return [
-    { icon: 'trend', label: 'Evolução observada', text: text ?? indicator?.quickReading },
-    { icon: 'measure', label: 'O que o indicador mede', text: readingGuide?.oQueMede ?? metadata?.measures ?? description },
-    { emphasis: true, icon: 'period', label: 'Recorte exibido', text: period },
-  ].filter((item) => item.text)
-}
-
-export function FinancialQuickReading({ description, indicator, metadata, readingGuide, text }) {
-  const items = getFinancialReadingItems({ description, indicator, metadata, readingGuide, text })
-  if (!items.length) return null
-
-  return (
-    <aside className="interpretation-box education-quick-reading financial-quick-reading" aria-label="Leitura rápida do indicador">
-      <QuickReadingHeading />
-      <ul className="education-quick-reading__list">
-        {items.map((item) => (
-          <li key={item.label}>
-            <FinancialQuickReadingIcon name={item.icon} />
-            <div>
-              <span>{item.label}</span>
-              <p>{item.emphasis ? <strong>{item.text}</strong> : item.text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </aside>
   )
 }
 

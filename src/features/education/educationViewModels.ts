@@ -32,6 +32,7 @@ import {
   normalizeYearSeries,
 } from '../../utils/educationFormatters.js'
 import { normalizeEducationIndicatorLabel } from './educationFormatters.js'
+import { EDUCATION_CATEGORY_COMPARISON_COLORS } from './educationChartPalette.js'
 import type { EducationSectionKey } from './educationTypes'
 
 export interface EducationPageViewModel {
@@ -167,7 +168,6 @@ const EJA_VALID_AGE_RANGES = [
   '35 a 39 anos',
   '40 anos ou mais',
 ]
-const CATEGORY_COMPARISON_COLORS = ['#0f766e', '#2563eb', '#f59e0b', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#9333ea']
 const COR_RACA_ORDER = ['Branca', 'Parda', 'Preta', 'Amarela', 'Indígena', 'Não Declarada']
 
 const PANORAMA_THEME_KEYS = {
@@ -1478,7 +1478,7 @@ export function ageRangeCategoryDefinitions(faixas) {
   return faixas.map((faixa, index) => ({
     key: faixa,
     label: faixa,
-    color: CATEGORY_COMPARISON_COLORS[index % CATEGORY_COMPARISON_COLORS.length],
+    color: EDUCATION_CATEGORY_COMPARISON_COLORS[index % EDUCATION_CATEGORY_COMPARISON_COLORS.length],
   }))
 }
 
@@ -2251,7 +2251,7 @@ function seriesPorEtapaToStackedRows(source, metricKey) {
   const keys = orderedStageKeys(source, metricKey)
   if (!keys.length) return null
   return {
-    categories: categoryDefinitions(keys, etapaLabel, CATEGORY_COMPARISON_COLORS),
+    categories: categoryDefinitions(keys, etapaLabel, EDUCATION_CATEGORY_COMPARISON_COLORS),
     data: seriesMapToStackedRows(source, keys, metricKey),
   }
 }

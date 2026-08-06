@@ -1,0 +1,459 @@
+/* Demand and projections */
+
+
+/* Cenários de atendimento escolar — sequência editorial de indicadores. */
+.education-attendance-detail-view {
+  min-width: 0;
+}
+
+.education-attendance-page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.education-attendance-page-nav {
+  min-width: 0;
+  min-height: 54px;
+  padding: var(--space-1);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  display: flex;
+  align-items: center;
+}
+
+.education-attendance-page-nav .cycle-back-button {
+  min-height: 44px;
+}
+
+.education-attendance-page-header {
+  min-width: 0;
+  padding: var(--card-pad-base);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.education-attendance-page-header :is(.eyebrow, h1, p) {
+  margin: 0;
+}
+
+.education-attendance-page-header .eyebrow {
+  color: var(--green-deep);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.education-attendance-page-header h1 {
+  max-width: 28ch;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
+  text-wrap: balance;
+}
+
+.education-attendance-page-header > p {
+  max-width: var(--content-reading-max);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  text-wrap: pretty;
+}
+
+.education-attendance-page-header > p:first-of-type {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.content-area .education-attendance-filters {
+  padding: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.education-attendance-filter-group {
+  min-width: 0;
+}
+
+.education-attendance-filter-group > span {
+  letter-spacing: 0.08em;
+}
+
+.education-attendance-filter-group--type .platform-category-tabs {
+  width: min(100%, 460px);
+}
+
+.education-attendance-filters .platform-category-tabs {
+  flex-wrap: nowrap;
+}
+
+.education-attendance-filters .platform-filter-option {
+  flex: 1 1 auto;
+}
+
+.education-attendance-cut-filter {
+  width: 100%;
+}
+
+.education-attendance-cut-filter__option {
+  flex: 1 1 auto;
+}
+
+.education-attendance-cut-control,
+.education-attendance-cut-summary {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-attendance-cut-control__placeholder,
+.education-attendance-cut-summary p {
+  min-height: 20px;
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
+  text-wrap: pretty;
+}
+
+.education-attendance-cut-control__placeholder {
+  visibility: hidden;
+}
+
+.education-attendance-cut-summary__chip {
+  width: fit-content;
+  min-height: calc(var(--touch-target-min) + (var(--border-width) * 2));
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid color-mix(in srgb, var(--green-primary) 42%, var(--border-card));
+  border-radius: var(--control-radius);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.education-attendance-indicator-list {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.education-attendance-detail {
+  min-width: 0;
+  padding: var(--space-5);
+  gap: var(--space-4);
+}
+
+.education-attendance-sequence-item {
+  scroll-margin-top: var(--space-6);
+}
+
+.education-attendance-detail__header .detail-heading__copy {
+  max-width: none;
+}
+
+.education-attendance-detail__header {
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-divider);
+}
+
+.education-attendance-detail__header .detail-heading__copy > p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+  white-space: nowrap;
+}
+
+.education-attendance-detail__header [data-detail-title]:focus {
+  outline: none;
+}
+
+.education-attendance-percentage {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.education-attendance-kpis .metric-card__icon {
+  color: var(--green-deep);
+}
+
+.education-attendance-kpis .metric-card__value {
+  color: var(--green-deep);
+}
+
+.education-attendance-kpis .metric-card__detail {
+  overflow-wrap: anywhere;
+}
+
+.education-attendance-kpis.metric-grid--one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.education-attendance-main-chart {
+  margin: 0;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.education-attendance-chart-heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-attendance-chart-heading :is(h3, p) {
+  margin: 0;
+}
+
+.education-attendance-chart-heading h3 {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.education-attendance-chart-heading p,
+.education-attendance-chart-source {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.education-attendance-main-chart .complementary-projection {
+  gap: var(--space-3);
+}
+
+.education-attendance-main-chart .complementary-projection__legend {
+  margin: 0;
+}
+
+.education-attendance-main-chart .complementary-projection__chart {
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+}
+
+.education-attendance-main-chart .complementary-projection__chart > svg {
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+}
+
+.education-attendance-main-chart .projection-area {
+  display: none;
+}
+
+.education-attendance-chart-source {
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: var(--border-divider);
+}
+
+.education-attendance-year-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--status-info-bg);
+  color: var(--status-info-ink);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-attendance-methodology {
+  min-height: 0;
+  padding: var(--space-5);
+  background: var(--surface-card);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.education-attendance-methodology > header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-attendance-methodology > header :is(span, h2) {
+  margin: 0;
+}
+
+.education-attendance-methodology > header h2 {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.education-attendance-methodology__content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--space-5);
+}
+
+.education-attendance-methodology__content section {
+  min-width: 0;
+  padding: var(--space-3) 0;
+  border-top: var(--border-divider);
+}
+
+.education-attendance-methodology__content section:nth-child(-n + 2) {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.education-attendance-methodology__content :is(h3, p) {
+  margin: 0;
+}
+
+.education-attendance-methodology__content h3 {
+  margin-bottom: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.education-attendance-methodology__content p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-attendance-methodology__sources {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .content-area .education-attendance-filters {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .education-attendance-main-chart .complementary-projection__chart,
+  .education-attendance-main-chart .complementary-projection__chart > svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+}
+
+@media (max-width: 1080px) {
+  .education-attendance-page-header > p:first-of-type {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 700px) {
+  .content-area .education-attendance-filters .platform-category-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
+  .content-area .education-attendance-filters .platform-filter-option {
+    flex-basis: calc(50% - var(--space-1));
+  }
+
+  .education-attendance-methodology__content {
+    grid-template-columns: 1fr;
+  }
+
+  .education-attendance-methodology__content section:nth-child(2) {
+    border-top: var(--border-divider);
+  }
+
+  .education-attendance-methodology__sources {
+    grid-column: 1;
+  }
+
+  .educacao-page--demanda .education-attendance-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .education-attendance-detail {
+    padding: var(--space-4);
+  }
+
+}
+
+@media (max-width: 460px) {
+  .education-attendance-main-chart {
+    padding: var(--space-3);
+  }
+
+  .education-attendance-main-chart .complementary-projection__chart,
+  .education-attendance-main-chart .complementary-projection__chart > svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+  .education-attendance-cut-control__placeholder,
+  .education-attendance-cut-summary p {
+    min-height: 60px;
+    line-height: var(--line-height-relaxed);
+  }
+
+}
+.dashboard-shell .content-area .educacao-page.educacao-page--demanda .educacao-hero h1 {
+  font-size: var(--font-size-3xl);
+  letter-spacing: -0.025em;
+  line-height: var(--line-height-tight);
+}
+
+@media screen and (min-width: 821px) and (max-width: 1180px) {
+  .dashboard-shell .content-area .educacao-page.educacao-page--demanda .educacao-hero {
+    display: block;
+    padding: 0;
+  }
+
+  .dashboard-shell .content-area .educacao-page.educacao-page--demanda .educacao-hero__intro {
+    width: 100%;
+    max-width: none;
+    padding: var(--hero-padding-block-compact) var(--panel-inset-intermediate);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    column-gap: var(--space-6);
+  }
+
+  .dashboard-shell .content-area .educacao-page.educacao-page--demanda .educacao-hero__intro > :where(.eyebrow, h1, p) {
+    grid-column: 1;
+  }
+
+  .dashboard-shell .content-area .educacao-page.educacao-page--demanda .educacao-hero__meta {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    align-self: stretch;
+    margin-top: 0;
+    border-top: 0;
+    border-left: var(--border-divider);
+  }
+}
+
+.education-methodology-lead,
+.education-methodology-text p,
+.education-methodology-text li,
+.education-methodology-links p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+

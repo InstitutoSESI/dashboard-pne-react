@@ -55,9 +55,15 @@ import {
 } from '../utils/pneDisplayRules'
 import {
   buildPneSingleYearDataModel,
+  formatApproximateDifference,
+  formatApproximatePercent,
   getPneIndicatorPresentation,
+  isApproximateIndicator,
+  isComparableIndicator,
   toPnePercentDisplay,
 } from '../utils/pneIndicatorPresentation'
+
+export { isComparableIndicator }
 
 const PNE_2026_CYCLE = 'pne_2026_2036'
 
@@ -1597,34 +1603,6 @@ function getVariationDetail(value, startYear) {
   return undefined
 }
 
-export function isComparableIndicator(result) {
-  if (
-    !result ||
-    result.available === false ||
-    result.tracks_goal === false ||
-    result.monitoring_mode === 'approximate_reference' ||
-    result.meta == null ||
-    result.distance == null ||
-    typeof result.atingida !== 'boolean'
-  ) {
-    return false
-  }
-
-  const meta = Number(result?.meta)
-  const distance = Number(result?.distance)
-  const status = String(result?.display?.status ?? '').toLocaleLowerCase('pt-BR')
-  return (
-    Number.isFinite(distance) &&
-    Number.isFinite(meta) &&
-    !status.includes('visualiza') &&
-    !status.includes('informativo') &&
-    !status.includes('indispon') &&
-    !status.includes('sem dados') &&
-    !status.includes('sem variação') &&
-    !status.includes('sem variacao')
-  )
-}
-
 function calculateGoalProgress(result, unit) {
   const start = Number(result?.start_value)
   const current = Number(result?.end_value)
@@ -1853,32 +1831,6 @@ function formatAbsPp(value) {
     maximumFractionDigits: 1,
   })
   return `${formatted} p.p.`
-}
-
-function isApproximateIndicator(item, result) {
-  return (
-    item?.monitoring_mode === 'approximate_reference' ||
-    result?.monitoring_mode === 'approximate_reference'
-  )
-}
-
-function formatApproximatePercent(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '—'
-  return `${numeric.toLocaleString('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`
-}
-
-function formatApproximateDifference(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '—'
-  const sign = numeric > 0 ? '+' : ''
-  return `${sign}${numeric.toLocaleString('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })} p.p.`
 }
 
 function parseDisplayNumber(value) {

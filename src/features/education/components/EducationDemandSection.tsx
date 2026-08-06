@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChartSpline, Ruler, Target, TrendingUp } from 'lucide-react'
 import { CategoryTabs } from '../../../components/CategoryTabs.jsx'
+import {
+  EducationQuickReading,
+  type EducationQuickReadingItem,
+} from '../../../components/EducationQuickReading'
 import { IndicatorProjectionPanel } from '../../../components/IndicatorProjectionPanel.jsx'
 import { getBoundedDomain } from '../../../utils/chartDomain.js'
 import type { EducationProjectionViewContract } from '../educationAttendancePresentation'
 import { MetricCard } from '../../../components/MetricCard.jsx'
-import { QuickReadingHeading } from '../../../components/QuickReadingHeading.jsx'
 import { SegmentedControl } from '../../../components/SegmentedControl.jsx'
 import {
   projectionAssumptionText,
@@ -343,7 +345,7 @@ function AttendanceQuickReading({ indicator, projection }: {
   const targetYear = projection.target_year ?? null
   const targetValue = projection.target_percent ?? null
   const distance = projection.distance_to_target_2036 ?? null
-  const insights = [
+  const insights: EducationQuickReadingItem[] = [
     {
       icon: 'trend',
       label: 'Evolução observada',
@@ -360,14 +362,14 @@ function AttendanceQuickReading({ indicator, projection }: {
       text: buildProjectionAssumptions(indicator, projection),
     },
     ...(targetValue != null ? [{
-      icon: 'target',
+      icon: 'target' as const,
       label: projection.target_label ?? 'Referência',
       text: projection.target_kind === 'legal'
         ? `A referência normativa é ${formatPercentage(targetValue)}${targetYear != null ? ` em ${targetYear}` : ''}.`
         : `O parâmetro de acompanhamento é ${formatPercentage(targetValue)} e não constitui meta legal autônoma.`,
     }] : []),
     ...(targetValue != null && distance != null ? [{
-      icon: 'distance',
+      icon: 'distance' as const,
       label: projection.target_kind === 'legal'
         ? 'Situação em relação à meta'
         : 'Situação em relação à referência',
@@ -380,34 +382,7 @@ function AttendanceQuickReading({ indicator, projection }: {
     }] : []),
   ]
 
-  return (
-    <aside className="interpretation-box education-quick-reading education-attendance-reading" aria-label="Leitura rápida">
-      <QuickReadingHeading />
-      <ul className="education-quick-reading__list">
-        {insights.map((insight) => (
-          <li key={insight.label}>
-            <AttendanceInsightIcon name={insight.icon} />
-            <div>
-              <span>{insight.label}</span>
-              <p>{insight.text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </aside>
-  )
-}
-
-function AttendanceInsightIcon({ name }: { name: string }) {
-  const icons = {
-    distance: Ruler,
-    projection: ChartSpline,
-    target: Target,
-    trend: TrendingUp,
-  }
-  const Icon = icons[name as keyof typeof icons] ?? ChartSpline
-
-  return <Icon aria-hidden="true" className="education-quick-reading__icon" />
+  return <EducationQuickReading className="education-attendance-reading" items={insights} />
 }
 
 function buildObservedEvolution(

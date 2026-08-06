@@ -1,0 +1,95 @@
+/* Canonical internal structure for the shared quick-reading list.
+   Domain styles own only their outer surface, layout modifiers and responsive
+   placement around this stable platform markup. */
+.platform-quick-reading .indicator-quick-reading__heading {
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width) solid color-mix(in srgb, var(--green-accent) 55%, var(--border-faint));
+  color: var(--green-deep);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.platform-quick-reading .indicator-quick-reading__heading-icon {
+  box-sizing: border-box;
+  width: var(--icon-box-sm);
+  height: var(--icon-box-sm);
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.platform-quick-reading__icon {
+  box-sizing: border-box;
+  width: var(--icon-md);
+  height: var(--icon-md);
+  margin-top: 2px;
+  color: var(--green-primary);
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.platform-quick-reading__list {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  list-style: none;
+}
+
+.platform-quick-reading__list li {
+  padding: var(--space-3) 0;
+  display: grid;
+  grid-template-columns: var(--icon-md) minmax(0, 1fr);
+  flex: 1 1 auto;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.platform-quick-reading__list li + li {
+  border-top: var(--border-width) solid var(--border-faint);
+}
+
+.platform-quick-reading__list li > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.platform-quick-reading__list li > div > span {
+  color: var(--green-deep);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.platform-quick-reading__list p {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  text-wrap: pretty;
+}
+
+.platform-quick-reading__list p strong {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-bold);
+}

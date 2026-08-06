@@ -1,0 +1,2005 @@
+/* Visão geral: destaques analíticos e acessos por seção. */
+.dashboard-shell .content-area .education-overview-page .education-summary-section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-summary-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card {
+  min-height: 216px;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  grid-template-rows: auto minmax(32px, auto) auto auto minmax(32px, 1fr);
+  align-content: start;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__icon,
+.dashboard-shell .content-area .education-overview-page .education-section-link__icon {
+  width: var(--icon-box-md);
+  height: var(--icon-box-md);
+  border-radius: var(--radius-pill);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__icon svg,
+.dashboard-shell .content-area .education-overview-page .education-section-link__icon svg {
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__label {
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__value {
+  color: var(--text-strong);
+  font-size: var(--font-size-3xl);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__year {
+  min-height: 22px;
+  padding-block: var(--space-1);
+  color: var(--text-subtle);
+  background: var(--surface-muted);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__year::before {
+  content: none;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-card__detail {
+  align-self: end;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-snug);
+  overflow: hidden;
+  text-wrap: pretty;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-navigation {
+  gap: var(--space-4);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link {
+  min-height: 126px;
+  padding: var(--space-4);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: 1fr;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link__icon {
+  width: 48px;
+  height: 48px;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link__copy {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link__description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link__arrow {
+  color: var(--green-primary);
+  font-size: var(--font-size-2xl);
+  line-height: 1;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link:hover .education-section-link__arrow {
+  transform: translateX(2px);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link--secondary {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  background: var(--surface-soft);
+}
+
+.dashboard-shell .content-area .education-overview-page .education-section-link__copy--secondary {
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+}
+
+@media (max-width: 1180px) {
+  .dashboard-shell .content-area .education-overview-page .education-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-shell .content-area .education-overview-page .education-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-shell .content-area .education-overview-page .education-card {
+    min-height: 204px;
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-shell .content-area .education-overview-page .education-section-link {
+    min-height: 0;
+  }
+
+  .dashboard-shell .content-area .education-overview-page .education-section-link__copy--secondary {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 460px) {
+  .dashboard-shell .content-area .education-overview-page .education-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+.dashboard-shell .content-area .education-overview-page .education-card {
+  min-height: 196px;
+}
+}
+
+/* Visão geral municipal da educação: snapshot anual sem série histórica. */
+.educacao-page .municipal-education-overview,
+.educacao-page .municipal-education-overview-state {
+  padding: var(--space-5) var(--education-panel-padding) var(--space-8);
+}
+
+.educacao-page .municipal-education-overview {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.municipal-education-overview__section {
+  min-width: 0;
+  padding: var(--space-5);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.municipal-education-overview__section-heading {
+  margin-bottom: var(--space-4);
+}
+
+.municipal-education-overview__section-heading h2,
+.municipal-education-matrix h3,
+.municipal-special-education h2,
+.municipal-education-sources__methodology h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  text-wrap: balance;
+}
+
+.municipal-education-summary {
+  margin: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+}
+
+.municipal-education-summary :is(dt, dd),
+.municipal-education-stage__metric :is(dt, dd) {
+  margin: 0;
+}
+
+.municipal-education-summary__primary,
+.municipal-education-summary__group {
+  min-width: 0;
+  padding: var(--space-4);
+  display: grid;
+  align-content: center;
+  gap: var(--space-2);
+}
+
+.municipal-education-summary__primary {
+  background: var(--surface-moss);
+}
+
+.municipal-education-summary__primary > div {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-education-summary__primary span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-education-summary__category {
+  border-top: var(--border-divider);
+}
+
+.municipal-education-summary__category > h3 {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-soft);
+  color: var(--text-body);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--line-height-snug);
+  text-transform: none;
+}
+
+.municipal-education-summary__components {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.municipal-education-summary__category--modalities .municipal-education-summary__components {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.municipal-education-summary__group {
+  margin: 0;
+  border-inline-start: var(--border-divider);
+  align-content: start;
+}
+
+.municipal-education-summary__group:nth-child(3n + 1) {
+  border-inline-start: 0;
+}
+
+.municipal-education-summary__group-heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Participacao do componente no total, logo abaixo do valor: a proporcao
+   fica no cartao, sem exigir um grafico ao lado. */
+.municipal-education-summary__group-share {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-snug);
+}
+
+.municipal-education-summary__notes p,
+.municipal-special-education p,
+.municipal-school-performance__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  text-wrap: pretty;
+}
+
+.municipal-education-summary dt,
+.municipal-education-stage__metric dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-education-summary dd,
+.municipal-education-stage__metric dd {
+  color: var(--text-strong);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: var(--line-height-tight);
+}
+
+.municipal-education-summary__details {
+  margin-top: var(--space-2);
+  min-width: 0;
+  border-top: var(--border-divider);
+  display: grid;
+  align-content: center;
+}
+
+.municipal-education-summary__details > div {
+  min-width: 0;
+  padding-top: var(--space-2);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.municipal-education-summary__details > div + div {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--border-divider);
+}
+
+.municipal-education-summary__details dd {
+  flex: 0 0 auto;
+  font-size: var(--font-size-md);
+  letter-spacing: 0;
+}
+
+.municipal-education-summary__notes {
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-divider);
+  background: var(--surface-soft);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-special-education {
+  background: var(--surface-soft);
+  display: grid;
+  grid-template-columns: minmax(220px, 1.15fr) minmax(360px, 1.85fr);
+  gap: var(--space-4);
+}
+
+.municipal-special-education h2 {
+  font-size: var(--font-size-xl);
+}
+
+.municipal-special-education p {
+  margin-top: var(--space-2);
+}
+
+.municipal-special-education dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.municipal-special-education dl > div {
+  min-width: 0;
+  padding-inline: var(--space-3);
+  border-inline-start: var(--border-divider);
+}
+
+.municipal-special-education :is(dt, dd) {
+  margin: 0;
+}
+
+.municipal-special-education dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-special-education dd {
+  margin-top: var(--space-1);
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-school-performance {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.municipal-school-performance__table-region {
+  min-width: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.municipal-school-performance__table-region:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.municipal-school-performance table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-school-performance caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.municipal-school-performance :is(th, td) {
+  min-height: var(--touch-target-min);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-divider);
+  text-align: right;
+}
+
+.municipal-school-performance :is(th, td):first-child {
+  width: 34%;
+  text-align: left;
+}
+
+.municipal-school-performance thead th {
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-school-performance tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.municipal-school-performance tbody td {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-school-performance tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.municipal-enrollment-comparison {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.municipal-enrollment-comparison__section-heading p,
+.municipal-enrollment-comparison .municipal-education-overview__section-heading p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.municipal-enrollment-comparison__group {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.municipal-enrollment-comparison__group > h3 {
+  margin: 0;
+  padding-bottom: var(--space-2);
+  border-bottom: var(--border-divider);
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+}
+
+.municipal-enrollment-comparison__note {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-enrollment-comparison__table {
+  break-inside: avoid;
+}
+
+.municipal-enrollment-comparison__table h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-strong);
+  font-size: var(--font-size-md);
+}
+
+.municipal-enrollment-comparison__table table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-enrollment-comparison__table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.municipal-enrollment-comparison__table :is(th, td) {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-divider);
+  text-align: right;
+}
+
+.municipal-enrollment-comparison__table :is(th, td):first-child {
+  width: 46%;
+  text-align: left;
+}
+
+.municipal-enrollment-comparison__table thead th {
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-enrollment-comparison__table tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.municipal-enrollment-comparison__table tbody td {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-enrollment-comparison__table .municipal-enrollment-comparison__variation--positive {
+  color: var(--status-ok-ink);
+}
+
+.municipal-enrollment-comparison__table .municipal-enrollment-comparison__variation--negative {
+  color: var(--status-far-ink);
+}
+
+.municipal-enrollment-comparison__table .municipal-enrollment-comparison__variation--neutral {
+  color: var(--text-strong);
+}
+
+.municipal-education-stage__summary {
+  margin: 0;
+  border-block: var(--border-divider);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.municipal-education-stage__summary--two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.municipal-education-stage__note {
+  margin: var(--space-3) 0 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-education-stage__metric {
+  min-width: 0;
+  min-height: 120px;
+  padding: var(--space-4);
+  border-inline-start: var(--border-divider);
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.municipal-education-stage__metric:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-education-stage__metric--primary {
+  background: var(--surface-soft);
+}
+
+.municipal-education-stage__metric dd {
+  font-size: var(--font-size-2xl);
+}
+
+.municipal-education-stage__metric-share {
+  margin-top: auto;
+  color: var(--text-secondary);
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  text-wrap: pretty;
+}
+
+.municipal-education-stage__metric-share strong {
+  color: var(--text);
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-education-stage__matrices {
+  margin-top: var(--space-5);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.municipal-education-stage__detail-link {
+  width: fit-content;
+  min-height: var(--touch-target-min);
+  margin-top: var(--space-5);
+  margin-inline-start: auto;
+  padding-inline: var(--space-1);
+  color: var(--green-deep);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.municipal-education-stage__detail-link:hover {
+  color: var(--green-primary);
+}
+
+.municipal-education-stage__detail-link:focus-visible {
+  border-radius: var(--radius-xs);
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.municipal-education-matrix {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.municipal-education-matrix h3 {
+  font-size: var(--font-size-md);
+}
+
+.municipal-education-matrix__table-region {
+  min-width: 0;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.municipal-education-matrix__table-region:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.municipal-education-matrix__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-snug);
+}
+
+.municipal-education-matrix__table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.municipal-education-matrix__table th,
+.municipal-education-matrix__table td {
+  min-width: 0;
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: 10px var(--space-4);
+  border-bottom: var(--border-divider);
+  text-align: right;
+  vertical-align: middle;
+}
+
+.municipal-education-matrix__table thead th {
+  background: var(--surface-moss);
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  text-align: right;
+  text-wrap: balance;
+}
+
+.municipal-education-matrix__table :is(th, td):first-child {
+  width: 24%;
+  text-align: left;
+}
+
+.municipal-education-matrix--split .municipal-education-matrix__table :is(th, td):first-child {
+  width: 45%;
+}
+
+.municipal-education-matrix--split .municipal-education-matrix__table :is(th, td):nth-child(2) {
+  width: 25%;
+}
+
+.municipal-education-matrix--split .municipal-education-matrix__table :is(th, td):nth-child(3) {
+  width: 30%;
+}
+
+.municipal-education-matrix__table tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.municipal-education-matrix__table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.municipal-education-matrix__table td {
+  white-space: nowrap;
+}
+
+.municipal-education-matrix__subtotal :is(th, td) {
+  background: var(--surface-soft);
+}
+
+.municipal-education-matrix__subtotal th {
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-education-matrix__value {
+  display: inline-grid;
+  grid-template-columns: minmax(3ch, auto) auto minmax(4ch, auto);
+  align-items: baseline;
+  justify-content: end;
+  column-gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-education-matrix__value--unavailable {
+  min-width: 9ch;
+}
+
+.municipal-education-matrix__enrollments {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-education-matrix__separator,
+.municipal-education-matrix__percentage {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.municipal-education-matrix__mobile {
+  display: none;
+}
+
+.municipal-education-sources {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.municipal-education-sources__list,
+.municipal-education-sources__methodology ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.municipal-education-sources__list {
+  border-top: var(--border-divider);
+}
+
+.municipal-education-sources__list li {
+  min-width: 0;
+  padding-block: var(--space-3);
+  border-bottom: var(--border-divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.municipal-education-sources__list li > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-education-sources__list strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-education-sources__list span,
+.municipal-education-sources__methodology li {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-education-sources__list a {
+  min-height: var(--touch-target-min);
+  color: var(--green-deep);
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-education-sources__list a:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.municipal-education-sources__methodology {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-education-sources__methodology h3 {
+  font-size: var(--font-size-sm);
+}
+
+.municipal-education-sources__methodology ul {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-education-sources__methodology li {
+  position: relative;
+  padding-inline-start: var(--space-3);
+}
+
+.municipal-education-sources__methodology li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--green-deep);
+}
+
+@media (max-width: 1100px) {
+  .municipal-education-summary__category--regular-stages .municipal-education-summary__components {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-education-summary__category--regular-stages .municipal-education-summary__group:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .municipal-education-summary__category--regular-stages .municipal-education-summary__group:nth-child(even) {
+    border-inline-start: var(--border-divider);
+  }
+
+  .municipal-education-summary__category--regular-stages .municipal-education-summary__group:last-child {
+    grid-column: 1 / -1;
+    border-top: var(--border-divider);
+  }
+}
+
+@media (max-width: 620px) {
+  .educacao-page .municipal-education-overview,
+  .educacao-page .municipal-education-overview-state {
+    padding: var(--space-4) var(--education-panel-padding) var(--space-6);
+  }
+
+  .municipal-education-overview__section {
+    padding: var(--space-4);
+  }
+
+  .municipal-education-summary__components,
+  .municipal-education-stage__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .municipal-education-summary__category--modalities .municipal-education-summary__components,
+  .municipal-education-stage__summary--two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .municipal-education-summary__group,
+  .municipal-education-stage__metric {
+    border-top: var(--border-divider);
+    border-inline-start: 0;
+  }
+
+  .municipal-education-summary__group:nth-child(even) {
+    border-inline-start: 0;
+  }
+
+  .municipal-education-summary__category--regular-stages .municipal-education-summary__group:last-child {
+    grid-column: auto;
+  }
+
+  .municipal-education-summary__details {
+    padding-top: 0;
+  }
+
+  .municipal-education-summary__details > div {
+    padding-inline-start: 0;
+  }
+
+  .municipal-special-education {
+    grid-template-columns: 1fr;
+  }
+
+  .municipal-special-education dl {
+    grid-template-columns: 1fr;
+  }
+
+  .municipal-special-education dl > div {
+    padding: var(--space-2) 0;
+    border-top: var(--border-divider);
+    border-inline-start: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .municipal-school-performance :is(th, td) {
+    padding-inline: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+
+  .municipal-school-performance :is(th, td):first-child {
+    width: 38%;
+    white-space: normal;
+  }
+
+  .municipal-school-performance thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .municipal-school-performance :is(tbody, tr) {
+    display: grid;
+  }
+
+  .municipal-school-performance tr {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-bottom: var(--border-divider);
+  }
+
+  .municipal-school-performance tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .municipal-school-performance tbody th,
+  .municipal-school-performance tbody td {
+    width: auto;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .municipal-school-performance tbody th:first-child {
+    width: auto;
+    grid-column: 1 / -1;
+    padding-bottom: var(--space-2);
+    background: var(--surface-soft);
+  }
+
+  .municipal-school-performance tbody td {
+    padding-top: var(--space-2);
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .municipal-school-performance tbody td::before {
+    content: attr(data-label);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .municipal-education-stage__metric {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+  }
+
+  .municipal-education-stage__metric dd {
+    font-size: var(--font-size-xl);
+    text-align: right;
+  }
+
+  .municipal-education-stage__metric-share {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  .municipal-education-matrix__table-region {
+    display: none;
+  }
+
+  .municipal-education-matrix__mobile {
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+    display: grid;
+    overflow: hidden;
+  }
+
+  .municipal-education-matrix__mobile-stage + .municipal-education-matrix__mobile-stage {
+    border-top: var(--border-divider);
+  }
+
+  .municipal-education-matrix__mobile-stage h4 {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-moss);
+    color: var(--green-deep);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+  }
+
+  .municipal-education-matrix__mobile-stage dl {
+    margin: 0;
+  }
+
+  .municipal-education-matrix__mobile-split {
+    margin: 0;
+  }
+
+  .municipal-education-matrix__mobile-stage .municipal-education-matrix__mobile-split > div {
+    padding: var(--space-3) var(--space-4);
+    border-top: var(--border-divider);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .municipal-education-matrix__mobile-split > div:first-child {
+    border-top: 0;
+  }
+
+  .municipal-education-matrix__mobile-stage .municipal-education-matrix__mobile-split dt {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--space-1);
+    color: var(--text-strong);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .municipal-education-matrix__mobile-stage .municipal-education-matrix__mobile-split dd {
+    grid-column: 1 / -1;
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+  }
+
+  .municipal-education-matrix__mobile-stage .municipal-education-matrix__mobile-split dd > :last-child {
+    text-align: right;
+  }
+
+  .municipal-education-matrix__mobile-split .municipal-education-matrix__mobile-subtotal {
+    background: var(--surface-soft);
+  }
+
+  .municipal-education-matrix__mobile-stage dl > div {
+    min-height: var(--touch-target-min);
+    padding: var(--space-2) var(--space-4);
+    border-top: var(--border-divider);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .municipal-education-matrix__mobile-stage dt,
+  .municipal-education-matrix__mobile-stage dd {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-snug);
+  }
+
+  .municipal-education-matrix__mobile-stage dt {
+    color: var(--text-strong);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .municipal-education-matrix__mobile-stage dd {
+    flex: 0 0 auto;
+    text-align: right;
+  }
+
+  .municipal-education-matrix__mobile-stage .municipal-education-matrix__mobile-subtotal {
+    background: var(--surface-soft);
+  }
+
+  .municipal-education-matrix__mobile-subtotal dt {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .municipal-education-stage__detail-link {
+    max-width: 100%;
+    margin-top: var(--space-4);
+    margin-inline-start: 0;
+  }
+
+  .municipal-education-sources__list li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+
+/* Visão geral municipal: configuração e documento exclusivo de impressão. */
+.municipal-education-print-action {
+  white-space: nowrap;
+}
+
+.municipal-education-print-report {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .education-compact-header__action:has(.municipal-education-print-action),
+  .municipal-education-print-action {
+    width: 100%;
+  }
+
+}
+
+@page municipal-education-overview-report {
+  size: A4 portrait;
+  margin: 12mm 12mm 14mm;
+}
+
+@media (max-width: 640px) {
+  .municipal-enrollment-comparison__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .municipal-enrollment-comparison__table :is(tbody, tr) {
+    display: block;
+  }
+
+  .municipal-enrollment-comparison__table tr {
+    padding: var(--space-3);
+    border: var(--border-default);
+    border-radius: var(--radius-sm);
+  }
+
+  .municipal-enrollment-comparison__table tr + tr {
+    margin-top: var(--space-2);
+  }
+
+  .municipal-enrollment-comparison__table :is(th, td),
+  .municipal-enrollment-comparison__table :is(th, td):first-child {
+    width: auto;
+    padding: var(--space-1) 0;
+    border: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    text-align: right;
+  }
+
+  .municipal-enrollment-comparison__table tbody th {
+    padding-bottom: var(--space-2);
+    border-bottom: var(--border-divider);
+    display: block;
+    text-align: left;
+  }
+
+  .municipal-enrollment-comparison__table td::before {
+    content: attr(data-label) ":";
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-regular);
+  }
+}
+
+@media print {
+  html:has(.municipal-education-print-report),
+  body:has(.municipal-education-print-report),
+  body:has(.municipal-education-print-report) #root,
+  body:has(.municipal-education-print-report) .dashboard-shell {
+    min-height: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body:has(.municipal-education-print-report) {
+    margin: 0;
+    color: #202522;
+    font-family: var(--font-sans);
+  }
+
+  body:has(.municipal-education-print-report) > :not(#root),
+  body:has(.municipal-education-print-report) .dashboard-shell > :not(.dashboard-main),
+  body:has(.municipal-education-print-report) .dashboard-main > :not(.content-area),
+  body:has(.municipal-education-print-report) .educacao-page > :not(.municipal-education-print-report) {
+    display: none !important;
+  }
+
+  body:has(.municipal-education-print-report) .dashboard-shell,
+  body:has(.municipal-education-print-report) .dashboard-main,
+  body:has(.municipal-education-print-report) .content-area,
+  body:has(.municipal-education-print-report) .educacao-page {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .municipal-education-print-report {
+    page: municipal-education-overview-report;
+    width: 100%;
+    color: #202522;
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 8.5pt;
+    line-height: 1.3;
+  }
+
+  .municipal-education-print-report *,
+  .municipal-education-print-report *::before,
+  .municipal-education-print-report *::after {
+    box-sizing: border-box;
+    box-shadow: none !important;
+  }
+
+  .municipal-education-print-report :is(h1, h2, h3, p, dl, dd, ul) {
+    margin: 0;
+  }
+
+  .municipal-education-print-report h1,
+  .municipal-education-print-report h2,
+  .municipal-education-print-report h3 {
+    color: #17201b;
+    font-family: var(--font-sans);
+  }
+
+  .municipal-education-print-comparison {
+    break-before: page;
+  }
+
+  .municipal-education-print-comparison > p {
+    margin-bottom: 3mm;
+    color: #4d5550;
+    font-size: 7.5pt;
+  }
+
+  .municipal-education-print-comparison > h3 {
+    margin-top: 5mm;
+    break-after: avoid;
+  }
+
+  .municipal-education-print-comparison__table {
+    margin-bottom: 3mm;
+    break-inside: avoid;
+  }
+
+  .municipal-education-print-comparison__table h4 {
+    margin: 0 0 1.5mm;
+    break-after: avoid;
+    color: #17201b;
+    font-size: 8.5pt;
+  }
+
+  .municipal-education-print-comparison__table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-comparison__table thead {
+    display: table-header-group;
+  }
+
+  .municipal-education-print-comparison__table tr {
+    break-inside: avoid;
+  }
+
+  .municipal-education-print-comparison__table :is(th, td) {
+    padding: 1.2mm 1.8mm;
+    border-bottom: 0.2mm solid #d8dbd9;
+    text-align: right;
+  }
+
+  .municipal-education-print-comparison__table :is(th, td):first-child {
+    width: 46%;
+    text-align: left;
+  }
+
+  .municipal-education-print-comparison__table thead th {
+    background: #e7eee8;
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-report h1 {
+    font-size: 18pt;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.15;
+  }
+
+  .municipal-education-print-report h2 {
+    margin-bottom: 3mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 0.3mm solid var(--text-muted);
+    font-size: 11.5pt;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.2;
+  }
+
+  .municipal-education-print-report h3 {
+    margin-bottom: 1.5mm;
+    font-size: 9pt;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.2;
+  }
+
+  .municipal-education-print-report__header {
+    margin-bottom: 5mm;
+    padding-bottom: 4mm;
+    border-bottom: 0.4mm solid #424944;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-report__institution {
+    margin-bottom: 2mm !important;
+    color: #3d4640;
+    font-size: 8pt;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .municipal-education-print-report__subtitle {
+    margin-top: 1.5mm !important;
+    color: #4d5550;
+    font-size: 9pt;
+  }
+
+  .municipal-education-print-report__identity {
+    margin-top: 3.5mm !important;
+    border: 0.25mm solid #b7bcb9;
+    display: grid;
+    grid-template-columns: 1.25fr 0.9fr 0.9fr 0.9fr;
+  }
+
+  .municipal-education-print-report__identity > div {
+    min-width: 0;
+    padding: 2mm 2.5mm;
+    border-left: 0.25mm solid #c9cdca;
+  }
+
+  .municipal-education-print-report__identity > div:first-child {
+    border-left: 0;
+  }
+
+  .municipal-education-print-report__identity dt,
+  .municipal-education-print-summary dt,
+  .municipal-education-print-stage__summary dt {
+    color: #535b56;
+    font-size: 7pt;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .municipal-education-print-report__identity dd {
+    margin-top: 0.6mm;
+    color: #202522;
+    font-size: 8.5pt;
+    font-weight: var(--font-weight-semibold);
+    overflow-wrap: anywhere;
+  }
+
+  .municipal-education-print-summary {
+    margin-bottom: 5mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-summary__grid {
+    border: 0.25mm solid #b7bcb9;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .municipal-education-print-summary__grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-education-print-summary__grid > div {
+    min-width: 0;
+    padding: 2.5mm;
+    border-left: 0.25mm solid #c9cdca;
+  }
+
+  .municipal-education-print-summary__grid > :first-child {
+    border-left: 0;
+  }
+
+  .municipal-education-print-summary dd,
+  .municipal-education-print-stage__summary dd {
+    margin-top: 0.8mm;
+    color: #17201b;
+    font-size: 14pt;
+    font-weight: var(--font-weight-bold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+  }
+
+  .municipal-education-print-summary__primary {
+    padding: 2.5mm;
+    border: 0.25mm solid #b7bcb9;
+    background: #f1f2f1;
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-summary__primary span {
+    display: block;
+    margin-top: 0.8mm;
+    color: #535b56;
+    font-size: 7pt;
+  }
+
+  .municipal-education-print-summary__category {
+    margin-top: 2.5mm;
+  }
+
+  .municipal-education-print-summary__category h3 {
+    margin-bottom: 1mm;
+    color: #535b56;
+    font-size: 7pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .municipal-education-print-summary__group {
+    display: grid;
+    gap: 2mm;
+  }
+
+  .municipal-education-print-summary__details {
+    padding-top: 1.5mm;
+    border-top: 0.25mm solid #c9cdca;
+    display: grid;
+    gap: 1.5mm;
+  }
+
+  .municipal-education-print-summary__details dl + dl {
+    padding-top: 1.5mm;
+    border-top: 0.25mm solid #d8dbd9;
+  }
+
+  .municipal-education-print-summary__details dd {
+    font-size: 9pt;
+  }
+
+  .municipal-education-print-summary__notes,
+  .municipal-education-print-special p,
+  .municipal-education-print-performance p,
+  .municipal-education-print-stage__note {
+    margin-top: 2mm !important;
+    color: #4d5550;
+    font-size: 7.5pt;
+  }
+
+  .municipal-education-print-summary__notes {
+    display: grid;
+    gap: 0.6mm;
+  }
+
+  .municipal-education-print-special {
+    margin-top: 5mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-special dl {
+    border: 0.25mm solid #b7bcb9;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .municipal-education-print-special dl > div {
+    padding: 2mm 2.5mm;
+    border-left: 0.25mm solid #c9cdca;
+  }
+
+  .municipal-education-print-special dl > div:first-child {
+    border-left: 0;
+  }
+
+  .municipal-education-print-special :is(dt, dd) {
+    margin: 0;
+  }
+
+  .municipal-education-print-special dt {
+    color: #535b56;
+    font-size: 7pt;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .municipal-education-print-special dd {
+    margin-top: 0.8mm;
+    font-size: 12pt;
+    font-weight: var(--font-weight-bold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-stage {
+    margin-top: 5mm;
+  }
+
+  .municipal-education-print-stage--earlyChildhood {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .municipal-education-print-stage--elementary {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .municipal-education-print-stage--highSchool {
+    margin-top: 5mm;
+  }
+
+  .municipal-education-print-stage__summary {
+    margin-bottom: 3.5mm !important;
+    border: 0.25mm solid #b7bcb9;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-stage__summary--two-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-education-print-stage__summary > div {
+    min-width: 0;
+    padding: 2.2mm 2.5mm;
+    border-left: 0.25mm solid #c9cdca;
+  }
+
+  .municipal-education-print-stage__summary > div:first-child {
+    border-left: 0;
+  }
+
+  .municipal-education-print-stage__summary p {
+    margin-top: 1.2mm !important;
+    color: #4d5550;
+    font-size: 7pt;
+    line-height: 1.25;
+  }
+
+  .municipal-education-print-stage__summary p strong {
+    color: #202522;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-matrix {
+    margin-top: 3.5mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-matrix table {
+    width: 100%;
+    border: 0.25mm solid #aeb4b0;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: #202522;
+    font-size: 7.5pt;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-matrix caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .municipal-education-print-matrix thead {
+    display: table-header-group;
+  }
+
+  .municipal-education-print-matrix tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-matrix th,
+  .municipal-education-print-matrix td {
+    height: 5.8mm;
+    padding: 1.2mm 2mm;
+    border-bottom: 0.25mm solid #d1d5d2;
+    text-align: right;
+    vertical-align: middle;
+  }
+
+  .municipal-education-print-matrix thead th {
+    background: var(--border-faint);
+    color: #252b27;
+    font-weight: var(--font-weight-bold);
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-matrix :is(th, td):first-child {
+    width: 25%;
+    text-align: left;
+  }
+
+  .municipal-education-print-matrix--split :is(th, td):first-child {
+    width: 45%;
+  }
+
+  .municipal-education-print-matrix--split :is(th, td):nth-child(2) {
+    width: 25%;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .municipal-education-print-matrix--split :is(th, td):nth-child(3) {
+    width: 30%;
+  }
+
+  .municipal-education-print-matrix--split .municipal-education-print-matrix__percentage {
+    color: #4d5550;
+    font-weight: var(--font-weight-medium);
+  }
+
+  .municipal-education-print-matrix tbody th {
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+  }
+
+  .municipal-education-print-matrix__subtotal :is(th, td) {
+    background: #f6f6f6;
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-performance {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .municipal-education-print-performance table {
+    width: 100%;
+    border: 0.25mm solid #aeb4b0;
+    border-collapse: collapse;
+    font-size: 8pt;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-education-print-performance :is(th, td) {
+    height: 7mm;
+    padding: 1.2mm 2mm;
+    border-bottom: 0.25mm solid #d1d5d2;
+    text-align: right;
+  }
+
+  .municipal-education-print-performance :is(th, td):first-child {
+    width: 34%;
+    text-align: left;
+  }
+
+  .municipal-education-print-performance thead th {
+    background: var(--border-faint);
+    font-weight: var(--font-weight-bold);
+    print-color-adjust: exact;
+  }
+
+  .municipal-education-print-report__sources {
+    margin-top: 5mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-education-print-report__sources > ul,
+  .municipal-education-print-report__methodology ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  .municipal-education-print-report__sources > ul li {
+    padding: 1.5mm 0;
+    border-bottom: 0.25mm solid #d1d5d2;
+    display: grid;
+    gap: 0.5mm;
+  }
+
+  .municipal-education-print-report__sources li span,
+  .municipal-education-print-report__methodology li {
+    color: #4d5550;
+    font-size: 7.5pt;
+  }
+
+  .municipal-education-print-report__source-url {
+    overflow-wrap: anywhere;
+  }
+
+  .municipal-education-print-report__methodology {
+    margin-top: 2.5mm;
+  }
+
+  .municipal-education-print-report__methodology ul {
+    display: grid;
+    gap: 0.8mm;
+  }
+
+  .municipal-education-print-report__methodology li::before {
+    content: "• ";
+  }
+
+  .municipal-education-print-report__footer {
+    margin-top: 5mm;
+    padding-top: 2.5mm;
+    border-top: 0.3mm solid var(--text-muted);
+    color: #4d5550;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4mm;
+    font-size: 7pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.indigenous-education-panel {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.indigenous-education-panel .educacao-detail-panel {
+  min-width: 0;
+}
+
+.indigenous-education-panel__heading {
+  max-width: 780px;
+  margin-bottom: var(--space-4);
+}
+
+.indigenous-education-panel__heading h3 {
+  margin: var(--space-1) 0 0;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  line-height: 1.2;
+}
+
+.indigenous-education-panel__heading p {
+  margin: var(--space-2) 0 0;
+  color: var(--text-body);
+  line-height: 1.55;
+}
+
+.indigenous-education-panel__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.indigenous-education-panel__coverage-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.indigenous-education-panel__methodology-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--text-body);
+  display: grid;
+  gap: var(--space-2);
+  line-height: 1.55;
+}
+
+.indigenous-education-panel__control {
+  align-items: center;
+}
+
+.indigenous-education-panel__tabs {
+  min-width: min(100%, 680px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.indigenous-education-panel__tabs button {
+  justify-content: center;
+}
+
+.indigenous-education-panel__primary {
+  align-items: stretch;
+}
+
+.indigenous-education-panel__chart {
+  min-height: 0;
+}
+
+.indigenous-education-panel__chart .education-chart,
+.indigenous-education-panel__chart .education-chart__canvas,
+.indigenous-education-panel__chart .education-chart svg {
+  width: 100%;
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+}
+
+.indigenous-education-panel__support .education-support-data__footer {
+  padding: var(--space-4) var(--space-5);
+}
+
+.indigenous-education-panel__support .education-support-data__footer .data-source-note {
+  margin: 0;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table {
+  box-shadow: none;
+  scrollbar-gutter: auto;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table .education-table {
+  min-width: max(100%, 720px);
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table .education-table :is(th, td) {
+  min-width: 0;
+  height: var(--touch-target-min);
+  padding: 10px var(--space-4);
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table .education-table thead th {
+  text-align: right;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table .education-table :is(th, td):first-child {
+  width: 30%;
+  text-align: left;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table .education-table tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table__label {
+  text-align: left;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table__number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table--coverage .education-table {
+  min-width: max(100%, 940px);
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table--coverage .education-table :is(th, td):first-child {
+  width: 9%;
+}
+
+.indigenous-education-panel__table-grid .indigenous-education-table--coverage .indigenous-education-table__reading {
+  width: 30%;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .indigenous-education-panel__summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .indigenous-education-panel__coverage-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .indigenous-education-panel__table-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .indigenous-education-panel {
+    gap: var(--space-4);
+  }
+
+  .indigenous-education-panel__summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .indigenous-education-panel__tabs {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .indigenous-education-panel__tabs button {
+    width: 100%;
+  }
+
+  .indigenous-education-panel__chart {
+    padding: var(--space-3);
+  }
+
+  .indigenous-education-panel__chart .education-chart,
+  .indigenous-education-panel__chart .education-chart__canvas,
+  .indigenous-education-panel__chart .education-chart svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+}
+
+@media print {
+  .indigenous-education-panel {
+    gap: 5mm;
+  }
+
+  .indigenous-education-panel .educacao-detail-panel {
+    padding: 4mm;
+    border: 0.25mm solid #b7bcb9;
+    border-radius: 0;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .indigenous-education-panel__tabs {
+    display: none;
+  }
+
+  .indigenous-education-panel__summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .indigenous-education-panel__chart { padding: 2mm; border: 0; }
+}
+

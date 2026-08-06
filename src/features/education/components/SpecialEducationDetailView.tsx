@@ -3,7 +3,7 @@ import { ContentState } from '../../../components/ContentState.jsx'
 import { DataSourceNote } from '../../../components/DataSourceNote.jsx'
 import { EducationBarChart } from '../../../components/EducationBarChart.jsx'
 import { EducationLineChart } from '../../../components/EducationLineChart.jsx'
-import { EducationQuickReading } from '../../../components/EducationQuickReading.jsx'
+import { EducationQuickReading } from '../../../components/EducationQuickReading'
 import { IndicatorChartHeader } from '../../../components/IndicatorChartHeader.jsx'
 import { MetricCard } from '../../../components/MetricCard.jsx'
 import {
@@ -162,7 +162,6 @@ export function SpecialEducationDetailView({
           text: `${cutLabel}.`,
         },
       ]}
-      tone={snapshotOnly ? 'default' : variation.tone}
     />
   )
 

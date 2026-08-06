@@ -1,0 +1,219 @@
+/* Sistema S follows the Education listing and detail grammar. */
+.sistema-s-panel--summary {
+  gap: var(--space-4);
+}
+
+.sistema-s-group-description {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.sistema-s-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--indicator-card-gap);
+}
+
+.sistema-s-shortcut {
+  min-width: 0;
+  min-height: 150px;
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--text-strong);
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: var(--space-2);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--motion-fast), background var(--motion-fast), transform var(--motion-fast);
+}
+
+.sistema-s-shortcut:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  transform: translateY(-1px);
+}
+
+.sistema-s-shortcut:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+
+.sistema-s-shortcut__label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.sistema-s-shortcut strong {
+  align-self: end;
+  font-size: var(--font-size-2xl);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-tight);
+}
+
+.sistema-s-shortcut small {
+  color: var(--text-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.sistema-s-shortcut__action {
+  padding-top: var(--space-2);
+  border-top: var(--border-divider);
+  color: var(--green-deep);
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sistema-s-summary-footer {
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.sistema-s-summary-footer .data-source-note {
+  margin: 0;
+}
+
+.sistema-s-open-detail {
+  flex: 0 0 auto;
+  gap: var(--space-2);
+}
+
+.education-detail-view--sistema-s .sistema-s-panel--detail {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.education-detail-view--sistema-s .educacao-detail-panel {
+  gap: var(--space-5);
+}
+
+.sistema-s-indicator-tabs {
+  padding: var(--space-1);
+  border: var(--border-default);
+  border-radius: var(--control-radius);
+  background: var(--surface-muted);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.sistema-s-indicator-tabs .infra-dep-pill {
+  justify-content: center;
+}
+
+.education-detail-view--sistema-s .sistema-s-primary-analysis {
+  align-items: stretch;
+}
+
+.education-detail-view--sistema-s .sistema-s-chart {
+  min-height: 0;
+  padding: var(--space-5);
+}
+
+.education-detail-view--sistema-s .sistema-s-chart .education-chart,
+.education-detail-view--sistema-s .sistema-s-chart .education-chart__canvas,
+.education-detail-view--sistema-s .sistema-s-chart .education-chart svg {
+  width: 100%;
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+}
+
+.education-detail-view--sistema-s .education-quick-reading {
+  align-content: start;
+}
+
+.sistema-s-support-data {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sistema-s-support-data .education-support-data__header {
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-divider);
+}
+
+.sistema-s-support-data .sistema-s-detail-stack {
+  gap: var(--space-4);
+}
+
+.sistema-s-support-data .sistema-s-detail-card {
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.sistema-s-support-data .education-support-data__footer {
+  padding-top: var(--space-4);
+  border-top: var(--border-divider);
+}
+
+.sistema-s-support-data .education-support-data__footer .data-source-note {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .sistema-s-shortcuts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .sistema-s-shortcuts,
+  .sistema-s-indicator-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sistema-s-shortcut {
+    min-height: 132px;
+  }
+
+  .sistema-s-summary-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sistema-s-open-detail {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .education-detail-view--sistema-s .educacao-detail-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-detail-view--sistema-s .educacao-detail-heading__badges {
+    justify-content: flex-start;
+  }
+
+  .education-detail-view--sistema-s .sistema-s-chart .education-chart,
+  .education-detail-view--sistema-s .sistema-s-chart .education-chart__canvas,
+  .education-detail-view--sistema-s .sistema-s-chart .education-chart svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sistema-s-shortcut {
+    transition: none;
+  }
+
+  .sistema-s-shortcut:hover {
+    transform: none;
+  }
+}
+

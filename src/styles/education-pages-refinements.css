@@ -1,0 +1,515 @@
+/* =================================================================
+   Cartão de indicador educacional — anatomia única (uniform)
+   -----------------------------------------------------------------
+   Quatro zonas: topline · título (2 linhas reservadas) · valor+meta · rodapé.
+   Substitui a grade de 6 linhas (topline/título/descrição/valor/insight/rodapé)
+   que fixava o título em 38px e provocava a sobreposição título↔descrição.
+   Carrega por último e é a regra canônica; não empilhar override sobre ela.
+   ================================================================= */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto 1fr auto;
+  grid-template-areas:
+    "topline"
+    "title"
+    "value"
+    "meta"
+    "spacer"
+    "footer";
+  gap: 0;
+  padding: 0;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: auto;
+  align-content: stretch;
+  overflow: hidden;
+  background: var(--surface-card);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 120ms cubic-bezier(0.22, 1, 0.36, 1), border-color 120ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform:hover {
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--border-line);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform:focus-visible {
+  outline: 3px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform.is-selected {
+  border-color: var(--green-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform:disabled {
+  cursor: default;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+/* topline: rótulo de contexto + selo de situação */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__topline {
+  grid-area: topline;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: var(--card-padding) var(--card-padding) 0;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__context {
+  padding: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--text-muted);
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* título: reserva duas linhas -> valor nasce no mesmo ponto e nada colide */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__title {
+  grid-area: title;
+  margin: 0;
+  padding: var(--space-3) var(--card-padding) 0;
+  min-height: calc(1.35em * 2 + var(--space-3));
+  max-height: none;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  color: var(--text-strong);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* valor + unidade (a especificidade extra vence institutional-refresh :has(> span)) */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell.indicator-card-shell--uniform .indicator-card-shell__value-row {
+  grid-area: value;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-height: 0;
+  margin-top: 0;
+  padding: var(--space-3) var(--card-padding) 0;
+  border-top: 0;
+  align-self: start;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__value-row strong {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__value-row span {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__value-row--compact strong {
+  font-size: var(--font-size-2xl);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__value-row--dense strong {
+  font-size: var(--font-size-xl);
+}
+
+/* meta única: ano · variação (substitui as duas colunas Ano | Var. desde) */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__metaline {
+  grid-area: meta;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--card-padding) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__metaline strong {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-body);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__metaline span::before {
+  content: "·";
+  margin-right: var(--space-1);
+  color: var(--text-muted);
+}
+
+/* rodapé de ação, fixo no fundo (a faixa 1fr acima empurra para baixo).
+   Ação silenciosa sobre o papel do cartão: sem faixa tingida — o cartão
+   inteiro já é o alvo clicável, então basta uma hairline de separação. */
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__footer--uniform {
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--card-padding) var(--card-padding);
+  min-height: 0;
+  border-top: var(--border-divider);
+  background: transparent;
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__footer-action {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--green-deep);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__action {
+  display: inline-flex;
+  align-items: center;
+  color: var(--green-primary);
+}
+
+/* =================================================================
+   Redesenho visual v2 — cards, grupos, seções, tabelas, detalhe.
+   Tudo abaixo carrega por último e vence a cascata.
+   ================================================================= */
+
+/* --- 1. Cards: faixa de acento + hover dramatico ------------------- */
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform {
+  border-left: 3px solid var(--education-section-accent);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform:hover {
+  border-color: var(--border-line);
+  border-left-color: var(--education-section-accent-ink);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform.is-selected {
+  border-left-color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__topline {
+  padding-top: var(--space-3);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__footer-action {
+  color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page .education-indicator-card.indicator-card-shell--uniform .indicator-card-shell__action {
+  color: var(--education-section-accent);
+}
+
+/* --- 2. Group headers: barra de acento + tipografia reforçada ------ */
+
+.educacao-page .education-indicator-group,
+.educacao-page .education-special-group {
+  padding-top: var(--space-8);
+  border-top: 0;
+}
+
+.educacao-page .education-indicator-group__heading {
+  padding-left: var(--space-4);
+  border-left: 4px solid var(--education-section-accent);
+}
+
+.educacao-page .education-indicator-group__heading h3 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+.educacao-page .education-indicator-group__heading > span {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 60%, var(--surface-card));
+  border-color: var(--education-section-accent-border);
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-indicator-group__description {
+  padding-left: calc(var(--space-4) + 4px);
+}
+
+/* --- 3. Section bar: faixa inferior de acento + tipografia --------- */
+
+.educacao-page .education-section-bar {
+  padding-block: var(--space-5);
+  border-bottom: 3px solid var(--education-section-accent);
+  background: color-mix(in srgb, var(--education-section-accent-soft) 25%, var(--surface-muted));
+}
+
+.educacao-page .education-section-bar__identity h2 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+.educacao-page .education-section-filter-count {
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 4. Compact header: borda inferior com acento da seção --------- */
+
+.educacao-page .education-compact-header {
+  border-bottom: 3px solid var(--education-section-accent);
+}
+
+.educacao-page .education-compact-header__eyebrow .education-domain-icon {
+  color: var(--education-section-accent);
+}
+
+.educacao-page .education-context-chip {
+  border-left: 3px solid var(--education-section-accent-border);
+}
+
+/* --- 5. Tables: listras + cabeçalho com acento --------------------- */
+
+.educacao-page .education-table thead th,
+.educacao-page .education-detail-view .platform-data-table thead th {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--surface-moss));
+  color: var(--education-section-accent-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+.educacao-page .education-table tbody tr:nth-child(even),
+.educacao-page .education-detail-view .platform-data-table tbody tr:nth-child(even) {
+  background: var(--surface-raised);
+}
+
+.educacao-page .education-table tbody tr:nth-child(odd),
+.educacao-page .education-detail-view .platform-data-table tbody tr:nth-child(odd) {
+  background: var(--surface-card);
+}
+
+.educacao-page .education-table tbody tr:hover,
+.educacao-page .education-detail-view .platform-data-table tbody tr:hover {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 50%, var(--surface-card));
+}
+
+/* --- 6. Detail: metric cards com acento + chart framing ------------ */
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__icon {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--green-soft));
+  color: var(--education-section-accent-ink);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card--large .metric-card__value {
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-detail-view .indicator-chart-card,
+.educacao-page .education-detail-view .educacao-explore {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.educacao-page .education-detail-view .education-quick-reading {
+  border-left: 4px solid var(--education-section-accent);
+  border-color: var(--education-section-accent-border);
+  background: color-mix(in srgb, var(--education-section-accent-soft) 40%, var(--card-surface-emphasis));
+}
+
+/* --- 7. Support data sections: borda de acento --------------------- */
+
+.educacao-page--detail .education-detail-view .education-support-data--organized {
+  border-top: 3px solid var(--education-section-accent-border);
+}
+
+.educacao-page--detail .education-support-data__icon {
+  background: color-mix(in srgb, var(--education-section-accent-soft) 70%, var(--green-soft));
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 8. School infrastructure composite card ----------------------- */
+
+.educacao-page .school-infrastructure-composite-card {
+  border-left: 3px solid var(--education-section-accent);
+}
+
+.educacao-page .school-infrastructure-composite-card:hover {
+  border-left-color: var(--education-section-accent-ink);
+}
+
+/* =================================================================
+   Redesenho visual v3 — Panorama alinhado ao padrao de grupo e
+   respiro geral das paginas de indicadores.
+   ================================================================= */
+
+/* --- 1. Panorama: cabecalhos de secao com a mesma barra de acento
+   e tipografia serif usadas nos grupos de indicadores das demais
+   secoes. --------------------------------------------------------- */
+
+.educacao-page .municipal-education-overview__section-heading {
+  padding-left: var(--space-4);
+  border-left: 4px solid var(--education-section-accent);
+}
+
+.educacao-page .municipal-education-overview__section-heading h2 {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-title);
+}
+
+/* --- 2. Respiro: grade de cartoes, grupos e fim de pagina --------- */
+
+.educacao-page .education-indicator-card-grid {
+  gap: var(--space-6);
+}
+
+.educacao-page .education-indicator-groups {
+  gap: var(--space-10);
+}
+
+.education-landing-path {
+  position: relative;
+}
+
+.education-landing-path > a {
+  position: static;
+}
+
+.education-landing-path > a::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.education-landing-concepts > summary {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.education-landing-concepts > summary::-webkit-details-marker {
+  display: none;
+}
+
+.education-landing-concepts > summary strong {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-tight);
+}
+
+.education-landing-concepts:not([open]) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.educacao-page .educacao-workspace {
+  padding-bottom: var(--space-10);
+}
+
+.educacao-page .higher-education-page {
+  padding-bottom: var(--space-10);
+}
+
+/* =================================================================
+   Redesenho visual v4 — eyebrows, estados vazios e polish de graficos
+   ================================================================= */
+
+/* --- 1. Eyebrows com identidade de secao ---------------------------- */
+
+.educacao-page .education-indicator-group__heading .eyebrow {
+  color: var(--education-section-accent-ink);
+}
+
+.educacao-page .education-section-bar__eyebrow {
+  color: var(--education-section-accent-ink);
+}
+
+/* --- 2. Estados vazios, sem resultados e de carregamento: superficie
+   solida e serena no lugar do tracejado plano. --------------------- */
+
+.educacao-page .education-indicator-grid-empty,
+.educacao-page .meta-grid-empty {
+  min-height: var(--content-state-loading-min-height);
+  padding: var(--space-8);
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  display: grid;
+  place-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  text-align: center;
+}
+
+.educacao-page .education-indicator-grid-empty p,
+.educacao-page .meta-grid-empty p {
+  max-width: 48ch;
+  margin: 0;
+}
+
+.educacao-page .special-education-load-state {
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+/* --- 3. Grafico do detalhe: estado vazio alinhado e destaque sutil no
+   ultimo ponto. Cor de traco/area/pontos permanece via JS. --------- */
+
+.educacao-page .education-detail-view .education-chart-empty,
+.educacao-page .education-detail-view .chart-empty-state {
+  background: var(--surface-raised);
+  border: var(--border-width) solid var(--education-section-accent-border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.educacao-page .education-detail-view .education-chart .chart-point-label.is-last {
+  fill: var(--text-strong);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ==========================================================================
+   Redesenho visual v6 — harmoniza Panorama e Educacao Superior com as demais
+   paginas. Os blocos de destaque usavam menta saturada (--surface-moss /
+   --green-soft #e1f2e8), que pesava perto dos cartoes brancos das 5 secoes.
+   Trocamos pela superficie sutil (--surface-raised) e mantemos a hierarquia
+   com um fio de acento, no mesmo idioma das faixas laterais dos cartoes.
+   ========================================================================== */
+
+/* Panorama: bloco "Educacao Basica" (total) deixa de ser menta cheia. */
+.educacao-page .municipal-education-summary__primary {
+  background: var(--surface-raised);
+  border-left: 3px solid var(--education-section-accent);
+}
+
+/* Educacao Superior: caixa "Destaques do municipio" (Leitura rapida) sai da
+   menta para a mesma superficie sutil; borda vira o hairline neutro. */
+.educacao-page .higher-education-entry-quick-reading {
+  background: var(--surface-raised);
+  border-color: var(--border-card);
+}
+

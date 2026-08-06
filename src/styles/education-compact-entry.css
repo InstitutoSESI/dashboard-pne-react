@@ -1,0 +1,597 @@
+/* Shared compact entry system for all Education routes. */
+.dashboard-shell .content-area .educacao-page {
+  gap: 0;
+}
+
+.education-compact-header {
+  min-width: 0;
+  padding: var(--space-4) var(--education-panel-padding);
+  border-block: var(--border-divider);
+  background: var(--surface-card);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.education-compact-header__copy {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-compact-header__eyebrow,
+.education-section-bar__eyebrow {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--line-height-snug);
+  text-transform: none;
+}
+
+/* O selo de dominio acompanha o rotulo de contexto -- e o unico lugar em que
+   ele aparece dentro do conteudo. Ver docs/DESIGN.md, "Assinatura". */
+.education-compact-header__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.education-compact-header__eyebrow .education-domain-icon {
+  color: var(--green-primary);
+}
+
+.education-compact-header h1 {
+  max-width: 30ch;
+  margin: 0;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.dashboard-shell .content-area .educacao-page--detail > .platform-page-header--detail.education-compact-header h1 {
+  max-width: 42ch;
+}
+
+.education-compact-header__description {
+  max-width: none;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  text-wrap: pretty;
+}
+
+.education-compact-header__back {
+  width: fit-content;
+  min-height: var(--touch-target-min);
+  margin-bottom: var(--space-1);
+  justify-self: start;
+}
+
+.education-compact-header__context-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.education-compact-header__context {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.education-compact-header__context-summary {
+  color: var(--text-body);
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.education-context-chip {
+  min-width: 152px;
+  min-height: var(--touch-target-min);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-warm);
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.education-context-chip__icon {
+  width: 22px;
+  height: 22px;
+  color: var(--green-deep);
+  display: inline-flex;
+  flex: 0 0 22px;
+}
+
+.education-context-chip__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.education-context-chip__copy {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-context-chip__label {
+  color: var(--text-subtle);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.education-context-chip__value {
+  max-width: 24ch;
+  color: var(--text-strong);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  overflow-wrap: anywhere;
+}
+
+.education-context-chip--section .education-context-chip__value {
+  max-width: none;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+.education-context-chip--menu {
+  position: relative;
+}
+
+.education-context-chip__menu-trigger {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  text-align: start;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.education-context-chip__menu-trigger:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.education-context-chip__chevron {
+  color: var(--green-deep);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.education-context-chip__menu {
+  z-index: 20;
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  inset-inline-start: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: var(--space-1);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-context-chip__menu > button {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-align: start;
+  cursor: pointer;
+}
+
+.education-context-chip__menu > button:is(:hover, :focus-visible),
+.education-context-chip__menu > button.is-selected {
+  background: var(--green-soft);
+  color: var(--green-deep);
+}
+
+.education-context-chip__menu > button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+@media print {
+  .education-context-chip__menu-trigger {
+    min-height: 0;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .education-context-chip__chevron,
+  .education-context-chip__menu {
+    display: none !important;
+  }
+
+  .educacao-page--detail .education-detail-view,
+  .educacao-page--detail .educacao-detail-panel,
+  .educacao-page--detail .education-primary-analysis,
+  .educacao-page--detail .educacao-main-chart-card {
+    overflow: visible;
+  }
+
+  .educacao-page--detail :is(
+    .education-compact-header,
+    .education-detail-nav,
+    .education-metric-summary,
+    .education-primary-analysis,
+    .educacao-main-chart-card,
+    .education-quick-reading,
+    .education-support-data__header,
+    .education-support-data__item,
+    .education-support-data__footer,
+    .education-chart,
+    .data-source-note
+  ) {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.education-compact-header__action {
+  max-width: 34ch;
+  margin-left: auto;
+  flex: 0 1 auto;
+}
+
+.education-compact-header__action :is(a, button) {
+  min-height: var(--touch-target-min);
+}
+
+.education-attendance-page-header.education-compact-header {
+  min-width: 0;
+  padding: var(--space-4) var(--education-panel-padding);
+  border: 0;
+  border-block: var(--border-divider);
+  border-radius: 0;
+  gap: var(--space-2);
+}
+
+/*
+ * Barra de filtro local da secao de indicadores: compacta e sticky.
+ * Substitui o EducationSectionBar redundante na listagem tematica. Fica presa
+ * logo abaixo da barra de contexto fixa para que contagem e busca sigam
+ * acessiveis em paginas longas. Ver docs/DESIGN.md, Layout.
+ */
+.education-filter-bar {
+  position: sticky;
+  top: var(--context-bar-height);
+  z-index: 6;
+  min-width: 0;
+  padding: var(--space-3) var(--education-panel-padding);
+  border-bottom: var(--border-divider);
+  background: var(--surface-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.education-filter-bar__count {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+}
+
+.education-filter-bar__field {
+  width: min(320px, 42vw);
+  flex: 0 1 auto;
+}
+
+.education-section-bar {
+  min-width: 0;
+  padding: var(--space-4) var(--education-panel-padding);
+  border-bottom: var(--border-divider);
+  background: var(--surface-sand);
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(300px, auto);
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.education-section-bar__identity {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.education-section-bar__identity :is(h2, p) {
+  margin: 0;
+}
+
+.education-section-bar__identity h2 {
+  color: var(--text-strong);
+  font-size: calc(var(--font-size-2xl) + var(--space-1));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  text-wrap: balance;
+}
+
+.education-section-bar__identity p {
+  max-width: 70ch;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  text-wrap: pretty;
+}
+
+.education-section-bar__tools,
+.education-section-bar__search {
+  min-width: 0;
+}
+
+.education-section-bar__search {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.education-section-bar__search > div:first-child {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-section-bar__search .platform-search-field {
+  width: min(320px, 36vw);
+}
+
+.education-section-bar__search .education-section-filter-count {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.dashboard-shell .content-area .education-section-bar__tools .education-attendance-filters.platform-filter-panel {
+  width: min(720px, 58vw);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: grid;
+  grid-template-columns: minmax(190px, 0.65fr) minmax(390px, 1.35fr);
+  align-items: start;
+  gap: var(--space-3);
+  box-shadow: none;
+}
+
+.education-section-bar--scenarios {
+  grid-template-columns: minmax(270px, 0.45fr) minmax(0, 1.55fr);
+}
+
+.dashboard-shell .content-area .education-section-bar--scenarios .education-section-bar__tools .education-attendance-filters.platform-filter-panel {
+  width: 100%;
+  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1.3fr);
+}
+
+.education-section-bar--scenarios .education-attendance-filter-group--type .platform-filter-option {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.dashboard-shell .content-area .education-section-bar__tools .education-attendance-cut-filter.platform-segmented-control--scrollable {
+  overflow-x: visible;
+  scrollbar-width: none;
+}
+
+/*
+ * flex: 1 1 0 forcava todas as opcoes a largura identica (91px), e "Ensino
+ * Fundamental" quebrava no meio da palavra: "Ensino Fundamenta" / "l".
+ * Cada opcao passa a ter a largura do proprio rotulo; o controle ja rola.
+ */
+.dashboard-shell .content-area .education-section-bar__tools .education-attendance-cut-filter.platform-segmented-control--scrollable .education-attendance-cut-filter__option {
+  min-width: 0;
+  padding-inline: var(--space-3);
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.education-section-bar__tools .education-attendance-filter-group {
+  gap: var(--space-1);
+}
+
+.education-section-bar__tools .education-attendance-filter-group--type .platform-category-tabs {
+  width: 100%;
+}
+
+.education-overview-page,
+.educacao-workspace {
+  gap: var(--space-4);
+}
+
+.education-summary-section {
+  gap: 0;
+}
+
+.education-methodology-page {
+  padding-top: var(--page-gap);
+}
+
+.educacao-page--detail .educacao-workspace {
+  gap: var(--space-4);
+}
+
+.education-attendance-page.education-detail-view {
+  gap: 0;
+}
+
+.education-attendance-page > :is(.education-attendance-indicator-list, .education-attendance-empty) {
+  margin-top: var(--page-gap);
+}
+
+.education-attendance-page > .education-attendance-methodology {
+  margin-top: var(--page-gap);
+}
+
+.educacao-page > .empty-state {
+  margin-top: var(--page-gap);
+}
+
+@media (max-width: 1180px) {
+  .education-compact-header__context-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .education-compact-header__action {
+    max-width: var(--content-reading-max);
+    margin-left: 0;
+  }
+
+  .education-section-bar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .education-section-bar__search {
+    justify-content: space-between;
+  }
+
+  .education-section-bar__search .platform-search-field,
+  .dashboard-shell .content-area .education-section-bar__tools .education-attendance-filters.platform-filter-panel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .education-attendance-detail__header .detail-heading__copy > p {
+    white-space: normal;
+  }
+
+  .education-compact-header,
+  .education-attendance-page-header.education-compact-header {
+    padding: var(--space-5) var(--education-panel-padding);
+  }
+
+  .education-compact-header h1 {
+    font-size: var(--type-page-title-size);
+    line-height: var(--line-height-tight);
+  }
+
+  .education-section-bar__identity h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .education-compact-header__context {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .education-context-chip {
+    min-width: 0;
+  }
+
+  .education-context-chip--section .education-context-chip__value {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .dashboard-shell .content-area .education-section-bar__tools .education-attendance-filters.platform-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .content-area .education-section-bar--scenarios .education-section-bar__tools .education-attendance-filters.platform-filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .content-area .education-section-bar__tools .education-attendance-cut-filter.platform-segmented-control--scrollable {
+    height: 46px;
+    min-height: 46px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .dashboard-shell .content-area .education-section-bar__tools .education-attendance-cut-filter.platform-segmented-control--scrollable .education-attendance-cut-filter__option {
+    min-height: 36px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 460px) {
+  .education-compact-header,
+  .education-attendance-page-header.education-compact-header,
+  .education-section-bar {
+    padding-inline: var(--panel-inset-mobile);
+  }
+
+  .education-compact-header h1 {
+    font-size: var(--type-page-title-size);
+  }
+
+  .education-context-chip {
+    min-height: 48px;
+  }
+
+  .education-compact-header--scenarios .education-context-chip {
+    min-height: 44px;
+    padding: 6px var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .education-compact-header--scenarios .education-context-chip__icon {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+
+  .education-section-bar__tools .education-attendance-cut-control__placeholder {
+    display: none;
+  }
+
+  .education-section-bar__search {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .education-section-bar__search .platform-search-field {
+    width: 100%;
+  }
+}
+

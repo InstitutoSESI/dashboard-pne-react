@@ -1,0 +1,291 @@
+/* Education entry page */
+.education-landing-shell {
+  gap: 0;
+}
+
+.education-landing-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.education-landing-page :where(h1, h2, h3, p, dl, dd) {
+  margin: 0;
+}
+
+/*
+ * Landing da Educacao: sintese primeiro.
+ *
+ * Um unico cabecalho e uma faixa de numeros reais do municipio abrem a pagina
+ * (docs/DESIGN.md, Layout). Sairam os kickers repetidos em caixa alta e os
+ * blocos que reexplicavam a organizacao dos temas -- a sintese entrega valor na
+ * entrada. O nome do municipio nao se repete aqui: ja esta no seletor global; e
+ * o proprio numero que carrega a identidade do territorio.
+ */
+.education-landing-summary {
+  padding: var(--card-pad-hero);
+  border: 1px solid color-mix(in srgb, var(--green-deep) 22%, var(--border-card));
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 94% 12%, color-mix(in srgb, var(--green-light) 42%, transparent) 0 15%, transparent 16%),
+    linear-gradient(135deg, var(--surface-card), color-mix(in srgb, var(--green-light) 18%, var(--surface-card)));
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.education-landing-summary__intro {
+  min-width: 0;
+  max-width: 46ch;
+  display: grid;
+  align-content: center;
+  gap: var(--space-3);
+}
+
+.education-landing-summary__intro h1 {
+  max-width: 18ch;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+}
+
+.education-landing-summary__intro p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-landing-summary__intro .platform-navigation-button {
+  width: fit-content;
+  margin-top: var(--space-1);
+}
+
+/* Faixa de numeros-chave: valor neutro em destaque, rotulo silencioso acima e
+   participacao logo abaixo -- dentro do proprio cartao, sem barra separada. */
+.education-landing-figures {
+  min-width: 0;
+}
+
+.education-landing-figures__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.education-landing-figure {
+  min-width: 0;
+  padding: var(--card-pad-base);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+
+.education-landing-figure--primary {
+  grid-column: 1 / -1;
+  background: var(--surface-raised);
+}
+
+.education-landing-figure dt {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+}
+
+.education-landing-figure dd {
+  color: var(--text-strong);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: var(--line-height-tight);
+}
+
+.education-landing-figure--primary dd {
+  font-size: var(--font-size-4xl);
+}
+
+.education-landing-figure__meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.education-landing-figures--loading {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.education-landing-figures--loading span {
+  min-height: 84px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--surface-raised), var(--surface-soft), var(--surface-raised));
+}
+
+.education-landing-figures--loading span:first-child {
+  grid-column: 1 / -1;
+}
+
+.education-landing-figures--hint {
+  padding: var(--card-pad-base);
+  border: var(--border-divider);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-landing-paths {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.education-landing-paths > header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-landing-paths h2 {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+}
+
+.education-landing-paths > header p {
+  max-width: var(--content-reading-max);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.education-landing-paths__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--indicator-card-min), 100%), 1fr));
+  gap: var(--space-4);
+}
+
+.education-landing-path {
+  min-height: 190px;
+  padding: var(--card-pad-base);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--space-2);
+}
+
+.education-landing-path h3 {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-snug);
+}
+
+.education-landing-path p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-landing-path a,
+.education-landing-sources a {
+  width: fit-content;
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+  text-underline-offset: 0.2em;
+}
+
+.education-landing-path a {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Conceitos: recolhido por padrao, abre sob demanda -- nao ocupa a entrada. */
+.education-landing-concepts {
+  padding: var(--card-pad-base);
+}
+
+.education-landing-concepts > summary {
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.education-landing-concepts > summary::-webkit-details-marker {
+  display: none;
+}
+
+.education-landing-concepts > summary strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.education-landing-concepts > summary span {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.education-landing-concepts > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.education-landing-concepts[open] > summary {
+  margin-bottom: var(--space-4);
+}
+
+.education-landing-concepts dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.education-landing-concepts dl > div {
+  min-width: 0;
+  padding: var(--space-4);
+  border: var(--border-divider);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.education-landing-concepts dt {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.education-landing-concepts dd {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-landing-sources {
+  padding: var(--space-2) var(--space-1);
+  color: var(--text-subtle);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.education-landing-sources h2 {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+}
+

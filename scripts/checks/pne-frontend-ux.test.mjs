@@ -7,13 +7,37 @@ import test from 'node:test'
 
 import {
   buildPneSingleYearDataModel,
+  formatApproximateDifference,
+  formatApproximatePercent,
   getPneIndicatorPresentation,
+  isApproximateIndicator,
+  isComparableIndicator,
   toPnePercentDisplay,
 } from '../../src/utils/pneIndicatorPresentation.js'
 import { getDataSourceParts } from '../../src/utils/dataSourceNotes.js'
 import { mergePne2026DiagnosticResults } from '../../src/utils/pneCycleDiagnosticResults.js'
 
 const CYCLE = 'pne_2026_2036'
+
+test('shared PNE presentation helpers keep card and detail decisions aligned', () => {
+  const comparable = {
+    atingida: false,
+    distance: -10,
+    meta: 100,
+    tracks_goal: true,
+  }
+
+  assert.equal(isComparableIndicator(comparable), true)
+  assert.equal(isComparableIndicator({ ...comparable, available: false }), false)
+  assert.equal(isComparableIndicator({ ...comparable, monitoring_mode: 'approximate_reference' }), false)
+  assert.equal(isApproximateIndicator({ monitoring_mode: 'approximate_reference' }, null), true)
+  assert.equal(isApproximateIndicator(null, { monitoring_mode: 'approximate_reference' }), true)
+  assert.equal(isApproximateIndicator(null, comparable), false)
+  assert.equal(formatApproximatePercent(12.34), '12,3%')
+  assert.equal(formatApproximatePercent(undefined), '—')
+  assert.equal(formatApproximateDifference(1.2), '+1,2 p.p.')
+  assert.equal(formatApproximateDifference(undefined), '—')
+})
 
 function presentation(key, metaRef, result) {
   return getPneIndicatorPresentation({

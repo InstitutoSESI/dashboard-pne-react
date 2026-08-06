@@ -5,8 +5,11 @@ colors:
   green-primary: "#2f7057"
   green-deep: "#22523f"
   green-brand-dark: "#10382f"
-  green-accent: "#8fbba1"
+  green-accent: "#98b0a9"
   green-soft: "#e1f2e8"
+  classy-sage: "#657c75"
+  classy-navy: "#1c334a"
+  classy-slate: "#4c627b"
   surface-card: "#fcfefd"
   surface-raised: "#f3f7f5"
   surface-muted: "#e6ece9"
@@ -15,8 +18,8 @@ colors:
   border-faint: "#dfe3e1"
   border-card: "#cfd5d2"
   border-line: "#c6ceca"
-  border-strong-line: "#acb8b1"
-  text-strong: "#1b241f"
+  border-strong-line: "#98b0a9"
+  text-strong: "#1c334a"
   text: "#2e3632"
   text-body: "#505753"
   text-muted: "#616965"
@@ -27,14 +30,14 @@ colors:
   status-muted-ink: "#5e6b62"
   signal-ochre: "#8e5e00"
   signal-clay: "#9d533f"
-  signal-blue: "#446c85"
+  signal-blue: "#4c627b"
   chart-series-1: "#307057"
-  chart-series-2: "#296389"
+  chart-series-2: "#1c334a"
   chart-series-3: "#9d671c"
-  chart-series-4: "#71497a"
+  chart-series-4: "#4c627b"
   chart-series-5: "#9c4f44"
-  chart-series-6: "#467f82"
-  chart-axis: "#7b827e"
+  chart-series-6: "#657c75"
+  chart-axis: "#657c75"
   chart-grid: "#d4d9d6"
 typography:
   display:
@@ -203,7 +206,7 @@ A rampa de neutros é tingida no próprio verde institucional, não em bege quen
 
 ## Cores
 
-Uma família verde institucional sobre uma rampa de neutros tingida na mesma matiz (hue OKLCH ~162), com sinais fora da família reservados para estado e para série de dados.
+Uma família verde institucional sobre uma rampa de neutros tingida na mesma matiz (hue OKLCH ~162), complementada pela Classy Palette em navy, slate e sage. O verde continua sendo ação e identidade; os tons azulados acrescentam hierarquia e variedade a títulos, orientação e séries de dados.
 
 ### Primária
 - **Verde Institucional** (`#2f7057`): a cor de ação e seleção. Botão primário, item de navegação ativo, linha de referência em gráfico, borda de foco. Nunca decorativo.
@@ -211,7 +214,10 @@ Uma família verde institucional sobre uma rampa de neutros tingida na mesma mat
 - **Verde Institucional Escuro** (`#10382f`): exclusivo da barra lateral. É a segunda camada neutra do sistema — separa navegação de conteúdo sem competir com ele.
 
 ### Secundária
-- **Verde Névoa** (`#8fbba1`): bordas de blocos de ênfase e destaques de leitura. É o único verde que aparece como contorno em elemento não interativo.
+- **Verde Névoa** (`#98b0a9`): bordas de blocos de ênfase, divisores de navegação e destaques de leitura. Por ter baixo contraste sobre superfícies claras, nunca carrega texto principal.
+- **Navy Editorial** (`#1c334a`): títulos, valores fortes e séries de dados escuras. Introduz contraste frio sem disputar com o verde de ação.
+- **Azul Ardósia** (`#4c627b`): acento secundário, orientação e comparação em gráficos. Pode carregar texto sobre superfícies claras e texto invertido quando usado como fundo.
+- **Sálvia Mineral** (`#657c75`): séries auxiliares, eixos e acentos gráficos. Não deve ser usado como texto sobre a Mesa porque não atinge o piso de 4,5:1 nessa combinação.
 - **Verde Sereno** (`#e1f2e8`): fundo de bloco de leitura, cabeçalho de tabela, chip selecionado. Marca "isto é interpretação", não dado bruto. É uma tinta para **superfície pequena**: em bloco amplo — um total de destaque, um painel que embrulha cartões — o mesmo verde vira menta cheia e destoa do resto, que é cartão branco sobre neutro. Nesses casos, use Papel Elevado e um fio de acento para a hierarquia.
 
 ### Neutra
@@ -219,8 +225,8 @@ Uma família verde institucional sobre uma rampa de neutros tingida na mesma mat
 - **Papel Elevado** (`#f3f7f5`): faixa interna dentro de um cartão — cabeçalho de seção, subtotal, agrupamento; também o fundo do painel que acomoda uma grade de cartões (ver [Layout](#layout)).
 - **Mesa** (`#e2e8e5`): o fundo da página sobre o qual painel e cartões repousam.
 - **Mesa Profunda** (`#dae1dd`): a borda externa do corpo, atrás da mesa.
-- **Tinta Forte** / **Tinta** / **Tinta Suave** / **Tinta Discreta** (`#1b241f` → `#2e3632` → `#505753` → `#616965`): a rampa de texto, em quatro degraus. `#616965` é o piso — abaixo dele nada carrega texto.
-- **Fios** (`#dfe3e1` → `#cfd5d2` → `#c6ceca` → `#acb8b1`): quatro pesos de borda, do mais discreto ao mais estrutural.
+- **Tinta Forte** / **Tinta** / **Tinta Suave** / **Tinta Discreta** (`#1c334a` → `#2e3632` → `#505753` → `#616965`): o primeiro degrau usa o navy editorial; os demais preservam a rampa neutra. `#616965` é o piso — abaixo dele nada carrega texto.
+- **Fios** (`#dfe3e1` → `#cfd5d2` → `#c6ceca` → `#98b0a9`): quatro pesos de borda, do mais discreto ao mais estrutural.
 
 ### Regras nomeadas
 
@@ -228,7 +234,7 @@ Uma família verde institucional sobre uma rampa de neutros tingida na mesma mat
 
 **A Regra do Não-Julgamento.** Vermelho, âmbar e verde nunca formam semáforo de mérito. Aprovação usa verde; reprovação e abandono usam neutros da mesma família. Variação positiva não significa bom, nem negativa significa ruim: o rótulo e o texto explicam o sentido do indicador.
 
-**A Regra da Matiz Própria.** Neutros são tingidos no verde da marca, nunca em bege ou cinza puro. Um novo neutro nasce da mesma matiz (~162) com croma entre 0,002 e 0,009.
+**A Regra da Matiz Própria.** Superfícies e neutros de apoio são tingidos no verde da marca, nunca em bege ou cinza puro. Um novo neutro nasce da mesma matiz (~162) com croma entre 0,002 e 0,009. Navy, slate e sage são acentos nomeados da Classy Palette, não novos neutros genéricos.
 
 ## Tipografia
 
@@ -352,6 +358,16 @@ A linha do **gráfico principal do detalhe** ("Evolução do indicador") assume 
 ### Tabelas
 O componente de assinatura do sistema. Cabeçalho em Verde Sereno com texto Verde Profundo, altura de linha de 44px, célula com 12px por 16px, numeral tabular e alinhamento à direita em coluna numérica. Toda tabela larga vive dentro de uma região rolável com nome acessível. A tabela é o registro preciso: quando houver visualização ao lado, ela é que carrega o valor exato e a alternativa textual.
 
+### Propriedade dos estilos de Educação
+
+`src/styles/education-pages.css` é somente o manifesto ordenado do domínio. A sequência de `@import` preserva a cascata e é um contrato validado por `npm run test:ui-architecture`; não coloque seletores nesse arquivo nem importe seus módulos filhos diretamente em componentes.
+
+- Gramática compartilhada: `education-pages-base.css`, `education-page-shell.css`, `education-compact-entry.css`, `education-detail-layout.css` e `education-pages-refinements.css`.
+- Rotas e experiências: `education-higher-education.css`, `education-demand.css`, `education-methodology.css`, `education-sistema-s.css`, `education-overview.css`, `education-landing.css`, `education-attendance-summary.css` e `education-technical-report.css`.
+- Composições de detalhe: `education-indicator-support-data.css`, `education-school-infrastructure.css` e `education-school-infrastructure-report.css`.
+
+Uma regra nova entra no arquivo responsável pela superfície que a consome. Quando uma regra compartilhada precisar mudar, edite sua origem canônica e preserve a posição do módulo no manifesto; não crie um override tardio em outro arquivo apenas para vencer especificidade.
+
 ## Fazer e evitar
 
 ### Fazer
@@ -373,5 +389,5 @@ O componente de assinatura do sistema. Cabeçalho em Verde Sereno com texto Verd
 - Aninhar cartão dentro de cartão. Se precisa de agrupamento interno, use faixa em Papel Elevado.
 - Travar altura de cartão para alinhar uma grade.
 - Vermelho/âmbar/verde como semáforo de mérito sobre resultado municipal.
-- Empilhar override em CSS de domínio para vencer a cascata — `education-pages.css` carrega por último e vence. Edite a regra na origem.
+- Empilhar override em CSS de domínio para vencer a cascata — o manifesto `education-pages.css` carrega por último e vence. Edite a regra no módulo responsável listado pelo próprio manifesto.
 - Repetir o selo de domínio em cartão de indicador ou em cabeçalho de agrupamento interno.

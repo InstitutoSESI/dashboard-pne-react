@@ -1,4 +1,3 @@
-import { isComparableIndicator } from './IndicatorDetail'
 import { StatusBadge } from './StatusBadge'
 import {
   formatIndicatorValue,
@@ -20,7 +19,11 @@ import {
   isPneComparableIndicator,
 } from '../utils/pneDisplayRules'
 import {
+  formatApproximateDifference,
+  formatApproximatePercent,
   getPneIndicatorPresentation,
+  isApproximateIndicator,
+  isComparableIndicator,
   toPnePercentDisplay,
 } from '../utils/pneIndicatorPresentation'
 
@@ -407,32 +410,6 @@ function getMetaCardStatus(result, comparable, cycleCopy, isApproximate) {
   }
 
   return { label: cycleCopy.status.missing, rawStatus, state: 'missing', tone: 'muted' }
-}
-
-function isApproximateIndicator(item, result) {
-  return (
-    item?.monitoring_mode === 'approximate_reference' ||
-    result?.monitoring_mode === 'approximate_reference'
-  )
-}
-
-function formatApproximatePercent(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '—'
-  return `${numeric.toLocaleString('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`
-}
-
-function formatApproximateDifference(value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '—'
-  const sign = numeric > 0 ? '+' : ''
-  return `${sign}${numeric.toLocaleString('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })} p.p.`
 }
 
 function getProgressPercent(result) {

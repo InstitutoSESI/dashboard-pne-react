@@ -1,0 +1,837 @@
+/*
+ * Colunas pela largura do conteudo, nao pela contagem por viewport.
+ *
+ * Antes a grade fixava 4 -> 3 -> 1 colunas por breakpoint, o que espremia o
+ * cartao entre 1080 e 1440px e abria vazio quando o grupo tinha 2 ou 5 itens.
+ * auto-fit + minmax(min(--indicator-card-min, 100%), 1fr) resolve o numero de
+ * colunas pelo espaco real: cada cartao guarda a largura minima de leitura e a
+ * grade quebra sozinha, sem cartao estreito nem coluna orfa. Ver docs/DESIGN.md.
+ */
+
+/* Existing provisional and state layouts */
+
+@media (max-width: 1180px) {
+  .education-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .educacao-page .education-card {
+    border-top: var(--border-divider);
+  }
+
+  .educacao-page .education-card:nth-child(-n + 4) {
+    border-top: 0;
+  }
+
+  .educacao-page .education-card:nth-child(4n + 1) {
+    border-inline-start: 0;
+  }
+
+  .education-methodology-source-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .educacao-page {
+    --education-panel-padding: var(--panel-inset-intermediate);
+  }
+
+  .education-summary-header,
+  .education-section-navigation__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .education-summary-note,
+  .education-section-navigation__heading p {
+    text-align: left;
+  }
+
+  .education-section-link-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .education-methodology-page {
+    grid-template-columns: 1fr;
+  }
+
+  .education-methodology-page > * {
+    grid-column: 1;
+  }
+
+}
+
+@media (max-width: 1180px) {
+  .educacao-page {
+    --education-panel-padding: var(--panel-inset-intermediate);
+  }
+
+  .education-indicator-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .education-indicator-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 620px) {
+  .educacao-page {
+    --education-panel-padding: var(--panel-inset-mobile);
+    gap: var(--space-4);
+  }
+
+  .educacao-workspace,
+  .education-overview-page,
+  .education-methodology-page {
+    gap: var(--space-4);
+  }
+
+  .educacao-hero,
+  .education-thematic-heading,
+  .educacao-page .educacao-filter-panel,
+  .education-indicator-group,
+  .education-special-group,
+  .education-methodology-text,
+  .education-methodology-links {
+    padding: var(--education-panel-padding);
+  }
+
+  .educacao-hero h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .educacao-hero__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .educacao-hero__meta p {
+    width: 100%;
+    border-radius: var(--radius-sm);
+  }
+
+  .education-thematic-heading h2,
+  .education-summary-title,
+  .education-section-navigation__heading h2,
+  .educacao-page .educacao-filter-panel .cycle-filter-panel__heading h2,
+  .educacao-page .education-section-filter-count {
+    font-size: var(--font-size-xl);
+  }
+
+  .education-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .educacao-page .education-card:nth-child(n) {
+    border-top: var(--border-divider);
+    border-inline-start: var(--border-divider);
+  }
+
+  .educacao-page .education-card:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .educacao-page .education-card:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .educacao-page .education-card {
+    min-height: 116px;
+    padding: var(--space-3);
+  }
+
+  .education-section-link-grid,
+  .education-section-link--secondary,
+  .education-indicator-card-grid,
+  .education-methodology-source-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .education-section-link {
+    min-height: 0;
+    padding: var(--space-4);
+  }
+
+  .education-section-link--secondary {
+    gap: var(--space-2);
+  }
+
+  .education-indicator-groups {
+    gap: var(--space-5);
+  }
+
+  .education-indicator-group,
+  .education-special-group {
+    gap: var(--space-4);
+    padding: var(--education-panel-padding);
+  }
+
+  .education-indicator-group__heading,
+  .education-methodology-section-heading,
+  .education-methodology-source__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .educacao-page .education-indicator-card {
+    min-height: 0;
+    padding: var(--space-4);
+    grid-template-rows: auto auto auto auto auto 52px auto;
+  }
+
+  .educacao-page .education-detail-view .educacao-detail-panel,
+  .educacao-page .education-detail-view .indicator-chart-card,
+  .educacao-page .education-detail-view .educacao-explore,
+  .education-methodology-source {
+    padding: var(--education-panel-padding);
+  }
+
+  .educacao-page .education-detail-view .educacao-detail-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .educacao-page .educacao-detail-heading__badges {
+    justify-content: flex-start;
+  }
+
+  .educacao-page .education-detail-view .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .educacao-page .education-detail-view .metric-card {
+    min-height: 0;
+    border-inline-start: 0;
+    border-top: var(--border-divider);
+  }
+
+  .educacao-page .education-detail-view .metric-card:first-child {
+    border-top: 0;
+  }
+
+  .education-methodology-source__metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .education-methodology-source__metadata > div {
+    border-inline-start: 0;
+    border-top: var(--border-divider);
+  }
+
+  .education-methodology-source__metadata > div:first-child {
+    border-top: 0;
+  }
+
+
+  .education-methodology-links__list {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .education-methodology-links__list a {
+    width: 100%;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .education-section-link,
+  .educacao-page .education-indicator-card {
+    transition: none;
+  }
+
+  .education-section-link:hover,
+  .educacao-page .education-indicator-card:hover {
+    transform: none;
+  }
+}
+
+/* Compact indicator detail: essential evidence first, support on demand. */
+.educacao-page--detail > .educacao-hero {
+  display: none;
+}
+
+.educacao-page--detail .educacao-workspace,
+.educacao-page--detail .education-detail-view {
+  gap: var(--space-3);
+}
+
+.educacao-page--detail .education-detail-view .educacao-detail-panel {
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.educacao-page--detail .education-detail-view .educacao-detail-heading {
+  min-height: 0;
+  padding: 0 0 var(--space-2);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.educacao-page--detail .education-detail-view .detail-heading__copy {
+  gap: var(--space-1);
+}
+
+.educacao-page--detail .education-detail-view .detail-heading__copy > .eyebrow {
+  display: none;
+}
+
+.educacao-page--detail .education-detail-view .educacao-detail-heading :is(h2, h3) {
+  max-width: 52ch;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-snug);
+}
+
+.educacao-page--detail .education-detail-view .metric-grid,
+.educacao-page--detail .education-detail-view .metric-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.educacao-page--detail .education-detail-view .metric-card {
+  min-height: 72px;
+  padding: var(--space-3);
+  gap: var(--space-1);
+}
+
+.educacao-page--detail .education-detail-view .metric-card__value,
+.educacao-page--detail .education-detail-view .metric-card--large .metric-card__value {
+  font-size: var(--type-data-compact-size);
+  font-weight: var(--type-data-weight);
+  line-height: var(--line-height-tight);
+}
+
+.educacao-page--detail .education-detail-view .education-quick-reading {
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  align-items: start;
+}
+
+.educacao-page--detail .education-detail-view .education-quick-reading > span {
+  grid-row: 1 / span 2;
+}
+
+.educacao-page--detail .education-detail-view .education-quick-reading :is(p, small) {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.educacao-page--detail .education-detail-view .indicator-chart-card,
+.educacao-page--detail .education-detail-view .educacao-explore {
+  padding: var(--space-3);
+}
+
+.educacao-page--detail .education-detail-view .educacao-main-chart-card {
+  gap: var(--space-2);
+}
+
+.educacao-page--detail .education-detail-view .educacao-main-chart-card .education-chart,
+.educacao-page--detail .education-detail-view .educacao-main-chart-card .education-chart__canvas {
+  min-height: 0;
+  height: var(--detail-chart-height-main);
+}
+
+.educacao-page--detail .education-detail-view .educacao-main-chart-card .education-chart svg {
+  min-height: 0;
+  height: var(--detail-chart-height-main);
+  max-height: var(--detail-chart-height-main);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .education-chart,
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .education-chart__canvas,
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .education-chart svg {
+  min-height: 0;
+  height: var(--detail-chart-height-main);
+  max-height: var(--detail-chart-height-main);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-detail-view .metric-grid .metric-card {
+  min-height: 80px;
+  padding: var(--space-2);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .indicator-chart-header {
+  margin-bottom: 0;
+  gap: var(--space-2);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .indicator-chart-eyebrow {
+  display: none;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .indicator-chart-title-group {
+  gap: var(--space-1);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .indicator-chart-title-group h3 {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-main-chart-card .indicator-chart-title-group p {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented {
+  margin-bottom: 0;
+  padding-bottom: var(--space-2);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-chart-title-group {
+  flex: 1 1 360px;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+  width: min(58%, 680px);
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-stage-segmented {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: var(--space-1);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-stage-segmented__button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.educacao-page--detail .platform-support-disclosure.educacao-explore,
+.educacao-page--detail .platform-support-disclosure.infra-evolution-table-wrap {
+  padding: 0;
+}
+
+@media screen and (max-width: 700px) {
+  .educacao-page--detail .education-detail-view .educacao-detail-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .educacao-page--detail .education-detail-view .educacao-detail-heading__badges {
+    justify-content: flex-start;
+  }
+
+  .educacao-page--detail .education-detail-view .metric-grid,
+  .educacao-page--detail .education-detail-view .metric-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .educacao-page--detail .education-detail-view .metric-card:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .educacao-page--detail .education-detail-view .metric-card:nth-child(n + 3) {
+    border-top: var(--border-divider);
+  }
+
+  .educacao-page--detail .education-detail-view .education-quick-reading {
+    grid-template-columns: 1fr;
+  }
+
+  .educacao-page--detail .education-detail-view .education-quick-reading > span {
+    grid-row: auto;
+  }
+
+  .dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .content-area .educacao-page--detail .indicator-chart-header.has-wide-segmented .indicator-chart-title-group {
+    flex: 0 0 auto;
+  }
+}
+
+/* Organized education detail: primary evidence and interpretation share one reading plane. */
+.content-area .educacao-detail-panel > .metric-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.education-primary-analysis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 7.2fr) minmax(248px, 2.8fr);
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.education-primary-analysis > :is(
+  .educacao-main-chart-card,
+  .education-quick-reading
+) {
+  min-width: 0;
+}
+
+.education-primary-analysis .educacao-main-chart-card {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.educacao-page--detail .education-detail-view .education-primary-analysis .education-quick-reading {
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--border-width) solid color-mix(in srgb, var(--green-primary) 22%, var(--border-card));
+  border-left: var(--border-width-strong) solid var(--green-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-moss) 55%, var(--surface-card));
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  align-content: initial;
+  gap: var(--space-3);
+}
+
+.content-area .education-primary-analysis .educacao-main-chart-card .education-chart {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--chart-height-md);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.content-area .education-primary-analysis .educacao-main-chart-card .education-chart__canvas,
+.content-area .education-primary-analysis .educacao-main-chart-card .education-chart svg {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--chart-height-md);
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+.content-area .education-primary-analysis .educacao-main-chart-card .education-chart {
+  padding: 0;
+  overflow: hidden;
+}
+
+.education-primary-analysis .education-chart :is(
+  .chart-axis-label,
+  .chart-x-label,
+  .chart-point-label
+) {
+  font-size: var(--font-size-xs);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked),
+.dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked) .education-chart__canvas,
+.dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked) svg {
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+}
+
+.content-area .education-primary-analysis .indicator-chart-header.has-wide-segmented {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.content-area .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-chart-title-group {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.content-area .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.educacao-page--detail .educacao-detail-panel > .education-quick-reading {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.educacao-page--detail .educacao-detail-panel > .education-quick-reading .platform-quick-reading__list {
+  border: 0;
+  background: transparent;
+}
+
+.educacao-page--detail .educacao-detail-panel > .education-quick-reading .platform-quick-reading__list li {
+  min-height: 0;
+  padding: 0;
+}
+
+@container workspace (max-width: 1040px) {
+  .education-primary-analysis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-primary-analysis .platform-quick-reading__list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .education-primary-analysis .platform-quick-reading__list li + li {
+    border-top: 0;
+    border-inline-start: var(--border-divider);
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .content-area .educacao-detail-panel > .metric-grid--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .education-primary-analysis .educacao-main-chart-card {
+    padding: var(--space-3);
+  }
+
+  .content-area .education-primary-analysis .educacao-main-chart-card .education-chart,
+  .content-area .education-primary-analysis .educacao-main-chart-card .education-chart__canvas,
+  .content-area .education-primary-analysis .educacao-main-chart-card .education-chart svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+  .dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked),
+  .dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked) .education-chart__canvas,
+  .dashboard-shell .content-area .educacao-page--detail .education-support-data .education-chart:not(.education-chart--bar, .education-chart--stacked) svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+  .education-primary-analysis .platform-quick-reading__list {
+    display: flex;
+  }
+
+  .education-primary-analysis .platform-quick-reading__list li + li {
+    border-top: var(--border-divider);
+    border-inline-start: 0;
+  }
+
+  .educacao-page--detail .educacao-detail-panel > .education-quick-reading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Specificity bridge while legacy detail selectors remain active in App.css. */
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart,
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart__canvas,
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart svg {
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  height: 300px;
+  max-height: 300px;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart {
+  padding: 0;
+  overflow: hidden;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-chart-title-group {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+@media screen and (max-width: 700px) {
+  .dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart,
+  .dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart__canvas,
+  .dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card .education-chart svg {
+    min-height: 280px;
+    height: 280px;
+    max-height: 280px;
+  }
+
+}
+
+@media screen and (max-width: 420px) {
+  .educacao-page--detail > .education-compact-header--detail h1 {
+    min-height: 2.4em;
+  }
+
+  .educacao-page--detail > .education-compact-header--detail .education-compact-header__description {
+    min-height: 3em;
+  }
+
+  .educacao-page--detail > .education-compact-header--detail .education-compact-header__context {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .educacao-page--detail .education-detail-view .metric-grid,
+  .educacao-page--detail .education-detail-view .metric-grid--three,
+  .educacao-page--detail .education-detail-view .metric-grid--four,
+  .content-area .educacao-detail-panel > .metric-grid--four {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Education detail refinements aligned with the visible PNE support-card pattern. */
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .educacao-main-chart-card {
+  padding: var(--space-5);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented {
+  padding: var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  gap: var(--space-4);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-chart-title-group {
+  gap: var(--space-1);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .education-primary-analysis .indicator-chart-header.has-wide-segmented .indicator-stage-segmented-wrap {
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-segmented-label {
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-segmented.platform-segmented-control--scrollable {
+  width: 100%;
+  height: auto;
+  min-height: 52px;
+  background: var(--surface-card);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  align-items: stretch;
+  overflow: visible;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-segmented.platform-segmented-control--scrollable .indicator-stage-segmented__button {
+  min-height: var(--touch-target-min);
+  padding-inline: var(--space-4);
+  white-space: normal;
+  text-wrap: balance;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-select-wrap {
+  width: min(42%, 360px);
+  flex: 0 1 360px;
+  display: flex;
+  align-items: end;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-select {
+  width: min(100%, 360px);
+  max-width: 360px;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .indicator-stage-select select {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary {
+  gap: var(--space-3);
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card {
+  min-height: 104px;
+  padding: var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value"
+    "icon detail";
+  align-content: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card + .metric-card {
+  border-inline-start: var(--border-default);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__icon {
+  grid-area: icon;
+  width: var(--icon-box-md);
+  height: var(--icon-box-md);
+  padding: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--green-soft);
+  color: var(--green-deep);
+  display: block;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card--warning .metric-card__icon {
+  background: var(--status-far-bg);
+  color: var(--status-far-ink);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card--success .metric-card__icon {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-ink);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card--muted .metric-card__icon {
+  background: var(--status-muted-bg);
+  color: var(--status-muted-ink);
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__label {
+  grid-area: label;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__value {
+  grid-area: value;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-detail-panel--organized .education-metric-summary .metric-card__detail {
+  grid-area: detail;
+}
+

@@ -1,0 +1,4473 @@
+/* Municipal technical report */
+.dashboard-shell:has(.municipal-technical-report) {
+  --technical-report-canvas-max: 1160px;
+  --technical-report-shell-max: calc(var(--technical-report-canvas-max) + (2 * var(--page-padding-inline)));
+}
+
+.dashboard-shell:has(.municipal-technical-report) .content-area {
+  width: min(100%, var(--technical-report-shell-max));
+  max-width: var(--technical-report-shell-max);
+}
+
+.educacao-page--relatorio-tecnico-municipal {
+  width: 100%;
+  max-width: var(--technical-report-canvas-max);
+  margin-inline: auto;
+  scroll-behavior: smooth;
+}
+
+.municipal-technical-report {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-5);
+}
+
+.municipal-technical-report :where(h1, h2, h3, p, dl, dd) {
+  margin: 0;
+}
+
+.municipal-technical-report__hero {
+  padding: var(--space-5) clamp(var(--space-5), 3vw, var(--space-8));
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-md);
+  background: var(--green-soft);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 240px);
+  align-items: start;
+  gap: var(--space-4) var(--space-6);
+  box-shadow: none;
+}
+
+.municipal-technical-report__hero-copy {
+  max-width: 84ch;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__hero-subject {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--green-deep);
+}
+
+.content-area .municipal-technical-report .municipal-technical-report__excel {
+  background: var(--green-primary);
+  color: var(--text-inverted);
+  border-color: var(--green-primary);
+}
+
+.content-area .municipal-technical-report .municipal-technical-report__excel:hover:not(:disabled) {
+  background: var(--green-deep);
+  border-color: var(--green-deep);
+}
+
+.municipal-technical-report__hero-actions {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-2);
+  text-align: right;
+}
+
+.municipal-technical-report__hero-actions > p {
+  color: var(--text-subtle);
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__hero-actions > p span {
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.municipal-technical-report__hero-actions > p strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-md);
+}
+
+.municipal-technical-report__hero-identity {
+  grid-column: 1 / -1;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--green-accent);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+}
+
+.municipal-technical-report__hero-identity > div,
+.municipal-technical-report__identity > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__hero-identity > div {
+  padding-inline: var(--space-4);
+  border-inline-start: 1px solid var(--green-accent);
+}
+
+.municipal-technical-report__hero-identity > div:first-child {
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__hero-identity > div:last-child {
+  padding-inline-end: 0;
+}
+
+.municipal-technical-report__hero-identity dt,
+.municipal-technical-report__identity dt {
+  color: var(--text-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.municipal-technical-report__hero-identity dd,
+.municipal-technical-report__identity dd {
+  color: var(--text-strong);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report__synthesis {
+  padding: clamp(var(--space-4), 2vw, var(--space-5));
+  border-block: var(--border-default);
+  background: color-mix(in srgb, var(--green-soft) 20%, var(--surface-card));
+  display: grid;
+  gap: var(--space-4);
+}
+
+.municipal-technical-report__synthesis > header {
+  max-width: 78ch;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__synthesis h2 {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  line-height: var(--line-height-tight);
+}
+
+.municipal-technical-report__synthesis > header p,
+.municipal-technical-report__synthesis-readings {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.municipal-technical-report__synthesis-readings {
+  margin: 0;
+  padding: var(--space-4) 0 0 var(--space-5);
+  border-top: var(--border-divider);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__summary h2 {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  line-height: var(--line-height-tight);
+}
+
+.municipal-technical-report__summary-grid {
+  margin-top: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-2) var(--space-6);
+}
+
+.municipal-technical-report__summary-chapter {
+  min-width: 0;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  break-inside: avoid;
+}
+
+.municipal-technical-report__summary-chapter:hover {
+  background: transparent;
+}
+
+.municipal-technical-report__summary-chapter > header {
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid color-mix(in srgb, var(--green-deep) 32%, var(--border-card));
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__summary-chapter > header > div {
+  color: var(--text-subtle);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.municipal-technical-report__summary-chapter h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.municipal-technical-report__summary ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.municipal-technical-report__summary li {
+  border-bottom: var(--border-divider);
+}
+
+.municipal-technical-report__summary li a {
+  min-height: 0;
+  padding: var(--space-1);
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+  text-decoration: none;
+}
+
+.municipal-technical-report__summary-item-title {
+  min-width: 0;
+}
+
+.municipal-technical-report__summary-leader {
+  flex: 1 1 auto;
+  align-self: center;
+  min-width: var(--space-3);
+  margin: 0 var(--space-2);
+  border-bottom: 1px dotted var(--border-strong-line);
+}
+
+.municipal-technical-report__summary li a:hover {
+  color: var(--green-deep);
+  background: color-mix(in srgb, var(--green-soft) 22%, transparent);
+}
+
+.municipal-technical-report__summary a:focus-visible {
+  border-radius: var(--radius-xs);
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+.municipal-technical-report a:focus-visible {
+  border-radius: var(--radius-xs);
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+.municipal-technical-report__summary-locator {
+  flex: none;
+  color: var(--green-deep);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report__summary,
+.municipal-technical-report__chapter,
+.municipal-technical-report__section {
+  scroll-margin-top: 96px;
+}
+
+.municipal-technical-report__chapter-sections {
+  min-width: 0;
+  display: block;
+}
+
+.municipal-technical-report__section {
+  min-width: 0;
+  padding: var(--space-5) 0;
+  border-top: var(--border-divider);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.municipal-technical-report__chapter-sections > .municipal-technical-report__section:first-child {
+  border-top: 0;
+}
+
+.municipal-technical-report__section--compact {
+  padding-block: var(--space-4);
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__section > header {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-4);
+}
+
+.municipal-technical-report__section header > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__section h3 {
+  color: var(--text-strong);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-snug);
+  text-wrap: balance;
+}
+
+.municipal-technical-report__section-metadata {
+  color: var(--text-subtle);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.municipal-technical-report__section--compact .municipal-technical-report__section-body {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__section-body {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-3);
+  color: var(--text-body);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.municipal-technical-report__section-body > * {
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics {
+  grid-column: span 5;
+}
+
+.municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll {
+  grid-column: span 7;
+}
+
+.municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll {
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report__section-body > p:not(.municipal-technical-report__note) {
+  max-width: 82ch;
+}
+
+.municipal-technical-report__section-body > ul {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__metrics,
+.municipal-technical-report__identity {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.municipal-technical-report__metrics--1 {
+  width: min(100%, 360px);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.municipal-technical-report__metrics--2 {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.municipal-technical-report__metrics--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.municipal-technical-report__metrics--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.municipal-technical-report__identity {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.municipal-technical-report__metrics > div,
+.municipal-technical-report__identity > div {
+  min-width: 0;
+  padding: var(--space-3);
+  border: var(--border-divider);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--green-soft) 44%, var(--surface-card));
+}
+
+.municipal-technical-report__metrics > div {
+  min-height: 72px;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.municipal-technical-report__metrics dd {
+  color: var(--text-strong);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report__table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  scrollbar-gutter: stable;
+}
+
+.municipal-technical-report table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  background: var(--surface-card);
+  font-size: var(--type-support);
+  line-height: 1.5;
+}
+
+.municipal-technical-report caption {
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-strong);
+  background: var(--surface-soft);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  text-align: left;
+}
+
+.municipal-technical-report :where(th, td) {
+  padding: 0.4rem var(--space-3);
+  border-top: var(--border-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.municipal-technical-report thead th {
+  color: var(--text-strong);
+  background: color-mix(in srgb, var(--green-soft) 58%, var(--surface-card));
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-technical-report tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__numeric {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report__table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-soft) 44%, transparent);
+}
+
+.municipal-technical-report__table--stage .municipal-technical-report__table-col-label {
+  width: 46%;
+}
+
+.municipal-technical-report__table--stage .municipal-technical-report__table-col-value {
+  width: 19%;
+}
+
+.municipal-technical-report__table--stage .municipal-technical-report__table-col-year {
+  width: 16%;
+}
+
+.municipal-technical-report__table--indicators .municipal-technical-report__table-col-indicator {
+  width: 58%;
+}
+
+.municipal-technical-report__table--indicators .municipal-technical-report__table-col-value {
+  width: 16%;
+}
+
+.municipal-technical-report__table--indicators .municipal-technical-report__table-col-year {
+  width: 12%;
+}
+
+.municipal-technical-report__total {
+  background: var(--surface-soft);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__unavailable {
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-default);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+  align-items: flex-start;
+  gap: var(--space-5);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__unavailable-status {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__unavailable-status span {
+  color: var(--green-deep);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.municipal-technical-report__unavailable-status strong {
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-technical-report__note {
+  max-width: 88ch;
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__links a {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--control-radius);
+  color: var(--green-deep);
+  background: var(--surface-card);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.municipal-technical-report__sources {
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.municipal-technical-report__pme {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.municipal-technical-report__metrics--compact {
+  width: 100%;
+  gap: 0;
+  border: 0;
+  border-block: var(--border-divider);
+  border-radius: 0;
+  background: var(--surface-moss);
+  overflow: hidden;
+}
+
+.municipal-technical-report__metrics--compact > div {
+  min-height: 0;
+  padding: 0.625rem var(--space-4);
+  border: 0;
+  border-inline-start: var(--border-divider);
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.municipal-technical-report__metrics--compact > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__metrics--compact dt {
+  color: var(--text-body);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__metrics--compact dd {
+  order: -1;
+  color: var(--green-deep);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.municipal-technical-report__pme-status {
+  padding: var(--space-4);
+  border: var(--border-default);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: var(--surface-soft);
+}
+
+.municipal-technical-report__pme-table-scroll:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--green-deep) 34%, transparent);
+  outline-offset: 2px;
+}
+
+.municipal-technical-report .municipal-technical-report__pme-table {
+  font-size: var(--type-support);
+  line-height: 1.5;
+}
+
+.municipal-technical-report .municipal-technical-report__pme-table--screen {
+  width: 100%;
+  min-width: 1360px;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.municipal-technical-report__pme-print {
+  display: none;
+}
+
+.municipal-technical-report__pme-col-id {
+  width: 135px;
+}
+
+.municipal-technical-report__pme-col-description {
+  width: 290px;
+}
+
+.municipal-technical-report__pme-col-year {
+  width: 75px;
+}
+
+.municipal-technical-report__pme-col-component {
+  width: 115px;
+}
+
+.municipal-technical-report__pme-col-result {
+  width: 120px;
+}
+
+.municipal-technical-report__pme-col-target {
+  width: 135px;
+}
+
+.municipal-technical-report__pme-col-effort {
+  width: 250px;
+}
+
+.municipal-technical-report__pme-col-source {
+  width: 125px;
+}
+
+.municipal-technical-report__pme-table thead tr:first-child th {
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--green-deep) 22%, var(--border-faint));
+  text-align: center;
+  vertical-align: middle;
+}
+
+.municipal-technical-report__pme-table thead tr:nth-child(2) th {
+  text-align: center;
+}
+
+.municipal-technical-report__pme-table :where(th, td) {
+  padding: 0.625rem var(--space-3);
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report__pme-table tbody th span,
+.municipal-technical-report__pme-table tbody :where(th, td) small {
+  display: block;
+}
+
+.municipal-technical-report__pme-table tbody th:first-child small {
+  overflow-wrap: anywhere;
+}
+
+.municipal-technical-report__pme-table tbody :where(th, td) small {
+  margin-top: var(--space-1);
+  color: var(--text-subtle);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.4;
+}
+
+.municipal-technical-report__pme-table tbody td:nth-child(n + 3) {
+  color: var(--text-secondary);
+}
+
+.municipal-technical-report__pme-description {
+  color: var(--text-body) !important;
+  font-size: var(--type-support);
+  line-height: var(--line-height-relaxed);
+}
+
+.municipal-technical-report__pme-table--screen tbody td:nth-child(3),
+.municipal-technical-report__pme-table--screen tbody td:nth-child(4),
+.municipal-technical-report__pme-table--screen tbody td:nth-child(5),
+.municipal-technical-report__pme-table--screen tbody td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.municipal-technical-report__pme-current {
+  background: var(--surface-soft);
+  color: var(--text-strong) !important;
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__pme-target {
+  background: color-mix(in srgb, var(--green-soft) 22%, var(--surface-card));
+  color: var(--green-deep) !important;
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__pme-table .municipal-technical-report__pme-theme th {
+  padding: 0.625rem var(--space-3);
+  border-top: 2px solid color-mix(in srgb, var(--green-deep) 34%, var(--border-faint));
+  color: var(--green-deep);
+  background: color-mix(in srgb, var(--green-soft) 58%, var(--surface-card));
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.municipal-technical-report__pme-table--screen tbody tr:not(.municipal-technical-report__pme-theme) > th:first-child {
+  background: var(--surface-card);
+}
+
+.municipal-technical-report__pme-table .municipal-technical-report__pme-position--at-or-beyond {
+  color: var(--green-deep);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__pme-method {
+  max-width: 94ch;
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-top: var(--border-divider);
+  color: var(--text-secondary);
+  background: transparent;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__pme-sources {
+  padding-top: var(--space-3);
+  border-top: var(--border-divider);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__pme-sources h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-sm);
+}
+
+.municipal-technical-report__pme-sources ul {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--text-secondary);
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+@media screen and (min-width: 901px) {
+  .municipal-technical-report__pme-table-scroll {
+    max-height: none;
+    overflow-x: auto;
+  }
+
+  .municipal-technical-report__pme-table--screen thead {
+    position: static;
+  }
+
+  .municipal-technical-report__pme-table--screen thead tr:first-child > th:first-child,
+  .municipal-technical-report__pme-table--screen tbody tr:not(.municipal-technical-report__pme-theme) > th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    box-shadow: 1px 0 0 var(--border-faint);
+  }
+
+  .municipal-technical-report__pme-table--screen thead tr:first-child > th:first-child {
+    z-index: 3;
+    background: color-mix(in srgb, var(--green-soft) 30%, var(--surface-soft));
+  }
+}
+
+.municipal-technical-report__back {
+  width: fit-content;
+  min-height: 40px;
+  padding-top: var(--space-4);
+  border-top: var(--border-divider);
+  color: var(--green-deep);
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__footer {
+  padding: var(--space-4) 0;
+  border-top: var(--border-divider);
+  color: var(--text-subtle);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
+}
+
+/* Segunda rodada editorial: folha contínua, hierarquia tipográfica e ritmo vertical. */
+.dashboard-shell:has(.municipal-technical-report) {
+  --technical-report-canvas-max: 1120px;
+}
+
+.municipal-technical-report {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: var(--technical-report-canvas-max);
+  margin: var(--space-6) auto var(--space-16);
+  padding: var(--space-8) var(--space-10) var(--space-16);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: none;
+}
+
+.municipal-technical-report__hero {
+  padding: 0 0 var(--space-6);
+  border: 0;
+  border-bottom: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: transparent;
+}
+
+.municipal-technical-report__hero-main {
+  gap: var(--space-6);
+}
+
+.municipal-technical-report__hero-copy {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__hero-actions {
+  align-items: flex-start;
+}
+
+.municipal-technical-report__hero-identity {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-5) var(--space-6);
+  padding-top: var(--space-5);
+  border-top-color: var(--border-faint);
+}
+
+.municipal-technical-report__hero-identity > div {
+  gap: var(--space-1);
+  min-width: 0;
+  padding-inline: 0;
+  border: 0;
+}
+
+.municipal-technical-report__hero-identity dt {
+  font-size: var(--font-size-2xs);
+}
+
+.municipal-technical-report__hero-identity dd {
+  font-size: var(--type-support);
+}
+
+.municipal-technical-report__quick-navigation {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+.municipal-technical-report__quick-navigation .platform-navigation-button {
+  min-height: 34px;
+  padding: var(--space-2) var(--space-3);
+  border-color: var(--border-faint);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__synthesis {
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.municipal-technical-report__synthesis > .municipal-technical-report__metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.municipal-technical-report__synthesis
+  > .municipal-technical-report__metrics
+  > div:first-child {
+  grid-column: span 2;
+  border-color: color-mix(in srgb, var(--green-primary) 28%, var(--border-faint));
+  background: color-mix(in srgb, var(--green-primary) 7%, var(--surface-card));
+}
+
+.municipal-technical-report__metrics {
+  gap: var(--space-3);
+}
+
+.municipal-technical-report__metrics > div {
+  min-height: 64px;
+  padding: var(--space-3);
+  border-color: var(--border-faint);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-card) 88%, var(--surface-soft));
+}
+
+.municipal-technical-report__metrics dd {
+  font-size: var(--font-size-2xl);
+}
+
+.municipal-technical-report__summary-grid {
+  gap: var(--space-3) var(--space-8);
+}
+
+.municipal-technical-report__summary-chapter,
+.municipal-technical-report__summary-chapter:last-child {
+  grid-column: auto;
+  gap: var(--space-2);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.municipal-technical-report__summary-chapter:hover,
+.municipal-technical-report__summary-chapter:focus-within {
+  background: transparent;
+  box-shadow: none;
+}
+
+.municipal-technical-report__summary-chapter:last-child ol {
+  display: block;
+}
+
+.municipal-technical-report__summary-link {
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) 0;
+}
+
+.municipal-technical-report__section,
+.municipal-technical-report__section--compact {
+  gap: var(--space-3);
+  padding: 0 0 var(--space-5);
+  border: 0;
+  background: transparent;
+}
+
+.municipal-technical-report__section + .municipal-technical-report__section {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__section > header {
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.municipal-technical-report__section > header h3 {
+  font-size: var(--font-size-xl);
+}
+
+.municipal-technical-report__section-body,
+.municipal-technical-report__section-metadata {
+  margin-inline-start: var(--space-16);
+}
+
+.municipal-technical-report__section-metadata {
+  margin-top: -6px;
+  padding: 0;
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+}
+
+.municipal-technical-report__body {
+  gap: var(--space-4);
+}
+
+.municipal-technical-report__identity {
+  gap: 0;
+  border-block: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__identity > div {
+  min-height: auto;
+  padding: var(--space-3) var(--space-3);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: transparent;
+}
+
+.municipal-technical-report__identity > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__table-scroll {
+  border: 0;
+  border-block: 1px solid var(--border-faint);
+  border-radius: 0;
+}
+
+.municipal-technical-report__table {
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__table caption {
+  padding: var(--space-2) var(--space-3);
+}
+
+.municipal-technical-report__table th,
+.municipal-technical-report__table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom-color: var(--border-faint);
+}
+
+.municipal-technical-report__table th {
+  background: color-mix(in srgb, var(--green-primary) 7%, var(--surface-soft));
+  font-size: var(--font-size-2xs);
+}
+
+.municipal-technical-report__table tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.municipal-technical-report__unavailable {
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-3);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__unavailable-status {
+  grid-row: auto;
+  font-size: var(--type-support);
+}
+
+.municipal-technical-report__unavailable p:last-child {
+  grid-column: auto;
+}
+
+.municipal-technical-report__note,
+.municipal-technical-report__sources {
+  padding-top: 0;
+  border-top: 0;
+  color: var(--text-soft);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+}
+
+.municipal-technical-report__chapter-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__back {
+  justify-self: auto;
+  min-height: auto;
+  padding-top: 0;
+  border-top: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__footer {
+  margin-top: var(--space-16);
+}
+
+@media (max-width: 1100px) {
+  .municipal-technical-report__hero,
+  .municipal-technical-report__chapter {
+    padding: var(--card-pad-base);
+  }
+
+  .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__section-body > *,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll {
+    grid-column: 1;
+  }
+
+  .municipal-technical-report__metrics--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__unavailable {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .municipal-technical-report__metrics--compact > div:nth-child(3) {
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report__metrics--compact > div:nth-child(n + 3) {
+    border-top: var(--border-divider);
+  }
+}
+
+@media (max-width: 900px) {
+  .education-landing-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__hero-actions {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .municipal-technical-report__hero-identity,
+  .municipal-technical-report__identity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__hero-identity > div:last-child {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    padding-inline-start: 0;
+    border-top: var(--border-divider);
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report__hero-identity > div:nth-child(odd) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report__hero-identity > div:nth-child(n + 3) {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: var(--border-divider);
+  }
+}
+
+@media (max-width: 680px) {
+  .education-landing-page,
+  .municipal-technical-report {
+    gap: var(--space-4);
+  }
+
+  .education-landing-summary,
+  .education-landing-concepts,
+    .municipal-technical-report__hero,
+    .municipal-technical-report__synthesis,
+    .municipal-technical-report__summary,
+  .municipal-technical-report__chapter {
+    padding: var(--space-5);
+  }
+
+  .municipal-technical-report__hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-landing-summary__intro .platform-navigation-button,
+  .municipal-technical-report__print {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .municipal-technical-report__hero-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-landing-figures__grid,
+  .education-landing-figures--loading,
+  .municipal-technical-report__hero-identity,
+  .municipal-technical-report__metrics,
+  .municipal-technical-report__identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .education-landing-path {
+    min-height: 0;
+  }
+
+  .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .municipal-technical-report__summary-chapter:last-child {
+    grid-column: auto;
+  }
+
+  .municipal-technical-report__summary-chapter:last-child ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__chapter-header {
+    padding: 0 0 var(--space-5) var(--space-4);
+  }
+
+  .municipal-technical-report__section {
+    padding-block: var(--space-6);
+  }
+
+  .municipal-technical-report__section > header {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .municipal-technical-report__section-number {
+    padding-inline-end: var(--space-2);
+  }
+
+  .municipal-technical-report__hero-identity > div {
+    padding: var(--space-3) 0 0;
+    border: 0;
+    border-top: var(--border-divider);
+  }
+
+  .municipal-technical-report__hero-identity > div:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .municipal-technical-report__hero-identity > div:nth-child(n + 3) {
+    margin-top: 0;
+  }
+
+  .municipal-technical-report__metrics--compact > div {
+    border: 0;
+    border-top: var(--border-divider);
+  }
+
+  .municipal-technical-report__metrics--compact > div:first-child {
+    border-top: 0;
+  }
+
+  .municipal-technical-report__footer {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 1100px) {
+  .municipal-technical-report {
+    padding: var(--space-8) var(--space-8) var(--space-12);
+  }
+
+  .municipal-technical-report__hero {
+    padding: 0 0 var(--space-6);
+  }
+
+  .municipal-technical-report__chapter {
+    padding: var(--space-5) 0 0;
+  }
+
+  .municipal-technical-report__synthesis > .municipal-technical-report__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__synthesis
+    > .municipal-technical-report__metrics
+    > div:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .municipal-technical-report__hero-actions {
+    align-items: start;
+  }
+
+  .municipal-technical-report__hero-identity {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .municipal-technical-report__hero-identity > div,
+  .municipal-technical-report__hero-identity > div:last-child,
+  .municipal-technical-report__hero-identity > div:nth-child(n + 3) {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
+@media (max-width: 820px) {
+  .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+@media (max-width: 680px) {
+  .municipal-technical-report {
+    gap: 0;
+    margin: var(--space-4) auto var(--space-12);
+    padding: var(--space-6) var(--space-4) var(--space-12);
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .municipal-technical-report__hero,
+  .municipal-technical-report__summary,
+  .municipal-technical-report__chapter {
+    padding-inline: 0;
+  }
+
+  .municipal-technical-report__hero {
+    padding-block: 0 var(--space-6);
+  }
+
+  .municipal-technical-report__synthesis {
+    padding: var(--space-4);
+  }
+
+  .municipal-technical-report__synthesis > .municipal-technical-report__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__synthesis
+    > .municipal-technical-report__metrics
+    > div:first-child {
+    grid-column: span 1;
+  }
+
+  .municipal-technical-report__summary {
+    margin-top: var(--space-12);
+    padding-block: 0;
+  }
+
+  .municipal-technical-report__chapter {
+    margin-top: var(--space-12);
+    padding-block: var(--space-4) 0;
+  }
+
+  .municipal-technical-report__chapter-header {
+    margin-bottom: var(--space-6);
+    padding: 0;
+  }
+
+  .municipal-technical-report__section,
+  .municipal-technical-report__section--compact {
+    padding-block: 0 var(--space-8);
+  }
+
+  .municipal-technical-report__section + .municipal-technical-report__section {
+    padding-top: var(--space-8);
+  }
+
+  .municipal-technical-report__section > header {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .municipal-technical-report__section-number {
+    padding-inline-end: 0;
+  }
+
+  .municipal-technical-report__section-body,
+  .municipal-technical-report__section-metadata {
+    margin-inline-start: var(--space-16);
+  }
+
+  .municipal-technical-report__hero-identity > div,
+  .municipal-technical-report__hero-identity > div:first-child {
+    padding: 0;
+    border: 0;
+  }
+
+  .municipal-technical-report__identity > div,
+  .municipal-technical-report__identity > div:first-child {
+    padding: var(--space-3) 0;
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+    background: transparent;
+  }
+
+  .municipal-technical-report__identity > div:first-child {
+    border-top: 0;
+  }
+
+  .municipal-technical-report__chapter-navigation {
+    align-items: flex-start;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 18mm;
+  }
+
+  .dashboard-shell:has(.municipal-technical-report) .app-header,
+  .dashboard-shell:has(.municipal-technical-report) .context-bar,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar-panel,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar-mobile-bar,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__hero-actions,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__quick-navigation,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__chapter-navigation,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__back {
+    display: none !important;
+  }
+
+  .dashboard-shell:has(.municipal-technical-report),
+  .dashboard-shell:has(.municipal-technical-report) .content-area,
+  .dashboard-shell:has(.municipal-technical-report) .educacao-page--relatorio-tecnico-municipal,
+  .municipal-technical-report {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .municipal-technical-report {
+    display: block;
+    border: 0;
+    border-radius: 0;
+    font-size: 9pt;
+  }
+
+  .municipal-technical-report__hero,
+  .municipal-technical-report__synthesis,
+  .municipal-technical-report__summary {
+    margin: 0 0 8mm;
+    padding: 0 0 6mm;
+    border: 0;
+    border-bottom: 0.3mm solid #9aa39f;
+    border-radius: 0;
+    background: #fff !important;
+    box-shadow: none;
+  }
+
+  .municipal-technical-report__hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4mm;
+    border-top: 1.2mm solid var(--green-deep);
+  }
+
+  .municipal-technical-report__hero h1 {
+    font-size: 24pt;
+  }
+
+  .municipal-technical-report__hero-copy > p {
+    font-size: 9pt;
+  }
+
+  .municipal-technical-report__hero-identity {
+    padding-top: 4mm;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__hero-identity > div {
+    padding-inline: 4mm;
+  }
+
+  .municipal-technical-report__summary ol {
+    columns: auto;
+  }
+
+  .municipal-technical-report__summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4mm 7mm;
+  }
+
+  .municipal-technical-report__chapter {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #fff !important;
+    break-before: page;
+    box-shadow: none;
+  }
+
+  .municipal-technical-report__summary + .municipal-technical-report__chapter {
+    break-before: auto;
+  }
+
+  .municipal-technical-report__chapter-header {
+    margin: 0 0 5mm;
+    padding: 0 0 4mm 4mm;
+    border-bottom: 0.25mm solid #b6bdb9;
+    border-inline-start: 1mm solid var(--green-deep);
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .municipal-technical-report__chapter-header h2 {
+    font-size: 19pt;
+  }
+
+  .municipal-technical-report__chapter-header p {
+    font-size: 9pt;
+  }
+
+  .municipal-technical-report__chapter-sections {
+    display: block;
+  }
+
+  .municipal-technical-report__section {
+    margin: 0;
+    padding: 5mm 0;
+    border: 0;
+    border-top: 0.2mm solid #ccd1ce;
+    border-radius: 0;
+    background: #fff !important;
+    break-inside: auto;
+    box-shadow: none;
+  }
+
+  .municipal-technical-report__section--compact {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-technical-report__chapter-sections > .municipal-technical-report__section:first-child {
+    border-top: 0;
+  }
+
+  .municipal-technical-report__section > header {
+    margin-bottom: 3mm;
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .municipal-technical-report__section h3 {
+    font-size: 13pt;
+  }
+
+  .municipal-technical-report__section-subtitle {
+    font-size: 9pt;
+  }
+
+  .municipal-technical-report__section-metadata {
+    font-size: 8pt;
+  }
+
+  .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__section-body > *,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll,
+  .municipal-technical-report__section--split .municipal-technical-report__section-body > .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll {
+    grid-column: 1;
+  }
+
+  .municipal-technical-report__section-body > :first-child,
+  .municipal-technical-report__synthesis,
+  .municipal-technical-report__metrics > div,
+  .municipal-technical-report__identity > div,
+  .municipal-technical-report__unavailable {
+    break-inside: avoid;
+  }
+
+  .municipal-technical-report__table-scroll {
+    width: 100%;
+    max-width: none;
+    overflow: visible;
+    border-color: #aeb4b1;
+  }
+
+  .municipal-technical-report table {
+    width: 100%;
+    min-width: 0;
+    font-size: 8.5pt;
+    break-inside: auto;
+  }
+
+  .municipal-technical-report thead {
+    display: table-header-group;
+  }
+
+  .municipal-technical-report__table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-technical-report :where(th, td),
+  .municipal-technical-report caption {
+    padding: 1.8mm;
+  }
+
+  .municipal-technical-report thead th,
+  .municipal-technical-report caption,
+  .municipal-technical-report__metrics > div,
+  .municipal-technical-report__identity > div,
+  .municipal-technical-report__unavailable {
+    background: #f3f6f4 !important;
+  }
+
+  .municipal-technical-report a {
+    color: #111;
+    text-decoration: none;
+  }
+
+  .municipal-technical-report__footer {
+    position: fixed;
+    right: 0;
+    bottom: -12mm;
+    left: 0;
+    padding-top: 2mm;
+    border-top: 0.2mm solid #c5cbc8;
+    color: #4d5551;
+    font-size: 7.5pt;
+  }
+
+  .municipal-technical-report__pme-screen {
+    display: none !important;
+  }
+
+  .municipal-technical-report__pme-print {
+    display: block;
+    width: 100%;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-table--print {
+    display: table;
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 8.5pt;
+    line-height: 1.3;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report__pme-table--print thead {
+    display: table-header-group;
+  }
+
+  .municipal-technical-report__pme-table--print tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-technical-report__pme-table--print .municipal-technical-report__pme-theme {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .municipal-technical-report__pme-table--print :where(th, td) {
+    position: static;
+    padding: 1.2mm;
+    overflow-wrap: anywhere;
+  }
+
+  .municipal-technical-report__pme-table--print tbody :where(th, td) small {
+    font-size: 7pt;
+  }
+
+  .municipal-technical-report__pme-print-col-id {
+    width: 11%;
+  }
+
+  .municipal-technical-report__pme-print-col-description {
+    width: 23%;
+  }
+
+  .municipal-technical-report__pme-print-col-calculation {
+    width: 22%;
+  }
+
+  .municipal-technical-report__pme-print-col-target {
+    width: 14%;
+  }
+
+  .municipal-technical-report__pme-print-col-effort {
+    width: 19%;
+  }
+
+  .municipal-technical-report__pme-print-col-source {
+    width: 11%;
+  }
+
+  .municipal-technical-report__pme-calculation {
+    display: grid;
+    gap: 0.7mm;
+  }
+
+  .municipal-technical-report__pme-calculation > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1mm;
+  }
+
+  .municipal-technical-report__pme-calculation dt {
+    color: #59625d;
+    font-size: 6.8pt;
+  }
+
+  .municipal-technical-report__pme-calculation dd {
+    color: #111;
+    font-size: 8pt;
+    font-weight: var(--font-weight-semibold);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Cascade close: domain-specific refinements must follow the shared education grammar. */
+.higher-education-indicator-groups {
+  gap: var(--space-6);
+}
+
+.higher-education-indicator-groups .education-indicator-group,
+.higher-education-indicator-groups .education-indicator-group:has(.education-indicator-card:only-child) {
+  padding-top: var(--space-6);
+  border-top: var(--border-divider);
+  gap: var(--space-3);
+}
+
+.higher-education-indicator-groups .education-indicator-card-grid {
+  margin-top: var(--space-1);
+}
+
+.higher-education-unavailable-strip {
+  margin-top: var(--space-1);
+  border: 0;
+  border: 1px solid var(--border-card);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  flex-wrap: wrap;
+}
+
+.higher-education-sources {
+  gap: 0;
+}
+
+.higher-education-methodology {
+  padding: 0 0 var(--space-5);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.higher-education-detail .education-metric-summary .metric-card:nth-child(3) .metric-card__value {
+  font-size: var(--font-size-2xl);
+  overflow-wrap: anywhere;
+}
+
+.higher-education-analytical-state {
+  position: relative;
+  min-height: var(--detail-chart-height-main);
+  border: 0;
+  background:
+    linear-gradient(to bottom, transparent calc(72% - 1px), var(--chart-grid) calc(72% - 1px), var(--chart-grid) calc(72% + 1px), transparent calc(72% + 1px)),
+    var(--surface-soft);
+}
+
+.higher-education-analytical-state__marker {
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--chart-series-1);
+  border-radius: 50%;
+  background: var(--surface-card);
+}
+
+.higher-education-support-card {
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  align-content: start;
+}
+
+.higher-education-support-grid {
+  align-items: start;
+}
+
+.higher-education-reference-card {
+  max-width: 680px;
+}
+
+.higher-education-reference-card .education-chart,
+.higher-education-reference-card .education-chart__canvas,
+.higher-education-reference-card .education-chart svg {
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
+}
+
+.higher-education-composition-card {
+  border-top: 3px solid var(--chart-series-2);
+}
+
+.higher-education-composition-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.higher-education-composition-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.higher-education-composition-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--chart-series-1);
+}
+
+.higher-education-composition-legend__swatch--ead {
+  background: var(--chart-series-2);
+}
+
+.higher-education-simple-table .education-table thead th {
+  background: var(--surface-moss);
+  color: var(--text-strong);
+}
+
+.higher-education-simple-table .education-table :is(th, td) {
+  border-inline: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.higher-education-simple-table .education-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.higher-education-detail-methodology {
+  padding: var(--space-4) var(--education-panel-padding);
+  border: 0;
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: var(--status-info-bg);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.higher-education-detail-methodology h2,
+.higher-education-detail-methodology p {
+  margin: 0;
+}
+
+.higher-education-detail-methodology p {
+  max-width: var(--content-reading-max);
+  color: var(--text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+@media (max-width: 1080px) {
+  .higher-education-support-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .higher-education-indicator-groups .education-indicator-group__heading {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .higher-education-indicator-groups .education-indicator-group__heading > span {
+    white-space: normal;
+  }
+
+  .higher-education-analytical-state {
+    min-height: 250px;
+  }
+
+  .higher-education-composition-legend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media print {
+  .higher-education-page .higher-education-unavailable-strip {
+    display: flex !important;
+    padding: 2mm 3mm;
+    border-inline-start: 1.5pt solid #66736a;
+    background: #fff;
+  }
+
+  .higher-education-page :is(
+    .higher-education-support-card,
+    .higher-education-detail-methodology,
+    .higher-education-composition-section
+  ) {
+    break-inside: avoid;
+  }
+
+  .higher-education-page .higher-education-simple-table {
+    overflow: visible !important;
+  }
+}
+
+.higher-education-simple-table.education-table-wrap {
+  border: var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.higher-education-simple-table .education-table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .higher-education-simple-table.education-table-wrap {
+    overflow-x: auto;
+  }
+}
+
+/* Terceira rodada editorial do Relatório Técnico Municipal. */
+.dashboard-shell:has(.municipal-technical-report) {
+  --technical-report-canvas-max: 1240px;
+}
+
+.municipal-technical-report {
+  padding: 40px clamp(32px, 4vw, 56px) 72px;
+}
+
+.municipal-technical-report__hero {
+  display: grid;
+  gap: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.municipal-technical-report__hero-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
+  align-items: start;
+  gap: var(--space-8);
+  padding-bottom: var(--space-6);
+}
+
+.municipal-technical-report__hero-copy {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report__hero h1 {
+  max-width: none;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  line-height: 1.03;
+  letter-spacing: -0.018em;
+  color: var(--green-brand-dark);
+  text-wrap: balance;
+}
+
+.municipal-technical-report__hero-copy > p {
+  max-width: 74ch;
+  margin-top: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.municipal-technical-report__hero-actions {
+  align-items: start;
+  justify-items: end;
+}
+
+.municipal-technical-report__hero-identity {
+  display: grid;
+  grid-template-columns: 1.35fr 0.85fr 0.9fr 0.9fr 1.1fr;
+  gap: 0;
+  padding: var(--space-4) 0;
+  border-block: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__hero-identity > div,
+.municipal-technical-report__hero-identity > div:last-child,
+.municipal-technical-report__hero-identity > div:nth-child(n + 3) {
+  margin: 0;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__hero-identity > div:first-child {
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__hero-identity > div:last-child {
+  padding-inline-end: 0;
+}
+
+.municipal-technical-report__hero-identity dd {
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+
+.municipal-technical-report__hero-note {
+  padding: var(--space-4) 0;
+  color: var(--text-secondary);
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__quick-navigation {
+  position: sticky;
+  top: var(--app-header-height, 0);
+  z-index: 8;
+  min-height: 44px;
+  margin: 0 calc(clamp(32px, 4vw, 56px) * -1);
+  padding: 0 clamp(32px, 4vw, 56px);
+  border-block: 1px solid var(--border-faint);
+  background: var(--surface-card);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--space-5);
+  box-shadow: none;
+}
+
+.municipal-technical-report__quick-navigation > div {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.municipal-technical-report__quick-navigation :is(a, button) {
+  min-height: 42px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: 0;
+  color: var(--text-muted);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.municipal-technical-report__quick-navigation :is(a, button):is(:hover, :focus-visible) {
+  color: var(--green-deep);
+  background: color-mix(in srgb, var(--green-soft) 22%, transparent);
+}
+
+.municipal-technical-report__synthesis {
+  margin-top: var(--space-8);
+  padding: var(--space-6) var(--space-6);
+  border: 0;
+  border-block: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--green-soft) 18%, var(--surface-card));
+}
+
+.municipal-technical-report__synthesis-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.62fr) minmax(280px, 1fr);
+  align-items: stretch;
+  gap: var(--space-8);
+}
+
+.municipal-technical-report__synthesis-metrics {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+  border-block: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__synthesis-primary {
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__synthesis-primary > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report__synthesis-primary dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__synthesis-primary dd {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.municipal-technical-report__synthesis-primary span {
+  color: var(--text-soft);
+  font-size: var(--font-size-xs);
+}
+
+.municipal-technical-report__synthesis .municipal-technical-report__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+}
+
+.municipal-technical-report__synthesis .municipal-technical-report__metrics > div {
+  min-height: 94px;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: transparent;
+}
+
+.municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(4n + 1) {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(n + 5) {
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__synthesis .municipal-technical-report__metrics dd {
+  font-size: var(--font-size-xl);
+}
+
+.municipal-technical-report__synthesis-reading {
+  min-width: 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  border-inline-start: 2px solid var(--green-primary);
+}
+
+.municipal-technical-report__synthesis-readings {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  font-size: var(--type-support);
+  line-height: 1.58;
+}
+
+.municipal-technical-report__summary {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-10);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.municipal-technical-report__summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  gap: var(--space-8) var(--space-12);
+}
+
+.municipal-technical-report__summary-chapter > header {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report__summary-chapter h3 {
+  padding: 0;
+  border: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+}
+
+.municipal-technical-report__summary li a {
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+
+.municipal-technical-report__chapter {
+  min-width: 0;
+  margin-top: var(--space-6);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  gap: 0;
+  box-shadow: none;
+}
+
+.municipal-technical-report__summary + .municipal-technical-report__chapter {
+  margin-top: var(--space-6);
+}
+
+.municipal-technical-report__chapter-header {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--green-soft) 40%, var(--surface-card));
+}
+
+.municipal-technical-report__chapter-kicker {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: none;
+}
+
+.municipal-technical-report__chapter-kicker > span + span {
+  padding-inline-start: var(--space-3);
+  border-inline-start: 1px solid var(--border-card);
+}
+
+.municipal-technical-report__chapter-header h2 {
+  max-width: none;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--tracking-title);
+}
+
+.municipal-technical-report__chapter-header p {
+  max-width: 76ch;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.municipal-technical-report__section,
+.municipal-technical-report__section--compact {
+  gap: 0;
+  padding: 0 0 var(--space-12);
+}
+
+.municipal-technical-report__section + .municipal-technical-report__section {
+  padding-top: var(--space-12);
+}
+
+.municipal-technical-report__section > header {
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.municipal-technical-report__section-number {
+  min-height: 24px;
+  padding: 0;
+  border-inline-end: 0;
+  color: color-mix(in srgb, var(--green-deep) 82%, var(--text-secondary));
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report__section > header h3 {
+  font-size: var(--font-size-xl);
+}
+
+.municipal-technical-report__section-subtitle {
+  max-width: 78ch;
+  color: var(--text-secondary);
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__section-body,
+.municipal-technical-report__section-metadata {
+  margin-inline-start: 68px;
+}
+
+.municipal-technical-report__section-body {
+  gap: var(--space-5) var(--space-6);
+  font-size: var(--type-support);
+  line-height: 1.58;
+}
+
+.municipal-technical-report__section--model-a .municipal-technical-report__section-body,
+.municipal-technical-report__section--model-b .municipal-technical-report__section-body {
+  grid-template-columns: minmax(0, 32fr) minmax(0, 68fr);
+}
+
+.municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__metrics {
+  grid-column: 1;
+}
+
+.municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll {
+  grid-column: 2;
+}
+
+.municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__table-scroll:first-child,
+.municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__note,
+.municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll,
+.municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__note {
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__metrics {
+  grid-column: 1;
+}
+
+.municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll {
+  grid-column: 2;
+}
+
+.municipal-technical-report__section--model-d .municipal-technical-report__section-body {
+  max-width: 92ch;
+}
+
+.municipal-technical-report__metrics {
+  gap: 0;
+  border-block: 1px solid var(--border-faint);
+  background: color-mix(in srgb, var(--green-soft) 13%, var(--surface-card));
+}
+
+.municipal-technical-report__metrics > div {
+  min-height: 86px;
+  padding: var(--space-3) var(--space-3);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: transparent;
+}
+
+.municipal-technical-report__metrics > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report__metrics dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+}
+
+.municipal-technical-report__metrics dd {
+  font-size: var(--font-size-2xl);
+}
+
+.municipal-technical-report__metrics span {
+  color: var(--text-subtle);
+  font-size: var(--font-size-2xs);
+}
+
+.municipal-technical-report__table-scroll {
+  border: 0;
+  border-block: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report table {
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report :is(
+  .municipal-technical-report__table--stage,
+  .municipal-technical-report__table--rates,
+  .municipal-technical-report__table--indicators
+) {
+  min-width: 540px;
+}
+
+.municipal-technical-report caption {
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--green-soft) 18%, var(--surface-card));
+  font-size: var(--font-size-sm);
+}
+
+.municipal-technical-report :where(th, td) {
+  padding: var(--space-2) var(--space-3);
+  border-top: 0;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report thead th {
+  background: color-mix(in srgb, var(--green-soft) 34%, var(--surface-card));
+  font-size: var(--font-size-2xs);
+}
+
+.municipal-technical-report tbody th {
+  background: var(--surface-card);
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__table tbody tr:nth-child(even) {
+  background: transparent;
+}
+
+.municipal-technical-report__table--traceability tbody tr:nth-child(even),
+.municipal-technical-report__pme-table tbody tr:not(.municipal-technical-report__pme-theme):nth-child(even) {
+  background: color-mix(in srgb, var(--surface-soft) 58%, transparent);
+}
+
+.municipal-technical-report__total :is(th, td) {
+  background: color-mix(in srgb, var(--green-soft) 28%, var(--surface-card));
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__note {
+  max-width: 88ch;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--text-secondary);
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.municipal-technical-report__section-metadata {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-faint);
+  color: var(--text-soft);
+  font-size: var(--font-size-2xs);
+}
+
+.municipal-technical-report__section-metadata strong {
+  color: inherit;
+  font-weight: var(--font-weight-semibold);
+}
+
+.municipal-technical-report__unavailable {
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  border-inline-start-color: var(--green-primary);
+  background: transparent;
+  font-size: var(--type-support);
+}
+
+.municipal-technical-report__chapter-navigation {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 1000px) {
+  .municipal-technical-report__hero-main,
+  .municipal-technical-report__synthesis-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__hero-actions {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .municipal-technical-report__section--model-a .municipal-technical-report__section-body,
+  .municipal-technical-report__section--model-b .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__section--model-a .municipal-technical-report__section-body > *,
+  .municipal-technical-report__section--model-b .municipal-technical-report__section-body > * {
+    grid-column: 1 !important;
+  }
+}
+
+@media (max-width: 820px) {
+  .municipal-technical-report {
+    padding-inline: var(--space-6);
+  }
+
+  .municipal-technical-report__quick-navigation {
+    margin-inline: -28px;
+    padding-inline: var(--space-4);
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+  }
+
+  .municipal-technical-report__quick-navigation > div {
+    flex: 0 0 auto;
+  }
+
+  .municipal-technical-report__hero-identity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__hero-identity > div,
+  .municipal-technical-report__hero-identity > div:last-child,
+  .municipal-technical-report__hero-identity > div:nth-child(n + 3) {
+    padding: var(--space-3) var(--space-4);
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report__hero-identity > div:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .municipal-technical-report__hero-identity > div:nth-child(odd) {
+    padding-inline-start: 0;
+    border-inline-end: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+}
+
+@media (max-width: 680px) {
+  .municipal-technical-report {
+    padding: var(--space-6) var(--space-4) var(--space-12);
+  }
+
+  .municipal-technical-report__quick-navigation {
+    margin-inline: -18px;
+  }
+
+  .municipal-technical-report__hero-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__synthesis {
+    padding: var(--space-5) 0;
+  }
+
+  .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(4n + 1) {
+    border-inline-start: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report__chapter {
+    margin-top: var(--space-16);
+  }
+
+  .municipal-technical-report__chapter-header {
+    margin-inline: -18px;
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .municipal-technical-report__section > header {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .municipal-technical-report__section-body,
+  .municipal-technical-report__section-metadata {
+    margin-inline-start: var(--space-16);
+  }
+
+  .municipal-technical-report__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report__metrics > div,
+  .municipal-technical-report__metrics > div:first-child {
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report__metrics > div:first-child {
+    border-top: 0;
+  }
+}
+
+@media print {
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__quick-navigation {
+    display: none !important;
+  }
+
+  .municipal-technical-report__hero-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3mm;
+  }
+
+  .municipal-technical-report__hero-note {
+    padding: 3mm 0 0;
+    font-size: 8.5pt;
+  }
+
+  .municipal-technical-report__synthesis-layout {
+    grid-template-columns: 62% 38%;
+    gap: 5mm;
+  }
+
+  .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__chapter-header {
+    margin-bottom: 5mm;
+    padding: 5mm 6mm;
+    border: 0;
+    border-top: 0.8mm solid var(--green-deep);
+    background: #f3f6f4 !important;
+  }
+
+  .municipal-technical-report__section > header {
+    grid-template-columns: 12mm minmax(0, 1fr);
+    gap: 3mm;
+  }
+
+  .municipal-technical-report__section-number {
+    font-size: 16pt;
+  }
+
+  .municipal-technical-report__section-body,
+  .municipal-technical-report__section-metadata {
+    margin-inline-start: 15mm;
+  }
+
+  .municipal-technical-report__section--model-a .municipal-technical-report__section-body,
+  .municipal-technical-report__section--model-b .municipal-technical-report__section-body {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__metrics,
+  .municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__metrics {
+    grid-column: span 4 !important;
+  }
+
+  .municipal-technical-report__section--model-a .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll,
+  .municipal-technical-report__section--model-b .municipal-technical-report__section-body > .municipal-technical-report__metrics + .municipal-technical-report__table-scroll {
+    grid-column: span 8 !important;
+  }
+
+  .municipal-technical-report__metrics > div {
+    background: transparent !important;
+  }
+
+  .municipal-technical-report__section > header,
+  .municipal-technical-report__section-body > .municipal-technical-report__metrics {
+    break-after: avoid;
+  }
+
+  .municipal-technical-report__table {
+    break-before: avoid;
+  }
+}
+
+/* Rodada corretiva: estabilidade das composições internas do relatório. */
+.municipal-technical-report {
+  container-name: technical-report;
+  container-type: inline-size;
+}
+
+.municipal-technical-report :where(
+  .municipal-technical-report__synthesis-layout,
+  .municipal-technical-report__synthesis-metrics,
+  .municipal-technical-report__section-body,
+  .municipal-technical-report__section-body > *,
+  .municipal-technical-report__metrics,
+  .municipal-technical-report__metrics > div,
+  .municipal-technical-report__table-scroll
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.municipal-technical-report .municipal-technical-report__section-body {
+  align-items: start;
+  align-content: start;
+  grid-auto-rows: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics {
+  width: 100%;
+  grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  align-items: stretch;
+  align-content: start;
+  gap: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics > div,
+.municipal-technical-report .municipal-technical-report__metrics--compact > div {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  padding: var(--space-3) var(--space-3);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report .municipal-technical-report__metrics > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics dt {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.35;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics dd {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-strong);
+  font-size: var(--font-size-2xl);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics span {
+  display: block;
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  line-height: 1.35;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body {
+  grid-template-columns: minmax(0, 30fr) minmax(0, 70fr);
+  gap: var(--space-3) var(--space-5);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics {
+  grid-column: 1;
+  grid-row: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div {
+  border-inline-start: 0;
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div:first-child {
+  border-top: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics + .municipal-technical-report__table-scroll {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body > * {
+  grid-column: 1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__metrics {
+  width: min(100%, 680px);
+  margin-inline: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__note {
+  width: min(100%, 680px);
+  margin-inline: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-coverage .municipal-technical-report__section-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__section-body > *,
+.municipal-technical-report .municipal-technical-report__section--model-coverage .municipal-technical-report__section-body > * {
+  grid-column: 1;
+}
+
+.municipal-technical-report .municipal-technical-report__table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-gutter: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.municipal-technical-report :is(
+  .municipal-technical-report__table--stage,
+  .municipal-technical-report__table--rates,
+  .municipal-technical-report__table--indicators
+) {
+  width: 100%;
+  min-width: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__table-title {
+  width: 100%;
+  padding: 0 var(--space-3) var(--space-2);
+  box-sizing: border-box;
+  color: var(--text-strong);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+  text-align: left;
+}
+
+.municipal-technical-report .municipal-technical-report__table-caption--semantic {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.municipal-technical-report .municipal-technical-report__table :where(th, td) {
+  padding: var(--space-2) var(--space-3);
+  line-height: 1.4;
+}
+
+.municipal-technical-report .municipal-technical-report__table thead th {
+  padding-block: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__table :is(th, td).municipal-technical-report__numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.municipal-technical-report .municipal-technical-report__table tbody th {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-label {
+  width: 46%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-value {
+  width: 20%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-year {
+  width: 14%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-indicator {
+  width: 62%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-value {
+  width: 20%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-year {
+  width: 18%;
+}
+
+.municipal-technical-report .municipal-technical-report__note {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  box-sizing: border-box;
+  align-self: start;
+}
+
+.municipal-technical-report .municipal-technical-report__note--full {
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__note--table {
+  grid-column: 2;
+}
+
+.municipal-technical-report .municipal-technical-report__section-metadata {
+  width: auto;
+  max-width: none;
+  margin: var(--space-3) 0 0 68px;
+  padding-top: var(--space-2);
+  align-self: start;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-layout {
+  grid-template-columns: minmax(0, 60fr) minmax(300px, 40fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-metrics {
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics > div {
+  min-height: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter {
+  width: 100%;
+  min-width: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter > header > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.municipal-technical-report .municipal-technical-report__summary li,
+.municipal-technical-report .municipal-technical-report__summary li a {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@container technical-report (max-width: 960px) {
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics + .municipal-technical-report__table-scroll,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__table-scroll + .municipal-technical-report__table-scroll,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__note--table {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics {
+    grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div {
+    border-top: 0;
+    border-inline-start: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div:first-child {
+    border-inline-start: 0;
+  }
+}
+
+@container technical-report (max-width: 820px) {
+  .municipal-technical-report .municipal-technical-report__synthesis-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+}
+
+@container technical-report (max-width: 640px) {
+  .municipal-technical-report .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div,
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics > div {
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div:first-child,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div:first-child,
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics > div:first-child {
+    border-top: 0;
+  }
+
+  .municipal-technical-report :is(
+    .municipal-technical-report__table--stage,
+    .municipal-technical-report__table--rates,
+    .municipal-technical-report__table--indicators
+  ) {
+    min-width: 520px;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-metadata {
+    margin-inline-start: var(--space-16);
+  }
+}
+
+@media print {
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__section-body,
+  .municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics {
+    grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div {
+    min-width: 0;
+    padding: 2.5mm 3mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics dd {
+    font-size: 14pt;
+    white-space: nowrap;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table,
+  .municipal-technical-report :is(
+    .municipal-technical-report__table--stage,
+    .municipal-technical-report__table--rates,
+    .municipal-technical-report__table--indicators
+  ) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-metadata {
+    margin-inline-start: 15mm;
+  }
+}
+
+/* Normalização geométrica: um único eixo estrutural e grade interna de 12 colunas. */
+.municipal-technical-report .municipal-technical-report__section,
+.municipal-technical-report .municipal-technical-report__section--compact {
+  min-width: 0;
+  padding: 0 0 var(--space-5);
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-auto-rows: auto;
+  column-gap: var(--space-4);
+  row-gap: 0;
+  align-items: start;
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__section + .municipal-technical-report__section {
+  padding-top: var(--space-5);
+}
+
+.municipal-technical-report .municipal-technical-report__section-number {
+  grid-column: 1;
+  grid-row: 1;
+  width: 40px;
+  min-width: 0;
+  padding: 1px 0 0;
+}
+
+.municipal-technical-report .municipal-technical-report__section-main {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__section-heading {
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+.municipal-technical-report .municipal-technical-report__section-heading :where(h3, p) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.municipal-technical-report .municipal-technical-report__section-body {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row;
+  grid-auto-rows: auto;
+  column-gap: var(--space-5);
+  row-gap: var(--space-4);
+  align-items: start;
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-coverage .municipal-technical-report__section-body,
+.municipal-technical-report .municipal-technical-report__section--model-flow .municipal-technical-report__section-body {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__section-body > * {
+  min-width: 0;
+  max-width: 100%;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__section-body > p:not(.municipal-technical-report__note),
+.municipal-technical-report .municipal-technical-report__section-body > ul,
+.municipal-technical-report .municipal-technical-report__sources {
+  max-width: 76ch;
+  text-align: left;
+}
+
+.municipal-technical-report .municipal-technical-report__section-metadata {
+  width: 100%;
+  max-width: 100%;
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics {
+  grid-column: 1 / span 4;
+  grid-row: 1;
+  grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div {
+  border-top: 0;
+  border-inline-start: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics + .municipal-technical-report__table-region {
+  grid-column: 5 / -1;
+  grid-row: 1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__table-region + .municipal-technical-report__table-region {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__note--table {
+  grid-column: 5 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__metrics,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__table-region,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__note,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__metrics,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__note,
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__table-region,
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__note,
+.municipal-technical-report .municipal-technical-report__section--model-coverage .municipal-technical-report__section-body > * {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__section-body > * {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__metrics > div,
+.municipal-technical-report .municipal-technical-report__metrics--compact > div {
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-3) var(--space-3);
+  box-sizing: border-box;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics > div:nth-child(4n + 1) {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics > div:nth-child(n + 5) {
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report .municipal-technical-report__metrics dt {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  line-height: 1.3;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics dd {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.municipal-technical-report .municipal-technical-report__table-region {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__table-title {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+}
+
+.municipal-technical-report .municipal-technical-report__table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.municipal-technical-report .municipal-technical-report__table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.municipal-technical-report .municipal-technical-report__table thead th {
+  height: auto;
+  min-height: 34px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  vertical-align: bottom;
+}
+
+.municipal-technical-report .municipal-technical-report__table :is(th, td).municipal-technical-report__numeric {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-label {
+  width: 52%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-value {
+  width: 16%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--stage .municipal-technical-report__table-col-year {
+  width: 16%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-indicator {
+  width: 60%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-value,
+.municipal-technical-report .municipal-technical-report__table--indicators .municipal-technical-report__table-col-year {
+  width: 20%;
+}
+
+.municipal-technical-report .municipal-technical-report__trace-col-section,
+.municipal-technical-report .municipal-technical-report__trace-col-year,
+.municipal-technical-report .municipal-technical-report__trace-col-unit {
+  width: 14%;
+}
+
+.municipal-technical-report .municipal-technical-report__trace-col-indicator {
+  width: 30%;
+}
+
+.municipal-technical-report .municipal-technical-report__trace-col-source {
+  width: 28%;
+}
+
+.municipal-technical-report .municipal-technical-report__note {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  box-sizing: border-box;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: left;
+  line-height: 1.55;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-main {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--space-5);
+  row-gap: var(--space-4);
+}
+
+.municipal-technical-report .municipal-technical-report__hero-copy {
+  grid-column: 1 / span 8;
+  min-width: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-actions {
+  grid-column: 9 / -1;
+  min-width: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-copy :where(h1, p),
+.municipal-technical-report .municipal-technical-report__hero-actions :where(p, span, strong) {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-identity {
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-identity > div {
+  min-width: 0;
+  padding: 0 var(--space-4);
+}
+
+.municipal-technical-report .municipal-technical-report__hero-identity :where(dt, dd) {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-layout {
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+  gap: var(--space-6);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-reading {
+  width: 100%;
+  min-width: 0;
+  max-width: 46ch;
+  padding-inline: var(--space-4) var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-readings {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-readings :where(li, p) {
+  max-width: 46ch;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: row;
+  column-gap: var(--space-8);
+  row-gap: var(--space-4);
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter > header {
+  padding-bottom: var(--space-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter-number {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter h3 {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter h3 a {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report .municipal-technical-report__summary-chapter-range {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: auto;
+  align-self: center;
+  color: var(--text-subtle);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.municipal-technical-report .municipal-technical-report__summary li a {
+  min-height: 0;
+  padding: var(--space-1) 0;
+  display: flex;
+  align-items: baseline;
+  column-gap: 0;
+}
+
+@container technical-report (max-width: 919px) {
+  .municipal-technical-report .municipal-technical-report__hero-copy,
+  .municipal-technical-report .municipal-technical-report__hero-actions {
+    grid-column: 1 / -1;
+  }
+
+  .municipal-technical-report .municipal-technical-report__hero-identity {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics + .municipal-technical-report__table-region,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__table-region + .municipal-technical-report__table-region,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__note--table {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics--1 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics--2,
+  .municipal-technical-report .municipal-technical-report__metrics--3,
+  .municipal-technical-report .municipal-technical-report__metrics--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border-faint);
+  }
+}
+
+@container technical-report (max-width: 639px) {
+  .municipal-technical-report .municipal-technical-report__hero-identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__metrics--1,
+  .municipal-technical-report .municipal-technical-report__metrics--2,
+  .municipal-technical-report .municipal-technical-report__metrics--3,
+  .municipal-technical-report .municipal-technical-report__metrics--4,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div,
+  .municipal-technical-report .municipal-technical-report__metrics > div:nth-child(odd) {
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics > div:first-child {
+    border-top: 0;
+  }
+}
+
+@media print {
+  .municipal-technical-report .municipal-technical-report__section,
+  .municipal-technical-report .municipal-technical-report__section--compact {
+    grid-template-columns: 10mm minmax(0, 1fr);
+    column-gap: 4mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-number {
+    width: 10mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-body,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 3mm;
+    row-gap: 4mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-body > *,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body > * {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-metadata {
+    margin: 3mm 0 0;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-scroll {
+    overflow: visible;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region {
+    break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-title {
+    break-after: avoid;
+  }
+}
+
+/* Consolidação editorial: cabeçalhos de bloco e referência única por conjunto. */
+.municipal-technical-report .municipal-technical-report__block-header {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-4);
+}
+
+.municipal-technical-report .municipal-technical-report__block-heading {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report .municipal-technical-report__block-title {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: var(--type-support);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.35;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report .municipal-technical-report__block-title > .eyebrow {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.municipal-technical-report .municipal-technical-report__block-title > h2 {
+  margin: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__block-heading > p {
+  max-width: 76ch;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.municipal-technical-report .municipal-technical-report__block-metadata {
+  min-width: 0;
+  padding-bottom: 1px;
+  color: var(--text-subtle);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+  align-content: start;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  align-items: stretch;
+  border-block: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list > div {
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-3) var(--space-3);
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  border: 0;
+  border-inline-start: 1px solid var(--border-faint);
+  box-sizing: border-box;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list > div:first-child {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list dt {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.municipal-technical-report .municipal-technical-report__metrics-list span {
+  color: var(--text-soft);
+  font-size: var(--font-size-2xs);
+  line-height: 1.3;
+}
+
+.municipal-technical-report .municipal-technical-report__table-region {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__table--three-columns .municipal-technical-report__table-col-label {
+  width: 60%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--three-columns .municipal-technical-report__table-col-value {
+  width: 20%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--two-columns .municipal-technical-report__table-col-indicator {
+  width: 72%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--two-columns .municipal-technical-report__table-col-value {
+  width: 28%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--three-rates :is(th, td) {
+  width: 33.333%;
+}
+
+.municipal-technical-report .municipal-technical-report__table :is(th, td) {
+  padding: var(--space-2) var(--space-3);
+}
+
+.municipal-technical-report .municipal-technical-report__table :is(th, td):first-child {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+
+.municipal-technical-report .municipal-technical-report__note > span {
+  display: block;
+  width: 100%;
+  max-width: 76ch;
+  line-height: 1.55;
+}
+
+.municipal-technical-report .municipal-technical-report__section-metadata,
+.municipal-technical-report .municipal-technical-report__chapter-navigation,
+.municipal-technical-report .municipal-technical-report__footer {
+  width: 100%;
+  max-width: 100%;
+}
+
+.municipal-technical-report .municipal-technical-report__identity {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__hero-actions {
+  align-content: start;
+  justify-items: stretch;
+}
+
+.municipal-technical-report .municipal-technical-report__hero {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.municipal-technical-report .municipal-technical-report__hero-main,
+.municipal-technical-report .municipal-technical-report__hero-identity,
+.municipal-technical-report .municipal-technical-report__hero-note {
+  width: 100%;
+  max-width: 100%;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__hero-identity {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-layout {
+  grid-template-columns: minmax(0, 1.62fr) minmax(300px, 1fr);
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-metrics {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-primary {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics {
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics-list > div:nth-child(4n + 1) {
+  border-inline-start: 0;
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics-list > div:nth-child(n + 5) {
+  border-top: 1px solid var(--border-faint);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-reading {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-4) var(--space-4);
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.municipal-technical-report .municipal-technical-report__synthesis-readings {
+  width: 100%;
+  max-width: 46ch;
+  margin: 0;
+  gap: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__summary > .municipal-technical-report__block-header {
+  margin-bottom: var(--space-6);
+}
+
+.municipal-technical-report .municipal-technical-report__summary-grid {
+  column-gap: var(--space-8);
+}
+
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__metrics,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-only .municipal-technical-report__metrics,
+.municipal-technical-report .municipal-technical-report__section--model-metrics-table-stack .municipal-technical-report__table-region,
+.municipal-technical-report .municipal-technical-report__section--model-table-only .municipal-technical-report__table-region {
+  width: 100%;
+  max-width: 100%;
+  grid-column: 1 / -1;
+}
+
+@container technical-report (max-width: 919px) {
+  .municipal-technical-report .municipal-technical-report__synthesis-layout,
+  .municipal-technical-report .municipal-technical-report__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__hero-identity {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics--1 .municipal-technical-report__metrics-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics--2 .municipal-technical-report__metrics-list,
+  .municipal-technical-report .municipal-technical-report__metrics--3 .municipal-technical-report__metrics-list,
+  .municipal-technical-report .municipal-technical-report__metrics--4 .municipal-technical-report__metrics-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list > div:nth-child(n + 3) {
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container technical-report (max-width: 719px) {
+  .municipal-technical-report .municipal-technical-report__hero-identity,
+  .municipal-technical-report .municipal-technical-report__identity {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container technical-report (max-width: 639px) {
+  .municipal-technical-report .municipal-technical-report__block-header {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-1);
+  }
+
+  .municipal-technical-report .municipal-technical-report__block-metadata {
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list,
+  .municipal-technical-report .municipal-technical-report__synthesis .municipal-technical-report__metrics-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list > div,
+  .municipal-technical-report .municipal-technical-report__metrics-list > div:nth-child(odd) {
+    border-inline-start: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list > div:first-child {
+    border-top: 0;
+  }
+}
+
+@container technical-report (max-width: 479px) {
+  .municipal-technical-report .municipal-technical-report__hero-identity,
+  .municipal-technical-report .municipal-technical-report__identity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .municipal-technical-report .municipal-technical-report__hero-identity > div,
+  .municipal-technical-report .municipal-technical-report__hero-identity > div:last-child,
+  .municipal-technical-report .municipal-technical-report__identity > div {
+    padding: var(--space-2) 0;
+    border: 0;
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .municipal-technical-report .municipal-technical-report__hero-identity > div:first-child,
+  .municipal-technical-report .municipal-technical-report__identity > div:first-child {
+    border-top: 0;
+  }
+}
+
+@media print {
+  .municipal-technical-report .municipal-technical-report__block-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    break-after: avoid;
+  }
+
+  .municipal-technical-report .municipal-technical-report__block-metadata {
+    white-space: nowrap;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list {
+    grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__synthesis-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Fechamento editorial: leituras, anexos e variantes paginadas. */
+.dashboard-shell:has(.municipal-technical-report) {
+  --technical-report-canvas-max: 1560px;
+}
+
+.municipal-technical-report {
+  width: min(100%, 1560px);
+  max-width: 1560px;
+  font-size: var(--type-support);
+}
+
+.municipal-technical-report .municipal-technical-report__hero-actions {
+  gap: var(--space-2);
+}
+
+.municipal-technical-report .municipal-technical-report__hero-actions > button {
+  width: 100%;
+}
+
+.municipal-technical-report .municipal-technical-report__municipal-reading {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--green-accent);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  box-sizing: border-box;
+}
+
+.municipal-technical-report .municipal-technical-report__section .municipal-technical-report__section-body > .municipal-technical-report__municipal-reading {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  grid-column: 1 / -1;
+}
+
+.municipal-technical-report .municipal-technical-report__municipal-reading h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.35;
+}
+
+.municipal-technical-report .municipal-technical-report__municipal-reading > div {
+  width: 100%;
+  max-width: none;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.municipal-technical-report .municipal-technical-report__municipal-reading p {
+  margin: 0;
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.municipal-technical-report .municipal-technical-report__section-body > p:not(.municipal-technical-report__note),
+.municipal-technical-report .municipal-technical-report__note > span {
+  max-width: none;
+}
+
+.municipal-technical-report #anexo-d .municipal-technical-report__pme-method,
+.municipal-technical-report #anexo-e .municipal-technical-report__sources {
+  width: 100%;
+  max-width: none;
+}
+
+.municipal-technical-report .municipal-technical-report__pme-table--screen tbody tr:not(.municipal-technical-report__pme-theme) > td:nth-child(4),
+.municipal-technical-report .municipal-technical-report__pme-table--screen tbody tr:not(.municipal-technical-report__pme-theme) > td:nth-child(5) {
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+@container technical-report (min-width: 1320px) {
+  .municipal-technical-report .municipal-technical-report__municipal-reading p,
+  .municipal-technical-report #orcamento .municipal-technical-report__section-body > p,
+  .municipal-technical-report #projecoes .municipal-technical-report__section-body > p,
+  .municipal-technical-report #anexo-d .municipal-technical-report__pme-method > p,
+  .municipal-technical-report #anexo-e .municipal-technical-report__sources > p {
+    white-space: nowrap;
+  }
+}
+
+@container technical-report (min-width: 1200px) {
+  .municipal-technical-report .municipal-technical-report__pme-table--screen {
+    min-width: 100%;
+    table-layout: fixed;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-id {
+    width: 10%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-description {
+    width: 21%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-year {
+    width: 6%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-component {
+    width: 8%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-result {
+    width: 9%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-target {
+    width: 10%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-effort {
+    width: 20%;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-col-source {
+    width: 8%;
+  }
+}
+
+.municipal-technical-report .municipal-technical-report__annexes {
+  width: 100%;
+  max-width: 100%;
+  display: grid;
+  gap: var(--space-12);
+}
+
+.municipal-technical-report .municipal-technical-report__annex {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+  align-content: start;
+  scroll-margin-top: 72px;
+}
+
+.municipal-technical-report .municipal-technical-report__annex > h4 {
+  margin: 0;
+  padding: 0 0 var(--space-2);
+  border-bottom: 1px solid var(--border-faint);
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  line-height: 1.25;
+}
+
+.municipal-technical-report .municipal-technical-report__table-region[data-print-variant] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.municipal-technical-report .municipal-technical-report__table--historical {
+  table-layout: fixed;
+}
+
+.municipal-technical-report .municipal-technical-report__table--historical :is(th, td):first-child {
+  width: 30%;
+}
+
+.municipal-technical-report .municipal-technical-report__footer {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 13mm 17mm;
+  }
+
+  .dashboard-shell:has(.municipal-technical-report) .app-header,
+  .dashboard-shell:has(.municipal-technical-report) .context-bar,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar-panel,
+  .dashboard-shell:has(.municipal-technical-report) .sidebar-mobile-bar,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__hero-actions,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__quick-navigation,
+  .dashboard-shell:has(.municipal-technical-report) .municipal-technical-report__chapter-navigation,
+  .dashboard-shell:has(.municipal-technical-report) .platform-navigation-button {
+    display: none !important;
+  }
+
+  .dashboard-shell:has(.municipal-technical-report),
+  .dashboard-shell:has(.municipal-technical-report) .content-area,
+  .dashboard-shell:has(.municipal-technical-report) .educacao-page--relatorio-tecnico-municipal,
+  .municipal-technical-report {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .municipal-technical-report {
+    border: 0;
+    border-radius: 0;
+    font-size: 9.5pt;
+    line-height: 1.45;
+    box-shadow: none;
+  }
+
+  .municipal-technical-report :is(
+    .municipal-technical-report__hero,
+    .municipal-technical-report__synthesis,
+    .municipal-technical-report__summary,
+    .municipal-technical-report__chapter,
+    .municipal-technical-report__section,
+    .municipal-technical-report__section-main,
+    .municipal-technical-report__section-body,
+    .municipal-technical-report__table-region,
+    .municipal-technical-report__table-scroll,
+    .municipal-technical-report__annexes,
+    .municipal-technical-report__annex
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .municipal-technical-report .municipal-technical-report__hero h1 {
+    font-size: 23pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__chapter {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__summary + .municipal-technical-report__chapter {
+    break-before: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__chapter-header,
+  .municipal-technical-report .municipal-technical-report__section-heading,
+  .municipal-technical-report .municipal-technical-report__block-header,
+  .municipal-technical-report .municipal-technical-report__annex > h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .municipal-technical-report .municipal-technical-report__chapter-header h2 {
+    font-size: 18pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section h3 {
+    font-size: 13pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section,
+  .municipal-technical-report .municipal-technical-report__section--compact {
+    grid-template-columns: 9mm minmax(0, 1fr);
+    column-gap: 3mm;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-body,
+  .municipal-technical-report .municipal-technical-report__section--model-metrics-table-side .municipal-technical-report__section-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-body > * {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics,
+  .municipal-technical-report .municipal-technical-report__metrics-list {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list {
+    grid-template-columns: repeat(var(--metric-count), minmax(0, 1fr));
+  }
+
+  .municipal-technical-report .municipal-technical-report__metrics-list dd {
+    font-size: 13pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__municipal-reading {
+    padding: 2.5mm 3mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: #f5f7f6 !important;
+  }
+
+  .municipal-technical-report .municipal-technical-report__municipal-reading p {
+    font-size: 9.5pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region,
+  .municipal-technical-report .municipal-technical-report__table-scroll {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region table,
+  .municipal-technical-report .municipal-technical-report__pme-table--print {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: auto;
+    font-size: 9pt;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region--compact table {
+    font-size: 8.5pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region--compact :is(th, td) {
+    padding: 1.4mm 1.7mm;
+  }
+
+  .municipal-technical-report .municipal-technical-report__table-region--historical table {
+    table-layout: fixed;
+  }
+
+  .municipal-technical-report .municipal-technical-report__pme-table--print {
+    table-layout: fixed;
+    font-size: 8.5pt;
+  }
+
+  .municipal-technical-report thead {
+    display: table-header-group;
+  }
+
+  .municipal-technical-report tfoot {
+    display: table-footer-group;
+  }
+
+  .municipal-technical-report tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .municipal-technical-report :is(th, td) {
+    height: auto !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .municipal-technical-report :is(th, td):not(.municipal-technical-report__numeric) {
+    white-space: normal !important;
+    overflow-wrap: break-word;
+  }
+
+  .municipal-technical-report .municipal-technical-report__numeric {
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .municipal-technical-report .municipal-technical-report__annex + .municipal-technical-report__annex {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .municipal-technical-report .municipal-technical-report__annex {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .municipal-technical-report .municipal-technical-report__section-metadata,
+  .municipal-technical-report .municipal-technical-report__note,
+  .municipal-technical-report .municipal-technical-report__sources {
+    font-size: 8pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__footer {
+    position: fixed;
+    right: 0;
+    bottom: -12mm;
+    left: 0;
+    padding-top: 2mm;
+    border-top: 0.2mm solid #c5cbc8;
+    color: #4d5551;
+    display: grid !important;
+    grid-template-columns: 1.4fr 1fr auto auto;
+    gap: 3mm;
+    align-items: center;
+    font-size: 7.5pt;
+  }
+
+  .municipal-technical-report .municipal-technical-report__page-number::before {
+    content: "Página " counter(page);
+  }
+}

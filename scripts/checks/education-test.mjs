@@ -49,6 +49,14 @@ const schoolInfrastructureDocumentsDirectory = path.resolve('public/data/educaca
 const schoolInfrastructureDocumentFiles = readdirSync(schoolInfrastructureDocumentsDirectory)
   .filter((fileName) => fileName.endsWith('.json'))
 
+function readEducationStyles() {
+  const manifestPath = path.resolve('src/styles/education-pages.css')
+  const manifest = readFileSync(manifestPath, 'utf8')
+  return [...manifest.matchAll(/^@import\s+['"]([^'"]+\.css)['"];?$/gm)]
+    .map(([, specifier]) => readFileSync(path.resolve(path.dirname(manifestPath), specifier), 'utf8'))
+    .join('\n')
+}
+
 function readEducationDocument(fileName = schoolInfrastructureDocumentFiles[0]) {
   return JSON.parse(readFileSync(path.join(schoolInfrastructureDocumentsDirectory, fileName), 'utf8'))
 }
@@ -466,7 +474,7 @@ test('apoio da Educação Superior exige conteúdo substantivo e não considera 
 
 test('interface pública consolida a fonte e mantém disclosure e impressão da série', () => {
   const componentSource = readFileSync(path.resolve('src/features/education/components/HigherEducationSection.tsx'), 'utf8')
-  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  const cssSource = readEducationStyles()
   assert.match(componentSource, /Censo da Educação Superior — INEP/)
   assert.doesNotMatch(componentSource, /Tabela 7\.1|Tabela 7\.3|Tabela 5\.1|sourceId/)
   assert.match(componentSource, /Ver valores da série/)
@@ -489,7 +497,7 @@ test('detalhes de Educação Superior omitem apoio vazio e não duplicam notas e
 
 test('apresentação refinada preserva métricas compartilhadas, composição e responsividade', () => {
   const componentSource = readFileSync(path.resolve('src/features/education/components/HigherEducationSection.tsx'), 'utf8')
-  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  const cssSource = readEducationStyles()
   assert.equal((componentSource.match(/<MetricCard /g) ?? []).length, 4)
   assert.match(componentSource, /educacao-detail-panel--organized/)
   assert.match(componentSource, /hideTitle/)
@@ -506,7 +514,7 @@ test('relatório técnico omite colunas de situação e fonte detalhada da Educa
   const layoutSource = readFileSync(path.resolve('src/features/education/components/MunicipalTechnicalReportLayout.tsx'), 'utf8')
   const pmeSource = readFileSync(path.resolve('src/features/education/components/PmeReferenceIndicatorsTable.tsx'), 'utf8')
   const catalogSource = readFileSync(path.resolve('src/features/education/municipalTechnicalReportCatalog.ts'), 'utf8')
-  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  const cssSource = readEducationStyles()
   assert.doesNotMatch(reportSource, /<th[^>]*>\s*Situação\s*<\/th>/)
   assert.doesNotMatch(reportSource, /municipal-technical-report__table-col-status/)
   assert.doesNotMatch(reportSource, /INEP · Sinopse Estatística · tabela/)
@@ -989,7 +997,7 @@ test('interface especial reutiliza o shell educacional, integra o recorte ao cab
   const headerSource = readFileSync('src/features/education/components/EducationCompactHeader.tsx', 'utf8')
   const shellSource = readFileSync('src/features/education/components/EducationIndicatorDetailShell.tsx', 'utf8')
   const loaderSource = readFileSync('src/data/specialEducation.ts', 'utf8')
-  const styles = readFileSync('src/styles/education-pages.css', 'utf8')
+  const styles = readEducationStyles()
   assert.match(detailSource, /EducationIndicatorDetailShell/)
   assert.match(detailSource, /EducationMetricSummary/)
   assert.match(detailSource, /EducationSupportDataSection/)
@@ -1372,12 +1380,16 @@ test('seletores e formatação preservam recortes, zero real e estados sem denom
 })
 
 test('interface de infraestrutura usa card composto, página conjunta e apoio responsivo', () => {
-  const detailSource = readFileSync(
+  const detailViewSource = readFileSync(
     path.resolve('src/features/education/components/EducationIndicatorDetailView.tsx'),
     'utf8',
   )
+  const detailSource = readFileSync(
+    path.resolve('src/features/education/components/SchoolInfrastructureDetail.jsx'),
+    'utf8',
+  )
   const cardSource = readFileSync(path.resolve('src/components/EducationIndicatorCard.jsx'), 'utf8')
-  const cssSource = readFileSync(path.resolve('src/styles/education-pages.css'), 'utf8')
+  const cssSource = readEducationStyles()
   const pageSource = readFileSync(path.resolve('src/features/education/EducationPage.tsx'), 'utf8')
   const viewModelSource = readFileSync(path.resolve('src/features/education/educationViewModels.ts'), 'utf8')
   const combinedDetailSource = detailSource.slice(
@@ -1388,6 +1400,9 @@ test('interface de infraestrutura usa card composto, página conjunta e apoio re
   assert.doesNotMatch(detailSource, /SchoolInfrastructureSnapshotChart/)
   assert.doesNotMatch(detailSource, /SchoolInfrastructureStandardSupportData/)
   assert.doesNotMatch(detailSource, /Com água potável|Sem água potável/)
+  assert.match(detailViewSource, /from '\.\/SchoolInfrastructureDetail'/)
+  assert.match(detailViewSource, /return <InfraDetailPanel indicator=\{indicator\} blocos=\{blocos\} \/>/)
+  assert.doesNotMatch(detailViewSource, /function (?:InfraDetailPanel|SchoolInfrastructureCombinedDetail|SchoolInfrastructureIndicatorDetail)/)
   assert.match(detailSource, /SchoolInfrastructureCombinedDetail/)
   assert.match(detailSource, /SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER\.map/)
   assert.doesNotMatch(combinedDetailSource, /Dimensão selecionada/)
@@ -1467,7 +1482,7 @@ test('interface de infraestrutura usa card composto, página conjunta e apoio re
 
   const panoramaSource = detailSource.slice(
     detailSource.indexOf('function InfraDetailPanel'),
-    detailSource.indexOf('function applyStageOption'),
+    detailSource.length,
   )
   assert.equal((panoramaSource.match(/education-support-data__footer/g) ?? []).length, 1)
 })
@@ -1501,15 +1516,19 @@ test('relatório usa o contrato canônico, seis linhas e os recortes total e mun
     path.resolve('src/features/education/components/SchoolInfrastructureReportTable.tsx'),
     'utf8',
   )
-  const detailSource = readFileSync(
+  const detailViewSource = readFileSync(
     path.resolve('src/features/education/components/EducationIndicatorDetailView.tsx'),
+    'utf8',
+  )
+  const detailSource = readFileSync(
+    path.resolve('src/features/education/components/SchoolInfrastructureDetail.jsx'),
     'utf8',
   )
   assert.match(reportTableSource, /SCHOOL_INFRASTRUCTURE_INDICATOR_ORDER\.map/)
   assert.match(reportTableSource, /indicatorKey, 'total'/)
   assert.match(reportTableSource, /indicatorKey, 'municipal'/)
   assert.match(reportTableSource, /Bloco C — Infraestrutura/)
-  assert.doesNotMatch(`${reportTableSource}${detailSource}`, />\s*(sourceVariable|contractVersion|numerator|denominator)\s*</)
+  assert.doesNotMatch(`${reportTableSource}${detailViewSource}${detailSource}`, />\s*(sourceVariable|contractVersion|numerator|denominator)\s*</)
   assert.doesNotMatch(detailSource, /SchoolInfrastructureSnapshotChart|SchoolInfrastructureStandardSupportData/)
   assert.doesNotMatch(reportTableSource, /numerator|denominator/)
 })

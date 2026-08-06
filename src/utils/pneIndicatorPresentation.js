@@ -22,6 +22,60 @@ const PERCENT_TABLE_LABELS = Object.freeze({
   }),
 })
 
+export function isComparableIndicator(result) {
+  if (
+    !result ||
+    result.available === false ||
+    result.tracks_goal === false ||
+    result.monitoring_mode === 'approximate_reference' ||
+    result.meta == null ||
+    result.distance == null ||
+    typeof result.atingida !== 'boolean'
+  ) {
+    return false
+  }
+
+  const meta = Number(result?.meta)
+  const distance = Number(result?.distance)
+  const status = String(result?.display?.status ?? '').toLocaleLowerCase('pt-BR')
+  return (
+    Number.isFinite(distance) &&
+    Number.isFinite(meta) &&
+    !status.includes('visualiza') &&
+    !status.includes('informativo') &&
+    !status.includes('indispon') &&
+    !status.includes('sem dados') &&
+    !status.includes('sem variação') &&
+    !status.includes('sem variacao')
+  )
+}
+
+export function isApproximateIndicator(item, result) {
+  return (
+    item?.monitoring_mode === 'approximate_reference' ||
+    result?.monitoring_mode === 'approximate_reference'
+  )
+}
+
+export function formatApproximatePercent(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  return `${numeric.toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`
+}
+
+export function formatApproximateDifference(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  const sign = numeric > 0 ? '+' : ''
+  return `${sign}${numeric.toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} p.p.`
+}
+
 export function getPneIndicatorPresentation({
   cycle,
   item,
