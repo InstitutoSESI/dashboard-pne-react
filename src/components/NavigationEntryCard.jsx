@@ -1,6 +1,7 @@
 import { InteractionChevron } from './InteractionChevron'
 
 export function NavigationEntryCard({
+  accent,
   ariaLabel,
   bodyText,
   className = '',
@@ -20,6 +21,7 @@ export function NavigationEntryCard({
     <Tag
       aria-label={ariaLabel ?? `Abrir ${title}`}
       className={`platform-entry-card interaction-card--navigation${className ? ` ${className}` : ''}`}
+      data-entry-accent={accent}
       {...interactionProps}
     >
       {Icon ? (

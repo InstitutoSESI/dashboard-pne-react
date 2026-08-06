@@ -268,6 +268,32 @@
   height: 100%;
 }
 
+/* Acento por destino: numeral e link de acao na cor da area. As celulas dividem
+   uma superficie unica (sem borda por cartao), entao a cor entra no rotulo, nao
+   numa barra. Verde e o padrao; navy (Financiamento) e slate (Relatorio) mudam. */
+.home-portal__front[data-entry-accent] {
+  --card-accent: var(--green-primary);
+  --card-accent-ink: var(--green-deep);
+}
+
+.home-portal__front[data-entry-accent='navy'] {
+  --card-accent: var(--classy-navy);
+  --card-accent-ink: var(--classy-navy);
+}
+
+.home-portal__front[data-entry-accent='slate'] {
+  --card-accent: var(--classy-slate);
+  --card-accent-ink: var(--education-trajectory-ink);
+}
+
+.home-portal__front[data-entry-accent] .home-portal__front-number {
+  color: var(--card-accent);
+}
+
+.home-portal__front[data-entry-accent] .home-portal__front-action {
+  color: var(--card-accent-ink);
+}
+
 .home-portal__front-scope {
   color: var(--text-muted);
   font-size: var(--type-label-size);

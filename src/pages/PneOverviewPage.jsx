@@ -168,6 +168,7 @@ export function PneOverviewPage({ onNavigate }) {
           {entryCards.map((entry) => (
             <button
               className="pne-entry-card interaction-card--navigation"
+              data-entry-accent={entry.page === 'diagnostico' ? 'slate' : 'green'}
               key={entry.page}
               type="button"
               onClick={() => onNavigate?.(entry.page)}

@@ -754,7 +754,6 @@ const canonicalDocs = [
   'README.md',
   'PRODUCT.md',
   'docs/ARQUITETURA.md',
-  'docs/DESIGN.md',
   'docs/METODOLOGIA.md',
   'docs/OPERACAO.md',
 ]

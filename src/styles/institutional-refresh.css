@@ -241,7 +241,7 @@
   }
 
   .dashboard-shell .context-bar :is(.municipio-selector__field, .municipio-selector__input) {
-    min-height: calc(var(--control-height) - var(--space-1));
+    min-height: var(--control-height);
   }
 
   .dashboard-shell .context-bar .municipio-selector__field {
@@ -376,6 +376,83 @@
     outline: 2px solid var(--green-primary);
     outline-offset: 3px;
     box-shadow: var(--focus-ring);
+  }
+
+  /* Acento de entrada por destino: a cor da area entra APENAS no rodape/link de
+     acao (nao ha mais barra de topo -- o cartao ja parece clicavel). Device
+     compartilhado por PNE (pne-entry-card) e Financiamento
+     (financial-module-entry-card), ambos com interaction-card--navigation. So
+     participa quem tem data-entry-accent; verde e o padrao. Sem hex novo. */
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent] {
+    --card-accent-ink: var(--green-deep);
+  }
+
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent='navy'] {
+    --card-accent-ink: var(--classy-navy);
+  }
+
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent='slate'] {
+    --card-accent-ink: var(--education-trajectory-ink);
+  }
+
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent] .pne-entry-card__footer,
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent] .platform-entry-card__footer,
+  .dashboard-shell .content-area .interaction-card--navigation[data-entry-accent] .interaction-chevron {
+    color: var(--card-accent-ink);
+  }
+
+  /* Assinatura de pagina por area: --page-signature/-ink resolvem a familia de
+     cor marcada em content-area[data-page-signature] (Layout.jsx). Ver
+     design-tokens.css. O default (plan) e verde. */
+  .dashboard-shell .content-area[data-page-signature] {
+    --page-signature: var(--signature-plan);
+    --page-signature-ink: var(--signature-plan-ink);
+  }
+
+  .dashboard-shell .content-area[data-page-signature='teal'] {
+    --page-signature: var(--signature-education);
+    --page-signature-ink: var(--signature-education-ink);
+  }
+
+  .dashboard-shell .content-area[data-page-signature='navy'] {
+    --page-signature: var(--signature-finance);
+    --page-signature-ink: var(--signature-finance-ink);
+  }
+
+  .dashboard-shell .content-area[data-page-signature='slate'] {
+    --page-signature: var(--signature-analysis);
+    --page-signature-ink: var(--signature-analysis-ink);
+  }
+
+  /* O eyebrow do cabecalho de pagina recebe a cor da area e uma regua curta
+     antes do texto. Vale so para o cabecalho de pagina, nao para os eyebrows
+     de secao no corpo (que seguem silenciosos em cinza). */
+  .dashboard-shell .content-area[data-page-signature] .platform-page-header__eyebrow,
+  .dashboard-shell .content-area[data-page-signature] .pne-page-header__eyebrow {
+    color: var(--page-signature-ink);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .dashboard-shell .content-area[data-page-signature] .platform-page-header__eyebrow::before,
+  .dashboard-shell .content-area[data-page-signature] .pne-page-header__eyebrow::before {
+    content: '';
+    width: 22px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--page-signature);
+    flex: 0 0 auto;
+  }
+
+  /* Educacao usa o selo de dominio como marca do eyebrow; ele e o texto tingem
+     de teal em vez de ganhar a regua. */
+  .dashboard-shell .content-area[data-page-signature='teal'] .education-compact-header__eyebrow {
+    color: var(--page-signature-ink);
+  }
+
+  .dashboard-shell .content-area[data-page-signature='teal'] .education-compact-header__eyebrow .education-domain-icon {
+    color: var(--page-signature);
   }
 
   /* Home: a briefing cover followed by a clear path into the evidence. */
@@ -6372,6 +6449,25 @@
     border-top: var(--border-divider);
     align-items: center;
     gap: var(--space-3);
+  }
+
+  /* Cartao de navegacao do PNE como porta editorial: titulo serif e elevacao no
+     hover, espelhando platform-entry-card no Financeiro. Especificidade >=0,4,0
+     para vencer o grupo :is() de titulo em typography-system.css sem fratura-lo.
+     A Home ja e serif via home-portal; home-entry-card e legado sem consumidor. */
+  .dashboard-shell .content-area .pne-entry-grid .pne-entry-card__title {
+    font-family: var(--font-serif);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-title);
+  }
+
+  .dashboard-shell .content-area .pne-entry-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .dashboard-shell .content-area .pne-entry-card:hover .pne-entry-card__footer {
+    color: var(--card-accent-ink, var(--green-deep));
   }
 
   /* Education indicator cards: natural height with a stable lower action area. */

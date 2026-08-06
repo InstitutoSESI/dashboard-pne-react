@@ -23,7 +23,7 @@
  */
 .education-landing-summary {
   padding: var(--card-pad-hero);
-  border: 1px solid color-mix(in srgb, var(--green-deep) 22%, var(--border-card));
+  border: 1px solid color-mix(in srgb, var(--page-signature-ink, var(--green-deep)) 22%, var(--border-card));
   border-radius: var(--radius-md);
   background:
     radial-gradient(circle at 94% 12%, color-mix(in srgb, var(--green-light) 42%, transparent) 0 15%, transparent 16%),
@@ -154,6 +154,16 @@
   gap: var(--space-1);
 }
 
+/* Traco fino de secao: regua curta na cor da assinatura da area (teal na
+   Educacao) acima do titulo; cai para verde se a assinatura nao estiver ativa. */
+.education-landing-paths > header::before {
+  content: '';
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--page-signature, var(--green-primary));
+}
+
 .education-landing-paths h2 {
   color: var(--text-strong);
   font-family: var(--font-serif);
@@ -182,6 +192,13 @@
   gap: var(--space-2);
 }
 
+/* A landing usa um unico acento -- a assinatura da area (teal na Educacao) -- no
+   link de acao. O espectro por subtema vive DENTRO de cada pagina, uma cor por
+   vez, e nao aqui com as sete lado a lado. */
+.education-landing-path:hover {
+  border-color: color-mix(in srgb, var(--page-signature, var(--green-primary)) 45%, var(--border-card));
+}
+
 .education-landing-path h3 {
   color: var(--text-strong);
   font-size: var(--font-size-lg);
@@ -206,6 +223,18 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
+  align-items: center;
+  /* Link de acao na cor da area (assinatura); teal na Educacao. */
+  color: var(--page-signature-ink, var(--green-deep));
+}
+
+.education-landing-path a svg {
+  flex: 0 0 auto;
+  transition: transform var(--duration-fast, 120ms) var(--ease-out, ease);
+}
+
+.education-landing-path:hover a svg {
+  transform: translateX(2px);
 }
 
 /* Conceitos: recolhido por padrao, abre sob demanda -- nao ocupa a entrada. */

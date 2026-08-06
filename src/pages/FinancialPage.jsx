@@ -158,6 +158,7 @@ function FinancialOverviewPage() {
         <div className="pne-entry-grid financial-module-entry-grid">
           {FINANCIAL_MODULES.map((module) => (
             <NavigationEntryCard
+              accent="navy"
               ariaLabel={`Abrir ${module.title}`}
               bodyText={module.overview.description}
               className="financial-module-entry-card"

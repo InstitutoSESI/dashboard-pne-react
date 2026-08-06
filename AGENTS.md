@@ -46,7 +46,7 @@ A classificação define comandos, validações e limites. Se a tarefa cruzar ca
 
 ### UI_ONLY
 
-Use `npm run typecheck`, `npm run lint`, `npm run check:fast` e testes de UI, roteamento ou domínio afetado. Antes de alterar a interface, consulte `docs/DESIGN.md`, reutilize tokens e componentes existentes e mantenha exceções no CSS do domínio correspondente. Preserve foco, hover e estados de carregamento, erro, vazio e indisponibilidade. Não percorra `public/data` em tarefas visuais. Não execute `update:data`, `update:education-data`, acesso ao banco, build completo nem `validate:details` integral, salvo quando o contrato de dados também mudar.
+Use `npm run typecheck`, `npm run lint`, `npm run check:fast` e testes de UI, roteamento ou domínio afetado. Antes de alterar a interface, reutilize tokens e componentes existentes e mantenha exceções no CSS do domínio correspondente. Preserve foco, hover e estados de carregamento, erro, vazio e indisponibilidade. Não percorra `public/data` em tarefas visuais. Não execute `update:data`, `update:education-data`, acesso ao banco, build completo nem `validate:details` integral, salvo quando o contrato de dados também mudar.
 
 Entradas usuais: UI compartilhada em `src/app`, `src/components` e `src/styles`; Educação em `src/features/education`; Financeiro em `src/features/municipal-finance`; Diagnóstico em `src/features/diagnostic`; PNE em `src/pages`, `src/components/Indicator*` e `src/utils/pne*`.
 

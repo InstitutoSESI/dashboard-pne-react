@@ -4,6 +4,17 @@ import { scrollPageToTop } from '../utils/navigationScroll'
 import { ContextBar } from './ContextBar'
 import { Header } from './Header'
 
+// Assinatura de cor por area: verde = Home/PNE (plano/marca), teal = Educacao,
+// navy = Financiamento, slate = Diagnostico/Relatorio (analise). Dirige
+// --page-signature no content-area; ver src/styles/design-tokens.css.
+function pageSignatureFor(activePage) {
+  if (typeof activePage !== 'string') return 'plan'
+  if (activePage === 'educacao') return 'teal'
+  if (activePage === 'diagnostico' || activePage === 'relatorio-tecnico-municipal') return 'slate'
+  if (activePage.startsWith('financeiros')) return 'navy'
+  return 'plan'
+}
+
 export function Layout({
   activePage,
   activeEducationSection,
@@ -61,7 +72,7 @@ export function Layout({
           selectedMunicipalityId={selectedMunicipalityId}
           onMunicipalityChange={setSelectedMunicipalityId}
         />
-        <main className="content-area" ref={contentRef}>{children}</main>
+        <main className="content-area" data-page-signature={pageSignatureFor(activePage)} ref={contentRef}>{children}</main>
       </div>
     </div>
   )

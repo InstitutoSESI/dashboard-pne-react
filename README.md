@@ -175,7 +175,6 @@ Saídas de build, caches, relatórios, screenshots, logs e arquivos de inspeçã
 - Orientações para agentes e fluxo de alterações: [AGENTS.md](AGENTS.md)
 - [Produto](PRODUCT.md)
 - [Arquitetura](docs/ARQUITETURA.md)
-- [Design](docs/DESIGN.md)
 - [Pipeline e operação](docs/OPERACAO.md)
 - [Metodologia](docs/METODOLOGIA.md)
 

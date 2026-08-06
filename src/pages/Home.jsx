@@ -60,6 +60,14 @@ const FRONTS = [
   },
 ]
 
+// Acento por destino na Home: cor = area para onde a frente leva. Financiamento
+// e navy (identidade da area), Relatorio e slate (sintese/analise), PNE e
+// Educacao ficam no verde institucional padrao.
+const FRONT_ACCENTS = {
+  financeiros: 'navy',
+  'relatorio-tecnico-municipal': 'slate',
+}
+
 const NAVIGATION_STEPS = [
   {
     body: 'O seletor no topo define o território que acompanha toda a navegação.',
@@ -140,6 +148,7 @@ export function Home({ onNavigate }) {
             <button
               aria-label={`${front.action}: ${front.title}`}
               className="home-portal__front"
+              data-entry-accent={FRONT_ACCENTS[front.key] ?? 'green'}
               key={front.key}
               onClick={() => onNavigate?.(front.key)}
               type="button"
