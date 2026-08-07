@@ -20,7 +20,7 @@ export function NavigationEntryCard({
   return (
     <Tag
       aria-label={ariaLabel ?? `Abrir ${title}`}
-      className={`platform-entry-card interaction-card--navigation${className ? ` ${className}` : ''}`}
+      className={`surface-card platform-entry-card interaction-card--navigation${className ? ` ${className}` : ''}`}
       data-entry-accent={accent}
       {...interactionProps}
     >

@@ -14,7 +14,7 @@ export function MetricCard({ label, value, detail, icon = /** @type {string | nu
   const toneClass = tone !== 'default' ? `metric-card--${tone}` : ''
   const sizeClass = size === 'large' ? 'metric-card--large' : ''
   return (
-    <div className={`metric-card interaction-card--informative ${toneClass} ${sizeClass}${icon ? ' metric-card--with-icon' : ''}`}>
+    <div className={`surface-card--compact metric-card interaction-card--informative ${toneClass} ${sizeClass}${icon ? ' metric-card--with-icon' : ''}`}>
       {icon ? <MetricIcon name={icon} /> : null}
       <span className="metric-card__label">{label}</span>
       <strong className="metric-card__value">{value ?? '-'}</strong>

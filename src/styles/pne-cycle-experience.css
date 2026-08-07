@@ -1118,8 +1118,8 @@
 }
 
 .cycle-page--detail .pne-presentation-table th {
-  background: var(--surface-moss);
-  color: var(--green-deep);
+  background: var(--surface-muted);
+  color: var(--text-strong);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
@@ -1768,53 +1768,67 @@
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--trend-projection .complementary-projection {
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-projection__cards {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-auto-rows: minmax(84px, auto);
-  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+  gap: 0;
+  border: var(--border-default);
+  border-radius: var(--card-radius-inner);
+  background: var(--surface-card);
+  overflow: hidden;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-projection__card {
-  min-height: 84px;
-  height: 100%;
+  min-height: 48px;
   box-sizing: border-box;
-  display: grid;
-  align-content: center;
-  gap: var(--space-1);
-  border: var(--border-default);
-  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border: 0;
+  border-radius: 0;
   padding: var(--space-3) var(--space-4);
-  background: var(--surface-card);
+  background: transparent;
   box-shadow: none;
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-projection__card + .complementary-projection__card {
+  border-top: var(--border-default);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-projection__card-label {
   color: var(--text-soft);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.03em;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
   line-height: var(--line-height-snug);
   text-transform: none;
   text-wrap: pretty;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.cycle-page--detail .detail-panel--organized .complementary-projection__card-value {
+.dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .complementary-projection__card-value {
   color: var(--text-strong);
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-bold);
   letter-spacing: normal;
   line-height: var(--line-height-tight);
+  flex: 0 0 auto;
+  text-align: right;
 }
 
-.cycle-page--detail .detail-panel--organized .complementary-projection__card-value.complementary-projection__value--positive {
+.dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .complementary-projection__card-value.complementary-projection__value--positive {
   color: var(--green-deep);
 }
 
-.cycle-page--detail .detail-panel--organized .complementary-projection__card-value.complementary-projection__value--negative {
+.dashboard-shell .content-area .cycle-page--detail .detail-panel--organized .complementary-projection__card-value.complementary-projection__value--negative {
   color: var(--status-far-ink);
 }
 
@@ -1858,7 +1872,7 @@
   width: 100%;
   min-height: 0;
   min-width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit {
@@ -1876,38 +1890,45 @@
   vertical-align: middle;
 }
 
+.cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit tbody td {
+  font-size: var(--font-size-sm);
+}
+
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit th:nth-child(1) {
-  width: 12%;
+  width: 14%;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit th:nth-child(2) {
-  width: 34%;
+  width: 32%;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit th:nth-child(3) {
-  width: 34%;
+  width: 32%;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit th:nth-child(4) {
-  width: 20%;
+  width: 22%;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit thead th {
-  background: var(--surface-moss);
+  background: var(--surface-muted);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit th:first-child,
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit td:first-child {
-  text-align: center;
+  text-align: left;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit :where(th, td):not(:first-child) {
-  text-align: center;
+  text-align: right;
 }
 
-.cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit :where(th, td):first-child,
+.cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit :where(th, td):first-child {
+  padding-inline-start: var(--space-3);
+}
+
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit :where(th, td):last-child {
-  padding-inline: var(--space-1);
+  padding-inline-end: var(--space-3);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit tbody td:first-child {
@@ -1916,6 +1937,14 @@
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit tbody tr:last-child td {
   border-bottom: var(--border-divider);
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit tbody tr:nth-child(even) {
+  background: var(--surface-raised);
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--fit tbody tr:hover {
+  background: var(--surface-moss);
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--calculation-numbers .complementary-components__table--articulated {
@@ -1985,12 +2014,39 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: var(--border-default);
+  border-radius: var(--card-radius-inner);
+  background: var(--surface-card);
+  overflow: hidden;
 }
 
 .cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-card {
   min-width: 0;
-  padding: var(--space-2);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
   overflow-wrap: anywhere;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: var(--space-1);
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-card:not(:last-child) {
+  border-right: var(--border-default);
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-label {
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+}
+
+.cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-value {
+  color: var(--text-strong);
+  font-size: var(--font-size-lg);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
 }
 
 .cycle-page--detail .indicator-reference-disclosure .indicator-goal-reference {
@@ -2130,6 +2186,23 @@
 }
 
 @media screen and (max-width: 620px) {
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-card {
+    min-height: 48px;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .cycle-page--detail .detail-panel--organized .complementary-data__item--private-network .privadas-conveniadas__sec-card:not(:last-child) {
+    border-right: 0;
+    border-bottom: var(--border-default);
+  }
+
   .dashboard-shell:has(.cycle-page) .context-bar {
     position: static;
     top: auto;
@@ -2287,10 +2360,6 @@
     min-height: 280px;
     height: 280px;
     max-height: 280px;
-  }
-
-  .cycle-page--detail .detail-panel--organized .complementary-projection__cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2989,7 +3058,7 @@
   min-width: 0;
   padding: var(--space-3);
   border: var(--border-default);
-  border-radius: var(--radius-xs);
+  border-radius: var(--card-radius-inner);
   background: var(--surface-soft);
   display: grid;
   gap: var(--space-1);

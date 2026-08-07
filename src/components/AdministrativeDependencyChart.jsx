@@ -109,9 +109,7 @@ export function AdministrativeDependencyChart({
           <span className="eyebrow">{title}</span>
         </div>
       ) : null}
-      {activeKeys.length > 1 ? (
-        <ChartLegend className="complementary-chart__legend complementary-chart__legend--top" items={activeKeys} />
-      ) : null}
+      <ChartLegend className="complementary-chart__legend complementary-chart__legend--top" items={activeKeys} />
       <div className="complementary-chart__canvas" ref={containerRef}>
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label={`${title}: histórico do indicador por dependência administrativa`}>
           {yScaleModel.ticks.map((value) => {
