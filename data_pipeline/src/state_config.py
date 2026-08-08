@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -13,6 +14,7 @@ from .config import STATE_CONFIG_DIR
 
 STATE_CONFIG_SCHEMA_VERSION = "state-config-v1"
 DEFAULT_STATE_CODE = "RS"
+PIPELINE_STATE_ENV_VAR = "PNE_PIPELINE_STATE"
 _STATE_CONFIG_FIELDS = frozenset(
     {
         "schemaVersion",
@@ -161,3 +163,29 @@ def load_state_config(
             f"Configuração estadual inválida em {path}: JSON malformado: {exc}."
         ) from exc
     return _parse_state_config(payload, requested_state_code=normalized)
+
+
+def resolve_pipeline_state_code(
+    *,
+    config_dir: Path = STATE_CONFIG_DIR,
+) -> str:
+    """Resolve a UF ativa do pipeline local a partir do ambiente.
+
+    Lê a variável de ambiente ``PNE_PIPELINE_STATE``; quando ausente ou vazia,
+    usa ``DEFAULT_STATE_CODE`` ("RS"). O valor é normalizado com
+    ``normalize_state_code`` e validado contra a configuração estadual
+    correspondente via ``load_state_config`` — uma UF sem configuração
+    versionada nunca é aceita silenciosamente (fail-closed).
+
+    Esta função é a costura de transição para a migração multi-UF do
+    pipeline: hoje cada processo do pipeline geral roda para uma única UF,
+    escolhida pelo ambiente. A Fase 3 vai substituir esta leitura de
+    ambiente por um argumento de linha de comando explícito (`--state`) nos
+    comandos do pipeline; até lá, `resolve_pipeline_state_code` concentra a
+    resolução para que essa troca futura fique local a este módulo.
+    """
+    raw_value = os.environ.get(PIPELINE_STATE_ENV_VAR)
+    state_code = raw_value if raw_value and raw_value.strip() else DEFAULT_STATE_CODE
+    normalized = normalize_state_code(state_code)
+    load_state_config(normalized, config_dir=config_dir)
+    return normalized

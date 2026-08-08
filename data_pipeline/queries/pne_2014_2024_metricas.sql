@@ -35,8 +35,9 @@ pop_0_3 AS (
         p.ano,
         p.id_municipio::text AS id_municipio,
         SUM(COALESCE(p.pop_estimada, 0)) AS pop_0_3
-    FROM populacao_idade_rs p
+    FROM populacao_idade p
     WHERE p.idade <= 3
+      AND p.sigla_uf = :uf
     GROUP BY 1, 2
 ),
 pop_4_5 AS (
@@ -44,8 +45,9 @@ pop_4_5 AS (
         p.ano,
         p.id_municipio::text AS id_municipio,
         SUM(COALESCE(p.pop_estimada, 0)) AS pop_4_5
-    FROM populacao_idade_rs p
+    FROM populacao_idade p
     WHERE p.idade BETWEEN 4 AND 5
+      AND p.sigla_uf = :uf
     GROUP BY 1, 2
 ),
 pop_6_17 AS (
@@ -53,8 +55,9 @@ pop_6_17 AS (
         p.ano,
         p.id_municipio::text AS id_municipio,
         SUM(COALESCE(p.pop_estimada, 0)) AS pop_6_17
-    FROM populacao_idade_rs p
+    FROM populacao_idade p
     WHERE p.idade BETWEEN 6 AND 17
+      AND p.sigla_uf = :uf
     GROUP BY 1, 2
 ),
 pop_15_17 AS (
@@ -62,8 +65,9 @@ pop_15_17 AS (
         p.ano,
         p.id_municipio::text AS id_municipio,
         SUM(COALESCE(p.pop_estimada, 0)) AS pop_15_17
-    FROM populacao_idade_rs p
+    FROM populacao_idade p
     WHERE p.idade BETWEEN 15 AND 17
+      AND p.sigla_uf = :uf
     GROUP BY 1, 2
 ),
 creche AS (

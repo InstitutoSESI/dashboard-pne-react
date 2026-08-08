@@ -31,6 +31,7 @@ from src.pne_2026_projections import (
     build_rs_population_by_age_group,
     load_rs_population_projection,
 )
+from src.state_config import resolve_pipeline_state_code
 
 
 EXPERIMENT_VERSION = "education-attendance-shadow-v1.0.0"
@@ -104,8 +105,9 @@ SELECT
     SUM(CASE WHEN idade BETWEEN 0 AND 5 THEN pop_estimada ELSE 0 END) AS pop_0_5,
     SUM(CASE WHEN idade BETWEEN 4 AND 17 THEN pop_estimada ELSE 0 END) AS pop_4_17,
     SUM(CASE WHEN idade BETWEEN 6 AND 14 THEN pop_estimada ELSE 0 END) AS pop_6_14
-FROM populacao_idade_rs
+FROM populacao_idade
 WHERE ano BETWEEN :start_year AND :end_year
+  AND sigla_uf = :uf
 GROUP BY ano, id_municipio
 ORDER BY ano, codigo_municipio
 """.strip()
@@ -186,7 +188,11 @@ def load_population_panel(engine, *, start_year: int = 2014, end_year: int = 202
     frame = pd.read_sql_query(
         text(POPULATION_PANEL_QUERY),
         engine,
-        params={"start_year": int(start_year), "end_year": int(end_year)},
+        params={
+            "start_year": int(start_year),
+            "end_year": int(end_year),
+            "uf": resolve_pipeline_state_code(),
+        },
     )
     frame["ano"] = pd.to_numeric(frame["ano"], errors="raise").astype("int64")
     frame["codigo_municipio"] = _normalize_code(frame["codigo_municipio"])

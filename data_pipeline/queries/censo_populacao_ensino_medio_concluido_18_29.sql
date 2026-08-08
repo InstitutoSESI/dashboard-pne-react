@@ -3,8 +3,9 @@ WITH totais AS (
         ano,
         id_municipio::bigint AS id_municipio,
         SUM(pop_estimada) FILTER (WHERE idade BETWEEN 18 AND 29) AS populacao_18_29_total
-    FROM populacao_idade_rs
+    FROM populacao_idade
     WHERE ano IN (2010, 2022)
+      AND sigla_uf = :uf
     GROUP BY ano, id_municipio
 )
 SELECT

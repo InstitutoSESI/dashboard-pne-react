@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -16,6 +17,7 @@ from ..pipeline_profiling import (
     profiled_query_call,
     record_tabular_result,
 )
+from ..state_config import resolve_pipeline_state_code
 
 if TYPE_CHECKING:
     from supabase import Client
@@ -25,6 +27,7 @@ QUERIES_DIR = BASE_DIR / "queries"
 ENV_FILES = (BASE_DIR / ".env", QUERIES_DIR / ".env")
 DEFAULT_CACHE_TTL_SECONDS = 900
 DEFAULT_DATA_BACKEND = "postgres_local"
+_UF_QUERY_PARAM_PATTERN = re.compile(r":uf\b")
 
 
 @dataclass(frozen=True)
@@ -495,15 +498,23 @@ def _read_local_query_table(table_name: str) -> pd.DataFrame:
         raise FileNotFoundError(f"Query local não encontrada: {query_path}")
 
     query = query_path.read_text(encoding="utf-8")
+    params = (
+        {"uf": resolve_pipeline_state_code()}
+        if _UF_QUERY_PARAM_PATTERN.search(query)
+        else None
+    )
     try:
         return profiled_query_call(
             f"repository.postgres.{table_name}",
-            lambda: pd.read_sql_query(text(query), get_local_postgres_engine()),
+            lambda: pd.read_sql_query(
+                text(query), get_local_postgres_engine(), params=params
+            ),
             metadata={
                 "datasetId": table_name,
                 "backend": "postgres_local",
                 "broadQuery": True,
                 "municipalityFilter": "local_after_query",
+                "parametersBound": bool(params),
             },
         )
     except Exception as exc:
