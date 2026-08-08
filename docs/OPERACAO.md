@@ -147,7 +147,7 @@ sincronização estática.
 
 O passo educacional administra somente `educacao/index.json`,
 `educacao/municipios_index.json` e os 497
-`educacao/municipios/<IBGE>.json`. Ele preserva `regioes`, `educacao-especial`,
+`educacao/municipios/<IBGE>.json`. Ele preserva `educacao-especial`,
 `superior`, `visao-geral-municipal`, `siope` e qualquer arquivo fora da
 allowlist. Um erro educacional retorna código não zero e interrompe o
 orquestrador antes da desigualdade, validação e de qualquer build explicitamente

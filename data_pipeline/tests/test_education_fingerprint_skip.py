@@ -96,7 +96,6 @@ def _inputs(registry) -> dict:
         {
             "id_municipio": [record.ibge_code for record in registry.ordered_records],
             "municipio": [record.name for record in registry.ordered_records],
-            "regiao_senai": [None] * registry.municipality_count,
         }
     )
     frames = {

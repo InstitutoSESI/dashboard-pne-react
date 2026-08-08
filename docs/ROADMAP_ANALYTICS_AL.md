@@ -102,6 +102,7 @@ Hardcodes principais no `data_pipeline` (verificados, arquivo:linha):
 - **Fase 0 — Banco `sesi` com AL** (repo SESI/DB; caminho crítico). Parametrizar
   `UF_ALVO`/queries dos 14 ETLs, garantir chaves compostas com `sigla_uf`,
   generalizar `populacao_idade_rs` (7 arquivos `queries/pop_*.sql`), rodar carga AL.
+  A reconstrução da tabela de população por idade corre em frente separada (§4.1.5).
   Decisão: um banco com duas UFs (recomendado — as consultas já filtram por
   `sigla_uf`). Aceite: 18 views devolvem linhas `27xxxxx`; RS byte-idêntico.
 - **Fase 1 — Educação básica + superior + especial de AL** (repo dashboard).
@@ -130,20 +131,42 @@ Fase 0 ──► Fase 1 ──► Fase 3 ──► Fase 4 ──► Fase 5
    └─────► Fase 2 ────────────────────────────┘
 ```
 
-## 4. Decisões que exigem o usuário
+## 4. Decisões do usuário
 
-1. **Metas do PNE**: nacionais (Lei 13.005/2014, hoje em `src/pne/calculations_2014.py:21-64`)
-   ou as do Plano Estadual de Educação de Alagoas? Exige o texto do PEE-AL.
-2. **Cortes temporais** da referência estadual (2015–2025, baseline 2025,
+### 4.1 Resolvidas
+
+1. **Metas do PNE — nacionais em todos os estados.** Valem as metas da Lei
+   13.005/2014 (`src/pne/calculations_2014.py:21-64`), inclusive em Alagoas. O
+   Plano Estadual de Educação não substitui a referência nacional: manter a mesma
+   estrutura de plataforma em todos os estados facilita a manutenção e preserva a
+   comparabilidade entre municípios.
+2. **Regionalização — removida da plataforma.** O produto de regiões não é
+   utilizado. A agregação regional foi retirada de
+   `export_education_indicators.py`, a dependência da coluna `regiao_senai`
+   (mapa FIERGS, exclusivo do RS) deixou de existir na consulta municipal e os
+   artefatos legados `public/data/educacao/regioes/` foram excluídos. Não há
+   decisão regional pendente para AL.
+3. **Marca — "Painel SESI de Educação".** O nome é idêntico em todos os estados
+   (não há mais "Painel SESI-RS"/"Painel SESI-AL"). A Home declara explicitamente
+   o estado de referência a partir de `ACTIVE_STATE_CONFIG.stateName`. A
+   identidade visual — cores, tipografia, logos e assinaturas institucionais
+   SESI/FIERGS — é mantida sem alteração.
+4. **Integração de dados — sempre por código IBGE.** Permanece a regra atual: o
+   código IBGE textual de sete dígitos é a única identidade; slugs são cosméticos
+   e servem apenas a rotas públicas.
+5. **População por idade — frente separada.** A tabela de população por idade do
+   banco `sesi` será reconstruída em uma frente própria, a partir das fontes em
+   `SESI/DB/data/populacao`, tendo `pop_estimada.py` do projeto CEI como
+   referência. Não é pré-requisito do scaffolding de AL neste repositório.
+
+### 4.2 Pendentes
+
+1. **Cortes temporais** da referência estadual (2015–2025, baseline 2025,
    `STATE_PROJECTION_MINIMUM_OBSERVATIONS = 5`): validar densidade da série de AL.
-3. **Regionalização**: RS usa regiões SENAI/FIERGS (9 arquivos em `educacao/regioes/`).
-   AL: omitir, usar meso/microrregiões IBGE, ou regiões do SENAI-AL?
-4. **Indicadores indisponíveis herdados** (seleção de diretores, conectividade INEC —
+2. **Indicadores indisponíveis herdados** (seleção de diretores, conectividade INEC —
    `municipalityCount: 0` já no RS): herdar a declaração de indisponibilidade (recomendado).
-5. **Piso de supressão** para denominadores pequenos (ex.: Meta 15.b terá poucos
+3. **Piso de supressão** para denominadores pequenos (ex.: Meta 15.b terá poucos
    municípios com IES em AL).
-6. **Identidade institucional**: marca SESI-RS/FIERGS num site de AL é decisão de
-   produto (`Header.jsx:193`, rodapé, `PRODUCT.md`).
 
 ## 5. Salvaguardas operacionais
 

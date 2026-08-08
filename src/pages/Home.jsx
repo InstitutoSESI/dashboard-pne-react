@@ -1,5 +1,5 @@
 import { ArrowRight, MapPin } from 'lucide-react'
-import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
+import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 
 const ICON_STROKE = 1.7
 
@@ -98,11 +98,13 @@ export function Home({ onNavigate }) {
       <header className="home-portal__hero">
         <div className="home-portal__hero-copy">
           <p className="home-portal__identity">
-            Painel SESI-{ACTIVE_STATE_CONFIG.stateCode} · Inteligência Analítica Municipal
+            {PLATFORM_LABEL} · Inteligência Analítica Municipal
           </p>
           <h1 className="home-portal__title">Uma leitura integrada da educação do seu município.</h1>
           <p className="home-portal__lead">
-            A plataforma conecta planejamento, indicadores educacionais e financiamento em um só
+            <strong>Estado de referência: {ACTIVE_STATE_CONFIG.stateName}.</strong> Todos os
+            indicadores, metas e valores exibidos referem-se aos municípios desse estado. A
+            plataforma conecta planejamento, indicadores educacionais e financiamento em um só
             percurso. Você escolhe o município, explora cada frente e reúne as evidências em uma
             síntese técnica.
           </p>

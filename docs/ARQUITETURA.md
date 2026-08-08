@@ -151,8 +151,9 @@ e calcular o lote integral, materializa nesse staging a allowlist ativa:
 - `educacao/municipios/<IBGE>.json`, exatamente um para cada código textual do
   `MunicipalityRegistry`.
 
-Os arquivos `educacao/regioes/*.json` são artefatos legados do mesmo exportador,
-mas o fluxo padrão não os gera nem os administra. As subárvores
+A regionalização foi removida da plataforma: o exportador não possui mais
+agregação regional e os artefatos legados `educacao/regioes/*.json` foram
+excluídos do repositório. As subárvores
 `educacao-especial`, `superior`, `visao-geral-municipal` e `siope` pertencem a
 outros domínios e ficam fora da allowlist. Os 182 slugs históricos não são
 aliases físicos: continuam campos do índice derivados da configuração de

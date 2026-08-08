@@ -86,3 +86,9 @@ function readInjectedActiveStateConfig(): unknown {
 }
 
 export const ACTIVE_STATE_CONFIG: StateConfig = parseStateConfig(readInjectedActiveStateConfig())
+
+/**
+ * Nome da plataforma. Por decisão de produto é idêntico em todos os estados: o
+ * recorte estadual é comunicado pelo conteúdo, não pela marca.
+ */
+export const PLATFORM_LABEL = 'Painel SESI de Educação'

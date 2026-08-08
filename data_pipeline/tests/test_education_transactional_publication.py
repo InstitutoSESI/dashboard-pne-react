@@ -482,7 +482,7 @@ def test_successful_promotion_updates_only_main_education_allowlist(
         contract.public_root / "superior" / "index.json": b"higher",
         contract.public_root / "visao-geral-municipal" / "4300034.json": b"overview",
         contract.public_root / "siope" / "catalogo.json": b"siope",
-        contract.public_root / "regioes" / "central.json": b"region",
+        contract.public_root / "legado" / "arquivo.json": b"legacy",
         contract.public_root / "municipios" / "README.txt": b"keep",
     }
     for path, content in unrelated.items():

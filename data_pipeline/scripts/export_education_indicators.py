@@ -7,8 +7,7 @@ public/data/educacao/ para consumo do dashboard React.
 
 Estrutura de saida:
   public/data/educacao/index.json              (metadados leves)
-  public/data/educacao/municipios/{id}.json    (1 por municipio RS)
-  public/data/educacao/regioes/{slug}.json     (1 por regiao SENAI)
+  public/data/educacao/municipios/{id}.json    (1 por municipio do estado)
 """
 
 import argparse
@@ -124,7 +123,6 @@ class Timer:
 SESI_DB = SESI_DB_DIR
 SAIDA: Path | None = None
 SAIDA_MUN: Path | None = None
-SAIDA_REG: Path | None = None
 EDUCATION_RESULT_ENV = "PNE_EDUCATION_RESULT_PATH"
 EDUCATION_RESULT_SCHEMA_VERSION = "education-run-result-v1"
 
@@ -195,10 +193,9 @@ def emit_education_result(**values) -> dict:
 
 def configure_education_output_root(output_root: Path) -> None:
     """Vincula todas as escritas do exportador a um staging ja isolado."""
-    global SAIDA, SAIDA_MUN, SAIDA_REG
+    global SAIDA, SAIDA_MUN
     SAIDA = Path(output_root).resolve()
     SAIDA_MUN = SAIDA / "municipios"
-    SAIDA_REG = SAIDA / "regioes"
 
 EDUCATION_VIEWS = (
     ("vw_educacao_matriculas", "matriculas"),
@@ -253,14 +250,6 @@ def ri(valor):
     if v is None:
         return None
     return int(round(float(v)))
-
-
-def slugify(texto):
-    """Gera slug a partir de texto."""
-    s = re.sub(r"[^\w\s-]", "", str(texto).lower().strip())
-    s = re.sub(r"[\s_-]+", "-", s)
-    s = re.sub(r"^-+|-+$", "", s)
-    return s
 
 
 def serie_anual(df, coluna_valor, coluna_extra=None):
@@ -887,9 +876,9 @@ def carregar_municipios(
     state_config: StateConfig,
     registry: MunicipalityRegistry,
 ):
-    """Carrega somente atributos regionais; identidade vem do registro."""
+    """Confere o universo municipal no banco; identidade vem do registro."""
     query = text(
-        "SELECT id_municipio, municipio, regiao_senai "
+        "SELECT id_municipio, municipio "
         "FROM municipios "
         "WHERE sigla_uf = :state_code "
         "AND id_municipio IN :municipality_ids"
@@ -946,7 +935,6 @@ def carregar_municipios(
             {
                 "id_municipio": record.ibge_code,
                 "municipio": record.name,
-                "regiao_senai": rows_by_id[record.ibge_code].get("regiao_senai"),
             }
             for record in registry.ordered_records
         ]
@@ -2957,209 +2945,6 @@ def materialize_education_outputs(
     return gerados_mun, arquivos_escritos, tamanhos
 
 
-# ── Exportacao regional ──────────────────────────────────────────────────
-# Nota: a pagina de educacao do dashboard usa apenas dados municipais.
-# A exportacao regional fica disponivel no script mas nao e chamada por
-# padrao. Para reativar, chame exportar_regioes() manualmente.
-
-
-def exportar_regioes(mun_rs, dfs_views):
-    """Gera um JSON por regiao SENAI com dados agregados."""
-    regioes = mun_rs.groupby("regiao_senai")
-    print(f"\nExportando {len(regioes)} regioes...")
-    gerados = 0
-
-    for regiao, grupo in regioes:
-        ids_regiao = grupo["id_municipio"].tolist()
-        slug = slugify(regiao)
-
-        # Agregar matriculas
-        mat_regional = _agregar_matriculas_regional(
-            dfs_views["matriculas"],
-            dfs_views["matriculas_educacao_basica"],
-            ids_regiao,
-        )
-        rede_regional = _agregar_rede_regional(dfs_views["rede_escolar"], ids_regiao)
-        turmas_regional = _agregar_turmas_regional(dfs_views["turmas"], ids_regiao)
-        fluxo_regional = _agregar_fluxo_regional(dfs_views["fluxo"], ids_regiao)
-        aprend_regional = _agregar_aprendizagem_regional(dfs_views["aprendizagem"], ids_regiao)
-        oferta_regional = _agregar_oferta_regional(dfs_views["oferta"], ids_regiao)
-
-        dados = {
-            "regiao": regiao,
-            "slug": slug,
-            "municipios_incluidos": ids_regiao,
-            "total_municipios": len(ids_regiao),
-            "updated_at": DATA_EXPORTACAO,
-            "fontes": FONTES,
-            "avisos": AVISOS_GLOBAIS + [
-                "Dados regionais sao agregacoes de municipios. "
-                "Percentuais foram recalculados a partir dos totais somados.",
-                "IDEB/SAEB regional usa media simples dos municipios com dado.",
-                "INSE regional usa media ponderada por qtd_alunos_inse.",
-            ],
-            "blocos": {
-                "matriculas": mat_regional,
-                "rede_escolar": rede_regional,
-                "turmas_docentes": turmas_regional,
-                "fluxo": fluxo_regional,
-                "aprendizagem": aprend_regional,
-                "oferta_tecnica": oferta_regional,
-            },
-        }
-
-        path = SAIDA_REG / f"{slug}.json"
-        safe_json_dump(dados, path)
-        gerados += 1
-        print(f"  {slug:<25} {len(ids_regiao)} municipios  {path.stat().st_size / 1024:.1f} KB")
-
-    return gerados
-
-
-def _agregar_matriculas_regional(df, df_educacao_basica, ids):
-    """Agrega matriculas somando municipios da regiao."""
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("matriculas", ["etapa_ensino", "dependencia", "localizacao"])
-
-    agg = (
-        d.groupby(["ano", "dependencia", "localizacao", "etapa_ensino"])
-        .agg(matriculas=("matriculas", "sum"), matriculas_integral=("matriculas_integral", "sum"))
-        .reset_index()
-    )
-    # Reaproveita a funcao municipal com id_municipio dummy
-    agg["id_municipio"] = "REGIONAL"
-    basica = (
-        df_educacao_basica[df_educacao_basica["id_municipio"].isin(ids)]
-        .groupby(["ano", "dependencia", "localizacao"], as_index=False)[
-            "mat_basico"
-        ]
-        .sum(min_count=1)
-    )
-    basica["id_municipio"] = "REGIONAL"
-    return montar_bloco_matriculas(agg, "REGIONAL", basica)
-
-
-def _agregar_rede_regional(df, ids):
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("rede_escolar", ["dependencia", "localizacao"])
-
-    agg = (
-        d.groupby(["ano", "dependencia", "localizacao"])
-        .agg(
-            escolas=("escolas", "sum"),
-            escolas_com_internet=("escolas_com_internet", "sum"),
-            escolas_com_banda_larga=("escolas_com_banda_larga", "sum"),
-        )
-        .reset_index()
-    )
-    # Recalcular percentuais
-    agg["perc_internet"] = agg.apply(
-        lambda r: r1(r["escolas_com_internet"] / r["escolas"] * 100)
-        if limpar_null(r["escolas"]) and r["escolas"] > 0 else None,
-        axis=1,
-    )
-    agg["perc_banda_larga"] = agg.apply(
-        lambda r: r1(r["escolas_com_banda_larga"] / r["escolas"] * 100)
-        if limpar_null(r["escolas"]) and r["escolas"] > 0 else None,
-        axis=1,
-    )
-    agg["id_municipio"] = "REGIONAL"
-    return montar_bloco_rede(agg, "REGIONAL")
-
-
-def _agregar_turmas_regional(df, ids):
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("turmas_docentes", ["etapa_ensino", "dependencia", "localizacao"], AVISOS_TURMAS)
-
-    agg = (
-        d.groupby(["ano", "dependencia", "localizacao", "etapa_ensino"])
-        .agg(turmas=("turmas", "sum"), docentes=("docentes", "sum"), matriculas=("matriculas", "sum"))
-        .reset_index()
-    )
-    agg["id_municipio"] = "REGIONAL"
-    return montar_bloco_turmas(agg, "REGIONAL")
-
-
-def _agregar_fluxo_regional(df, ids):
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("fluxo", ["etapa_ensino", "dependencia", "localizacao"], AVISOS_FLUXO)
-
-    # Rendimento: media ponderada pelas matriculas seria ideal, mas usamos media simples
-    # Distorcao: media simples
-    cols_taxa = ["taxa_aprovacao", "taxa_reprovacao", "taxa_abandono", "taxa_distorcao"]
-    agg = (
-        d.groupby(["ano", "dependencia", "localizacao", "etapa_ensino"])[cols_taxa]
-        .mean()
-        .reset_index()
-    )
-    agg["id_municipio"] = "REGIONAL"
-    return montar_bloco_fluxo(agg, "REGIONAL")
-
-
-def _agregar_aprendizagem_regional(df, ids):
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("aprendizagem", ["etapa_ensino", "dependencia"], AVISOS_APRENDIZAGEM)
-
-    # IDEB/SAEB: media simples
-    cols_aprend = ["ideb", "saeb_lp", "saeb_mt", "taxa_alfabetizacao"]
-    agg_ideb = (
-        d.groupby(["ano", "dependencia", "etapa_ensino"])[cols_aprend]
-        .mean()
-        .reset_index()
-    )
-
-    # INSE: media ponderada por qtd_alunos_inse
-    inse_rows = d[d["media_inse"].notna()].copy()
-    if not inse_rows.empty:
-        inse_rows["peso"] = inse_rows["qtd_alunos_inse"].fillna(0)
-        for ano in inse_rows["ano"].unique():
-            sub = inse_rows[inse_rows["ano"] == ano]
-            for rede in sub["dependencia"].unique():
-                sub_r = sub[sub["dependencia"] == rede]
-                peso_total = sub_r["peso"].sum()
-                if peso_total > 0:
-                    media_pond = (sub_r["media_inse"] * sub_r["peso"]).sum() / peso_total
-                    agg_ideb = pd.concat([
-                        agg_ideb,
-                        pd.DataFrame([{
-                            "ano": ano,
-                            "dependencia": rede,
-                            "etapa_ensino": None,
-                            "ideb": None,
-                            "saeb_lp": None,
-                            "saeb_mt": None,
-                            "taxa_alfabetizacao": None,
-                            "media_inse": media_pond,
-                            "qtd_alunos_inse": ri(peso_total),
-                        }])
-                    ], ignore_index=True)
-    else:
-        agg_ideb["media_inse"] = None
-        agg_ideb["qtd_alunos_inse"] = None
-
-    agg_ideb["id_municipio"] = "REGIONAL"
-    return montar_bloco_aprendizagem(agg_ideb, "REGIONAL")
-
-
-def _agregar_oferta_regional(df, ids):
-    d = df[df["id_municipio"].isin(ids)].copy()
-    if d.empty:
-        return _bloco_vazio("oferta_tecnica", ["modalidade", "dependencia"], AVISOS_OFERTA)
-
-    agg = (
-        d.groupby(["ano", "dependencia", "modalidade"])["matriculas"]
-        .sum(min_count=1)
-        .reset_index()
-    )
-    agg["id_municipio"] = "REGIONAL"
-    return montar_bloco_oferta(agg, "REGIONAL")
-
-
 # ── Municipios index ─────────────────────────────────────────────────────
 
 
@@ -3636,11 +3421,6 @@ def main(argv=None):
         type=str,
         default=None,
         help="Opção legada reconhecida; lotes parciais são recusados.",
-    )
-    parser.add_argument(
-        "--skip-regioes",
-        action="store_true",
-        help="Preserva explicitamente os artefatos regionais legados fora do lote.",
     )
     parser.add_argument(
         "--progress-every",

@@ -626,7 +626,6 @@ def _run_exporter_shadow(
             {
                 "id_municipio": record.ibge_code,
                 "municipio": record.name,
-                "regiao_senai": None,
             }
             for record in registry.ordered_records
         ]

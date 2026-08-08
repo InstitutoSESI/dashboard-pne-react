@@ -1,3 +1,4 @@
+import { PLATFORM_LABEL } from '../config/stateConfig'
 import {
   buildPublicSummaryText,
   DIAGNOSTIC_RESULT_VIEWS,
@@ -38,7 +39,7 @@ export function DiagnosticPrintReport({ description, municipio, publicDiagnostic
   return (
     <article className="diagnostic-print-report">
       <header className="diagnostic-print-report__header">
-        <p className="diagnostic-print-report__institution">Painel SESI-RS de Inteligência Municipal</p>
+        <p className="diagnostic-print-report__institution">{PLATFORM_LABEL} · Inteligência Municipal</p>
         <div className="diagnostic-print-report__title-row">
           <div>
             <h1>Diagnóstico educacional</h1>

@@ -1,3 +1,4 @@
+import { PLATFORM_LABEL } from '../../../config/stateConfig'
 import type {
   BreakdownValue,
   EnrollmentComparisonValue,
@@ -56,7 +57,7 @@ export function MunicipalEducationOverviewPrintReport({
   return (
     <article className="municipal-education-print-report">
       <header className="municipal-education-print-report__header">
-        <p className="municipal-education-print-report__institution">Painel SESI-RS de Inteligência Municipal</p>
+        <p className="municipal-education-print-report__institution">{PLATFORM_LABEL} · Inteligência Municipal</p>
         <h1>Panorama educacional</h1>
         <p className="municipal-education-print-report__subtitle">Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município</p>
         <dl className="municipal-education-print-report__identity">

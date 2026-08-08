@@ -56,7 +56,9 @@ O uso impresso é um requisito de produto, não um extra: define o tema claro, a
 
 O painel é institucional, analítico e sóbrio. A linguagem deve ser acessível, precisa e conservadora. Termos de situação descrevem a relação entre o dado e uma referência; não atribuem mérito, culpa ou causalidade ao município.
 
-Identidade institucional SESI-RS e FIERGS, com as marcas presentes na barra superior e na assinatura do rodapé.
+O painel se chama **Painel SESI de Educação**, com o mesmo nome em todos os estados atendidos; o recorte estadual é comunicado pelo conteúdo — a Home declara o estado de referência —, nunca pela marca.
+
+Identidade institucional SESI e FIERGS, com as marcas presentes na barra superior e na assinatura do rodapé.
 
 ## Acessibilidade
 

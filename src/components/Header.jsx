@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
-import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
+import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
@@ -67,7 +67,8 @@ const EDUCATION_PRODUCT_AVAILABLE = isProductEnabled('educacao')
 
 const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
-const PANEL_LABEL = `Painel SESI-${ACTIVE_STATE_CONFIG.stateCode}`
+const PANEL_LABEL = PLATFORM_LABEL
+const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
 
 export function Header({ activeEducationSection, activePage, onNavigate }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -166,7 +167,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
         inert={isMobile && !isDrawerOpen ? true : undefined}
         aria-label={`Navegação principal do ${PANEL_LABEL}`}
       >
-        <div className="brand-lockup" aria-label={`${PANEL_LABEL} de Inteligência Analítica Municipal`}>
+        <div className="brand-lockup" aria-label={PANEL_FULL_LABEL}>
           <div className="brand-copy">
             <span className="brand-eyebrow">{PANEL_LABEL}</span>
             <strong className="brand-title">Inteligência Municipal</strong>
@@ -252,7 +253,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
           <Menu aria-hidden="true" />
           <span>Menu</span>
         </button>
-        <div className="sidebar-mobile-bar__brand" aria-label={`${PANEL_LABEL} de Inteligência Analítica Municipal`}>
+        <div className="sidebar-mobile-bar__brand" aria-label={PANEL_FULL_LABEL}>
           <span>{PANEL_LABEL}</span>
           <strong>Inteligência Municipal</strong>
         </div>

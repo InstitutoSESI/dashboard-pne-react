@@ -126,7 +126,6 @@ def test_exporter_uses_bound_state_and_registry_ids_in_registry_order(monkeypatc
             {
                 "id_municipio": record.ibge_code,
                 "municipio": record.name,
-                "regiao_senai": "Região de teste",
             }
             for record in reversed_records
         ]
@@ -153,19 +152,21 @@ def test_exporter_uses_bound_state_and_registry_ids_in_registry_order(monkeypatc
         record.name for record in REGISTRY.ordered_records
     ]
     assert "slug" not in result.columns
+    assert "regiao_senai" not in captured["query"]
+    assert "regiao_senai" not in result.columns
 
 
 def test_exporter_rejects_foreign_numeric_and_divergent_name(monkeypatch):
     first = REGISTRY.ordered_records[0]
     foreign = pd.DataFrame(
-        [{"id_municipio": "2704302", "municipio": "Maceió", "regiao_senai": None}]
+        [{"id_municipio": "2704302", "municipio": "Maceió"}]
     )
     monkeypatch.setattr(EXPORTER.pd, "read_sql_query", lambda *_args, **_kwargs: foreign)
     with pytest.raises(ValueError, match="diverge do registro"):
         EXPORTER.carregar_municipios(object(), STATE_CONFIG, REGISTRY)
 
     numeric = pd.DataFrame(
-        [{"id_municipio": 4314902, "municipio": "Porto Alegre", "regiao_senai": None}]
+        [{"id_municipio": 4314902, "municipio": "Porto Alegre"}]
     )
     monkeypatch.setattr(EXPORTER.pd, "read_sql_query", lambda *_args, **_kwargs: numeric)
     with pytest.raises(ValueError, match="permanecer texto"):
@@ -176,7 +177,6 @@ def test_exporter_rejects_foreign_numeric_and_divergent_name(monkeypatch):
             {
                 "id_municipio": record.ibge_code,
                 "municipio": "Nome divergente" if record == first else record.name,
-                "regiao_senai": None,
             }
             for record in REGISTRY.ordered_records
         ]

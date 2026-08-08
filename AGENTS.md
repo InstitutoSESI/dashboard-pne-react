@@ -4,7 +4,7 @@ Estas instruções se aplicam a todo o repositório. Instruções específicas d
 
 ## 1. Propósito da plataforma
 
-Esta é uma plataforma municipal de acompanhamento educacional dos 497 municípios do Rio Grande do Sul, voltada principalmente a gestores municipais. Priorize dados oficiais, rastreabilidade da origem ao artefato publicado e uma experiência de impressão confiável. Alagoas e outros estados estão fora do escopo atual; não generalize o sistema para novos estados sem pedido explícito.
+Esta é uma plataforma municipal de acompanhamento educacional voltada principalmente a gestores municipais. Priorize dados oficiais, rastreabilidade da origem ao artefato publicado e uma experiência de impressão confiável. O Rio Grande do Sul (497 municípios) é o estado com publicação analítica completa; Alagoas (102 municípios) está em implantação, hoje com publicação `identity-only`. Não generalize o sistema para outros estados sem pedido explícito.
 
 ## 2. Fontes canônicas de identidade
 
@@ -86,7 +86,7 @@ Valide links, comandos e paths citados. Em limpeza, prove ausência de consumido
 
 ### MULTISTATE
 
-O único estado ativo é o RS. Implementação para outro estado exige solicitação explícita, configuração, registro municipal, contratos de compatibilidade e testes próprios; não copie pressupostos do RS silenciosamente.
+RS e AL são estados configurados: o RS com publicação analítica completa e o AL em implantação, ainda `identity-only`. Implementação para outro estado exige solicitação explícita, configuração, registro municipal, contratos de compatibilidade e testes próprios; não copie pressupostos do RS silenciosamente.
 
 ### BUILD E DEPLOY
 
