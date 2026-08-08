@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -26,6 +27,15 @@ function writeJson(filePath, payload) {
   mkdirSync(path.dirname(filePath), { recursive: true })
   writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
 }
+
+test('publicacoes estaduais preservam a mesma anatomia na raiz educacao', () => {
+  const listChildren = (directory) => readdirSync(directory, { withFileTypes: true })
+    .map((entry) => entry.name)
+    .sort()
+  const rsEducation = path.join(repoRoot, 'public', 'data', 'educacao')
+  const alEducation = path.join(repoRoot, 'state-publications', 'al', 'data', 'educacao')
+  assert.deepEqual(listChildren(alEducation), listChildren(rsEducation))
+})
 
 function createAlFixture(publicationOverrides = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'dashboard-pne-state-publication-'))
@@ -105,12 +115,12 @@ test('normaliza UF textual e rejeita valor inválido sem fallback', () => {
   assert.equal(alProfile.publicDataDirectory, null)
 })
 
-test('perfil real de AL publica Educação para 102 municípios sem ativar analytics do RS', () => {
+test('perfil real de AL publica Educação e Financiamento para 102 municípios', () => {
   const profile = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
   assert.equal(profile.stateConfig.expectedMunicipalityCount, 102)
   assert.equal(profile.municipalityRegistry.municipalityCount, 102)
   assert.equal(profile.publication.analyticsStatus, 'partial')
-  assert.deepEqual([...profile.publication.enabledProducts], ['educacao'])
+  assert.deepEqual([...profile.publication.enabledProducts], ['educacao', 'financiamento'])
   assert.equal(profile.publication.publicDataDirectory, 'state-publications/al/data')
   assert.ok(profile.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('27')))
 })

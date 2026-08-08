@@ -12,10 +12,7 @@ DATA_PIPELINE_DIR = Path(__file__).resolve().parents[1]
 if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
-from src.config import (  # noqa: E402
-    EDUCATION_DATA_DIR,
-    HIGHER_EDUCATION_SOURCE_DIR,
-)
+from src.config import HIGHER_EDUCATION_SOURCE_DIR  # noqa: E402
 from src.higher_education import (  # noqa: E402
     SUPPORTED_YEARS,
     audit_summary,
@@ -34,6 +31,10 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
     normalize_state_code,
+)
+from src.state_publication import (  # noqa: E402
+    StatePublicationError,
+    resolve_education_data_dir,
 )
 
 
@@ -89,8 +90,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--public-output-dir",
         type=Path,
-        default=EDUCATION_DATA_DIR / "superior",
-        help="Diretorio publico exclusivo da Educacao Superior.",
+        help=(
+            "Diretorio publico exclusivo da Educacao Superior. Quando omitido, "
+            "usa <raiz-publicada-da-UF>/educacao/superior."
+        ),
     )
     parser.add_argument(
         "--state",
@@ -106,7 +109,17 @@ def main(argv: list[str] | None = None) -> int:
         state_code = normalize_state_code(args.state)
         state_config = load_state_config(state_code)
         registry = load_municipality_registry(state_config)
-    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        public_output_dir = (
+            args.public_output_dir
+            if args.public_output_dir is not None
+            else resolve_education_data_dir(state_code) / "superior"
+        )
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        StatePublicationError,
+    ) as exc:
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
 
@@ -124,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
         result = materialize_higher_education(
             audit,
             municipality_universe=registry.names_by_id,
-            output_directory=args.public_output_dir,
+            output_directory=public_output_dir,
         )
         print(
             json.dumps(

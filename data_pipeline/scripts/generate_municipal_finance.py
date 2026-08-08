@@ -16,6 +16,7 @@ sys.path.insert(0, str(DATA_PIPELINE_DIR))
 from src.config import MUNICIPAL_FINANCE_EXPORT_DIR  # noqa: E402
 from src.municipal_finance import (  # noqa: E402
     DATA_VERSION,
+    FinanceState,
     generate_contracts,
     load_municipality_registry,
     load_source_snapshot,
@@ -25,14 +26,20 @@ from src.municipal_finance import (  # noqa: E402
     write_reconciliation_sample_csv,
 )
 from src.municipal_finance_constitutional import (  # noqa: E402
+    ConstitutionalState,
     load_constitutional_snapshot,
     merge_constitutional_snapshot,
     refresh_annual_constitutional_snapshot,
     write_constitutional_reports,
 )
+from src.publication_transaction import promote_files_atomically  # noqa: E402
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    load_state_config,
+)
+from src.state_publication import resolve_public_data_dir  # noqa: E402
 
 
-DEFAULT_INDEX = REPO_ROOT / "public" / "data" / "municipios_index.json"
 DEFAULT_SNAPSHOT = DATA_PIPELINE_DIR / "data" / "municipal_finance" / "source_snapshot.json"
 DEFAULT_CONSTITUTIONAL_SNAPSHOT = (
     DATA_PIPELINE_DIR / "data" / "municipal_finance" / "constitutional_source_snapshot.json"
@@ -45,7 +52,6 @@ DEFAULT_RREO_REVISIONS = (
 )
 DEFAULT_CHECKPOINT = DATA_PIPELINE_DIR / "export" / "debug" / "municipal_finance_dca_checkpoint.json"
 DEFAULT_EXPORT_ROOT = MUNICIPAL_FINANCE_EXPORT_DIR
-DEFAULT_PUBLIC_ROOT = REPO_ROOT / "public" / "data"
 DEFAULT_COVERAGE_CSV = REPO_ROOT / "docs" / "data" / "diagnostico_financeiro_cobertura_497.csv"
 DEFAULT_RECONCILIATION_CSV = REPO_ROOT / "docs" / "data" / "diagnostico_financeiro_reconciliacao_amostra.csv"
 DEFAULT_CONSTITUTIONAL_COVERAGE_CSV = (
@@ -67,12 +73,16 @@ def tree_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_determinism(municipalities: list[dict[str, str]], snapshot: dict) -> dict[str, str]:
+def verify_determinism(
+    municipalities: list[dict[str, str]],
+    snapshot: dict,
+    state: FinanceState,
+) -> dict[str, str]:
     with tempfile.TemporaryDirectory(prefix="p5b1-a-") as first_dir, tempfile.TemporaryDirectory(prefix="p5b1-b-") as second_dir:
         first_root = Path(first_dir)
         second_root = Path(second_dir)
-        generate_contracts(municipalities, snapshot, [first_root])
-        generate_contracts(municipalities, snapshot, [second_root])
+        generate_contracts(municipalities, snapshot, [first_root], state)
+        generate_contracts(municipalities, snapshot, [second_root], state)
         first_hash = tree_hash(first_root)
         second_hash = tree_hash(second_root)
         if first_hash != second_hash:
@@ -90,10 +100,15 @@ def measure_local_loading(root: Path, municipalities: list[dict[str, str]]) -> f
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Gera os contratos financeiros municipais P5-B1.")
-    parser.add_argument("--municipality-index", type=Path, default=DEFAULT_INDEX)
-    parser.add_argument("--source-snapshot", type=Path, default=DEFAULT_SNAPSHOT)
-    parser.add_argument("--constitutional-snapshot", type=Path, default=DEFAULT_CONSTITUTIONAL_SNAPSHOT)
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_EXPORT_ROOT)
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
+    )
+    parser.add_argument("--municipality-index", type=Path)
+    parser.add_argument("--source-snapshot", type=Path)
+    parser.add_argument("--constitutional-snapshot", type=Path)
+    parser.add_argument("--output-root", type=Path)
     parser.add_argument("--refresh-sources", action="store_true")
     parser.add_argument("--refresh-constitutional", action="store_true")
     parser.add_argument("--annual-reference-year", type=int, default=2025)
@@ -109,40 +124,134 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    municipalities = load_municipality_registry(args.municipality_index)
+    state_config = load_state_config(args.state)
+    finance_state = FinanceState(
+        state_config.state_code,
+        state_config.municipality_ibge_prefix,
+        state_config.expected_municipality_count,
+    )
+    constitutional_state = ConstitutionalState(
+        state_config.state_code,
+        state_config.municipality_ibge_prefix,
+        state_config.expected_municipality_count,
+    )
+    public_root = resolve_public_data_dir(state_config.state_code)
+    state_suffix = state_config.state_code.casefold()
+    municipality_index = args.municipality_index or public_root / "municipios_index.json"
+    source_snapshot = args.source_snapshot or (
+        DEFAULT_SNAPSHOT
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else DEFAULT_SNAPSHOT.with_name(f"source_snapshot_{state_suffix}.json")
+    )
+    constitutional_snapshot_path = args.constitutional_snapshot or (
+        DEFAULT_CONSTITUTIONAL_SNAPSHOT
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else DEFAULT_CONSTITUTIONAL_SNAPSHOT.with_name(
+            f"constitutional_source_snapshot_{state_suffix}.json"
+        )
+    )
+    output_root = args.output_root or (
+        DEFAULT_EXPORT_ROOT
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else public_root
+    )
+    crosswalk_path = (
+        DEFAULT_CONSTITUTIONAL_CROSSWALK
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else DEFAULT_CONSTITUTIONAL_CROSSWALK.with_name(
+            f"siope_ibge_crosswalk_{state_suffix}_v1.json"
+        )
+    )
+    revision_history_path = (
+        DEFAULT_RREO_REVISIONS
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else DEFAULT_RREO_REVISIONS.with_name(
+            f"rreo_source_revisions_{state_suffix}.json"
+        )
+    )
+    checkpoint_path = (
+        DEFAULT_CHECKPOINT
+        if state_config.state_code == DEFAULT_STATE_CODE
+        else DEFAULT_CHECKPOINT.with_name(
+            f"{DEFAULT_CHECKPOINT.stem}_{state_suffix}{DEFAULT_CHECKPOINT.suffix}"
+        )
+    )
+    municipalities = load_municipality_registry(municipality_index, finance_state)
 
     if args.refresh_sources:
         snapshot = refresh_source_snapshot(
             municipalities,
-            snapshot_path=args.source_snapshot,
-            checkpoint_path=DEFAULT_CHECKPOINT,
+            snapshot_path=source_snapshot,
+            checkpoint_path=checkpoint_path,
             annual_reference_year=args.annual_reference_year,
             dca_delay_seconds=args.dca_delay,
             dca_workers=args.dca_workers,
+            state=finance_state,
         )
     else:
-        snapshot = load_source_snapshot(args.source_snapshot)
+        snapshot = load_source_snapshot(source_snapshot, finance_state)
 
     if args.refresh_constitutional:
         constitutional_snapshot = refresh_annual_constitutional_snapshot(
             municipalities,
-            registry_path=args.municipality_index,
-            snapshot_path=args.constitutional_snapshot,
-            crosswalk_path=DEFAULT_CONSTITUTIONAL_CROSSWALK,
-            revision_history_path=DEFAULT_RREO_REVISIONS,
+            registry_path=municipality_index,
+            snapshot_path=constitutional_snapshot_path,
+            crosswalk_path=crosswalk_path,
+            revision_history_path=revision_history_path,
             reference_year=args.annual_reference_year,
             rreo_workers=args.rreo_workers,
+            state=constitutional_state,
         )
     else:
-        constitutional_snapshot = load_constitutional_snapshot(args.constitutional_snapshot)
-    snapshot = merge_constitutional_snapshot(snapshot, constitutional_snapshot)
+        constitutional_snapshot = load_constitutional_snapshot(
+            constitutional_snapshot_path,
+            constitutional_state,
+        )
+    snapshot = merge_constitutional_snapshot(
+        snapshot,
+        constitutional_snapshot,
+        constitutional_state,
+    )
 
-    output_roots = [args.output_root]
-    if args.sync_public and args.output_root.resolve() != DEFAULT_PUBLIC_ROOT.resolve():
-        output_roots.append(DEFAULT_PUBLIC_ROOT)
+    output_roots = [output_root]
+    if args.sync_public and output_root.resolve() != public_root.resolve():
+        output_roots.append(public_root)
 
     generation_started = time.perf_counter()
-    result = generate_contracts(municipalities, snapshot, output_roots)
+    for root in output_roots:
+        root.parent.mkdir(parents=True, exist_ok=True)
+    stage_contexts = [
+        tempfile.TemporaryDirectory(
+            prefix=f".{root.name}-finance-stage-",
+            dir=root.parent,
+        )
+        for root in output_roots
+    ]
+    stage_roots = [Path(context.name) for context in stage_contexts]
+    try:
+        result = generate_contracts(
+            municipalities,
+            snapshot,
+            stage_roots,
+            finance_state,
+        )
+        validation = validate_generated_contracts(
+            stage_roots[-1],
+            municipalities,
+            municipal_index_root=municipality_index.parent,
+        )
+        publication_paths = [
+            Path("financeiro") / name
+            for name in ("catalogos.json", "cobertura.json", "manifest.json")
+        ] + [
+            Path("municipios") / municipality["ibgeCode"] / "financeiro.json"
+            for municipality in municipalities
+        ]
+        for stage_root, target_root in zip(stage_roots, output_roots, strict=True):
+            promote_files_atomically(stage_root, target_root, publication_paths)
+    finally:
+        for context in stage_contexts:
+            context.cleanup()
     generation_seconds = round(time.perf_counter() - generation_started, 3)
 
     if args.write_reports:
@@ -152,24 +261,23 @@ def main() -> None:
             coverage_path=DEFAULT_CONSTITUTIONAL_COVERAGE_CSV,
             reconciliation_path=DEFAULT_CONSTITUTIONAL_RECONCILIATION_CSV,
             revisions_csv_path=DEFAULT_CONSTITUTIONAL_REVISIONS_CSV,
-            revision_history_path=DEFAULT_RREO_REVISIONS,
+            revision_history_path=revision_history_path,
             contracts=result["contracts"],
         )
 
-    validation = None
     if args.validate:
-        validation_root = DEFAULT_PUBLIC_ROOT if args.sync_public else args.output_root
+        validation_root = public_root if args.sync_public else output_root
         validation = validate_generated_contracts(
             validation_root,
             municipalities,
-            municipal_index_root=args.municipality_index.parent,
+            municipal_index_root=municipality_index.parent,
         )
 
     determinism = None
     if args.check_determinism:
-        determinism = verify_determinism(municipalities, snapshot)
+        determinism = verify_determinism(municipalities, snapshot, finance_state)
 
-    load_root = DEFAULT_PUBLIC_ROOT if args.sync_public else args.output_root
+    load_root = public_root if args.sync_public else output_root
     local_load_ms = measure_local_loading(load_root, municipalities)
     print(
         json.dumps(

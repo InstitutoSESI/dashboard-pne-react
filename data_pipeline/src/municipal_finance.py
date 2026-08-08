@@ -9,6 +9,7 @@ import time
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections.abc import Iterable
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,22 @@ GENERATED_AT = "2026-07-20T00:00:00-03:00"
 ACCESSED_AT = "2026-07-20"
 FORECAST_CUTOFF_DATE = "2026-06-22"
 EXPECTED_MUNICIPALITIES = 497
+
+
+@dataclass(frozen=True, slots=True)
+class FinanceState:
+    state_code: str
+    municipality_ibge_prefix: str
+    expected_municipality_count: int
+
+    @property
+    def municipality_pattern(self) -> re.Pattern[str]:
+        return re.compile(
+            rf"{re.escape(self.municipality_ibge_prefix)}\d{{5}}"
+        )
+
+
+RS_FINANCE_STATE = FinanceState("RS", "43", EXPECTED_MUNICIPALITIES)
 
 FUND_EB_TOTAL_URL = (
     "https://www.gov.br/fnde/pt-br/acesso-a-informacao/acoes-e-programas/"
@@ -361,7 +378,11 @@ def source_quality(records: dict[str, Any], registry_codes: set[str], duplicates
     }
 
 
-def parse_fundeb_total(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_fundeb_total(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     headers, rows = semicolon_table(content)
     indexes = {
         "uf": find_header_index(headers, "uf"),
@@ -377,12 +398,12 @@ def parse_fundeb_total(content: bytes, registry_codes: set[str]) -> tuple[dict[s
     duplicates: set[str] = set()
     incompatible = 0
     for row in rows:
-        if normalize_text(row[indexes["uf"]]) != "rs":
+        if normalize_text(row[indexes["uf"]]) != state.state_code.casefold():
             continue
         code = re.sub(r"\D", "", row[indexes["code"]])
         if len(code) == 2:
             continue
-        if not re.fullmatch(r"43\d{5}", code):
+        if state.municipality_pattern.fullmatch(code) is None:
             incompatible += 1
             continue
         if code in records:
@@ -399,7 +420,11 @@ def parse_fundeb_total(content: bytes, registry_codes: set[str]) -> tuple[dict[s
     return records, source_quality(records, registry_codes, duplicates, incompatible)
 
 
-def parse_fundeb_vaat(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_fundeb_vaat(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     headers, rows = semicolon_table(content)
     uf_index = find_header_index(headers, "uf")
     code_index = find_header_index(headers, "codigo", "ibge")
@@ -415,12 +440,12 @@ def parse_fundeb_vaat(content: bytes, registry_codes: set[str]) -> tuple[dict[st
     duplicates: set[str] = set()
     incompatible = 0
     for row in rows:
-        if normalize_text(row[uf_index]) != "rs":
+        if normalize_text(row[uf_index]) != state.state_code.casefold():
             continue
         code = re.sub(r"\D", "", row[code_index])
         if len(code) == 2:
             continue
-        if not re.fullmatch(r"43\d{5}", code):
+        if state.municipality_pattern.fullmatch(code) is None:
             incompatible += 1
             continue
         if code in records:
@@ -435,7 +460,11 @@ def parse_fundeb_vaat(content: bytes, registry_codes: set[str]) -> tuple[dict[st
     return records, source_quality(records, registry_codes, duplicates, incompatible)
 
 
-def parse_fundeb_vaar_forecast(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_fundeb_vaar_forecast(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     headers, rows = semicolon_table(content)
     uf_index = find_header_index(headers, "uf")
     code_index = find_header_index(headers, "codigo", "ibge")
@@ -450,12 +479,12 @@ def parse_fundeb_vaar_forecast(content: bytes, registry_codes: set[str]) -> tupl
     duplicates: set[str] = set()
     incompatible = 0
     for row in rows:
-        if normalize_text(row[uf_index]) != "rs":
+        if normalize_text(row[uf_index]) != state.state_code.casefold():
             continue
         code = re.sub(r"\D", "", row[code_index])
         if len(code) == 2:
             continue
-        if not re.fullmatch(r"43\d{5}", code):
+        if state.municipality_pattern.fullmatch(code) is None:
             incompatible += 1
             continue
         if code in records:
@@ -469,7 +498,11 @@ def parse_fundeb_vaar_forecast(content: bytes, registry_codes: set[str]) -> tupl
     return records, source_quality(records, registry_codes, duplicates, incompatible)
 
 
-def parse_fundeb_vaar_status(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_fundeb_vaar_status(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     headers, rows = semicolon_table(content)
     uf_index = find_header_index(headers, "uf")
     code_index = find_header_index(headers, "codigo", "ibge")
@@ -480,12 +513,12 @@ def parse_fundeb_vaar_status(content: bytes, registry_codes: set[str]) -> tuple[
     duplicates: set[str] = set()
     incompatible = 0
     for row in rows:
-        if normalize_text(row[uf_index]) != "rs":
+        if normalize_text(row[uf_index]) != state.state_code.casefold():
             continue
         code = re.sub(r"\D", "", row[code_index])
         if len(code) == 2:
             continue
-        if not re.fullmatch(r"43\d{5}", code):
+        if state.municipality_pattern.fullmatch(code) is None:
             incompatible += 1
             continue
         if code in records:
@@ -501,7 +534,11 @@ def parse_fundeb_vaar_status(content: bytes, registry_codes: set[str]) -> tuple[
     return records, source_quality(records, registry_codes, duplicates, incompatible)
 
 
-def parse_fundeb_vaat_status(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def parse_fundeb_vaat_status(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     headers, rows = semicolon_table(content)
     uf_index = find_header_index(headers, "uf")
     code_index = find_header_index(headers, "codigo", "ibge")
@@ -511,12 +548,12 @@ def parse_fundeb_vaat_status(content: bytes, registry_codes: set[str]) -> tuple[
     duplicates: set[str] = set()
     incompatible = 0
     for row in rows:
-        if normalize_text(row[uf_index]) != "rs":
+        if normalize_text(row[uf_index]) != state.state_code.casefold():
             continue
         code = re.sub(r"\D", "", row[code_index])
         if len(code) == 2:
             continue
-        if not re.fullmatch(r"43\d{5}", code):
+        if state.municipality_pattern.fullmatch(code) is None:
             incompatible += 1
             continue
         if code in records:
@@ -547,8 +584,16 @@ def extract_pdf_lines(content: bytes) -> Iterable[str]:
             yield re.sub(r"\s+", " ", line.strip())
 
 
-def parse_qse_realized(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
-    pattern = re.compile(r"^RS\s+(.+?)\s+(43\d{5})\s+([\d.]+,\d{2})\s+([\d,]+)\s+([\d.]+,\d{2})$")
+def parse_qse_realized(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    pattern = re.compile(
+        rf"^{re.escape(state.state_code)}\s+(.+?)\s+"
+        rf"({re.escape(state.municipality_ibge_prefix)}\d{{5}})\s+"
+        r"([\d.]+,\d{2})\s+([\d,]+)\s+([\d.]+,\d{2})$"
+    )
     records: dict[str, Any] = {}
     duplicates: set[str] = set()
     for line in extract_pdf_lines(content):
@@ -568,8 +613,16 @@ def parse_qse_realized(content: bytes, registry_codes: set[str]) -> tuple[dict[s
     return records, source_quality(records, registry_codes, duplicates, 0)
 
 
-def parse_qse_estimate(content: bytes, registry_codes: set[str]) -> tuple[dict[str, Any], dict[str, Any]]:
-    pattern = re.compile(r"^RS\s+(.+?)\s+(43\d{5})\s+([\d,]+)\s+([\d.]+,\d{2})$")
+def parse_qse_estimate(
+    content: bytes,
+    registry_codes: set[str],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    pattern = re.compile(
+        rf"^{re.escape(state.state_code)}\s+(.+?)\s+"
+        rf"({re.escape(state.municipality_ibge_prefix)}\d{{5}})\s+"
+        r"([\d,]+)\s+([\d.]+,\d{2})$"
+    )
     records: dict[str, Any] = {}
     duplicates: set[str] = set()
     for line in extract_pdf_lines(content):
@@ -692,7 +745,10 @@ def fetch_dca_records(
     return records, quality
 
 
-def load_municipality_registry(path: Path) -> list[dict[str, str]]:
+def load_municipality_registry(
+    path: Path,
+    state: FinanceState = RS_FINANCE_STATE,
+) -> list[dict[str, str]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     municipalities = [
         {
@@ -705,8 +761,19 @@ def load_municipality_registry(path: Path) -> list[dict[str, str]]:
     municipalities.sort(key=lambda item: item["ibgeCode"])
     codes = [item["ibgeCode"] for item in municipalities]
     slugs = [item["slug"] for item in municipalities]
-    if len(municipalities) != EXPECTED_MUNICIPALITIES:
-        raise RuntimeError(f"Base municipal contém {len(municipalities)} municípios; esperado {EXPECTED_MUNICIPALITIES}.")
+    if len(municipalities) != state.expected_municipality_count:
+        raise RuntimeError(
+            f"Base municipal contém {len(municipalities)} municípios; "
+            f"esperado {state.expected_municipality_count}."
+        )
+    invalid_codes = [
+        code for code in codes if state.municipality_pattern.fullmatch(code) is None
+    ]
+    if invalid_codes:
+        raise RuntimeError(
+            "Base municipal contém códigos fora do prefixo estadual: "
+            f"{invalid_codes[:5]}."
+        )
     if len(set(codes)) != len(codes) or len(set(slugs)) != len(slugs):
         raise RuntimeError("A base municipal contém códigos ou slugs duplicados.")
     return municipalities
@@ -731,6 +798,7 @@ def refresh_source_snapshot(
     annual_reference_year: int = 2025,
     dca_delay_seconds: float = 1.05,
     dca_workers: int = 1,
+    state: FinanceState = RS_FINANCE_STATE,
 ) -> dict[str, Any]:
     registry_codes = {item["ibgeCode"] for item in municipalities}
     downloads = {
@@ -753,10 +821,10 @@ def refresh_source_snapshot(
     }
     previous_sources = {}
     if snapshot_path.exists():
-        previous_sources = load_source_snapshot(snapshot_path).get("sources", {})
+        previous_sources = load_source_snapshot(snapshot_path, state).get("sources", {})
     sources: dict[str, Any] = dict(previous_sources)
     for source_id, raw in downloads.items():
-        records, quality = parsers[source_id](raw, registry_codes)
+        records, quality = parsers[source_id](raw, registry_codes, state)
         sources[source_id] = snapshot_source(source_id, raw, records, quality)
         print(
             f"[municipal-finance] {source_id}: "
@@ -786,19 +854,34 @@ def refresh_source_snapshot(
         "snapshotVersion": SNAPSHOT_VERSION,
         "dataVersion": DATA_VERSION,
         "generatedAt": GENERATED_AT,
-        "municipalities": EXPECTED_MUNICIPALITIES,
+        "stateCode": state.state_code,
+        "municipalities": state.expected_municipality_count,
         "sources": sources,
     }
     write_json_if_changed(snapshot_path, snapshot)
     return snapshot
 
 
-def load_source_snapshot(path: Path) -> dict[str, Any]:
+def load_source_snapshot(
+    path: Path,
+    state: FinanceState = RS_FINANCE_STATE,
+) -> dict[str, Any]:
     if not path.exists():
         raise RuntimeError(f"Snapshot financeiro ausente: {path}. Execute com --refresh-sources.")
     payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("snapshotVersion") != SNAPSHOT_VERSION:
         raise RuntimeError(f"Versão de snapshot incompatível: {payload.get('snapshotVersion')}")
+    snapshot_state = payload.get("stateCode", "RS")
+    if snapshot_state != state.state_code:
+        raise RuntimeError(
+            f"Snapshot financeiro de {snapshot_state}, esperado {state.state_code}."
+        )
+    if payload.get("municipalities") != state.expected_municipality_count:
+        raise RuntimeError(
+            "Snapshot financeiro com universo municipal divergente: "
+            f"{payload.get('municipalities')}, esperado "
+            f"{state.expected_municipality_count}."
+        )
     return payload
 
 
@@ -1143,7 +1226,11 @@ def derived_difference(
     return result
 
 
-def build_execution_history(snapshot: dict[str, Any], code: str) -> list[dict[str, Any]]:
+def build_execution_history(
+    snapshot: dict[str, Any],
+    code: str,
+    state: FinanceState = RS_FINANCE_STATE,
+) -> list[dict[str, Any]]:
     history = []
     for reference_year, source_id in annual_source_candidates(snapshot, "siconfi_dca_function_"):
         record = source_record(snapshot, source_id, code)
@@ -1194,7 +1281,10 @@ def build_execution_history(snapshot: dict[str, Any], code: str) -> list[dict[st
                 "paidToCommittedRate": derived_rate(
                     [state_paid],
                     state_committed,
-                    "sum(paid for 497 municipalities) / sum(committed for 497 municipalities) * 100",
+                    "sum(paid for "
+                    f"{state.expected_municipality_count} municipalities) / "
+                    "sum(committed for "
+                    f"{state.expected_municipality_count} municipalities) * 100",
                     ["state.paid"],
                     "state.committed",
                     source_id,
@@ -1235,7 +1325,11 @@ def build_mde_rate_history(snapshot: dict[str, Any], code: str) -> list[dict[str
     return sorted(history[:5], key=lambda item: item["referenceYear"])
 
 
-def build_contract(municipality: dict[str, str], snapshot: dict[str, Any]) -> dict[str, Any]:
+def build_contract(
+    municipality: dict[str, str],
+    snapshot: dict[str, Any],
+    state: FinanceState = RS_FINANCE_STATE,
+) -> dict[str, Any]:
     code = municipality["ibgeCode"]
     fundeb_total = source_record(snapshot, "fnde_fundeb_total_forecast_2026", code)
     vaat = source_record(snapshot, "fnde_fundeb_vaat_2026", code)
@@ -1278,7 +1372,7 @@ def build_contract(municipality: dict[str, str], snapshot: dict[str, Any]) -> di
             "outstandingProcessed",
         )
     }
-    execution_history = build_execution_history(snapshot, code)
+    execution_history = build_execution_history(snapshot, code, state)
     mde_rate_history = build_mde_rate_history(snapshot, code)
 
     mde_amount_year, mde_applied_amount = select_latest_reconciled_constitutional_metric(
@@ -1500,7 +1594,7 @@ def build_contract(municipality: dict[str, str], snapshot: dict[str, Any]) -> di
         "dataVersion": DATA_VERSION,
         "methodologyVersion": METHODOLOGY_VERSION,
         "generatedAt": GENERATED_AT,
-        "municipality": {**municipality, "uf": "RS"},
+        "municipality": {**municipality, "uf": state.state_code},
         "periods": {
             "closedFiscalYear": dca_year,
             "annualForecastYear": 2026,
@@ -1812,12 +1906,15 @@ def source_catalog_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def coverage_payload(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def coverage_payload(
+    rows: list[dict[str, Any]],
+    expected_municipality_count: int = EXPECTED_MUNICIPALITIES,
+) -> dict[str, Any]:
     return {
         "schemaVersion": SCHEMA_VERSION,
         "dataVersion": DATA_VERSION,
         "generatedAt": GENERATED_AT,
-        "municipalities": EXPECTED_MUNICIPALITIES,
+        "municipalities": expected_municipality_count,
         "fields": rows,
     }
 
@@ -1834,11 +1931,18 @@ def generate_contracts(
     municipalities: list[dict[str, str]],
     snapshot: dict[str, Any],
     output_roots: list[Path],
+    state: FinanceState = RS_FINANCE_STATE,
 ) -> dict[str, Any]:
-    contracts = [build_contract(municipality, snapshot) for municipality in municipalities]
+    contracts = [
+        build_contract(municipality, snapshot, state)
+        for municipality in municipalities
+    ]
     coverage_rows = build_coverage_rows(contracts, snapshot)
     catalogs = source_catalog_payload(snapshot)
-    coverage = coverage_payload(coverage_rows)
+    coverage = coverage_payload(
+        coverage_rows,
+        state.expected_municipality_count,
+    )
     logical_hash = contracts_hash(contracts)
     manifest = {
         "schemaVersion": SCHEMA_VERSION,

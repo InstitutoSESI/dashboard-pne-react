@@ -36,7 +36,7 @@ test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   assert.equal(rs.publication.schemaVersion, 'state-publication-v3')
   assert.equal(al.publication.schemaVersion, 'state-publication-v3')
   assert.equal(rs.publication.enabledProducts, null)
-  assert.deepEqual([...al.publication.enabledProducts], ['educacao'])
+  assert.deepEqual([...al.publication.enabledProducts], ['educacao', 'financiamento'])
   assert.equal(rs.publication.analyticsStatus, 'complete')
   assert.equal(rs.municipalityRegistry.municipalityCount, 497)
   assert.equal(al.publication.analyticsStatus, 'partial')
@@ -46,14 +46,14 @@ test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   assert.ok(al.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('27')))
 })
 
-test('AL publica somente Educação enquanto PNE e Financiamento estão indisponíveis', () => {
+test('AL publica Educação e Financiamento enquanto PNE está indisponível', () => {
   const manifest = JSON.parse(
     readFileSync(path.join(repoRoot, 'config/publications/al.json'), 'utf8'),
   )
   assert.equal(manifest.schemaVersion, 'state-publication-v3')
   assert.equal(manifest.analyticsStatus, 'partial')
-  assert.deepEqual(manifest.enabledProducts, ['educacao'])
-  assert.match(manifest.analyticsMessage, /PNE e Financiamento ainda não foram publicados/)
+  assert.deepEqual(manifest.enabledProducts, ['educacao', 'financiamento'])
+  assert.match(manifest.analyticsMessage, /Apenas o PNE ainda não foi publicado/)
   assert.equal(manifest.stateConfigPath, 'config/states/al.json')
   assert.equal(manifest.municipalityRegistryPath, 'config/municipalities/al.json')
 })
@@ -79,7 +79,7 @@ test('o vocabulário de produtos é idêntico nas três camadas do contrato', ()
   assert.deepEqual(parse(pipelineProducts), [...ANALYTICS_PRODUCTS])
 })
 
-test('raiz AL contém o catálogo canônico e somente os produtos educacionais habilitados', () => {
+test('raiz AL contém Educação e Financiamento nos subtrees canônicos', () => {
   const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
   const observed = allFiles(al.publicDataDirectory)
   const identityFiles = [
@@ -94,9 +94,15 @@ test('raiz AL contém o catálogo canônico e somente os produtos educacionais h
   assert.ok(observed.includes('educacao/municipios_index.json'))
   assert.equal(observed.filter((relative) => /^educacao\/municipios\/27\d{5}\.json$/.test(relative)).length, 102)
   assert.equal(observed.filter((relative) => /^educacao\/visao-geral-municipal\/27\d{5}\.json$/.test(relative)).length, 102)
-  assert.ok(observed.some((relative) => relative.startsWith('educacao-especial/')))
-  assert.ok(observed.some((relative) => relative.startsWith('superior/')))
-  assert.ok(observed.every((relative) => !relative.startsWith('financeiro/')))
+  assert.ok(observed.some((relative) => relative.startsWith('educacao/educacao-especial/')))
+  assert.ok(observed.some((relative) => relative.startsWith('educacao/superior/')))
+  assert.ok(observed.includes('financeiro/manifest.json'))
+  assert.ok(observed.includes('financeiro/catalogos.json'))
+  assert.ok(observed.includes('financeiro/cobertura.json'))
+  assert.ok(observed.includes('financeiro/qse-anual-manifest.json'))
+  assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/financeiro\.json$/.test(relative)).length, 102)
+  assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/qse-anual\.json$/.test(relative)).length, 102)
+  assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/details\.json$/.test(relative)).length, 0)
   assert.ok(observed.every((relative) => !relative.startsWith('pne/')))
   assert.ok(observed.every((relative) => !relative.includes('4300034')))
 

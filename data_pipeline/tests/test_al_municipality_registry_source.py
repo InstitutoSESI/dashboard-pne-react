@@ -122,7 +122,7 @@ def test_al_configs_are_promoted_with_education_as_the_only_analytics_product() 
     assert publication["schemaVersion"] == "state-publication-v3"
     assert publication["stateCode"] == "AL"
     assert publication["analyticsStatus"] == "partial"
-    assert publication["enabledProducts"] == ["educacao"]
+    assert publication["enabledProducts"] == ["educacao", "financiamento"]
     assert publication["stateConfigPath"] == "config/states/al.json"
     assert publication["municipalityRegistryPath"] == (
         "config/municipalities/al.json"

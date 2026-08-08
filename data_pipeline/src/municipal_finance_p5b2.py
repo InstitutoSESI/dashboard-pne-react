@@ -90,15 +90,28 @@ def canonical_json(value: Any) -> bytes:
     ).encode("utf-8")
 
 
-def validate_ibge_code(code: str | int) -> str:
+def validate_ibge_code(
+    code: str | int,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
+) -> str:
     normalized = re.sub(r"\D", "", str(code))
-    if not re.fullmatch(r"43\d{5}", normalized):
-        raise ValueError(f"Código IBGE municipal do RS inválido: {code!r}")
+    if re.fullmatch(
+        rf"{re.escape(municipality_ibge_prefix)}\d{{5}}",
+        normalized,
+    ) is None:
+        raise ValueError(
+            f"Código IBGE municipal de {state_code} inválido: {code!r}"
+        )
     return normalized
 
 
-def siope_code_from_ibge(code: str | int) -> str:
-    return validate_ibge_code(code)[:6]
+def siope_code_from_ibge(
+    code: str | int,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
+) -> str:
+    return validate_ibge_code(code, municipality_ibge_prefix, state_code)[:6]
 
 
 def parse_brazilian_number(value: Any) -> float | None:
@@ -134,9 +147,21 @@ def assert_schema(row: Mapping[str, Any], required: set[str], source_id: str) ->
         raise SourceSchemaError(f"{source_id}: campos obrigatórios ausentes: {', '.join(missing)}")
 
 
-def coverage_summary(present_codes: Iterable[str], registry_codes: Iterable[str]) -> dict[str, Any]:
-    registry = {validate_ibge_code(code) for code in registry_codes}
-    present = {validate_ibge_code(code) for code in present_codes}
+def coverage_summary(
+    present_codes: Iterable[str],
+    registry_codes: Iterable[str],
+    *,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
+) -> dict[str, Any]:
+    registry = {
+        validate_ibge_code(code, municipality_ibge_prefix, state_code)
+        for code in registry_codes
+    }
+    present = {
+        validate_ibge_code(code, municipality_ibge_prefix, state_code)
+        for code in present_codes
+    }
     unexpected = sorted(present.difference(registry))
     covered = present.intersection(registry)
     return {
@@ -159,12 +184,21 @@ def detect_duplicate_grain(records: Iterable[Mapping[str, Any]], keys: tuple[str
     return sorted(duplicates, key=str)
 
 
-def validate_poc_records(records: list[dict[str, Any]]) -> None:
+def validate_poc_records(
+    records: list[dict[str, Any]],
+    *,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
+) -> None:
     for position, record in enumerate(records):
         missing = [field for field in POC_REQUIRED_FIELDS if field not in record]
         if missing:
             raise SourceSchemaError(f"registro POC {position}: campos ausentes: {', '.join(missing)}")
-        validate_ibge_code(record["ibgeCode"])
+        validate_ibge_code(
+            record["ibgeCode"],
+            municipality_ibge_prefix,
+            state_code,
+        )
         if not isinstance(record["referenceYear"], int) or not record["period"]:
             raise SourceSchemaError(f"registro POC {position}: exercício/período inválido")
         if not record["financialStage"] or not record["amountNature"]:
@@ -192,10 +226,16 @@ def _poc_record(
     accessed_at: str,
     notes: str,
     dimensions: dict[str, Any] | None = None,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
 ) -> dict[str, Any]:
     record = {
         "municipality": municipality,
-        "ibgeCode": validate_ibge_code(ibge_code),
+        "ibgeCode": validate_ibge_code(
+            ibge_code,
+            municipality_ibge_prefix,
+            state_code,
+        ),
         "referenceYear": int(reference_year),
         "period": period,
         "concept": concept,
@@ -236,6 +276,8 @@ def adapt_siope_rows(
     source_hash: str,
     accessed_at: str,
     published_at: str | None,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
 ) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for row in rows:
@@ -276,6 +318,8 @@ def adapt_siope_rows(
                     "indicatorName": row["NOM_INDI"],
                     "unit": unit,
                 },
+                municipality_ibge_prefix=municipality_ibge_prefix,
+                state_code=state_code,
             )
         )
     records.sort(key=lambda item: (item["ibgeCode"], item["referenceYear"], item["period"], item["concept"]))
@@ -285,7 +329,11 @@ def adapt_siope_rows(
     )
     if duplicates:
         raise DuplicateGrainError(f"SIOPE: grãos duplicados: {duplicates[:3]}")
-    validate_poc_records(records)
+    validate_poc_records(
+        records,
+        municipality_ibge_prefix=municipality_ibge_prefix,
+        state_code=state_code,
+    )
     return records
 
 
@@ -314,10 +362,12 @@ def adapt_rreo_text(
     source_hash: str,
     accessed_at: str,
     published_at: str | None,
+    municipality_ibge_prefix: str = "43",
+    state_code: str = "RS",
 ) -> list[dict[str, Any]]:
     plain = _plain_text(text)
     expected_title = "demonstrativo das receitas e despesas com manutencao e desenvolvimento do ensino - mde"
-    expected_municipality = _identity_text(f"{municipality} - RS")
+    expected_municipality = _identity_text(f"{municipality} - {state_code}")
     expected_note = (
         "nos cinco primeiros bimestres do exercicio o acompanhamento sera feito com base na despesa liquidada. "
         "no ultimo bimestre do exercicio, o valor devera corresponder ao total da despesa empenhada"
@@ -366,10 +416,16 @@ def adapt_rreo_text(
                 "parserVersion": RREO_PARSER_VERSION,
                 "stageBasisNote": 5,
             },
+            municipality_ibge_prefix=municipality_ibge_prefix,
+            state_code=state_code,
         )
         for concept, stage, nature, value, notes, line, column in definitions
     ]
-    validate_poc_records(records)
+    validate_poc_records(
+        records,
+        municipality_ibge_prefix=municipality_ibge_prefix,
+        state_code=state_code,
+    )
     return records
 
 

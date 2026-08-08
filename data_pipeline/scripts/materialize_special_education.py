@@ -38,11 +38,10 @@ from src.state_config import (  # noqa: E402
     load_state_config,
     normalize_state_code,
 )
-
-
-PUBLIC_EDUCATION = REPO_ROOT / "public" / "data" / "educacao"
-DEFAULT_OUTPUT = PUBLIC_EDUCATION / "educacao-especial"
-OVERVIEW_MUNICIPALITIES = PUBLIC_EDUCATION / "visao-geral-municipal"
+from src.state_publication import (  # noqa: E402
+    StatePublicationError,
+    resolve_education_data_dir,
+)
 
 
 def municipalities(
@@ -64,12 +63,16 @@ def _new_2025_total(contract: dict) -> int | float | None:
     return yearly["cuts"]["total"]["specialEducation"]["enrollments"]["value"]
 
 
-def reconcile_overview(stage: Path, universe: list[dict]) -> dict:
+def reconcile_overview(
+    stage: Path,
+    universe: list[dict],
+    overview_municipalities: Path,
+) -> dict:
     divergent = []
     compared = 0
     for municipality in universe:
         code = municipality["id_municipio"]
-        overview_path = OVERVIEW_MUNICIPALITIES / f"{code}.json"
+        overview_path = overview_municipalities / f"{code}.json"
         if not overview_path.exists():
             continue
         overview = json.loads(overview_path.read_text(encoding="utf-8"))
@@ -96,7 +99,14 @@ def reconcile_overview(stage: Path, universe: list[dict]) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help=(
+            "Diretorio publico exclusivo da Educacao Especial. Quando omitido, "
+            "usa <raiz-publicada-da-UF>/educacao/educacao-especial."
+        ),
+    )
     parser.add_argument(
         "--state",
         default=DEFAULT_STATE_CODE,
@@ -112,11 +122,20 @@ def main(argv: list[str] | None = None) -> int:
             state_config,
             registry,
         )
+        output_directory = (
+            args.output
+            if args.output is not None
+            else resolve_education_data_dir(state_code) / "educacao-especial"
+        )
+        overview_municipalities = (
+            resolve_education_data_dir(state_code) / "visao-geral-municipal"
+        )
     except (
         FileNotFoundError,
         StateConfigError,
         MunicipalityRegistryError,
         EducationMunicipalityRouteCompatibilityError,
+        StatePublicationError,
     ) as exc:
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
@@ -138,12 +157,16 @@ def main(argv: list[str] | None = None) -> int:
         second_hash = tree_hash(second_output)
         if first_hash != second_hash:
             raise ValueError("Duas materializações idênticas produziram hashes diferentes.")
-        reconciliation = reconcile_overview(first_output, universe)
+        reconciliation = reconcile_overview(
+            first_output,
+            universe,
+            overview_municipalities,
+        )
         if reconciliation["divergenceCount"]:
             raise ValueError(
                 f"Snapshot 2025 diverge em {reconciliation['divergenceCount']} municípios."
             )
-        replace_directory_atomically(first_output, args.output.resolve())
+        replace_directory_atomically(first_output, output_directory.resolve())
         first_output = None
         print(
             json.dumps(
@@ -153,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
                     "contentHash": first_manifest["contentHash"],
                     "deterministic": first_hash == second_hash,
                     "overviewReconciliation": reconciliation,
-                    "output": str(args.output.resolve()),
+                    "output": str(output_directory.resolve()),
                 },
                 ensure_ascii=False,
             )

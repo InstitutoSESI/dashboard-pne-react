@@ -91,20 +91,16 @@ QSE_AUDIT_SOURCES: dict[str, dict[str, Any]] = {
 # crosswalk explícito, não uma aproximação textual.
 QSE_EXPLICIT_NAME_CROSSWALK = {
     "SANTANA DO LIVRAMENTO": "4317103",
+    # Os PDFs nacionais de 2020/2021 removem apóstrofo e espaço destes nomes
+    # oficiais de AL; o vínculo continua sendo explícito e baseado no código IBGE.
+    "OLHO DAGUA DAS FLORES": "2705705",
+    "OLHO DAGUA DO CASADO": "2705804",
+    "OLHO DAGUA GRANDE": "2705903",
+    "TANQUE DARCA": "2709004",
 }
 
 _MONEY_TOKEN = r"(?:-?[\d.]+,\d{2}|-)"
-_OLDER_PATTERN = re.compile(rf"^RS\s+(.+?)\s+({_MONEY_TOKEN})$")
-_CODED_PATTERN = re.compile(
-    rf"^RS\s+(.+?)\s+(43\d{{5}})\s+([\d.]+(?:,\d{{2}})?|-)\s+([\d,]+|-)\s+({_MONEY_TOKEN})$"
-)
-_MONTHLY_PATTERN = re.compile(
-    rf"^RS\s+(.+?)\s+(43\d{{5}}|43)\s+((?:{_MONEY_TOKEN}\s+){{12}}{_MONEY_TOKEN})$"
-)
 _BASIS_NUMBER_TOKEN = r"(?:-?[\d.]+(?:,\d+)?|-)"
-_BASIS_PATTERN = re.compile(
-    rf"^RS\s+(.+?)\s+(43\d{{5}}|43)\s+((?:{_BASIS_NUMBER_TOKEN}\s+){{12}}{_BASIS_NUMBER_TOKEN})$"
-)
 QSE_MONTH_NAMES = (
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
@@ -143,7 +139,12 @@ def extract_pdf_lines(content: bytes) -> list[str]:
     return lines
 
 
-def load_municipalities(index_path: Path) -> dict[str, Municipality]:
+def load_municipalities(
+    index_path: Path,
+    *,
+    expected_municipality_count: int = RS_MUNICIPALITY_COUNT,
+    municipality_ibge_prefix: str = "43",
+) -> dict[str, Municipality]:
     payload = json.loads(index_path.read_text(encoding="utf-8"))
     municipalities = {
         entry["id_municipio"]: Municipality(
@@ -153,8 +154,22 @@ def load_municipalities(index_path: Path) -> dict[str, Municipality]:
         )
         for entry in payload["municipios"]
     }
-    if len(municipalities) != RS_MUNICIPALITY_COUNT:
-        raise ValueError(f"Esperados {RS_MUNICIPALITY_COUNT} municípios; encontrados {len(municipalities)}.")
+    if len(municipalities) != expected_municipality_count:
+        raise ValueError(
+            f"Esperados {expected_municipality_count} municípios; "
+            f"encontrados {len(municipalities)}."
+        )
+    invalid_codes = sorted(
+        code
+        for code in municipalities
+        if re.fullmatch(rf"{re.escape(municipality_ibge_prefix)}\d{{5}}", code)
+        is None
+    )
+    if invalid_codes:
+        raise ValueError(
+            "Códigos municipais fora do prefixo estadual: "
+            f"{invalid_codes[:5]}."
+        )
     return municipalities
 
 
@@ -165,19 +180,55 @@ def build_exact_name_map(municipalities: Mapping[str, Municipality]) -> dict[str
         if normalized in result and result[normalized] != code:
             raise ValueError(f"Nome municipal canônico duplicado: {normalized}")
         result[normalized] = code
-    result.update(QSE_EXPLICIT_NAME_CROSSWALK)
+    result.update(
+        {
+            name: code
+            for name, code in QSE_EXPLICIT_NAME_CROSSWALK.items()
+            if code in municipalities
+        }
+    )
     return result
+
+
+def _qse_patterns(
+    state_code: str,
+    municipality_ibge_prefix: str,
+) -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str], re.Pattern[str]]:
+    state = re.escape(state_code)
+    prefix = re.escape(municipality_ibge_prefix)
+    return (
+        re.compile(rf"^{state}\s+(.+?)\s+({_MONEY_TOKEN})$"),
+        re.compile(
+            rf"^{state}\s+(.+?)\s+({prefix}\d{{5}})\s+"
+            rf"([\d.]+(?:,\d{{2}})?|-)\s+([\d,]+|-)\s+({_MONEY_TOKEN})$"
+        ),
+        re.compile(
+            rf"^{state}\s+(.+?)\s+({prefix}\d{{5}}|{prefix})\s+"
+            rf"((?:{_MONEY_TOKEN}\s+){{12}}{_MONEY_TOKEN})$"
+        ),
+        re.compile(
+            rf"^{state}\s+(.+?)\s+({prefix}\d{{5}}|{prefix})\s+"
+            rf"((?:{_BASIS_NUMBER_TOKEN}\s+){{12}}{_BASIS_NUMBER_TOKEN})$"
+        ),
+    )
 
 
 def parse_qse_annual_lines(
     lines: Iterable[str],
     year: int,
     municipalities: Mapping[str, Municipality],
+    *,
+    state_code: str = "RS",
+    municipality_ibge_prefix: str = "43",
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     if year not in QSE_ANNUAL_SOURCES:
         raise ValueError(f"Exercício não configurado: {year}")
 
     exact_names = build_exact_name_map(municipalities)
+    older_pattern, coded_pattern, _, _ = _qse_patterns(
+        state_code,
+        municipality_ibge_prefix,
+    )
     records: dict[str, dict[str, Any]] = {}
     duplicates: list[str] = []
     unmapped: list[str] = []
@@ -187,11 +238,11 @@ def parse_qse_annual_lines(
 
     for raw_line in lines:
         line = re.sub(r"\s+", " ", raw_line.strip())
-        if not line.startswith("RS "):
+        if not line.startswith(f"{state_code} "):
             continue
 
         if year <= 2021:
-            match = _OLDER_PATTERN.match(line)
+            match = older_pattern.match(line)
             if not match:
                 continue
             official_name, amount_token = match.groups()
@@ -203,7 +254,7 @@ def parse_qse_annual_lines(
                 continue
             enrollment_token = coefficient_token = None
         else:
-            match = _CODED_PATTERN.match(line)
+            match = coded_pattern.match(line)
             if not match:
                 continue
             official_name, code, enrollment_token, coefficient_token, amount_token = match.groups()
@@ -265,6 +316,9 @@ def parse_qse_monthly_lines(
     lines: Iterable[str],
     year: int,
     municipalities: Mapping[str, Municipality],
+    *,
+    state_code: str = "RS",
+    municipality_ibge_prefix: str = "43",
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Extrai o Total oficial e usa os 12 meses somente para conciliação."""
     normalized_lines = [re.sub(r"\s+", " ", line.strip()) for line in lines if line.strip()]
@@ -279,9 +333,13 @@ def parse_qse_monthly_lines(
     monthly_divergences: list[dict[str, Any]] = []
     state_record: dict[str, Any] | None = None
     recognized_rows = 0
+    _, _, monthly_pattern, _ = _qse_patterns(
+        state_code,
+        municipality_ibge_prefix,
+    )
 
     for line in normalized_lines:
-        match = _MONTHLY_PATTERN.match(line)
+        match = monthly_pattern.match(line)
         if not match:
             continue
         recognized_rows += 1
@@ -293,7 +351,10 @@ def parse_qse_monthly_lines(
             value is not None for value in monthly_values
         ) else None
 
-        if code == "43" and normalize_official_name(official_name) == "GOVERNO ESTADUAL":
+        if (
+            code == municipality_ibge_prefix
+            and normalize_official_name(official_name) == "GOVERNO ESTADUAL"
+        ):
             state_record = {
                 "officialName": official_name,
                 "monthlyAmounts": monthly_values,
@@ -403,19 +464,29 @@ def parse_qse_monthly_lines(
 def parse_qse_enrollment_basis_lines(
     lines: Iterable[str],
     municipalities: Mapping[str, Municipality],
+    *,
+    state_code: str = "RS",
+    municipality_ibge_prefix: str = "43",
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Extrai somente Total de matrículas e coeficiente do anexo oficial de 2025."""
     records: dict[str, dict[str, Any]] = {}
     duplicates: list[str] = []
     unmapped: list[str] = []
     state_rows = 0
+    _, _, _, basis_pattern = _qse_patterns(
+        state_code,
+        municipality_ibge_prefix,
+    )
     for raw_line in lines:
         line = re.sub(r"\s+", " ", raw_line.strip())
-        match = _BASIS_PATTERN.match(line)
+        match = basis_pattern.match(line)
         if not match:
             continue
         official_name, code, value_tokens = match.groups()
-        if code == "43" and normalize_official_name(official_name) == "GOVERNO ESTADUAL":
+        if (
+            code == municipality_ibge_prefix
+            and normalize_official_name(official_name) == "GOVERNO ESTADUAL"
+        ):
             state_rows += 1
             continue
         if code not in municipalities:
@@ -478,7 +549,9 @@ def validate_publication_quality(quality: Mapping[str, Any]) -> None:
     if Decimal(str(quality["coverageRate"])) < PUBLICATION_COVERAGE_THRESHOLD:
         failures.append("cobertura inferior a 95%")
     if quality["year"] == 2025 and quality["municipalitiesWithValue"] != quality["municipalitiesExpected"]:
-        failures.append("cobertura de 2025 diferente de 497/497")
+        failures.append(
+            "cobertura de 2025 diferente do universo municipal esperado"
+        )
     for key, label in (
         ("duplicateMunicipalityCodes", "duplicidades"),
         ("unmappedRecords", "registros não mapeados"),
@@ -534,7 +607,7 @@ def reconcile_2024(
 def validate_2025_enrollment_basis(quality: Mapping[str, Any]) -> None:
     failures: list[str] = []
     if quality["municipalitiesIdentified"] != quality["municipalitiesExpected"]:
-        failures.append("cobertura diferente de 497/497")
+        failures.append("cobertura diferente do universo municipal esperado")
     for key, label in (
         ("duplicateMunicipalityCodes", "duplicidades"),
         ("unmappedRecords", "códigos não canônicos"),
@@ -685,7 +758,7 @@ def write_publication(
                 "sha256": source_sha256_by_year[year],
                 "fileSizeBytes": source_size_by_year[year] if source_size_by_year else None,
             }
-            for year in sorted(QSE_ANNUAL_SOURCES)
+            for year in sorted(records_by_year)
         ],
         "auditSources": list(audit_sources),
         "coverage": [quality_by_year[year] for year in sorted(quality_by_year)],
