@@ -14,7 +14,11 @@ MUNICIPALITY_REGISTRY_DIR = CONFIG_DIR / "municipalities"
 EDUCATION_MUNICIPALITY_ROUTE_COMPATIBILITY_DIR = (
     CONFIG_DIR / "compatibility" / "education-municipality-routes"
 )
+PUBLICATION_CONFIG_DIR = CONFIG_DIR / "publications"
+# Raiz publicada do estado padrão (RS). Estados adicionais resolvem a própria raiz
+# por `state_publication.resolve_public_data_dir`, lendo o manifesto de publicação.
 PUBLIC_DATA_DIR = REPO_ROOT / "public" / "data"
+DEFAULT_PUBLIC_DATA_DIR = PUBLIC_DATA_DIR
 PIPELINE_EXPORT_DIR = DATA_PIPELINE_DIR / "export"
 STATIC_PARTITIONED_DATA_DIR = PIPELINE_EXPORT_DIR / "static_partitioned"
 MUNICIPAL_FINANCE_EXPORT_DIR = PIPELINE_EXPORT_DIR / "municipal_finance"

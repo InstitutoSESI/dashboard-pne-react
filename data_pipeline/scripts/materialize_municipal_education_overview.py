@@ -435,12 +435,80 @@ def _validate_contract(
     return _validate_snapshot_value_states(contract, municipality_id)
 
 
+STATE_PILOT_CONTRACTS: dict[str, dict[str, Any]] = {
+    "RS": {
+        "enrollment": {
+            "idMunicipality": "4320008",
+            "basicEducationTotal": 25_826,
+            "federalHighSchoolEnrollments": 817,
+        },
+        "notApplicableHighSchool": {"idMunicipality": "4319356"},
+    },
+}
+
+
+def _validate_state_pilots(
+    canonical_contracts: Mapping[str, bytes],
+    expected_by_id: Mapping[str, Mapping[str, str]],
+    pilot_contract: Mapping[str, Any],
+) -> None:
+    """Ancora de valor por estado; nome e slug vem do registro, nao de literais."""
+    enrollment = pilot_contract["enrollment"]
+    enrollment_id = enrollment["idMunicipality"]
+    registry_entry = expected_by_id.get(enrollment_id)
+    if registry_entry is None:
+        raise RuntimeError(
+            f"Piloto {enrollment_id} ausente do registro municipal ativo."
+        )
+    pilot_label = registry_entry["name"]
+    pilot = json.loads(canonical_contracts[enrollment_id].decode("utf-8"))
+    if (
+        pilot["municipality"]["slug"] != registry_entry["slug"]
+        or pilot["reference"]["year"] != REFERENCE_YEAR
+        or pilot["basicEducation"]["total"]["value"] != enrollment["basicEducationTotal"]
+        or pilot["publicationState"] != "published"
+        or pilot["quality"]["nullCoreRows"]
+        or any(
+            item["status"] != "reconciled"
+            for item in pilot["quality"]["reconciliations"]
+        )
+    ):
+        raise RuntimeError(f"Piloto {pilot_label} incompatível.")
+    for stage_path in STAGE_PATHS:
+        federal = _value_at(pilot, stage_path)["byNetwork"]["federal"]["enrollments"]
+        is_high_school_total = stage_path == ("highSchool", "total")
+        expected_state = "observed" if is_high_school_total else "derived_zero"
+        expected_value = (
+            enrollment["federalHighSchoolEnrollments"] if is_high_school_total else 0
+        )
+        if federal["state"] != expected_state or federal["value"] != expected_value:
+            raise RuntimeError(f"Piloto {pilot_label}: rede federal incompatível.")
+
+    not_applicable_id = pilot_contract["notApplicableHighSchool"]["idMunicipality"]
+    not_applicable_entry = expected_by_id.get(not_applicable_id)
+    if not_applicable_entry is None:
+        raise RuntimeError(
+            f"Piloto {not_applicable_id} ausente do registro municipal ativo."
+        )
+    not_applicable = json.loads(
+        canonical_contracts[not_applicable_id].decode("utf-8")
+    )
+    if any(
+        value["state"] != "not_applicable" or value["value"] is not None
+        for value in not_applicable["schoolPerformance"]["stages"]["highSchool"].values()
+    ):
+        raise RuntimeError(
+            f"{not_applicable_entry['name']}: Ensino Médio precisa ser not_applicable."
+        )
+
+
 def validate_contract_directory(
     directory: Path,
     entries: Iterable[Mapping[str, str]],
     generated_at: str,
     *,
     require_expected_distribution: bool,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Any]:
     entries_list = list(entries)
     expected_by_id = {entry["idMunicipality"]: entry for entry in entries_list}
@@ -548,34 +616,21 @@ def validate_contract_directory(
             f"Cobertura de rendimento divergente: {dict(performance_coverage)}."
         )
 
-    sapucaia = json.loads(canonical_contracts["4320008"].decode("utf-8"))
-    if (
-        sapucaia["municipality"]["slug"] != "sapucaia-do-sul"
-        or sapucaia["reference"]["year"] != REFERENCE_YEAR
-        or sapucaia["basicEducation"]["total"]["value"] != 25_826
-        or sapucaia["publicationState"] != "published"
-        or sapucaia["quality"]["nullCoreRows"]
-        or any(
-            item["status"] != "reconciled"
-            for item in sapucaia["quality"]["reconciliations"]
+    pilot_contract = STATE_PILOT_CONTRACTS.get(state_code)
+    if pilot_contract is None:
+        pilot_status = "not-declared"
+        print(
+            f"[education-overview] {state_code} nao declara pilotos de valor; "
+            "somente os invariantes universais foram verificados.",
+            file=sys.stderr,
         )
-    ):
-        raise RuntimeError("Piloto Sapucaia do Sul incompatível.")
-    for stage_path in STAGE_PATHS:
-        federal = _value_at(sapucaia, stage_path)["byNetwork"]["federal"]["enrollments"]
-        expected_state = "observed" if stage_path == ("highSchool", "total") else "derived_zero"
-        expected_value = 817 if stage_path == ("highSchool", "total") else 0
-        if federal["state"] != expected_state or federal["value"] != expected_value:
-            raise RuntimeError("Piloto Sapucaia do Sul: rede federal incompatível.")
-    sao_pedro = json.loads(canonical_contracts["4319356"].decode("utf-8"))
-    if any(
-        value["state"] != "not_applicable" or value["value"] is not None
-        for value in sao_pedro["schoolPerformance"]["stages"]["highSchool"].values()
-    ):
-        raise RuntimeError("São Pedro da Serra: Ensino Médio precisa ser not_applicable.")
+    else:
+        pilot_status = "verified"
+        _validate_state_pilots(canonical_contracts, expected_by_id, pilot_contract)
 
     return {
         "contractCount": len(expected_by_id),
+        "pilotContract": pilot_status,
         "publicationStates": publication_distribution,
         "dataStates": dict(sorted(data_states.items())),
         "reconciliations": reconciliation_distribution,
@@ -790,6 +845,7 @@ def main(argv: list[str] | None = None) -> int:
             entries,
             generated_at,
             require_expected_distribution=True,
+            state_code=state_config.state_code,
         )
         replace_directory_transactionally(temporary_directory, output_directory)
 

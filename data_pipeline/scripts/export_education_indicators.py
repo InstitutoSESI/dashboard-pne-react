@@ -51,6 +51,10 @@ from src.state_config import (  # noqa: E402
     load_state_config,
     normalize_state_code,
 )
+from src.state_publication import (  # noqa: E402
+    StatePublicationError,
+    resolve_public_data_dir,
+)
 from src.education_transactional_publication import (  # noqa: E402
     EducationPublicationError,
     default_public_root,
@@ -59,16 +63,18 @@ from src.education_transactional_publication import (  # noqa: E402
     validate_education_staging,
 )
 from src.education_task_fingerprint import (  # noqa: E402
-    TASK_ID as EDUCATION_TASK_ID,
     build_input_fingerprint,
     build_output_manifest,
     build_task_state,
     default_task_state_path,
     digest_contract_files,
     digest_education_sources,
+    education_contract_file_allowlist,
     evaluate_shadow_eligibility,
+    expected_managed_output_count,
     load_task_state,
     resolve_imported_python_module_contract,
+    task_id_for_state,
     write_task_state_atomic,
 )
 from src.pipeline_profiling import (  # noqa: E402
@@ -3218,6 +3224,7 @@ def validar_jsons(
     route_compatibility,
     *,
     output_root=None,
+    public_root=None,
 ):
     """Executa o validador fail-closed da arvore prospectiva completa."""
     root = Path(output_root) if output_root is not None else SAIDA
@@ -3234,7 +3241,11 @@ def validar_jsons(
         root,
         registry,
         route_compatibility,
-        public_root=default_public_root(),
+        public_root=(
+            Path(public_root)
+            if public_root is not None
+            else default_public_root(registry.state_code)
+        ),
     )
     print(
         "Validacao integral concluida: "
@@ -3435,6 +3446,21 @@ def load_education_inputs(state_config, registry, *, diagnostic=False):
     }
 
 
+def education_managed_root_label(state_code):
+    """Rotula a raiz administrada declarada pelo manifesto da UF.
+
+    O rotulo vem da configuracao, nao do caminho fisico: um staging isolado nao
+    pode renomear a raiz administrada registrada no manifesto de outputs.
+    """
+    try:
+        declared = resolve_public_data_dir(state_code) / "educacao"
+        return declared.resolve().relative_to(Path(REPO_ROOT).resolve()).as_posix()
+    except (FileNotFoundError, StatePublicationError, ValueError) as exc:
+        raise EducationPublicationError(
+            f"Raiz educacional indisponivel para {state_code!r}: {exc}"
+        ) from exc
+
+
 def calculate_education_fingerprint(
     *,
     inputs,
@@ -3444,6 +3470,9 @@ def calculate_education_fingerprint(
     mode,
 ):
     """Calcula a decisao fail-closed sem criar staging ou escrever state."""
+
+    education_task_id = task_id_for_state(state_config.state_code)
+    managed_root = education_managed_root_label(state_config.state_code)
 
     source_frames = {
         "municipalities": inputs["municipalities"],
@@ -3468,6 +3497,7 @@ def calculate_education_fingerprint(
         )
         contract_digests = digest_contract_files(
             REPO_ROOT,
+            allowlist=education_contract_file_allowlist(state_config.state_code),
             external_python_contracts=(utils_contract,),
         )
         contract_event.add_counters(
@@ -3478,7 +3508,7 @@ def calculate_education_fingerprint(
     with profile_operation(
         "compute",
         "education.fingerprint.input",
-        metadata={"taskId": EDUCATION_TASK_ID},
+        metadata={"taskId": education_task_id},
     ) as input_event:
         input_fingerprint = build_input_fingerprint(
             source_digests,
@@ -3487,13 +3517,21 @@ def calculate_education_fingerprint(
             execution_parameters={
                 "municipalityCount": registry.municipality_count,
                 "publicationContract": "transactional-full-v1",
-                "outputCount": registry.municipality_count + 2,
+                "outputCount": expected_managed_output_count(
+                    registry.municipality_count
+                ),
             },
         )
         input_event.add_counter("bytesHashed", input_fingerprint["bytesHashed"])
 
-    task_state_path = default_task_state_path(DATA_PIPELINE_DIR)
-    previous_state = load_task_state(task_state_path)
+    task_state_path = default_task_state_path(
+        DATA_PIPELINE_DIR,
+        state_config.state_code,
+    )
+    previous_state = load_task_state(
+        task_state_path,
+        state_code=state_config.state_code,
+    )
     with profile_operation(
         "validation",
         "education.fingerprint.output_integrity",
@@ -3505,6 +3543,9 @@ def calculate_education_fingerprint(
             contract_digests,
             public_root,
             inputs["municipalityIds"],
+            state_code=state_config.state_code,
+            expected_municipality_count=state_config.expected_municipality_count,
+            managed_root=managed_root,
         )
         output_event.add_counters(
             managedOutputs=decision.output_integrity.managed_outputs,
@@ -3522,14 +3563,14 @@ def calculate_education_fingerprint(
             "manifestInvalid": int(decision.manifest_invalid),
         },
         metadata={
-            "taskId": EDUCATION_TASK_ID,
+            "taskId": education_task_id,
             "reason": decision.reason,
             "shadowOnly": mode == "shadow",
         },
     ):
         pass
     log(
-        f"Fingerprint {mode}: taskId={EDUCATION_TASK_ID} "
+        f"Fingerprint {mode}: taskId={education_task_id} "
         f"inputFingerprint={input_fingerprint['inputFingerprint']} "
         f"wouldSkip={str(decision.would_skip).lower()} "
         f"reason={decision.reason}"
@@ -3540,10 +3581,12 @@ def calculate_education_fingerprint(
         "inputFingerprint": input_fingerprint,
         "decision": decision,
         "taskStatePath": task_state_path,
+        "taskId": education_task_id,
+        "managedRoot": managed_root,
     }
 
 
-def record_fingerprint_error(mode, exc):
+def record_fingerprint_error(mode, exc, *, education_task_id):
     with profile_operation(
         "orchestration",
         f"education.fingerprint.{mode}_decision",
@@ -3554,7 +3597,7 @@ def record_fingerprint_error(mode, exc):
             "manifestInvalid": 1,
         },
         metadata={
-            "taskId": EDUCATION_TASK_ID,
+            "taskId": education_task_id,
             "reason": "fingerprint_error",
             "shadowOnly": mode == "shadow",
         },
@@ -3685,7 +3728,13 @@ def main(argv=None):
         )
         return 2
 
-    public_root = default_public_root()
+    try:
+        public_root = default_public_root(state_config.state_code)
+        education_task_id = task_id_for_state(state_config.state_code)
+        education_managed_root = education_managed_root_label(state_config.state_code)
+    except EducationPublicationError as exc:
+        print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
+        return 2
     if args.dry_run:
         planned_staging = (
             args.staging_dir
@@ -3752,7 +3801,11 @@ def main(argv=None):
             generation_summary["fingerprint"] = skip_context
         except Exception as exc:
             generation_summary["fingerprintError"] = type(exc).__name__
-            record_fingerprint_error("skip", exc)
+            record_fingerprint_error(
+                "skip",
+                exc,
+                education_task_id=education_task_id,
+            )
         else:
             decision = skip_context["decision"]
             if decision.would_skip:
@@ -3838,6 +3891,9 @@ def main(argv=None):
                     )
                     contract_digests = digest_contract_files(
                         REPO_ROOT,
+                        allowlist=education_contract_file_allowlist(
+                            state_config.state_code
+                        ),
                         external_python_contracts=(utils_contract,),
                     )
                     contract_event.add_counters(
@@ -3848,7 +3904,7 @@ def main(argv=None):
                 with profile_operation(
                     "compute",
                     "education.fingerprint.input",
-                    metadata={"taskId": EDUCATION_TASK_ID},
+                    metadata={"taskId": education_task_id},
                 ) as input_event:
                     input_fingerprint = build_input_fingerprint(
                         source_digests,
@@ -3857,15 +3913,23 @@ def main(argv=None):
                         execution_parameters={
                             "municipalityCount": registry.municipality_count,
                             "publicationContract": "transactional-full-v1",
-                            "outputCount": registry.municipality_count + 2,
+                            "outputCount": expected_managed_output_count(
+                                registry.municipality_count
+                            ),
                         },
                     )
                     input_event.add_counter(
                         "bytesHashed", input_fingerprint["bytesHashed"]
                     )
 
-                task_state_path = default_task_state_path(DATA_PIPELINE_DIR)
-                previous_state = load_task_state(task_state_path)
+                task_state_path = default_task_state_path(
+                    DATA_PIPELINE_DIR,
+                    state_config.state_code,
+                )
+                previous_state = load_task_state(
+                    task_state_path,
+                    state_code=state_config.state_code,
+                )
                 with profile_operation(
                     "validation",
                     "education.fingerprint.output_integrity",
@@ -3877,6 +3941,11 @@ def main(argv=None):
                         contract_digests,
                         public_root,
                         municipality_ids,
+                        state_code=state_config.state_code,
+                        expected_municipality_count=(
+                            state_config.expected_municipality_count
+                        ),
+                        managed_root=education_managed_root,
                     )
                     output_event.add_counters(
                         managedOutputs=decision.output_integrity.managed_outputs,
@@ -3895,7 +3964,7 @@ def main(argv=None):
                         "manifestInvalid": int(decision.manifest_invalid),
                     },
                     metadata={
-                        "taskId": EDUCATION_TASK_ID,
+                        "taskId": education_task_id,
                         "reason": decision.reason,
                         "shadowOnly": True,
                     },
@@ -3907,10 +3976,12 @@ def main(argv=None):
                     "inputFingerprint": input_fingerprint,
                     "decision": decision,
                     "taskStatePath": task_state_path,
+                    "taskId": education_task_id,
+                    "managedRoot": education_managed_root,
                 }
                 log(
                     "Fingerprint shadow: "
-                    f"taskId={EDUCATION_TASK_ID} "
+                    f"taskId={education_task_id} "
                     f"inputFingerprint={input_fingerprint['inputFingerprint']} "
                     f"wouldSkip={str(decision.would_skip).lower()} "
                     f"reason={decision.reason}"
@@ -3931,7 +4002,7 @@ def main(argv=None):
                         "manifestInvalid": 1,
                     },
                     metadata={
-                        "taskId": EDUCATION_TASK_ID,
+                        "taskId": education_task_id,
                         "reason": "fingerprint_error",
                         "shadowOnly": True,
                     },
@@ -3956,6 +4027,7 @@ def main(argv=None):
             registry,
             route_compatibility,
             output_root=output_root,
+            public_root=public_root,
         )
         rendered_paths = tuple(
             path for path in Path(output_root).rglob("*") if path.is_file()
@@ -4020,6 +4092,10 @@ def main(argv=None):
                             for record in registry.ordered_records
                         ),
                         state_code=state_config.state_code,
+                        expected_municipality_count=(
+                            state_config.expected_municipality_count
+                        ),
+                        managed_root=education_managed_root,
                     )
                     output_event.add_counters(
                         managedOutputs=output_manifest["managedOutputCount"],
@@ -4035,7 +4111,7 @@ def main(argv=None):
                 with profile_operation(
                     "write",
                     "education.fingerprint.state_write",
-                    metadata={"taskId": EDUCATION_TASK_ID},
+                    metadata={"taskId": education_task_id},
                 ) as state_event:
                     write_task_state_atomic(
                         fingerprint["taskStatePath"],

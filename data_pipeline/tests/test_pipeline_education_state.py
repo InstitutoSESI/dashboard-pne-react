@@ -100,9 +100,10 @@ def test_entrypoints_accept_configured_state_before_first_effect(tmp_path, state
 
 
 def test_unknown_state_fails_before_database_source_or_write(tmp_path):
+    """SP não possui configuração ativa; AL passou a ser um estado do contrato."""
     for module, effect_name, extra_args in _entrypoints(tmp_path):
         with patch.object(module, effect_name) as effect:
-            assert module.main(["--state", "AL", *extra_args]) == 2
+            assert module.main(["--state", "SP", *extra_args]) == 2
         effect.assert_not_called()
     assert list(tmp_path.iterdir()) == []
 
@@ -401,16 +402,60 @@ def test_public_route_metadata_matches_each_domain_without_additional_aliases():
     assert '"slug"' not in higher_manifest
 
 
-@pytest.mark.parametrize("state", ("RS", "rs"))
-def test_route_compatibility_loads_for_normalized_rs(state):
+@pytest.mark.parametrize(
+    ("state", "expected_state", "expected_overrides", "expected_municipalities"),
+    (
+        ("RS", "RS", 182, 497),
+        ("rs", "RS", 182, 497),
+        ("AL", "AL", 36, 102),
+        ("al", "AL", 36, 102),
+    ),
+)
+def test_route_compatibility_loads_for_each_active_state(
+    state,
+    expected_state,
+    expected_overrides,
+    expected_municipalities,
+):
     state_config = load_state_config(state)
     registry = load_municipality_registry(state_config)
     compatibility = load_education_municipality_route_compatibility(
         state_config,
         registry,
     )
-    assert compatibility.state_code == "RS"
-    assert len(compatibility.slug_overrides) == 182
+    assert compatibility.state_code == expected_state
+    assert len(compatibility.slug_overrides) == expected_overrides
+    assert registry.municipality_count == expected_municipalities
+
+    payload = build_education_municipalities_index_payload(registry, compatibility)
+    assert len(payload["municipios"]) == expected_municipalities
+    slugs = [entry["slug"] for entry in payload["municipios"]]
+    assert len(set(slugs)) == len(slugs)
+
+
+def test_al_route_overrides_preserve_accents_and_elide_apostrophes():
+    """A regra pública de AL é a mesma do RS: acento mantido, apóstrofo elidido."""
+    state_config = load_state_config("AL")
+    registry = load_municipality_registry(state_config)
+    compatibility = load_education_municipality_route_compatibility(
+        state_config,
+        registry,
+    )
+    expected = {
+        "2704302": "maceió",
+        "2706406": "pão-de-açúcar",
+        "2708501": "são-luís-do-quitunde",
+        "2702355": "craíbas",
+        "2705705": "olho-dágua-das-flores",
+        "2709004": "tanque-darca",
+    }
+    for municipality_id, public_slug in expected.items():
+        assert resolve_education_public_slug(
+            registry.get_by_id(municipality_id),
+            compatibility,
+        ) == public_slug
+    # Municípios sem acento nem apóstrofo não recebem override.
+    assert "2700201" not in compatibility.slug_overrides
 
 
 def test_unknown_state_fails_before_route_compatibility_load(tmp_path):
@@ -424,7 +469,7 @@ def test_unknown_state_fails_before_route_compatibility_load(tmp_path):
             "load_education_municipality_route_compatibility",
             side_effect=ReachedSideEffect,
         ) as compatibility_loader:
-            assert module.main(["--state", "AL", *extra_args]) == 2
+            assert module.main(["--state", "SP", *extra_args]) == 2
         compatibility_loader.assert_not_called()
 
 

@@ -22,6 +22,7 @@ from openpyxl import load_workbook
 
 from .municipality_registry import MunicipalityRegistry
 from .state_config import StateConfig
+from .state_qa_samples import resolve_state_qa_anchor
 
 
 SUPPORTED_YEARS = tuple(range(2018, 2025))
@@ -1371,6 +1372,7 @@ def build_pilots(
     records: Sequence[NormalizedRecord],
     municipality_universe: Mapping[str, str],
     comparisons: Sequence[dict],
+    state_config: StateConfig,
 ) -> list[dict]:
     latest_year = max(record.year for record in records)
     direct = _direct_index(records)
@@ -1409,9 +1411,14 @@ def build_pilots(
         if private > public:
             predominantly_private.add(municipality_id)
 
-    used = {"4314902"}
+    anchor = resolve_state_qa_anchor(state_config, municipality_universe)
+    used = {anchor.municipality_id}
     selections = [
-        ("porto_alegre", "4314902", "Municipio fixo solicitado."),
+        (
+            anchor.role,
+            anchor.municipality_id,
+            "Municipio ancora do estado (capital) resolvido do registro ativo.",
+        ),
         (
             "presential_offer",
             _select_candidate(presential, used),
@@ -1619,7 +1626,12 @@ def parse_higher_education_sources(
         for comparison in comparisons
         if comparison["status"] == "unavailable"
     ]
-    pilots = build_pilots(records, municipality_universe, comparisons)
+    pilots = build_pilots(
+        records,
+        municipality_universe,
+        comparisons,
+        state_config,
+    )
     quality_report = {
         "schemaVersion": 1,
         "scope": "ESUP-1",

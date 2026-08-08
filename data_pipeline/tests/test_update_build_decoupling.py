@@ -63,7 +63,7 @@ def _run(monkeypatch, args, *, fail_at=None):
         lambda _state_config: registry,
     )
     monkeypatch.setattr(update, "run_git_status", lambda: "")
-    monkeypatch.setattr(update, "ensure_git_update_safe", lambda: None)
+    monkeypatch.setattr(update, "ensure_git_update_safe", lambda *_args: None)
 
     def run_command(name, command, results):
         events.append(name)

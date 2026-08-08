@@ -1,12 +1,79 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const filePath = process.argv[2]
-  ? path.resolve(process.argv[2])
-  : path.resolve('public/data/pne_2026_2036/referencia_estadual.json')
+const REPO_ROOT = path.resolve(__dirname, '..', '..')
+
+// O universo municipal e a versao metodologica saem da configuracao estadual
+// ativa: nenhum numero de UF fica fixo neste verificador.
+function parseArguments(argv) {
+  const positional = []
+  let stateCode = 'RS'
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] === '--state') {
+      const value = argv[index + 1]
+      if (typeof value !== 'string' || !/^[A-Za-z]{2}$/.test(value.trim())) {
+        throw new Error('--state exige uma UF textual com duas letras.')
+      }
+      stateCode = value.trim().toUpperCase()
+      index += 1
+      continue
+    }
+    positional.push(argv[index])
+  }
+  return { positional, stateCode }
+}
+
+function loadStateContract(stateCode) {
+  const publicationPath = path.join(
+    REPO_ROOT,
+    'config',
+    'publications',
+    `${stateCode.toLowerCase()}.json`,
+  )
+  if (!fs.existsSync(publicationPath)) {
+    throw new Error(`Publicação estadual ausente para ${stateCode}: ${publicationPath}.`)
+  }
+  const publication = JSON.parse(fs.readFileSync(publicationPath, 'utf8'))
+  if (publication.stateCode !== stateCode) {
+    throw new Error(`Publicação estadual diverge de ${stateCode}.`)
+  }
+  if (typeof publication.stateConfigPath !== 'string' || publication.stateConfigPath === '') {
+    throw new Error(`Publicação estadual de ${stateCode} não declara stateConfigPath.`)
+  }
+  const stateConfig = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, publication.stateConfigPath), 'utf8'),
+  )
+  if (stateConfig.stateCode !== stateCode) {
+    throw new Error(`Configuração estadual diverge de ${stateCode}.`)
+  }
+  if (!Number.isInteger(stateConfig.expectedMunicipalityCount) || stateConfig.expectedMunicipalityCount <= 0) {
+    throw new Error(`Configuração de ${stateCode} não declara expectedMunicipalityCount válido.`)
+  }
+  return {
+    stateCode,
+    publicDataDirectory: publication.publicDataDirectory,
+    expectedMunicipalities: stateConfig.expectedMunicipalityCount,
+  }
+}
+
+const { positional, stateCode } = parseArguments(process.argv.slice(2))
+const stateContract = loadStateContract(stateCode)
+const expectedMunicipalities = stateContract.expectedMunicipalities
+
+const filePath = positional[0]
+  ? path.resolve(positional[0])
+  : path.join(
+      REPO_ROOT,
+      stateContract.publicDataDirectory,
+      'pne_2026_2036',
+      'referencia_estadual.json',
+    )
 
 const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'))
 const isClosedCycle = payload.cycle === 'pne_2014_2024'
+const expectedMethodologyVersion = isClosedCycle
+  ? `pne2014-${stateCode.toLowerCase()}-reference-v1`
+  : `pne2026-${stateCode.toLowerCase()}-reference-v1`
 const expectedRegistryCount = isClosedCycle ? 24 : 50
 const requiredRegistryFields = [
   'indicator_id',
@@ -52,8 +119,8 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-assert(payload.municipalities_expected === 497, 'O universo estadual deve ter 497 municípios.')
-assert(payload.methodology_version === (isClosedCycle ? 'pne2014-rs-reference-v1' : 'pne2026-rs-reference-v1'), 'Versão metodológica incorreta.')
+assert(payload.municipalities_expected === expectedMunicipalities, `O universo estadual de ${stateCode} deve ter ${expectedMunicipalities} municípios.`)
+assert(payload.methodology_version === expectedMethodologyVersion, `Versão metodológica incorreta; esperada ${expectedMethodologyVersion}.`)
 assert(blocked.size > 0, 'O artefato deve registrar explicitamente pendências metodológicas.')
 assert(Object.keys(payload.registry).length === expectedRegistryCount, `O registro deve conter ${expectedRegistryCount} indicadores.`)
 assert(Object.keys(payload.indicators).length === expectedRegistryCount, `O artefato deve conter ${expectedRegistryCount} indicadores.`)
@@ -108,7 +175,7 @@ for (const [indicatorId, registry] of Object.entries(payload.registry)) {
     }
     assert(!years.has(record.year), `${indicatorId}: ano duplicado: ${record.year}`)
     years.add(record.year)
-    assert(record.municipalities_expected === 497, `${indicatorId}: universo anual incorreto.`)
+    assert(record.municipalities_expected === expectedMunicipalities, `${indicatorId}: universo anual incorreto; esperado ${expectedMunicipalities}.`)
     assert(record.numerator === null || record.denominator !== null, `${indicatorId}/${record.year}: numerador sem denominador.`)
     if (record.aggregation_method === 'ratio_of_sums' && isFiniteNumber(record.value)) {
       assert(isFiniteNumber(record.numerator) && isFiniteNumber(record.denominator) && record.denominator > 0, `${indicatorId}/${record.year}: razão inválida.`)

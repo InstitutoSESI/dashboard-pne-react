@@ -40,7 +40,7 @@ devem ser editados manualmente.
 e pipeline validam o mesmo contrato `state-config-v1`. A identidade municipal
 canônica do pipeline fica separada em `config/municipalities/rs.json`, no
 contrato `municipality-registry-v1`; `config/publications/rs.json` liga a UF à
-raiz versionada `public/data` pelo contrato `state-publication-v2`.
+raiz versionada `public/data` pelo contrato `state-publication-v3`.
 `public/data/municipios_index.json` é uma projeção publicada do registro e não
 pode ser usado como fonte do universo.
 
@@ -83,10 +83,10 @@ manifesto com endpoint, instante de aquisição, codificação HTTP, hashes e
 cobertura. A normalização usa `json.loads(..., parse_int=str,
 parse_float=str)`: todo token numérico chega como texto e o código IBGE nunca
 passa por conversão numérica. O resultado fica em
-`config/candidates/municipalities/al.json`, junto à configuração estadual
-candidata em `config/candidates/states/al.json`. O manifesto de produto
-`config/publications/al.json` usa esses contratos sem ativá-los no pipeline
-analítico e publica a raiz isolada `state-publications/al/data`.
+`config/municipalities/al.json`, junto à configuração estadual ativa em
+`config/states/al.json`. O manifesto de produto `config/publications/al.json` usa
+esses contratos e publica a raiz isolada `state-publications/al/data`, mantendo
+`analyticsStatus=identity-only` enquanto não houver dados analíticos de AL.
 
 Valide snapshot, hashes, cobertura, hierarquia estadual, slugs e projeção exata
 com:

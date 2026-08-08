@@ -27,6 +27,7 @@ export default defineConfig(({ command, mode }) => {
         stateCode: profile.publication.stateCode,
         analyticsStatus: profile.publication.analyticsStatus,
         analyticsMessage: profile.publication.analyticsMessage,
+        enabledProducts: profile.publication.enabledProducts,
       }),
     },
     build: {

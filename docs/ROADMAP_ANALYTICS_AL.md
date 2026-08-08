@@ -108,6 +108,13 @@ Hardcodes principais no `data_pipeline` (verificados, arquivo:linha):
   Promover configs, criar rotas de compatibilidade AL, parametrizar raiz pública,
   fingerprint, amostras de QA (Maceió `2704302`), contrato `partial`
   (`enabledProducts: ["educacao"]`). Aceite: 102 contratos municipais; RS sem regressão.
+
+  **Scaffolding concluído** (configs promovidas, `config/compatibility/education-municipality-routes/al.json`
+  com 36 overrides, `resolve_public_data_dir`, fingerprint por UF, amostras de QA
+  do registro ativo e `state-publication-v3` com `partial`/`enabledProducts`).
+  `config/publications/al.json` permanece `identity-only`: o flip para `partial`
+  depende da Fase 0 popular o banco `sesi` com AL e de rodar
+  `update_static_data.py --state AL --education-only`.
 - **Fase 2 — Financiamento** (paralelizável; 6 de 8 fontes não dependem do banco).
   SIOPE `@Sig_UF='AL'`, regex FUNDEB/QSE `^AL`/`27\d{5}`, crosswalk
   `siope_ibge_crosswalk_al_v1.json`.

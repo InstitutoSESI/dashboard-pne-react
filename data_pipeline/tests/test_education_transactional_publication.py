@@ -659,12 +659,13 @@ def test_cli_accepts_rs_and_dry_run_has_no_database_staging_or_write(
 
 
 def test_unknown_state_and_help_stop_before_every_effect(monkeypatch):
+    """SP não possui contrato estadual; AL passou a ser um estado configurado."""
     engine = Mock(side_effect=AssertionError("efeito externo"))
     publication = Mock(side_effect=AssertionError("efeito de staging"))
     monkeypatch.setattr(EXPORTER, "_get_education_engine", engine)
     monkeypatch.setattr(EXPORTER, "publish_education_transactionally", publication)
 
-    assert EXPORTER.main(["--state", "AL"]) == 2
+    assert EXPORTER.main(["--state", "SP"]) == 2
     with pytest.raises(SystemExit) as help_exit:
         EXPORTER.main(["--help"])
     assert help_exit.value.code == 0
@@ -769,7 +770,7 @@ def test_update_static_data_propagates_education_failure_and_stops_later_steps(
         raise AssertionError(f"Etapa posterior executada indevidamente: {name}")
 
     monkeypatch.setattr(UPDATE, "parse_args", lambda: args)
-    monkeypatch.setattr(UPDATE, "ensure_git_update_safe", lambda: None)
+    monkeypatch.setattr(UPDATE, "ensure_git_update_safe", lambda *_args: None)
     monkeypatch.setattr(UPDATE, "run_command", fail_education)
 
     with pytest.raises(SystemExit) as failure:

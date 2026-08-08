@@ -25,7 +25,6 @@ from src.education_municipality_routes import (  # noqa: E402
 from src.education_task_fingerprint import (  # noqa: E402
     EDUCATION_CONTRACT_FILE_ALLOWLIST,
     EDUCATION_SOURCE_DEFINITIONS,
-    EXPECTED_MANAGED_OUTPUT_COUNT,
     EducationFingerprintError,
     EducationSourceDefinition,
     OutputIntegrityResult,
@@ -39,7 +38,9 @@ from src.education_task_fingerprint import (  # noqa: E402
     digest_education_sources,
     digest_tabular_source,
     evaluate_shadow_eligibility,
+    expected_managed_output_count,
     load_task_state,
+    task_id_for_state,
     verify_output_manifest,
     write_task_state_atomic,
 )
@@ -311,9 +312,12 @@ def test_incomplete_source_set_is_never_digestible() -> None:
         )
 
 
+RS_MUNICIPALITY_COUNT = 497
+
+
 @pytest.fixture
 def municipality_ids() -> tuple[str, ...]:
-    return tuple(f"43{position:05d}" for position in range(497))
+    return tuple(f"43{position:05d}" for position in range(RS_MUNICIPALITY_COUNT))
 
 
 @pytest.fixture
@@ -336,19 +340,32 @@ def test_output_manifest_contains_exactly_499_files(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
-    assert manifest["managedOutputCount"] == EXPECTED_MANAGED_OUTPUT_COUNT == 499
-    assert len(manifest["files"]) == 499
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
+    expected_total = expected_managed_output_count(RS_MUNICIPALITY_COUNT)
+    assert expected_total == 499
+    assert manifest["managedOutputCount"] == expected_total
+    assert len(manifest["files"]) == expected_total
 
 
 def test_missing_output_invalidates_manifest(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     (education_tree / "municipios" / f"{municipality_ids[0]}.json").unlink()
     assert verify_output_manifest(
-        education_tree, manifest, municipality_ids
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     ).reason == "output_missing"
 
 
@@ -356,10 +373,17 @@ def test_extra_managed_output_invalidates_manifest(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     (education_tree / "municipios" / "4399999.json").write_bytes(b"extra")
     assert verify_output_manifest(
-        education_tree, manifest, municipality_ids
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     ).reason == "output_extra"
 
 
@@ -367,13 +391,20 @@ def test_changed_byte_invalidates_manifest(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     target = education_tree / "municipios" / f"{municipality_ids[0]}.json"
     payload = bytearray(target.read_bytes())
     payload[-1] = ord("9") if payload[-1] != ord("9") else ord("8")
     target.write_bytes(payload)
     assert verify_output_manifest(
-        education_tree, manifest, municipality_ids
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     ).reason == "output_changed"
 
 
@@ -381,11 +412,18 @@ def test_changed_size_invalidates_manifest(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     target = education_tree / "municipios" / f"{municipality_ids[0]}.json"
     target.write_bytes(target.read_bytes() + b"x")
     assert verify_output_manifest(
-        education_tree, manifest, municipality_ids
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     ).reason == "output_changed"
 
 
@@ -393,12 +431,21 @@ def test_other_domain_never_enters_output_manifest(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     unrelated = education_tree / "educacao-especial" / "index.json"
     unrelated.parent.mkdir()
     unrelated.write_bytes(b"other-domain")
     assert all(not entry["path"].startswith("educacao-especial/") for entry in manifest["files"])
-    assert verify_output_manifest(education_tree, manifest, municipality_ids).valid
+    assert verify_output_manifest(
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    ).valid
 
 
 def test_corrupt_task_state_is_a_safe_miss(tmp_path: Path) -> None:
@@ -413,10 +460,17 @@ def test_manifest_from_another_state_is_a_safe_miss(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     manifest["stateCode"] = "AL"
     assert verify_output_manifest(
-        education_tree, manifest, municipality_ids
+        education_tree,
+        manifest,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     ).reason == "state_mismatch"
 
 
@@ -424,9 +478,17 @@ def test_output_manifest_is_deterministic_and_ignores_mtime(
     education_tree: Path,
     municipality_ids: tuple[str, ...],
 ) -> None:
-    first = build_output_manifest(education_tree, municipality_ids)
+    first = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     os.utime(education_tree / "index.json", None)
-    second = build_output_manifest(education_tree, municipality_ids)
+    second = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     assert first == second
 
 
@@ -472,7 +534,11 @@ def _state_for_tree(
     decision: ShadowDecision | None = None,
 ) -> tuple[dict, dict, dict]:
     sources, contracts, fingerprint = _input_and_contracts()
-    manifest = build_output_manifest(education_tree, municipality_ids)
+    manifest = build_output_manifest(
+        education_tree,
+        municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
+    )
     effective_decision = decision or ShadowDecision(
         False,
         "first_run",
@@ -516,6 +582,7 @@ def test_first_run_reports_would_skip_false(
         contracts,
         education_tree,
         municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     )
     assert not decision.would_skip
     assert decision.reason == "first_run"
@@ -532,6 +599,7 @@ def test_second_identical_input_and_intact_outputs_reports_would_skip_true(
         contracts,
         education_tree,
         municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     )
     assert decision.would_skip
     assert decision.reason == "eligible"
@@ -564,7 +632,11 @@ def _run_exporter_shadow(
         ]
     )
 
-    monkeypatch.setattr(EXPORTER, "default_public_root", lambda: public_root)
+    monkeypatch.setattr(
+        EXPORTER,
+        "default_public_root",
+        lambda *_args, **_kwargs: public_root,
+    )
     monkeypatch.setattr(EXPORTER, "_get_education_engine", lambda: object())
     monkeypatch.setattr(
         EXPORTER,
@@ -616,12 +688,12 @@ def _run_exporter_shadow(
     monkeypatch.setattr(
         EXPORTER,
         "default_task_state_path",
-        lambda _root: tmp_path / "task-state.json",
+        lambda *_args, **_kwargs: tmp_path / "task-state.json",
     )
     monkeypatch.setattr(
         EXPORTER,
         "load_task_state",
-        lambda _path: TaskStateLoadResult({}, "loaded"),
+        lambda *_args, **_kwargs: TaskStateLoadResult({}, "loaded"),
     )
 
     decision = ShadowDecision(
@@ -699,7 +771,7 @@ def test_changed_input_remains_ineligible() -> None:
         contracts,
         Path("unused"),
         (),
-        enforce_rs_contract=False,
+        expected_municipality_count=None,
     )
     assert not decision.would_skip
     assert decision.reason == "input_changed"
@@ -718,6 +790,7 @@ def test_tampered_output_remains_ineligible(
         contracts,
         education_tree,
         municipality_ids,
+        expected_municipality_count=RS_MUNICIPALITY_COUNT,
     )
     assert not decision.would_skip
     assert decision.reason == "output_changed"
@@ -785,11 +858,45 @@ def test_dry_run_with_shadow_does_not_calculate_real_fingerprint(
 def test_unknown_state_fails_before_task_state_or_database(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """SP não possui configuração, registro nem rotas; falha antes de tudo."""
     engine = Mock(side_effect=AssertionError("database"))
     state_read = Mock(side_effect=AssertionError("task state"))
     monkeypatch.setattr(EXPORTER, "_get_education_engine", engine)
     monkeypatch.setattr(EXPORTER, "load_task_state", state_read)
-    assert EXPORTER.main(["--state", "AL", "--fingerprint-shadow"]) == 2
+    assert EXPORTER.main(["--state", "SP", "--fingerprint-shadow"]) == 2
+    engine.assert_not_called()
+    state_read.assert_not_called()
+
+
+def test_al_resolves_its_own_contract_and_public_root() -> None:
+    """AL é um estado ativo: configuração, rotas e raiz própria resolvem."""
+    state = load_state_config("AL")
+    registry = load_municipality_registry(state)
+    compatibility = load_education_municipality_route_compatibility(state, registry)
+
+    assert registry.municipality_count == 102
+    assert compatibility.state_code == "AL"
+    assert expected_managed_output_count(state.expected_municipality_count) == 104
+    assert task_id_for_state(state.state_code) == "education.core.al"
+    assert EXPORTER.default_public_root("AL") == (
+        REPO_ROOT / "state-publications" / "al" / "data" / "educacao"
+    )
+    assert EXPORTER.default_public_root("RS") == (
+        REPO_ROOT / "public" / "data" / "educacao"
+    )
+    assert default_task_state_path(PIPELINE_ROOT, "AL") == (
+        PIPELINE_ROOT / "export" / "task-state" / "AL" / "education-core.json"
+    )
+
+
+def test_al_dry_run_never_touches_the_database_or_the_rs_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = Mock(side_effect=AssertionError("database"))
+    state_read = Mock(side_effect=AssertionError("task state"))
+    monkeypatch.setattr(EXPORTER, "_get_education_engine", engine)
+    monkeypatch.setattr(EXPORTER, "load_task_state", state_read)
+    assert EXPORTER.main(["--state", "AL", "--dry-run"]) == 0
     engine.assert_not_called()
     state_read.assert_not_called()
 

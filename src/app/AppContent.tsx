@@ -1,6 +1,6 @@
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
-import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { StatePublicationStatusPage } from '../pages/StatePublicationStatusPage'
 import type { AppPageKey } from '../types/app'
 import type { InitialAppData } from '../types/data'
@@ -27,7 +27,9 @@ export function AppContent({ activePage, initialData, navigationContext, onNavig
     return <StatePublicationStatusPage />
   }
 
-  if (!initialData.indicadores) {
+  // Só o produto PNE consome `indicadores.json`; numa publicação parcial sem PNE
+  // a ausência é o contrato, não um carregamento pendente.
+  if (isProductEnabled('pne') && !initialData.indicadores) {
     return <LoadingState message="Preparando município..." />
   }
 

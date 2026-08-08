@@ -9,6 +9,8 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
+import { resolvePageProduct } from '../config/analyticsProducts'
+import { isProductEnabled } from '../config/publicationConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { FINANCIAL_PAGE_KEYS } from '../data/financialPageKeys'
 import { EDUCATION_SECTION_KEYS, resolveEducationSection } from '../data/educationIndicatorCatalog'
@@ -18,6 +20,7 @@ import {
 } from '../domain/municipalityRouting'
 import { useMunicipioData } from '../hooks/useMunicipioData'
 import { Home } from '../pages/Home'
+import { ProductUnavailablePage } from '../pages/ProductUnavailablePage'
 import type { AppPageKey } from '../types/app'
 import type { IndicadoresPayload, MunicipalityId, MunicipalityRef } from '../types/data'
 import type { Navigate, ParsedAppLocation } from '../types/navigation'
@@ -37,11 +40,17 @@ const LazyPneOverviewPage = lazy(() => import('../pages/PneOverviewPage').then((
 
 interface AppPageRouterProps {
   activePage: AppPageKey
-  indicadores: IndicadoresPayload
+  indicadores: IndicadoresPayload | null
   municipalities: MunicipalityRef[]
   navigationContext: ParsedAppLocation
   onNavigate: Navigate
 }
+
+/**
+ * Publicação parcial sem PNE não possui `indicadores.json`. O catálogo vazio
+ * mantém os consumidores tipados sem inventar conteúdo analítico.
+ */
+const EMPTY_INDICADORES: IndicadoresPayload = Object.freeze({})
 
 interface MunicipalityRouteSync {
   routeKey: string
@@ -60,11 +69,13 @@ function LazyPageBoundary({ children, page }: { children: ReactNode; page: AppPa
 
 export function AppPageRouter({
   activePage,
-  indicadores,
+  indicadores: rawIndicadores,
   municipalities,
   navigationContext,
   onNavigate,
 }: AppPageRouterProps) {
+  const indicadores = rawIndicadores ?? EMPTY_INDICADORES
+  const activeProduct = resolvePageProduct(activePage)
   const {
     selectedMunicipality,
     selectedMunicipalityId,
@@ -195,6 +206,10 @@ export function AppPageRouter({
 
   if (!selectionReady) {
     return <LoadingState message="Preparando município..." />
+  }
+
+  if (activeProduct !== null && !isProductEnabled(activeProduct)) {
+    return <ProductUnavailablePage product={activeProduct} />
   }
 
   if (activePage === 'home') {

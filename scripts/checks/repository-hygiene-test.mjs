@@ -1166,10 +1166,13 @@ assert.doesNotMatch(
   /(?:rowCount|mtime)[\s\S]{0,120}?inputFingerprint\s*=/,
   'Row count ou mtime nao podem autorizar o input fingerprint isoladamente.',
 )
+// A allowlist e resolvida por UF: os contratos estaduais entram como template
+// e os compartilhados como caminho literal. A cobertura concreta do RS continua
+// verificada em data_pipeline/tests/test_education_task_fingerprint.py.
 for (const requiredContract of [
-  'config/states/rs.json',
-  'config/municipalities/rs.json',
-  'config/compatibility/education-municipality-routes/rs.json',
+  'config/states/{uf}.json',
+  'config/municipalities/{uf}.json',
+  'config/compatibility/education-municipality-routes/{uf}.json',
   'data_pipeline/src/education_municipality_routes.py',
   'data_pipeline/src/education_transactional_publication.py',
 ]) {

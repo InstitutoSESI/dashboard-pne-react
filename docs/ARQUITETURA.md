@@ -64,12 +64,28 @@ validada em runtime por `src/config/stateConfig.ts` e pelo pipeline em
 `data_pipeline/src/state_config.py`. Ela declara o contrato
 `state-config-v1`, o estado RS, o prefixo IBGE 43, a cobertura esperada de 497
 municípios e o locale `pt-BR`. `config/publications/rs.json` declara o contrato
-`state-publication-v2` e aponta a publicação RS para `public/data`, com analytics
-completo. O manifesto AL usa o mesmo schema, aponta para os contratos de
-identidade sob `config/candidates` e para `state-publications/al/data`, mas
-declara `analyticsStatus=identity-only`. O frontend recebe ambos os contratos
-validados pelo build; módulos analíticos só são carregados quando o perfil os
-declara disponíveis.
+`state-publication-v3` e aponta a publicação RS para `public/data`, com analytics
+completo. O manifesto AL usa o mesmo schema, aponta para `config/states/al.json`,
+`config/municipalities/al.json` e `state-publications/al/data`, e declara
+`analyticsStatus=identity-only`. O frontend recebe ambos os contratos validados
+pelo build; módulos analíticos só são carregados quando o perfil os declara
+disponíveis.
+
+O `state-publication-v3` acrescenta o status `partial` e o campo
+`enabledProducts`. Uma publicação `partial` exige mensagem de indisponibilidade e
+uma lista não vazia de produtos entre `pne`, `educacao` e `financiamento`; os
+produtos ausentes continuam navegáveis por URL, mas rendem um aviso explícito de
+indisponibilidade em vez de dado. `complete` e `identity-only` exigem
+`enabledProducts: null`, e declarar todos os produtos em `partial` é recusado —
+isso é `complete`. O vocabulário é replicado em `src/config/analyticsProducts.ts`,
+`scripts/lib/state-build-profile.mjs` e
+`data_pipeline/src/state_publication.py`, com paridade verificada em
+`scripts/checks/multistate-hosting.test.mjs`.
+
+A raiz pública deixou de ser uma constante: `resolve_public_data_dir(state_code)`
+em `data_pipeline/src/state_publication.py` lê o manifesto da UF, de modo que RS
+resolve `public/data` e AL resolve `state-publications/al/data`. Não há fallback:
+uma UF sem manifesto falha antes de escrever.
 
 `config/municipalities/rs.json` implementa `municipality-registry-v1` e é a
 fonte canônica de código IBGE, nome e slug no pipeline Python. O registro é
@@ -161,8 +177,9 @@ do RS. A fonte oficial de identidade de AL foi incorporada em
 rota de municípios por UF da API de Localidades do IBGE, hashes de transporte,
 resposta e snapshot, cobertura de 102 municípios e manifesto de proveniência.
 Sua projeção `municipality-registry-v1` e o `state-config-v1` correspondente
-ficam em `config/candidates`; o parser lê tokens numéricos como texto desde a
-desserialização e os códigos canônicos permanecem strings de sete dígitos.
+ficam em `config/states/al.json` e `config/municipalities/al.json`; o parser lê
+tokens numéricos como texto desde a desserialização e os códigos canônicos
+permanecem strings de sete dígitos.
 
 A publicação AL contém exatamente um manifesto, o índice dos 102 municípios e
 um índice por código IBGE, todos com analytics `unavailable`. O materializador

@@ -40,6 +40,12 @@ const {
 } = await import(compiledModule('src/app/appRoutes.js'))
 const { resolveEducationNavigation } = await import(compiledModule('src/data/educationIndicatorCatalog.js'))
 const {
+  ANALYTICS_PRODUCTS,
+  isPageNavigable,
+  isProductEnabledFor,
+  resolvePageProduct,
+} = await import(compiledModule('src/config/analyticsProducts.js'))
+const {
   getHashContext,
   mergeHashContext,
   replaceHashContext,
@@ -274,4 +280,57 @@ test('adapta location e mantém o fallback da página inicial', () => {
     route: '',
     searchParams: new URLSearchParams(),
   })
+})
+
+test('cada página analítica pertence a exatamente um produto declarado', () => {
+  assert.deepEqual([...ANALYTICS_PRODUCTS], ['pne', 'educacao', 'financiamento'])
+  assert.equal(resolvePageProduct('home'), null)
+  assert.equal(resolvePageProduct('pne2026'), 'pne')
+  assert.equal(resolvePageProduct('diagnostico'), 'pne')
+  assert.equal(resolvePageProduct('matriz-prioridades'), 'pne')
+  assert.equal(resolvePageProduct('educacao'), 'educacao')
+  assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
+  for (const pageKey of Object.values(FINANCIAL_PAGE_KEYS)) {
+    assert.equal(resolvePageProduct(pageKey), 'financiamento')
+  }
+})
+
+test('publicação completa libera todos os produtos', () => {
+  for (const product of ANALYTICS_PRODUCTS) {
+    assert.equal(isProductEnabledFor('complete', null, product), true)
+  }
+  assert.equal(isPageNavigable('financeiros-fundeb', 'complete', null), true)
+})
+
+test('publicação identity-only não libera produto algum', () => {
+  for (const product of ANALYTICS_PRODUCTS) {
+    assert.equal(isProductEnabledFor('identity-only', null, product), false)
+  }
+  assert.equal(isPageNavigable('educacao', 'identity-only', null), false)
+  assert.equal(isPageNavigable('home', 'identity-only', null), true)
+})
+
+test('publicação parcial navega o produto declarado e barra os demais', () => {
+  const enabled = ['educacao']
+  assert.equal(isProductEnabledFor('partial', enabled, 'educacao'), true)
+  assert.equal(isProductEnabledFor('partial', enabled, 'pne'), false)
+  assert.equal(isProductEnabledFor('partial', enabled, 'financiamento'), false)
+
+  assert.equal(isPageNavigable('home', 'partial', enabled), true)
+  assert.equal(isPageNavigable('educacao', 'partial', enabled), true)
+  assert.equal(isPageNavigable('relatorio-tecnico-municipal', 'partial', enabled), true)
+  assert.equal(isPageNavigable('pne2026', 'partial', enabled), false)
+  assert.equal(isPageNavigable('diagnostico', 'partial', enabled), false)
+  assert.equal(isPageNavigable(FINANCIAL_PAGE_KEYS.panorama, 'partial', enabled), false)
+
+  // Uma rota barrada continua resolvendo para a mesma página: o aviso de
+  // indisponibilidade é do roteador, não do parser de hash.
+  assert.equal(resolveActivePageFromHash('#pne2026?municipio=maceio'), 'pne2026')
+})
+
+test('publicação parcial sem lista não libera nada', () => {
+  for (const product of ANALYTICS_PRODUCTS) {
+    assert.equal(isProductEnabledFor('partial', null, product), false)
+    assert.equal(isProductEnabledFor('partial', [], product), false)
+  }
 })

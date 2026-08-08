@@ -10,7 +10,7 @@ import {
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { loadStateBuildProfile } from '../lib/state-build-profile.mjs'
+import { ANALYTICS_PRODUCTS, loadStateBuildProfile } from '../lib/state-build-profile.mjs'
 import { copyStatePublicAssets } from '../lib/state-public-assets.mjs'
 import { parseStateViteArguments } from '../run-state-vite.mjs'
 
@@ -33,6 +33,10 @@ test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   const rs = loadStateBuildProfile({ repoRoot, stateCode: 'RS' })
   const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
 
+  assert.equal(rs.publication.schemaVersion, 'state-publication-v3')
+  assert.equal(al.publication.schemaVersion, 'state-publication-v3')
+  assert.equal(rs.publication.enabledProducts, null)
+  assert.equal(al.publication.enabledProducts, null)
   assert.equal(rs.publication.analyticsStatus, 'complete')
   assert.equal(rs.municipalityRegistry.municipalityCount, 497)
   assert.equal(al.publication.analyticsStatus, 'identity-only')
@@ -40,6 +44,38 @@ test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   assert.notEqual(rs.publicDataDirectory, al.publicDataDirectory)
   assert.ok(rs.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('43')))
   assert.ok(al.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('27')))
+})
+
+test('AL permanece identity-only enquanto não houver dados analíticos', () => {
+  const manifest = JSON.parse(
+    readFileSync(path.join(repoRoot, 'config/publications/al.json'), 'utf8'),
+  )
+  assert.equal(manifest.schemaVersion, 'state-publication-v3')
+  assert.equal(manifest.analyticsStatus, 'identity-only')
+  assert.equal(manifest.enabledProducts, null)
+  assert.equal(manifest.stateConfigPath, 'config/states/al.json')
+  assert.equal(manifest.municipalityRegistryPath, 'config/municipalities/al.json')
+})
+
+test('o vocabulário de produtos é idêntico nas três camadas do contrato', () => {
+  const frontend = readFileSync(
+    path.join(repoRoot, 'src/config/analyticsProducts.ts'),
+    'utf8',
+  )
+  const pipeline = readFileSync(
+    path.join(repoRoot, 'data_pipeline/src/state_publication.py'),
+    'utf8',
+  )
+  const frontendProducts = /export const ANALYTICS_PRODUCTS = \[([^\]]+)\]/
+    .exec(frontend)?.[1]
+  const pipelineProducts = /ANALYTICS_PRODUCTS = \(([^)]+)\)/.exec(pipeline)?.[1]
+  assert.ok(frontendProducts, 'vocabulário do frontend não encontrado')
+  assert.ok(pipelineProducts, 'vocabulário do pipeline não encontrado')
+
+  const parse = (source) => [...source.matchAll(/'([a-z]+)'|"([a-z]+)"/g)]
+    .map((match) => match[1] ?? match[2])
+  assert.deepEqual(parse(frontendProducts), [...ANALYTICS_PRODUCTS])
+  assert.deepEqual(parse(pipelineProducts), [...ANALYTICS_PRODUCTS])
 })
 
 test('raiz AL contém apenas o contrato de identidade indisponível', () => {

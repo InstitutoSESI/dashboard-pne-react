@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import { loadIndicadores, loadMunicipiosIndex } from '../data/staticData'
 import { buildMunicipalityRegistry } from '../domain/municipalityRegistry'
@@ -13,6 +13,12 @@ const INITIAL_APP_DATA: InitialAppData = {
   municipalities: [],
 }
 
+/**
+ * `indicadores.json` é o índice do produto PNE. Numa publicação parcial sem PNE
+ * ele não existe, e pedi-lo produziria um erro fatal em vez de indisponibilidade.
+ */
+const INDICADORES_REQUIRED = isProductEnabled('pne')
+
 export function useInitialAppData(): InitialAppData {
   const [initialData, setInitialData] = useState<InitialAppData>(INITIAL_APP_DATA)
 
@@ -23,7 +29,7 @@ export function useInitialAppData(): InitialAppData {
       try {
         const [municipiosIndexPayload, indicadoresPayload] = await Promise.all([
           loadMunicipiosIndex(),
-          ANALYTICS_AVAILABLE ? loadIndicadores() : Promise.resolve(null),
+          INDICADORES_REQUIRED ? loadIndicadores() : Promise.resolve(null),
         ])
         const municipalities = buildMunicipalityRegistry(
           municipiosIndexPayload,

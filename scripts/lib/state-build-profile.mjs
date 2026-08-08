@@ -9,7 +9,7 @@ import path from 'node:path'
 export const DEFAULT_PLATFORM_STATE = 'RS'
 export const STATE_CONFIG_SCHEMA_VERSION = 'state-config-v1'
 export const MUNICIPALITY_REGISTRY_SCHEMA_VERSION = 'municipality-registry-v1'
-export const STATE_PUBLICATION_SCHEMA_VERSION = 'state-publication-v2'
+export const STATE_PUBLICATION_SCHEMA_VERSION = 'state-publication-v3'
 
 const STATE_CONFIG_FIELDS = [
   'schemaVersion',
@@ -34,8 +34,12 @@ const STATE_PUBLICATION_FIELDS = [
   'publicDataDirectory',
   'analyticsStatus',
   'analyticsMessage',
+  'enabledProducts',
 ]
-const ANALYTICS_STATUSES = new Set(['complete', 'identity-only'])
+const ANALYTICS_STATUSES = new Set(['complete', 'partial', 'identity-only'])
+// Vocabulário espelhado em src/config/analyticsProducts.ts e
+// data_pipeline/src/state_publication.py.
+export const ANALYTICS_PRODUCTS = ['pne', 'educacao', 'financiamento']
 const PUBLIC_INDEX_FIELDS = ['generated_at', 'total_municipios', 'municipios']
 const PUBLIC_INDEX_ENTRY_FIELDS = ['nome', 'id_municipio', 'slug', 'path']
 
@@ -204,6 +208,42 @@ function parseMunicipalityRegistry(payload, stateConfig) {
   })
 }
 
+function parseEnabledProducts(value, analyticsStatus) {
+  if (analyticsStatus !== 'partial') {
+    if (value !== null) {
+      throw new Error(
+        `Publicação estadual inválida: publicação ${analyticsStatus} deve declarar enabledProducts null.`,
+      )
+    }
+    return null
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(
+      'Publicação estadual inválida: publicação partial exige enabledProducts como lista não vazia.',
+    )
+  }
+  const products = []
+  for (const item of value) {
+    if (typeof item !== 'string' || !ANALYTICS_PRODUCTS.includes(item)) {
+      throw new Error(
+        `Publicação estadual inválida: produto analítico desconhecido em enabledProducts: ${JSON.stringify(item)}.`,
+      )
+    }
+    if (products.includes(item)) {
+      throw new Error(
+        `Publicação estadual inválida: produto analítico duplicado em enabledProducts: ${item}.`,
+      )
+    }
+    products.push(item)
+  }
+  if (products.length === ANALYTICS_PRODUCTS.length) {
+    throw new Error(
+      'Publicação estadual inválida: publicação com todos os produtos deve declarar analyticsStatus complete.',
+    )
+  }
+  return Object.freeze(products)
+}
+
 function parseStatePublication(payload, requestedStateCode, repoRoot) {
   const publication = assertRecord(payload, 'Publicação estadual inválida')
   assertExactFields(publication, STATE_PUBLICATION_FIELDS, 'Publicação estadual inválida')
@@ -235,7 +275,7 @@ function parseStatePublication(payload, requestedStateCode, repoRoot) {
   )
   if (!ANALYTICS_STATUSES.has(analyticsStatus)) {
     throw new Error(
-      'Publicação estadual inválida: analyticsStatus deve ser "complete" ou "identity-only".',
+      'Publicação estadual inválida: analyticsStatus deve ser "complete", "partial" ou "identity-only".',
     )
   }
   const analyticsMessage = publication.analyticsMessage
@@ -243,13 +283,14 @@ function parseStatePublication(payload, requestedStateCode, repoRoot) {
     throw new Error('Publicação estadual inválida: publicação completa deve usar analyticsMessage null.')
   }
   if (
-    analyticsStatus === 'identity-only'
+    analyticsStatus !== 'complete'
     && (typeof analyticsMessage !== 'string' || analyticsMessage.trim() === '')
   ) {
     throw new Error(
-      'Publicação estadual inválida: publicação identity-only exige analyticsMessage não vazio.',
+      `Publicação estadual inválida: publicação ${analyticsStatus} exige analyticsMessage não vazio.`,
     )
   }
+  const enabledProducts = parseEnabledProducts(publication.enabledProducts, analyticsStatus)
 
   const resolvedStateConfigPath = resolveRepositoryPath(
     repoRoot,
@@ -274,6 +315,7 @@ function parseStatePublication(payload, requestedStateCode, repoRoot) {
     publicDataDirectory: configuredDataDirectory,
     analyticsStatus,
     analyticsMessage,
+    enabledProducts,
     resolvedStateConfigPath,
     resolvedMunicipalityRegistryPath,
     resolvedPublicDataDirectory,

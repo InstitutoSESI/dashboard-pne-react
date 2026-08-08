@@ -26,8 +26,9 @@ from pandas.api import types as pandas_types
 
 
 TASK_SCHEMA_VERSION = "education-task-fingerprint-v1"
-TASK_ID = "education.core.rs"
+TASK_NAMESPACE = "education.core"
 STATE_CODE = "RS"
+TASK_ID = f"{TASK_NAMESPACE}.{STATE_CODE.lower()}"
 SOURCE_DIGEST_ALGORITHM_VERSION = "education-source-digest-v1"
 INPUT_FINGERPRINT_ALGORITHM_VERSION = "education-input-fingerprint-v1"
 OUTPUT_MANIFEST_SCHEMA_VERSION = "education-output-manifest-v1"
@@ -40,8 +41,9 @@ ROW_ORDER_POLICY = "multiset-row-hash-v1"
 COLUMN_ORDER_POLICY = "contractual-column-order-v1"
 FLOAT_NORMALIZATION_DECIMAL_PLACES = 12
 FLOAT_POLICY = "round-float-to-12-decimal-places-v1"
-EXPECTED_RS_MUNICIPALITY_COUNT = 497
-EXPECTED_MANAGED_OUTPUT_COUNT = 499
+MANAGED_ROOT_OUTPUT_FILES = ("index.json", "municipios_index.json")
+MANAGED_ROOT_OUTPUT_COUNT = len(MANAGED_ROOT_OUTPUT_FILES)
+DEFAULT_MANAGED_ROOT = "public/data/educacao"
 
 _HASH_KEY_A = "pne-edu-hash-v1a"
 _HASH_KEY_B = "pne-edu-hash-v1b"
@@ -189,10 +191,12 @@ EDUCATION_SOURCE_DEFINITIONS = (
 )
 
 
-EDUCATION_CONTRACT_FILE_ALLOWLIST = (
-    "config/states/rs.json",
-    "config/municipalities/rs.json",
-    "config/compatibility/education-municipality-routes/rs.json",
+_STATE_CONTRACT_FILE_TEMPLATES = (
+    "config/states/{uf}.json",
+    "config/municipalities/{uf}.json",
+    "config/compatibility/education-municipality-routes/{uf}.json",
+)
+_SHARED_CONTRACT_FILES = (
     "data_pipeline/scripts/export_education_indicators.py",
     "data_pipeline/scripts/update_static_data.py",
     "data_pipeline/src/config.py",
@@ -222,6 +226,56 @@ class EducationOutputIntegrityError(EducationFingerprintError):
     def __init__(self, reason: str, message: str):
         self.reason = reason
         super().__init__(message)
+
+
+def normalized_task_state_code(state_code: object) -> str:
+    """Aceita somente UF textual de duas letras; nunca infere um estado."""
+    if not isinstance(state_code, str):
+        raise EducationFingerprintError(
+            f"Codigo estadual deve ser texto de duas letras: {state_code!r}."
+        )
+    normalized = state_code.strip().upper()
+    if re.fullmatch(r"[A-Z]{2}", normalized) is None:
+        raise EducationFingerprintError(
+            f"Codigo estadual invalido: {state_code!r}."
+        )
+    return normalized
+
+
+def task_id_for_state(state_code: object) -> str:
+    """A tarefa de Educacao e uma por estado; o id carrega a UF."""
+    return f"{TASK_NAMESPACE}.{normalized_task_state_code(state_code).lower()}"
+
+
+def education_contract_file_allowlist(
+    state_code: object = STATE_CODE,
+) -> tuple[str, ...]:
+    """Contratos participantes: os da UF ativa mais os compartilhados."""
+    uf = normalized_task_state_code(state_code).lower()
+    return (
+        *(template.format(uf=uf) for template in _STATE_CONTRACT_FILE_TEMPLATES),
+        *_SHARED_CONTRACT_FILES,
+    )
+
+
+def expected_managed_output_count(expected_municipality_count: object) -> int:
+    """Universo municipal do estado mais os dois artefatos de raiz."""
+    if isinstance(expected_municipality_count, bool) or not isinstance(
+        expected_municipality_count, int
+    ):
+        raise EducationFingerprintError(
+            "Universo municipal esperado deve ser inteiro: "
+            f"{expected_municipality_count!r}."
+        )
+    if expected_municipality_count <= 0:
+        raise EducationFingerprintError(
+            "Universo municipal esperado deve ser positivo: "
+            f"{expected_municipality_count}."
+        )
+    return expected_municipality_count + MANAGED_ROOT_OUTPUT_COUNT
+
+
+EDUCATION_CONTRACT_FILE_ALLOWLIST = education_contract_file_allowlist(STATE_CODE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -725,10 +779,7 @@ def build_input_fingerprint(
     execution_parameters: Mapping[str, Any] | None = None,
     runtime: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    if state_code != STATE_CODE:
-        raise EducationFingerprintError(
-            f"A tarefa {TASK_ID} pertence exclusivamente ao estado {STATE_CODE}."
-        )
+    normalized_state = normalized_task_state_code(state_code)
     if source_digests.get("complete") is not True:
         raise EducationFingerprintError("Digests de fontes incompletos nao sao elegiveis.")
     source_ids = source_digests.get("sourceIds")
@@ -739,8 +790,8 @@ def build_input_fingerprint(
     parameters = dict(execution_parameters or {})
     identity = {
         "schemaVersion": TASK_SCHEMA_VERSION,
-        "taskId": TASK_ID,
-        "stateCode": state_code,
+        "taskId": task_id_for_state(normalized_state),
+        "stateCode": normalized_state,
         "algorithmVersion": INPUT_FINGERPRINT_ALGORITHM_VERSION,
         "sourceAlgorithmVersion": source_digests.get("algorithmVersion"),
         "sourceAggregateSha256": source_digests.get("aggregateSha256"),
@@ -760,8 +811,10 @@ def build_input_fingerprint(
 def expected_managed_output_paths(
     municipality_ids: Iterable[str],
     *,
-    enforce_rs_contract: bool = True,
+    expected_municipality_count: int | None,
 ) -> tuple[str, ...]:
+    """``expected_municipality_count`` vem de ``state_config``; ``None`` desliga
+    a checagem de universo e existe apenas para fixtures."""
     identifiers = tuple(municipality_ids)
     invalid = sorted(
         {
@@ -779,17 +832,20 @@ def expected_managed_output_paths(
         raise EducationOutputIntegrityError(
             "manifest_invalid", "Universo municipal possui codigos duplicados."
         )
-    if enforce_rs_contract and len(identifiers) != EXPECTED_RS_MUNICIPALITY_COUNT:
-        raise EducationOutputIntegrityError(
-            "manifest_invalid",
-            "Contrato RS exige exatamente "
-            f"{EXPECTED_RS_MUNICIPALITY_COUNT} municipios; recebeu {len(identifiers)}.",
-        )
+    if expected_municipality_count is not None:
+        expected_total = expected_managed_output_count(expected_municipality_count)
+        if len(identifiers) != expected_municipality_count:
+            raise EducationOutputIntegrityError(
+                "manifest_invalid",
+                "Contrato estadual exige exatamente "
+                f"{expected_municipality_count} municipios "
+                f"({expected_total} outputs administrados); "
+                f"recebeu {len(identifiers)}.",
+            )
     return tuple(
         sorted(
             {
-                "index.json",
-                "municipios_index.json",
+                *MANAGED_ROOT_OUTPUT_FILES,
                 *(f"municipios/{identifier}.json" for identifier in identifiers),
             }
         )
@@ -828,17 +884,18 @@ def build_output_manifest(
     municipality_ids: Iterable[str],
     *,
     state_code: str = STATE_CODE,
-    enforce_rs_contract: bool = True,
+    expected_municipality_count: int | None,
+    managed_root: str = DEFAULT_MANAGED_ROOT,
 ) -> dict[str, Any]:
-    if state_code != STATE_CODE:
+    normalized_state = normalized_task_state_code(state_code)
+    if not isinstance(managed_root, str) or not managed_root.strip():
         raise EducationOutputIntegrityError(
-            "state_mismatch",
-            f"Manifesto da tarefa {TASK_ID} nao aceita estado {state_code}.",
+            "manifest_invalid", "Raiz administrada deve ser texto nao vazio."
         )
     expected = set(
         expected_managed_output_paths(
             municipality_ids,
-            enforce_rs_contract=enforce_rs_contract,
+            expected_municipality_count=expected_municipality_count,
         )
     )
     observed = _current_managed_paths(public_root)
@@ -857,15 +914,17 @@ def build_output_manifest(
     for relative in sorted(expected):
         sha256, size = _hash_file(Path(public_root) / Path(relative))
         entries.append({"path": relative, "size": size, "sha256": sha256})
-    if enforce_rs_contract and len(entries) != EXPECTED_MANAGED_OUTPUT_COUNT:
-        raise EducationOutputIntegrityError(
-            "manifest_invalid",
-            f"Manifesto deve conter {EXPECTED_MANAGED_OUTPUT_COUNT} outputs.",
-        )
+    if expected_municipality_count is not None:
+        expected_total = expected_managed_output_count(expected_municipality_count)
+        if len(entries) != expected_total:
+            raise EducationOutputIntegrityError(
+                "manifest_invalid",
+                f"Manifesto deve conter {expected_total} outputs.",
+            )
     return {
         "schemaVersion": OUTPUT_MANIFEST_SCHEMA_VERSION,
-        "stateCode": state_code,
-        "managedRoot": "public/data/educacao",
+        "stateCode": normalized_state,
+        "managedRoot": managed_root,
         "managedOutputCount": len(entries),
         "treeAlgorithmVersion": OUTPUT_TREE_ALGORITHM_VERSION,
         "treeSha256": _output_tree_hash(entries),
@@ -879,7 +938,8 @@ def _validate_output_manifest_structure(
     municipality_ids: Iterable[str],
     *,
     state_code: str,
-    enforce_rs_contract: bool,
+    expected_municipality_count: int | None,
+    managed_root: str = DEFAULT_MANAGED_ROOT,
 ) -> tuple[dict[str, dict[str, Any]], tuple[str, ...]]:
     if not isinstance(manifest, dict):
         raise EducationOutputIntegrityError(
@@ -893,7 +953,7 @@ def _validate_output_manifest_structure(
         raise EducationOutputIntegrityError(
             "manifest_invalid", "Schema do outputManifest desconhecido."
         )
-    if manifest.get("managedRoot") != "public/data/educacao":
+    if manifest.get("managedRoot") != managed_root:
         raise EducationOutputIntegrityError(
             "manifest_invalid", "Raiz administrada do outputManifest e invalida."
         )
@@ -903,7 +963,7 @@ def _validate_output_manifest_structure(
         )
     expected = expected_managed_output_paths(
         municipality_ids,
-        enforce_rs_contract=enforce_rs_contract,
+        expected_municipality_count=expected_municipality_count,
     )
     files = manifest.get("files")
     if not isinstance(files, list):
@@ -963,14 +1023,16 @@ def verify_output_manifest(
     municipality_ids: Iterable[str],
     *,
     state_code: str = STATE_CODE,
-    enforce_rs_contract: bool = True,
+    expected_municipality_count: int | None,
+    managed_root: str = DEFAULT_MANAGED_ROOT,
 ) -> OutputIntegrityResult:
     try:
         entries, expected = _validate_output_manifest_structure(
             manifest,
             municipality_ids,
             state_code=state_code,
-            enforce_rs_contract=enforce_rs_contract,
+            expected_municipality_count=expected_municipality_count,
+            managed_root=managed_root,
         )
     except EducationOutputIntegrityError as exc:
         return OutputIntegrityResult(False, exc.reason)
@@ -1013,17 +1075,24 @@ def verify_output_manifest(
     )
 
 
-def default_task_state_path(data_pipeline_directory: Path) -> Path:
+def default_task_state_path(
+    data_pipeline_directory: Path,
+    state_code: object = STATE_CODE,
+) -> Path:
     return (
         Path(data_pipeline_directory)
         / "export"
         / "task-state"
-        / STATE_CODE
+        / normalized_task_state_code(state_code)
         / "education-core.json"
     )
 
 
-def _validate_task_state_structure(payload: Any) -> None:
+def _validate_task_state_structure(
+    payload: Any,
+    *,
+    state_code: object | None = None,
+) -> None:
     if not isinstance(payload, dict):
         raise EducationFingerprintError("Task state deve ser objeto JSON.")
     required = {
@@ -1044,12 +1113,18 @@ def _validate_task_state_structure(payload: Any) -> None:
         raise EducationFingerprintError("Campos do task state divergem do contrato.")
     if payload.get("schemaVersion") != TASK_SCHEMA_VERSION:
         raise EducationFingerprintError("Schema do task state desconhecido.")
-    if payload.get("taskId") != TASK_ID:
-        raise EducationFingerprintError("Task state pertence a outra tarefa.")
-    if payload.get("stateCode") != STATE_CODE:
+    try:
+        observed_state = normalized_task_state_code(payload.get("stateCode"))
+    except EducationFingerprintError as exc:
+        raise EducationOutputIntegrityError(
+            "state_mismatch", f"Task state sem estado valido: {exc}"
+        ) from exc
+    if state_code is not None and observed_state != normalized_task_state_code(state_code):
         raise EducationOutputIntegrityError(
             "state_mismatch", "Task state pertence a outro estado."
         )
+    if payload.get("taskId") != task_id_for_state(observed_state):
+        raise EducationFingerprintError("Task state pertence a outra tarefa.")
     if payload.get("algorithmVersion") != INPUT_FINGERPRINT_ALGORITHM_VERSION:
         raise EducationFingerprintError("Algoritmo do task state desconhecido.")
     fingerprint = payload.get("inputFingerprint")
@@ -1076,7 +1151,11 @@ def _validate_task_state_structure(payload: Any) -> None:
             raise EducationFingerprintError("Task state contem campo privado proibido.")
 
 
-def load_task_state(path: Path) -> TaskStateLoadResult:
+def load_task_state(
+    path: Path,
+    *,
+    state_code: object | None = None,
+) -> TaskStateLoadResult:
     state_path = Path(path)
     if not state_path.is_file():
         return TaskStateLoadResult(None, "first_run")
@@ -1094,7 +1173,7 @@ def load_task_state(path: Path) -> TaskStateLoadResult:
             != INPUT_FINGERPRINT_ALGORITHM_VERSION
         ):
             return TaskStateLoadResult(None, "algorithm_changed")
-        _validate_task_state_structure(payload)
+        _validate_task_state_structure(payload, state_code=state_code)
     except EducationOutputIntegrityError as exc:
         return TaskStateLoadResult(None, exc.reason)
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError, EducationFingerprintError):
@@ -1111,7 +1190,9 @@ def evaluate_shadow_eligibility(
     public_root: Path,
     municipality_ids: Iterable[str],
     *,
-    enforce_rs_contract: bool = True,
+    state_code: str = STATE_CODE,
+    expected_municipality_count: int | None,
+    managed_root: str = DEFAULT_MANAGED_ROOT,
 ) -> ShadowDecision:
     empty_integrity = OutputIntegrityResult(False, previous.reason)
     if previous.state is None:
@@ -1147,7 +1228,9 @@ def evaluate_shadow_eligibility(
         public_root,
         state.get("outputManifest"),
         municipality_ids,
-        enforce_rs_contract=enforce_rs_contract,
+        state_code=state_code,
+        expected_municipality_count=expected_municipality_count,
+        managed_root=managed_root,
     )
     return ShadowDecision(
         integrity.valid,
@@ -1170,10 +1253,16 @@ def build_task_state(
     identity = input_fingerprint.get("identity")
     if not isinstance(identity, dict):
         raise EducationFingerprintError("Identidade do input fingerprint ausente.")
+    manifest_state = normalized_task_state_code(output_manifest.get("stateCode"))
+    if manifest_state != normalized_task_state_code(identity.get("stateCode")):
+        raise EducationOutputIntegrityError(
+            "state_mismatch",
+            "Manifesto de outputs e fingerprint pertencem a estados diferentes.",
+        )
     payload = {
         "schemaVersion": TASK_SCHEMA_VERSION,
-        "taskId": TASK_ID,
-        "stateCode": STATE_CODE,
+        "taskId": task_id_for_state(manifest_state),
+        "stateCode": manifest_state,
         "algorithmVersion": INPUT_FINGERPRINT_ALGORITHM_VERSION,
         "inputFingerprint": input_fingerprint["inputFingerprint"],
         "sourceDigests": dict(source_digests),
@@ -1188,7 +1277,8 @@ def build_task_state(
         "createdAt": created_at
         or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
-    _validate_task_state_structure(payload)
+    _validate_task_state_structure(payload, state_code=manifest_state)
+    managed_output_count = payload["outputManifest"]["managedOutputCount"]
     _validate_output_manifest_structure(
         payload["outputManifest"],
         (
@@ -1196,11 +1286,15 @@ def build_task_state(
             for entry in payload["outputManifest"]["files"]
             if entry["path"].startswith("municipios/")
         ),
-        state_code=STATE_CODE,
-        enforce_rs_contract=(
-            payload["outputManifest"]["managedOutputCount"]
-            == EXPECTED_MANAGED_OUTPUT_COUNT
+        state_code=manifest_state,
+        expected_municipality_count=(
+            managed_output_count - MANAGED_ROOT_OUTPUT_COUNT
+            if isinstance(managed_output_count, int)
+            and not isinstance(managed_output_count, bool)
+            and managed_output_count > MANAGED_ROOT_OUTPUT_COUNT
+            else None
         ),
+        managed_root=payload["outputManifest"]["managedRoot"],
     )
     return payload
 
@@ -1265,8 +1359,14 @@ __all__ = [
     "EducationFingerprintError",
     "EducationOutputIntegrityError",
     "EducationSourceDefinition",
-    "EXPECTED_MANAGED_OUTPUT_COUNT",
-    "EXPECTED_RS_MUNICIPALITY_COUNT",
+    "DEFAULT_MANAGED_ROOT",
+    "MANAGED_ROOT_OUTPUT_COUNT",
+    "MANAGED_ROOT_OUTPUT_FILES",
+    "TASK_NAMESPACE",
+    "education_contract_file_allowlist",
+    "expected_managed_output_count",
+    "normalized_task_state_code",
+    "task_id_for_state",
     "FLOAT_NORMALIZATION_DECIMAL_PLACES",
     "FLOAT_POLICY",
     "INPUT_FINGERPRINT_ALGORITHM_VERSION",

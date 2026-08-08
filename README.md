@@ -71,8 +71,7 @@ temporária de agregados internos, e o slug permanece reservado às URLs.
 projeção publicada do registro, nunca a entrada do universo no pipeline.
 
 O produto de Alagoas usa o cadastro oficial dos 102 municípios, versionado em
-`config/candidates/states/al.json` e
-`config/candidates/municipalities/al.json`. A proveniência fica em
+`config/states/al.json` e `config/municipalities/al.json`. A proveniência fica em
 `data_pipeline/data/municipality_registry_sources/al`: o diretório preserva a
 resposta integral da API de Localidades do IBGE e um manifesto com URL, data,
 hashes, cobertura e política de normalização. `config/publications/al.json` liga

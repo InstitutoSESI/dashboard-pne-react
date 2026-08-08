@@ -22,6 +22,8 @@ from .education_municipality_routes import (
 )
 from .municipality_registry import MunicipalityRegistry
 from .pipeline_profiling import get_active_profile_session, profile_operation
+from .state_config import DEFAULT_STATE_CODE, normalize_state_code
+from .state_publication import StatePublicationError, resolve_education_data_dir
 
 
 EDUCATION_STAGING_PARENT = DATA_PIPELINE_DIR / ".staging" / "education"
@@ -968,10 +970,28 @@ def publish_education_transactionally(
                 cleanup_event.add_counter("stagingRunsRemoved", 1)
 
 
-def default_public_root() -> Path:
-    """Fronteira publica unica; o exportador nao precisa conhecer public/data."""
+def default_public_root(state_code: object = DEFAULT_STATE_CODE) -> Path:
+    """Fronteira publica unica; a raiz vem do manifesto de publicacao da UF.
+
+    O exportador continua sem conhecer ``public/data`` diretamente: o estado
+    padrao resolve a raiz historica e qualquer outra UF resolve a propria raiz
+    publicada, sem fallback silencioso para a publicacao alheia.
+    """
     if EDUCATION_DATA_DIR.parent != PUBLIC_DATA_DIR:
         raise EducationPublicationError(
             "Configuracao do diretorio publico educacional inconsistente."
         )
-    return EDUCATION_DATA_DIR
+    try:
+        education_root = resolve_education_data_dir(state_code)
+    except (FileNotFoundError, StatePublicationError, ValueError) as exc:
+        raise EducationPublicationError(
+            f"Raiz publica educacional indisponivel para {state_code!r}: {exc}"
+        ) from exc
+    if (
+        normalize_state_code(state_code) == DEFAULT_STATE_CODE
+        and education_root != EDUCATION_DATA_DIR.resolve()
+    ):
+        raise EducationPublicationError(
+            "Configuracao do diretorio publico educacional inconsistente."
+        )
+    return education_root

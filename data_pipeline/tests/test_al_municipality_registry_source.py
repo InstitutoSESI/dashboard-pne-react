@@ -23,11 +23,12 @@ SOURCE_ROOT = (
 )
 RAW_PATH = SOURCE_ROOT / "raw" / "ibge_localidades_municipios_27.json"
 MANIFEST_PATH = SOURCE_ROOT / "manifest.json"
-CANDIDATE_STATE_DIR = REPO_ROOT / "config" / "candidates" / "states"
-CANDIDATE_REGISTRY_DIR = REPO_ROOT / "config" / "candidates" / "municipalities"
-ACTIVE_STATE_PATH = REPO_ROOT / "config" / "states" / "al.json"
-ACTIVE_REGISTRY_PATH = REPO_ROOT / "config" / "municipalities" / "al.json"
+ACTIVE_STATE_DIR = REPO_ROOT / "config" / "states"
+ACTIVE_REGISTRY_DIR = REPO_ROOT / "config" / "municipalities"
+ACTIVE_STATE_PATH = ACTIVE_STATE_DIR / "al.json"
+ACTIVE_REGISTRY_PATH = ACTIVE_REGISTRY_DIR / "al.json"
 ACTIVE_PUBLICATION_PATH = REPO_ROOT / "config" / "publications" / "al.json"
+CANDIDATE_ROOT = REPO_ROOT / "config" / "candidates"
 
 
 def _sha256(path: Path) -> str:
@@ -59,19 +60,17 @@ def test_al_source_snapshot_and_manifest_are_reconciled() -> None:
 
 def test_al_official_source_materializes_the_exact_candidate_registry() -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    state = load_state_config("AL", config_dir=CANDIDATE_STATE_DIR)
+    state = load_state_config("AL", config_dir=ACTIVE_STATE_DIR)
     registry = load_municipality_registry(
         state,
-        registry_dir=CANDIDATE_REGISTRY_DIR,
+        registry_dir=ACTIVE_REGISTRY_DIR,
     )
     source_payload = load_source_json_with_textual_numbers(RAW_PATH.read_bytes())
     materialized = build_municipality_registry_candidate(
         source_payload,
         state_config=state,
     )
-    versioned = json.loads(
-        (CANDIDATE_REGISTRY_DIR / "al.json").read_text(encoding="utf-8")
-    )
+    versioned = json.loads(ACTIVE_REGISTRY_PATH.read_text(encoding="utf-8"))
 
     assert materialized == versioned
     assert registry.municipality_count == 102
@@ -86,11 +85,15 @@ def test_al_official_source_materializes_the_exact_candidate_registry() -> None:
     assert manifest["normalization"]["normalizerSha256"] == _sha256(
         REPO_ROOT / manifest["normalization"]["normalizerPath"]
     )
+    assert manifest["normalization"]["stateConfigPath"] == "config/states/al.json"
+    assert manifest["normalization"]["municipalityRegistryPath"] == (
+        "config/municipalities/al.json"
+    )
     assert manifest["normalization"]["stateConfigSha256"] == _sha256(
-        CANDIDATE_STATE_DIR / "al.json"
+        ACTIVE_STATE_PATH
     )
     assert manifest["normalization"]["municipalityRegistrySha256"] == _sha256(
-        CANDIDATE_REGISTRY_DIR / "al.json"
+        ACTIVE_REGISTRY_PATH
     )
     assert manifest["coverage"] == {
         "expectedMunicipalities": 102,
@@ -102,7 +105,8 @@ def test_al_official_source_materializes_the_exact_candidate_registry() -> None:
     }
 
 
-def test_al_registry_activates_only_the_identity_product_publication() -> None:
+def test_al_configs_are_promoted_while_the_publication_stays_identity_only() -> None:
+    """Fase 1: configuração e registro ativos; publicação ainda sem analytics."""
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     publication = json.loads(ACTIVE_PUBLICATION_PATH.read_text(encoding="utf-8"))
 
@@ -112,18 +116,21 @@ def test_al_registry_activates_only_the_identity_product_publication() -> None:
     assert manifest["lifecycle"]["productPublicationPath"] == (
         "config/publications/al.json"
     )
-    assert not ACTIVE_STATE_PATH.exists()
-    assert not ACTIVE_REGISTRY_PATH.exists()
+    assert ACTIVE_STATE_PATH.is_file()
+    assert ACTIVE_REGISTRY_PATH.is_file()
+    assert not CANDIDATE_ROOT.exists()
+    assert publication["schemaVersion"] == "state-publication-v3"
     assert publication["stateCode"] == "AL"
     assert publication["analyticsStatus"] == "identity-only"
-    assert publication["stateConfigPath"] == "config/candidates/states/al.json"
+    assert publication["enabledProducts"] is None
+    assert publication["stateConfigPath"] == "config/states/al.json"
     assert publication["municipalityRegistryPath"] == (
-        "config/candidates/municipalities/al.json"
+        "config/municipalities/al.json"
     )
 
 
 def test_al_normalizer_rejects_numeric_identity_before_materialization() -> None:
-    state = load_state_config("AL", config_dir=CANDIDATE_STATE_DIR)
+    state = load_state_config("AL", config_dir=ACTIVE_STATE_DIR)
     source_payload = load_source_json_with_textual_numbers(RAW_PATH.read_bytes())
     assert isinstance(source_payload, list)
     source_payload[0]["id"] = 2700102

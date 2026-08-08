@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -25,6 +27,10 @@ from src.state_config import (  # noqa: E402
     load_state_config,
     normalize_state_code,
 )
+from src.state_qa_samples import (  # noqa: E402
+    StateQaSampleError,
+    resolve_qa_sample_ids,
+)
 
 
 FIELDS = (
@@ -43,8 +49,16 @@ FIELDS = (
     "QT_TUR_BAS_LIBRAS",
     "QT_DOC_BAS_LIBRAS",
 )
-SAMPLE_MUNICIPALITY_IDS = ("4300034", "4300406", "4318705")
 FLAG_FIELDS = {"TP_AEE", "IN_SALA_ATENDIMENTO_ESPECIAL"}
+
+
+def _state_scope_key(state_config) -> str:
+    """Escopo estadual nomeado pela configuração ativa, nunca por constante RS."""
+    decomposed = unicodedata.normalize("NFKD", state_config.state_name)
+    ascii_name = "".join(
+        character for character in decomposed if not unicodedata.combining(character)
+    )
+    return re.sub(r"[^a-z0-9]+", "_", ascii_name.casefold()).strip("_")
 
 
 def _flag(frame: pd.DataFrame, prefix: str, field: str) -> pd.Series:
@@ -107,7 +121,13 @@ def main(argv: list[str] | None = None) -> int:
         state_code = normalize_state_code(args.state)
         state_config = load_state_config(state_code)
         registry = load_municipality_registry(state_config)
-    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+        sample_municipality_ids = resolve_qa_sample_ids(state_config, registry)
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        StateQaSampleError,
+    ) as exc:
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
 
@@ -115,10 +135,10 @@ def main(argv: list[str] | None = None) -> int:
         municipality_ids=registry.ids
     )
     municipalities = {
-        code: registry.get_by_id(code).name for code in SAMPLE_MUNICIPALITY_IDS
+        code: registry.get_by_id(code).name for code in sample_municipality_ids
     }
     scopes = {
-        "rio_grande_do_sul": source,
+        _state_scope_key(state_config): source,
         **{
             code: source[source["id_municipio"].eq(code)]
             for code in municipalities

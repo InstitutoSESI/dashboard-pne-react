@@ -27,7 +27,7 @@ function writeJson(filePath, payload) {
   writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
 }
 
-function createAlFixture() {
+function createAlFixture(publicationOverrides = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'dashboard-pne-state-publication-'))
   const municipalities = [
     { ibgeCode: '2700102', name: 'Água Branca', slug: 'agua-branca' },
@@ -48,13 +48,15 @@ function createAlFixture() {
     municipalities,
   })
   writeJson(path.join(root, 'config/publications/al.json'), {
-    schemaVersion: 'state-publication-v2',
+    schemaVersion: 'state-publication-v3',
     stateCode: 'AL',
     stateConfigPath: 'config/states/al.json',
     municipalityRegistryPath: 'config/municipalities/al.json',
     publicDataDirectory: 'state-publications/al/data',
     analyticsStatus: 'identity-only',
     analyticsMessage: 'Indicadores ainda não publicados.',
+    enabledProducts: null,
+    ...publicationOverrides,
   })
   writeJson(path.join(root, 'state-publications/al/data/municipios_index.json'), {
     generated_at: '2026-08-07T00:00:00Z',
@@ -80,6 +82,8 @@ function createAlFixture() {
 test('perfil real de RS reconcilia configuração, registro e publicação', () => {
   const profile = loadStateBuildProfile({ repoRoot, stateCode: ' rs ' })
   assert.equal(profile.stateCode, 'RS')
+  assert.equal(profile.publication.schemaVersion, 'state-publication-v3')
+  assert.equal(profile.publication.enabledProducts, null)
   assert.equal(profile.stateConfig.expectedMunicipalityCount, 497)
   assert.equal(profile.municipalityRegistry.municipalityCount, 497)
   assert.equal(profile.publication.publicDataDirectory, 'public/data')
@@ -120,6 +124,90 @@ test('aceita um perfil AL completo e preserva códigos IBGE como texto', () => {
       ['2700102', '2700201'],
     )
     assert.ok(profile.municipalityRegistry.municipalities.every(({ ibgeCode }) => typeof ibgeCode === 'string'))
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('publicação partial habilita somente os produtos declarados', () => {
+  const fixture = createAlFixture({
+    analyticsStatus: 'partial',
+    analyticsMessage: 'Somente Educação foi publicada para Alagoas.',
+    enabledProducts: ['educacao'],
+  })
+  try {
+    const profile = loadStateBuildProfile({ repoRoot: fixture.root, stateCode: 'AL' })
+    assert.equal(profile.publication.analyticsStatus, 'partial')
+    assert.deepEqual([...profile.publication.enabledProducts], ['educacao'])
+    assert.equal(profile.municipalityRegistry.municipalityCount, 2)
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true })
+  }
+})
+
+test('publicação partial é fail-closed em mensagem e em enabledProducts', () => {
+  const cases = [
+    [
+      { analyticsStatus: 'partial', analyticsMessage: 'x', enabledProducts: null },
+      /exige enabledProducts como lista não vazia/,
+    ],
+    [
+      { analyticsStatus: 'partial', analyticsMessage: 'x', enabledProducts: [] },
+      /exige enabledProducts como lista não vazia/,
+    ],
+    [
+      { analyticsStatus: 'partial', analyticsMessage: 'x', enabledProducts: ['saude'] },
+      /produto analítico desconhecido/,
+    ],
+    [
+      {
+        analyticsStatus: 'partial',
+        analyticsMessage: 'x',
+        enabledProducts: ['educacao', 'educacao'],
+      },
+      /produto analítico duplicado/,
+    ],
+    [
+      {
+        analyticsStatus: 'partial',
+        analyticsMessage: 'x',
+        enabledProducts: ['pne', 'educacao', 'financiamento'],
+      },
+      /deve declarar analyticsStatus complete/,
+    ],
+    [
+      { analyticsStatus: 'partial', analyticsMessage: '   ', enabledProducts: ['pne'] },
+      /publicação partial exige analyticsMessage não vazio/,
+    ],
+    [
+      { analyticsStatus: 'identity-only', analyticsMessage: 'x', enabledProducts: ['pne'] },
+      /publicação identity-only deve declarar enabledProducts null/,
+    ],
+    [
+      { analyticsStatus: 'complete', analyticsMessage: null, enabledProducts: ['pne'] },
+      /publicação complete deve declarar enabledProducts null/,
+    ],
+  ]
+  for (const [overrides, expected] of cases) {
+    const fixture = createAlFixture(overrides)
+    try {
+      assert.throws(
+        () => loadStateBuildProfile({ repoRoot: fixture.root, stateCode: 'AL' }),
+        expected,
+      )
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true })
+    }
+  }
+})
+
+test('schemaVersion antigo é recusado sem migração silenciosa', () => {
+  const fixture = createAlFixture({ schemaVersion: 'state-publication-v2' })
+  try {
+    assert.throws(
+      () => loadStateBuildProfile({ repoRoot: fixture.root, stateCode: 'AL' }),
+      /schemaVersion deve ser state-publication-v3/,
+    )
   } finally {
     rmSync(fixture.root, { recursive: true, force: true })
   }

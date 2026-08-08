@@ -30,6 +30,10 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
 )
+from src.state_publication import (  # noqa: E402
+    StatePublicationError,
+    resolve_public_data_dir,
+)
 from src.pipeline_profiling import (  # noqa: E402
     ProfileError,
     ProfileOutputError,
@@ -122,27 +126,56 @@ def status_paths(status_output: str) -> list[str]:
     return paths
 
 
-def is_allowed_update_path(path: str) -> bool:
+DEFAULT_ALLOWED_UPDATE_ROOT = "public/data"
+
+
+def repo_relative_public_root(public_root: Path) -> str:
+    """Rotula a raiz publicada da UF relativa ao repositorio, sem fallback."""
+    resolved = Path(public_root).resolve()
+    root = Path(REPO_ROOT).resolve()
+    try:
+        return resolved.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise SystemExit(
+            f"[update-data] Raiz publicada fora do repositorio: {resolved}."
+        ) from exc
+
+
+def is_allowed_update_path(
+    path: str,
+    allowed_root: str = DEFAULT_ALLOWED_UPDATE_ROOT,
+) -> bool:
     normalized = path.replace("\\", "/")
-    return normalized == "public/data" or normalized.startswith("public/data/")
+    return normalized == allowed_root or normalized.startswith(f"{allowed_root}/")
 
 
-def ensure_git_update_safe() -> None:
+def ensure_git_update_safe(
+    allowed_root: str = DEFAULT_ALLOWED_UPDATE_ROOT,
+) -> None:
     status = run_git_status()
     if not status:
         print("[update-data] Git status inicial: limpo.")
         return
 
-    blocked = [path for path in status_paths(status) if not is_allowed_update_path(path)]
+    blocked = [
+        path
+        for path in status_paths(status)
+        if not is_allowed_update_path(path, allowed_root)
+    ]
     if blocked:
         print("[update-data] Git status inicial:")
         print(status)
-        print("[update-data] Alteracoes fora de public/data impedem o update completo:")
+        print(
+            f"[update-data] Alteracoes fora de {allowed_root} impedem o update completo:"
+        )
         for path in blocked:
             print(f"  - {path}")
         raise SystemExit(1)
 
-    print("[update-data] Git status inicial contem apenas alteracoes permitidas em public/data.")
+    print(
+        "[update-data] Git status inicial contem apenas alteracoes permitidas em "
+        f"{allowed_root}."
+    )
 
 
 def run_command(name: str, command: list[str], results: list[StepResult]) -> None:
@@ -643,7 +676,12 @@ def sync_partitioned_to_public(
     return stats
 
 
-def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_build: bool) -> None:
+def print_dry_run(
+    commands: list[tuple[str, list[str]]],
+    run_sync: bool,
+    run_build: bool,
+    public_root: Path = PUBLIC_DATA_DIR,
+) -> None:
     profile_session = get_active_profile_session()
     print("[update-data] Dry run: nenhum comando que altera arquivos sera executado.")
     print("[update-data] Checagem segura: git status --short")
@@ -671,13 +709,13 @@ def print_dry_run(commands: list[tuple[str, list[str]]], run_sync: bool, run_bui
         if name == "inequality" and run_sync:
             print(
                 "[update-data] Rodaria sync: "
-                f"{STATIC_PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}"
+                f"{STATIC_PARTITIONED_DATA_DIR} -> {public_root}"
             )
             sync_printed = True
     if run_sync and not sync_printed:
         print(
             "[update-data] Rodaria sync: "
-            f"{STATIC_PARTITIONED_DATA_DIR} -> {PUBLIC_DATA_DIR}"
+            f"{STATIC_PARTITIONED_DATA_DIR} -> {public_root}"
         )
     if run_sync:
         with profile_operation(
@@ -848,12 +886,19 @@ def run_pipeline(args: argparse.Namespace) -> int:
         ) as validation_event:
             state_config = load_state_config(args.state)
             registry = load_municipality_registry(state_config)
+            public_data_root = resolve_public_data_dir(state_config.state_code)
+            allowed_update_root = repo_relative_public_root(public_data_root)
             if get_active_profile_session() is not None:
                 validation_event.add_counter(
                     "municipalities",
                     registry.municipality_count,
                 )
-    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        StatePublicationError,
+    ) as exc:
         print(f"[update-data] Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
     results: list[StepResult] = []
@@ -897,7 +942,12 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     if args.validate_only:
         if args.dry_run:
-            print_dry_run([("validate", validate_command)], run_sync=False, run_build=False)
+            print_dry_run(
+                [("validate", validate_command)],
+                run_sync=False,
+                run_build=False,
+                public_root=public_data_root,
+            )
             return 0
         try:
             run_command("validate", validate_command, results)
@@ -928,7 +978,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     inequality_output_root = (
         STATIC_PARTITIONED_DATA_DIR / "municipios"
         if run_partition
-        else PUBLIC_DATA_DIR / "municipios"
+        else public_data_root / "municipios"
     )
     inequality_command = [
         PYTHON,
@@ -936,7 +986,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         "--output-root",
         str(inequality_output_root),
         "--education-root",
-        str(PUBLIC_DATA_DIR / "educacao" / "municipios"),
+        str(public_data_root / "educacao" / "municipios"),
         "--state",
         state_config.state_code,
     ]
@@ -959,7 +1009,12 @@ def run_pipeline(args: argparse.Namespace) -> int:
                 f"[update-data] Fingerprint {mode} solicitado no plano: nenhum "
                 "digest tabular ou task state sera acessado no dry-run."
             )
-        print_dry_run(planned_commands, run_sync=run_sync, run_build=run_build)
+        print_dry_run(
+            planned_commands,
+            run_sync=run_sync,
+            run_build=run_build,
+            public_root=public_data_root,
+        )
         return 0
 
     validate_ok = False
@@ -969,9 +1024,9 @@ def run_pipeline(args: argparse.Namespace) -> int:
             with profile_operation(
                 "validation",
                 "git_update_safety",
-                metadata={"allowedRoot": "public/data"},
+                metadata={"allowedRoot": allowed_update_root},
             ):
-                ensure_git_update_safe()
+                ensure_git_update_safe(allowed_update_root)
 
         if run_export:
             run_command("export", export_command, results)
@@ -995,7 +1050,11 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
         if run_sync:
             with profile_step("step.sync", metadata={"step": "sync"}) as sync_event:
-                sync_stats = sync_partitioned_to_public(results, registry=registry)
+                sync_stats = sync_partitioned_to_public(
+                    results,
+                    public_root=public_data_root,
+                    registry=registry,
+                )
                 if get_active_profile_session() is not None and sync_stats is not None:
                     sync_event.add_counters(
                         created=sync_stats.created,

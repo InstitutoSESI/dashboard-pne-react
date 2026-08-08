@@ -14,6 +14,7 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.config import (  # noqa: E402
+    PUBLICATION_CONFIG_DIR,
     PUBLIC_DATA_DIR,
     STATIC_PARTITIONED_DATA_DIR,
 )
@@ -29,6 +30,11 @@ from src.state_config import (  # noqa: E402
     StateConfigError,
     load_state_config,
 )
+from src.state_publication import (  # noqa: E402
+    StatePublicationError,
+    load_state_publication,
+    resolve_public_data_dir,
+)
 from src.pipeline_profiling import (  # noqa: E402
     get_active_profile_session,
     profile_operation,
@@ -38,10 +44,26 @@ from src.pipeline_profiling import (  # noqa: E402
 
 
 PUBLIC_MUNICIPAL_ROOT = PUBLIC_DATA_DIR / "municipios"
+
+
+def _published_municipal_roots() -> frozenset[Path]:
+    """Raízes municipais autorizadas por cada manifesto de publicação estadual.
+
+    O allowlist deixa de ser o `public/data` do RS e passa a ser exatamente o
+    conjunto de raízes que os manifestos versionados declaram; uma UF sem
+    manifesto continua sem destino válido.
+    """
+    roots: set[Path] = set()
+    for manifest_path in sorted(PUBLICATION_CONFIG_DIR.glob("*.json")):
+        publication = load_state_publication(manifest_path.stem.upper())
+        roots.add((publication.public_data_directory / "municipios").resolve())
+    return frozenset(roots)
+
+
 ALLOWED_OUTPUT_ROOTS = frozenset(
     {
         (STATIC_PARTITIONED_DATA_DIR / "municipios").resolve(),
-        (PUBLIC_DATA_DIR / "municipios").resolve(),
+        *_published_municipal_roots(),
     }
 )
 
@@ -469,7 +491,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Incorpora o documento municipal de desigualdade em details.json."
     )
-    parser.add_argument("--output-root", type=Path, default=PUBLIC_MUNICIPAL_ROOT)
+    parser.add_argument(
+        "--output-root",
+        type=Path,
+        default=None,
+        help=(
+            "Raiz municipal de destino; o padrão é a raiz publicada da UF "
+            "declarada em config/publications/<uf>.json."
+        ),
+    )
     parser.add_argument("--education-root", type=Path)
     parser.add_argument(
         "--state",
@@ -486,18 +516,28 @@ def main() -> int:
         ) as configuration_event:
             state_config = load_state_config(args.state)
             registry = load_municipality_registry(state_config)
+            published_root = resolve_public_data_dir(state_config.state_code)
             configuration_event.add_counter(
                 "municipalities", registry.municipality_count
             )
-    except (FileNotFoundError, StateConfigError, MunicipalityRegistryError) as exc:
+    except (
+        FileNotFoundError,
+        StateConfigError,
+        MunicipalityRegistryError,
+        StatePublicationError,
+    ) as exc:
         print(f"Configuração estadual inválida: {exc}", file=sys.stderr)
         return 2
+    published_municipal_root = published_root / "municipios"
     print(
         json.dumps(
             materialize(
-                args.output_root,
+                args.output_root
+                if args.output_root is not None
+                else published_municipal_root,
                 education_root=args.education_root,
                 registry=registry,
+                published_root=published_municipal_root,
                 check=args.check,
             ),
             ensure_ascii=False,

@@ -136,7 +136,11 @@ def _run_exporter(
     emitted: list[dict] = []
 
     load_inputs = Mock(return_value=inputs)
-    monkeypatch.setattr(EXPORTER, "default_public_root", lambda: public_root)
+    monkeypatch.setattr(
+        EXPORTER,
+        "default_public_root",
+        lambda *_args, **_kwargs: public_root,
+    )
     monkeypatch.setattr(EXPORTER, "load_education_inputs", load_inputs)
     monkeypatch.setattr(
         EXPORTER,
@@ -186,12 +190,12 @@ def _run_exporter(
     monkeypatch.setattr(
         EXPORTER,
         "default_task_state_path",
-        lambda _root: tmp_path / "task-state.json",
+        lambda *_args, **_kwargs: tmp_path / "task-state.json",
     )
     monkeypatch.setattr(
         EXPORTER,
         "load_task_state",
-        lambda _path: TaskStateLoadResult({}, "loaded"),
+        lambda *_args, **_kwargs: TaskStateLoadResult({}, "loaded"),
     )
     decision = _decision(reason, eligible=eligible)
     monkeypatch.setattr(
@@ -554,11 +558,27 @@ def test_skip_dry_run_has_no_database_digest_state_or_staging(
 def test_unknown_state_fails_before_state_database_or_digest(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """SP segue sem configuração; AL passou a ser um estado ativo do contrato."""
     effects = Mock(side_effect=AssertionError("effect"))
     monkeypatch.setattr(EXPORTER, "load_education_inputs", effects)
     monkeypatch.setattr(EXPORTER, "load_task_state", effects)
-    assert EXPORTER.main(["--state", "AL", "--fingerprint-skip"]) == 2
+    assert EXPORTER.main(["--state", "SP", "--fingerprint-skip"]) == 2
     effects.assert_not_called()
+
+
+def test_al_skip_dry_run_resolves_its_own_root_without_database(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    effects = Mock(side_effect=AssertionError("effect"))
+    monkeypatch.setattr(EXPORTER, "load_education_inputs", effects)
+    monkeypatch.setattr(EXPORTER, "digest_education_sources", effects)
+    monkeypatch.setattr(EXPORTER, "load_task_state", effects)
+    monkeypatch.setattr(EXPORTER, "publish_education_transactionally", effects)
+    assert EXPORTER.main(["--state", "AL", "--dry-run", "--fingerprint-skip"]) == 0
+    effects.assert_not_called()
+    assert EXPORTER.default_public_root("AL") == (
+        REPO_ROOT / "state-publications" / "al" / "data" / "educacao"
+    )
 
 
 @pytest.mark.parametrize("partial", (["--limit", "1"], ["--municipios", "4300034"]))
@@ -636,7 +656,7 @@ def _run_orchestrator(
     later_error: str | None = None,
 ):
     calls: list[str] = []
-    monkeypatch.setattr(UPDATE, "ensure_git_update_safe", lambda: None)
+    monkeypatch.setattr(UPDATE, "ensure_git_update_safe", lambda *_args: None)
     monkeypatch.setattr(UPDATE, "print_summary", lambda *_args, **_kwargs: None)
 
     def education(_command, results):
@@ -651,8 +671,8 @@ def _run_orchestrator(
             raise SystemExit(9)
         results.append(UPDATE.StepResult(name, "ok"))
 
-    def sync(results, *, registry):
-        del registry
+    def sync(results, *, registry, public_root=None):
+        del registry, public_root
         calls.append("sync")
         results.append(UPDATE.StepResult("sync", "ok"))
         return UPDATE.SyncStats(0, 0, 0, 0)
@@ -823,7 +843,7 @@ def _small_tree(root: Path) -> tuple[Path, tuple[str, ...], dict, dict, dict]:
     manifest = build_output_manifest(
         root,
         municipality_ids,
-        enforce_rs_contract=False,
+        expected_municipality_count=None,
     )
     contracts = {"aggregateSha256": "b" * 64}
     fingerprint = {"inputFingerprint": "a" * 64}
@@ -856,7 +876,7 @@ def test_output_mutations_are_real_safe_misses(
         contracts,
         root,
         municipality_ids,
-        enforce_rs_contract=False,
+        expected_municipality_count=None,
     )
     assert not decision.would_skip
     expected_reason = "output_changed" if mutation == "changed" else f"output_{mutation}"

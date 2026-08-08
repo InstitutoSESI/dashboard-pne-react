@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
-import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
@@ -24,10 +24,11 @@ const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG
 
 const navGlyph = (name) => () => <NavGlyphIcon name={name} size="sm" />
 
-const NAV_BLOCKS = [
+const ALL_NAV_BLOCKS = [
   {
     icon: Target,
     id: 'pne',
+    product: 'pne',
     label: 'PNE',
     items: [
       { key: 'pne-overview', label: 'O que é o PNE', target: 'pne-overview', icon: navGlyph('pne-overview') },
@@ -41,12 +42,14 @@ const NAV_BLOCKS = [
   {
     icon: GraduationCap,
     id: 'educacao',
+    product: 'educacao',
     label: 'Indicadores educacionais',
     items: EDUCATION_NAV_ITEMS,
   },
   {
     icon: Landmark,
     id: 'financeiros',
+    product: 'financiamento',
     label: 'Financiamento',
     items: FINANCIAL_NAV_ITEMS.map((item) => ({
       key: item.pageKey,
@@ -56,6 +59,11 @@ const NAV_BLOCKS = [
     })),
   },
 ]
+
+// Numa publicação parcial a navegação expõe apenas os produtos publicados; os
+// demais continuam alcançáveis por URL e caem no aviso de indisponibilidade.
+const NAV_BLOCKS = ALL_NAV_BLOCKS.filter((block) => isProductEnabled(block.product))
+const EDUCATION_PRODUCT_AVAILABLE = isProductEnabled('educacao')
 
 const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
@@ -206,6 +214,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
                 />
               ))}
 
+              {EDUCATION_PRODUCT_AVAILABLE ? (
               <a
                 aria-current={activePage === 'relatorio-tecnico-municipal' ? 'page' : undefined}
                 className={activePage === 'relatorio-tecnico-municipal' ? 'nav-item is-active' : 'nav-item'}
@@ -218,6 +227,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
                 <span className="nav-item__icon" aria-hidden="true"><FileText /></span>
                 <span className="nav-item__label">Relatório Técnico Municipal</span>
               </a>
+              ) : null}
             </>
           ) : (
             <div className="sidebar-publication-note" role="status">

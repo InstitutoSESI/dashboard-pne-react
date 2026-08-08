@@ -1,4 +1,5 @@
-import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { resolvePageProduct } from '../config/analyticsProducts'
+import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import { FINANCIAL_PAGE_COPY, getFinancialPageByKey } from '../data/financialModules'
 import { InstitutionalTopBarSignature } from './InstitutionalTopBarSignature'
@@ -22,11 +23,15 @@ export function ContextBar({
   selectedMunicipalityId,
 }) {
   const financialPage = getFinancialPageByKey(activePage)
-  const crumb = ANALYTICS_AVAILABLE
-    ? (financialPage
-        ? `${FINANCIAL_PAGE_COPY.parentLabel} / ${financialPage.title}`
-        : PAGE_CRUMBS[activePage] ?? 'Dashboard PNE')
-    : `Cadastro municipal / ${ACTIVE_STATE_CONFIG.stateName}`
+  const activeProduct = resolvePageProduct(activePage)
+  const productAvailable = activeProduct === null || isProductEnabled(activeProduct)
+  const crumb = !ANALYTICS_AVAILABLE
+    ? `Cadastro municipal / ${ACTIVE_STATE_CONFIG.stateName}`
+    : !productAvailable
+        ? `Publicação parcial / ${ACTIVE_STATE_CONFIG.stateName}`
+        : (financialPage
+            ? `${FINANCIAL_PAGE_COPY.parentLabel} / ${financialPage.title}`
+            : PAGE_CRUMBS[activePage] ?? 'Dashboard PNE')
 
   return (
     <div className="context-bar">
@@ -48,7 +53,9 @@ export function ContextBar({
       </div>
 
       <div className="context-bar__meta">
-        {ANALYTICS_AVAILABLE ? 'Dados oficiais do painel' : 'Cadastro territorial oficial'}
+        {ANALYTICS_AVAILABLE && productAvailable
+          ? 'Dados oficiais do painel'
+          : 'Cadastro territorial oficial'}
       </div>
     </div>
   )
