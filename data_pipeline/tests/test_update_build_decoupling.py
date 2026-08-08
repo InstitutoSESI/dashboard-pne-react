@@ -157,7 +157,8 @@ def test_package_scripts_keep_update_and_build_responsibilities_separate():
     )
 
     vite = (REPO_ROOT / "vite.config.js").read_text(encoding="utf-8")
-    assert "copyPublicDir: mode !== 'app-only'" in vite
+    assert "copyPublicDir: false" in vite
+    assert "statePublicAssetsPlugin(profile)" in vite
 
 
 def test_package_lock_root_contract_matches_the_unchanged_dependencies():

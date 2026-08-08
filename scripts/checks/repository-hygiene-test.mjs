@@ -517,14 +517,20 @@ for (const [name, expected] of Object.entries(expectedBuildScripts)) {
 const viteConfigSource = readFileSync(resolve(repoRoot, 'vite.config.js'), 'utf8')
 assert.match(
   viteConfigSource,
-  /copyPublicDir:\s*mode\s*!==\s*['"]app-only['"]/,
-  'build:app deve continuar sem copiar public/data.',
+  /copyPublicDir:\s*false/,
+  'A cópia nativa do public deve permanecer desativada para impedir mistura estadual.',
+)
+assert.match(
+  viteConfigSource,
+  /statePublicAssetsPlugin\(profile\)/,
+  'O build completo deve empacotar somente a publicação estadual validada.',
 )
 const packageLockSource = readFileSync(resolve(repoRoot, 'package-lock.json'), 'utf8')
-const packageLockSha256 = createHash('sha256').update(packageLockSource).digest('hex')
+const packageLockCanonicalSource = packageLockSource.replaceAll('\r\n', '\n')
+const packageLockSha256 = createHash('sha256').update(packageLockCanonicalSource).digest('hex')
 assert.equal(
   packageLockSha256,
-  '20303b684536a43721a969a0b72bd9ecfebb779243820bfe55e3724c965902df',
+  '4c405688d6fe675a95c28c7a338a653b51e4bf518c278b7f6481a4478e32de3b',
   'package-lock.json mudou sem uma alteracao de dependencias e do contrato de lock.',
 )
 assert.equal(

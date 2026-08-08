@@ -39,8 +39,10 @@ devem ser editados manualmente.
 `config/states/rs.json` é a configuração estadual ativa e versionada. Frontend
 e pipeline validam o mesmo contrato `state-config-v1`. A identidade municipal
 canônica do pipeline fica separada em `config/municipalities/rs.json`, no
-contrato `municipality-registry-v1`; `public/data/municipios_index.json` é uma
-projeção publicada desse registro e não pode ser usado como fonte do universo.
+contrato `municipality-registry-v1`; `config/publications/rs.json` liga a UF à
+raiz versionada `public/data` pelo contrato `state-publication-v2`.
+`public/data/municipios_index.json` é uma projeção publicada do registro e não
+pode ser usado como fonte do universo.
 
 Internamente, o código IBGE textual identifica o município; o nome é texto de
 apresentação e compatibilidade temporária dos agregados por nome, e o slug é o
@@ -59,17 +61,64 @@ código ou slug do nome. Fundeb e PNATE fornecem dados, mas não identidade. A
 persistência do navegador usa
 `dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
 em nome são migrados uma única vez quando há correspondência inequívoca. Não há
-seletor de estado, configuração de Alagoas nem caminhos públicos de dados por
-estado. Educação Indígena e SIDRA, PNE e Financeiro permanecem para etapas
-posteriores, e o suporte de produto e publicação por estado depende de trabalho
-futuro. Nomes físicos de fontes podem continuar específicos do RS.
+seletor de estado dentro de uma publicação: cada hospedagem fixa uma UF no
+build. PNE, Educação e Financeiro estão disponíveis no RS e permanecem
+explicitamente indisponíveis no produto AL. Nomes físicos de fontes podem
+continuar específicos do RS.
 
-Os comandos centrais aceitam `--state RS`; `rs` é normalizado para `RS`. Um
-estado sem `config/states/<uf>.json`, como `AL` nesta etapa, falha antes de
-exportação, particionamento, sincronização ou escrita, sem fallback para RS.
-Ausência e zero continuam distintos nos contratos educacionais. A
-parametrização estadual não executou atualização real nem regenerou os outputs
-públicos existentes do RS.
+Os comandos do pipeline analítico aceitam `--state RS`; o frontend e o
+empacotamento usam `PLATFORM_STATE`. `rs` é normalizado para `RS`. O manifesto
+de produto resolve seus próprios paths de configuração, registro e dados. Uma
+UF sem manifesto falha antes de servir ou copiar dados, sem fallback para RS. A
+validação de publicação também recusa
+contagem, ordem, código, nome, slug, path ou diretório municipal divergente.
+Ausência e zero continuam distintos nos contratos educacionais. A mudança não
+executou atualização real nem regenerou os outputs públicos existentes do RS.
+
+### Publicação de identidade de Alagoas
+
+O snapshot oficial da API de Localidades do IBGE está em
+`data_pipeline/data/municipality_registry_sources/al/raw`, acompanhado do
+manifesto com endpoint, instante de aquisição, codificação HTTP, hashes e
+cobertura. A normalização usa `json.loads(..., parse_int=str,
+parse_float=str)`: todo token numérico chega como texto e o código IBGE nunca
+passa por conversão numérica. O resultado fica em
+`config/candidates/municipalities/al.json`, junto à configuração estadual
+candidata em `config/candidates/states/al.json`. O manifesto de produto
+`config/publications/al.json` usa esses contratos sem ativá-los no pipeline
+analítico e publica a raiz isolada `state-publications/al/data`.
+
+Valide snapshot, hashes, cobertura, hierarquia estadual, slugs e projeção exata
+com:
+
+```powershell
+npm run test:al-municipality-registry
+npm run test:identity-publication
+npm run check:al-identity-publication
+```
+
+Esse comando é local e não acessa a rede. Uma atualização da fonte é uma tarefa
+`SOURCE_REFRESH`: exige autorização explícita de rede, novo snapshot integral,
+manifesto reconciliado e validação antes de substituir o candidato. Não copie o
+candidato para `config/states` ou `config/municipalities` isoladamente. Essa
+ativação analítica só pode ocorrer junto aos contratos e dados de AL validados
+como um lote completo.
+
+Para desenvolvimento e release dos dois produtos:
+
+```powershell
+npm run dev:rs
+npm run dev:al
+npm run build:rs
+npm run build:al
+```
+
+No Cloudflare Pages, use dois projetos sobre o mesmo repositório. O RS executa
+`npm run build:cloudflare:rs`, o AL executa
+`npm run build:cloudflare:al`, e ambos publicam `dist`. Os comandos fixam a UF
+sem depender de sintaxe de variável de ambiente do shell. Veja
+`docs/HOSPEDAGEM_MULTIESTADO.md`. Aquisição, banco e atualização de dados não
+fazem parte do build da hospedagem.
 
 ## Atualização de dados
 
@@ -246,14 +295,17 @@ O pacote de release completo é uma ação explícita:
 
 ```powershell
 npm run build
+npm run build:rs
+npm run build:al
 ```
 
-Esse comando preserva a semântica atual do Vite, inclusive `copyPublicDir`, e
-copia toda a árvore `public`, incluindo `public/data`, para `dist`. `npm run
-preview` não atualiza dados nem constrói o pacote: ele serve o `dist` existente.
-Para validar uma release localmente, gere antes um build completo atual. O
-deploy continua responsável por executar `npm run build` quando necessário;
-paths, base, assets e hospedagem não mudaram.
+Esse comando desativa a cópia genérica do Vite, valida o perfil selecionado,
+copia os ativos compartilhados sem `public/data` e materializa em `dist/data`
+somente a raiz declarada em `config/publications/<uf>.json`. `npm run preview`
+não atualiza dados nem constrói o pacote: ele serve o `dist` existente. Para
+validar uma release localmente, gere antes um build completo atual. O deploy
+continua responsável por executar `npm run build` quando necessário; os paths
+públicos sob `/data`, base, assets e hospedagem permanecem compatíveis.
 
 ## Conteúdo municipal compartilhado
 
@@ -320,6 +372,7 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne
 ## Staging por domínio
 
 - estáticos gerais: `data_pipeline/export/static_partitioned`;
+- identidade estadual: `data_pipeline/.staging/identity-publication`;
 - financeiro municipal: `data_pipeline/export/municipal_finance`;
 - Educação principal: `data_pipeline/.staging/education/<run-id>/output`;
 - staging temporário do diagnóstico PNE: `data_pipeline/.staging`.

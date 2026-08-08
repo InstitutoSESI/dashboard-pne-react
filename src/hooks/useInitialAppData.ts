@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import { loadIndicadores, loadMunicipiosIndex } from '../data/staticData'
 import { buildMunicipalityRegistry } from '../domain/municipalityRegistry'
@@ -20,8 +21,10 @@ export function useInitialAppData(): InitialAppData {
 
     async function loadInitialData(): Promise<void> {
       try {
-        const [indicadoresPayload, municipiosIndexPayload] =
-          await Promise.all([loadIndicadores(), loadMunicipiosIndex()])
+        const [municipiosIndexPayload, indicadoresPayload] = await Promise.all([
+          loadMunicipiosIndex(),
+          ANALYTICS_AVAILABLE ? loadIndicadores() : Promise.resolve(null),
+        ])
         const municipalities = buildMunicipalityRegistry(
           municipiosIndexPayload,
           ACTIVE_STATE_CONFIG,

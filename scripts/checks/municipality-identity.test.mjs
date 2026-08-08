@@ -27,6 +27,11 @@ const compiledModule = (relativePath) => (
   pathToFileURL(path.join(temporaryOutput, relativePath)).href
 )
 
+const rawStateConfig = JSON.parse(
+  readFileSync(path.join(repoRoot, 'config/states/rs.json'), 'utf8'),
+)
+globalThis.__ACTIVE_STATE_CONFIG__ = rawStateConfig
+
 const stateConfigModule = await import(compiledModule('src/config/stateConfig.js'))
 const registryModule = await import(compiledModule('src/domain/municipalityRegistry.js'))
 const routingModule = await import(compiledModule('src/domain/municipalityRouting.js'))
@@ -35,9 +40,6 @@ const storageModule = await import(compiledModule('src/domain/municipalityStorag
 const payloadIdentityModule = await import(compiledModule('src/domain/municipalityDataIdentity.js'))
 const staticDataModule = await import(compiledModule('src/data/staticData.js'))
 
-const rawStateConfig = JSON.parse(
-  readFileSync(path.join(repoRoot, 'config/states/rs.json'), 'utf8'),
-)
 const rawMunicipalityIndex = JSON.parse(
   readFileSync(path.join(repoRoot, 'public/data/municipios_index.json'), 'utf8'),
 )

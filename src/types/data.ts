@@ -46,7 +46,7 @@ export type InitialAppData =
   | {
       status: 'success'
       error: null
-      indicadores: IndicadoresPayload
+      indicadores: IndicadoresPayload | null
       loading: false
       municipalities: MunicipalityRef[]
     }

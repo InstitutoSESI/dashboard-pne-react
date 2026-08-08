@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "municipality-registry-source-v1",
+  "stateCode": "AL",
+  "stateIbgeCode": "27",
+  "provider": "IBGE",
+  "source": "API de Localidades ? Munic?pios por UF",
+  "documentationUrl": "https://servicodados.ibge.gov.br/api/docs/localidades",
+  "officialCodeTableUrl": "https://www.ibge.gov.br/explica/codigos-dos-municipios.php",
+  "queryUrl": "https://servicodados.ibge.gov.br/api/v1/localidades/estados/27/municipios?orderBy=nome",
+  "acquiredAt": "2026-08-07T16:03:54Z",
+  "http": {
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "contentEncoding": "gzip",
+    "date": "Fri, 07 Aug 2026 16:03:54 GMT",
+    "transportSha256": "5bd05b9171919f67aecda010eefc65f233d243ec13ab9da12287dc22a8a9d08d",
+    "transportByteCount": 2165,
+    "responseBodySha256": "e23883dca732e0b88b928d983b38b5828bfdb142e50bf5d5f9af4b0529ae1035",
+    "responseBodyByteCount": 45259
+  },
+  "rawSnapshot": {
+    "path": "data_pipeline/data/municipality_registry_sources/al/raw/ibge_localidades_municipios_27.json",
+    "serialization": "decoded-response-body-utf8-with-terminal-lf",
+    "snapshotSha256": "b7a68e9075e04d8b8772cad7f406887f8c36bbe80430b4b7307c99bb7217ab87",
+    "byteCount": 45260,
+    "recordCount": 102
+  },
+  "normalization": {
+    "algorithm": "municipality-registry-candidate-v1",
+    "normalizerPath": "data_pipeline/src/municipality_registry_source.py",
+    "normalizerSha256": "d2cfded74f8ee6a9403d2f696f7cc1202543e7fb7e93391dc25e9f1e303bdcdf",
+    "stateConfigPath": "config/candidates/states/al.json",
+    "stateConfigSha256": "69701ee14f2ff80a309572c4c6361f804e9e3579ca9e189e993f083d3eb19152",
+    "municipalityRegistryPath": "config/candidates/municipalities/al.json",
+    "municipalityRegistrySha256": "ed7c1cc550d8107fb8e526c14339157b47323dc4610bbf6354b420f7b438532b",
+    "ibgeCodePolicy": "JSON integer tokens are parsed directly as text; municipality identity is never numeric.",
+    "slugPolicy": "NFKD, combining marks removed, casefold, non-ASCII-alphanumeric runs replaced by hyphens."
+  },
+  "coverage": {
+    "expectedMunicipalities": 102,
+    "observedMunicipalities": 102,
+    "uniqueIbgeCodes": 102,
+    "uniqueNames": 102,
+    "uniqueSlugs": 102,
+    "ibgePrefix": "27"
+  },
+  "lifecycle": {
+    "status": "product-identity-only",
+    "productPublicationActive": true,
+    "pipelineActive": false,
+    "productPublicationPath": "config/publications/al.json",
+    "activationBlockedBy": [
+      "config/states/al.json is intentionally absent",
+      "config/municipalities/al.json is intentionally absent",
+      "AL analytical datasets and compatibility contracts are not yet validated"
+    ]
+  }
+}

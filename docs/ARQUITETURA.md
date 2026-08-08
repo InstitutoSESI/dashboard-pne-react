@@ -14,6 +14,23 @@ navegador
 
 Não há backend de aplicação em produção. Toda informação disponível no navegador deve ser tratada como pública.
 
+### Perfil estadual de build
+
+`PLATFORM_STATE` seleciona um manifesto em `config/publications`. O manifesto
+aponta explicitamente a configuração estadual, o registro municipal e uma única
+raiz de dados versionada. Antes do build completo ou do
+servidor de desenvolvimento, a fronteira de publicação exige igualdade entre
+UF, prefixo IBGE, contagem, ordem, nomes, slugs, paths e conjunto de diretórios
+municipais. Qualquer divergência falha fechada.
+
+O build desativa a cópia genérica de `public`: ativos compartilhados são
+copiados sem a subárvore `data`, e somente os dados do perfil validado ocupam
+`dist/data`. No desenvolvimento, um middleware intercepta todo caminho `/data`
+e nunca deixa uma ausência cair na publicação de outra UF. O build app-only
+continua sem copiar dado público. RS é o padrão compatível e a publicação
+analítica completa. AL é uma publicação `identity-only`, com raiz própria e
+indisponibilidade analítica explícita; não existe fallback de AL para RS.
+
 ## Camadas
 
 - `src/app`: resolução de rota, limites de carregamento e composição de páginas.
@@ -46,8 +63,13 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 validada em runtime por `src/config/stateConfig.ts` e pelo pipeline em
 `data_pipeline/src/state_config.py`. Ela declara o contrato
 `state-config-v1`, o estado RS, o prefixo IBGE 43, a cobertura esperada de 497
-municípios e o locale `pt-BR`. O frontend continua RS-only: não há configuração
-de outro estado nem seletor estadual nesta etapa.
+municípios e o locale `pt-BR`. `config/publications/rs.json` declara o contrato
+`state-publication-v2` e aponta a publicação RS para `public/data`, com analytics
+completo. O manifesto AL usa o mesmo schema, aponta para os contratos de
+identidade sob `config/candidates` e para `state-publications/al/data`, mas
+declara `analyticsStatus=identity-only`. O frontend recebe ambos os contratos
+validados pelo build; módulos analíticos só são carregados quando o perfil os
+declara disponíveis.
 
 `config/municipalities/rs.json` implementa `municipality-registry-v1` e é a
 fonte canônica de código IBGE, nome e slug no pipeline Python. O registro é
@@ -56,8 +78,9 @@ estadual, preserva a ordem versionada e oferece lookups imutáveis por código e
 resolução única por nome. O código IBGE é a chave; nome é apresentação e
 compatibilidade temporária; slug é rota pública.
 
-`municipios_index.json` continua sendo o único catálogo municipal público e é
-carregado pelo frontend junto com `indicadores.json`, sem terceira requisição.
+`municipios_index.json` continua sendo o único catálogo municipal público. Em
+uma publicação analítica completa ele é carregado junto com `indicadores.json`;
+em uma publicação `identity-only`, somente o catálogo é solicitado.
 Ele agora é uma projeção publicada do registro canônico, com o mesmo schema,
 ordem e caminho existentes. Na fronteira de carregamento, o payload bruto em português
 `MunicipalityIndexEntryPayload` é validado e convertido para a única coleção
@@ -130,14 +153,28 @@ estado anterior em ordem reversa se ocorrer exceção. Arquivos byte a byte
 idênticos não são substituídos e preservam o `mtime`; órfãos dentro do padrão
 municipal administrado só são removidos depois da validação integral.
 
-Esta fundação ainda não constitui suporte real a múltiplos estados. Somente o
-RS está configurado; `rs` é normalizado para `RS`, enquanto `AL` falha antes de
-efeitos colaterais e não possui configuração nem publicação. Nomes físicos de
-fontes, inclusive tabelas com sufixo `_rs`, podem continuar específicos do RS
-sem definir a identidade ou o universo. A parametrização não regenerou os
-outputs públicos atuais. Educação Indígena e integrações SIDRA, domínios PNE e
-Financeiro permanecem para etapas posteriores, assim como seleção e publicação
-de produto por estado.
+Esta fundação separa produto hospedável de cobertura analítica. Somente o RS tem
+suporte analítico completo; `rs` é normalizado para `RS`. AL pode ser servido e
+empacotado como produto somente de identidade, sem expor qualquer JSON analítico
+do RS. A fonte oficial de identidade de AL foi incorporada em
+`data_pipeline/data/municipality_registry_sources/al`, com o corpo integral da
+rota de municípios por UF da API de Localidades do IBGE, hashes de transporte,
+resposta e snapshot, cobertura de 102 municípios e manifesto de proveniência.
+Sua projeção `municipality-registry-v1` e o `state-config-v1` correspondente
+ficam em `config/candidates`; o parser lê tokens numéricos como texto desde a
+desserialização e os códigos canônicos permanecem strings de sete dígitos.
+
+A publicação AL contém exatamente um manifesto, o índice dos 102 municípios e
+um índice por código IBGE, todos com analytics `unavailable`. O materializador
+gera em staging, valida o conjunto integral e promove com escrita atômica,
+preservação de arquivos idênticos e rollback. A ausência intencional de
+`config/states/al.json` e `config/municipalities/al.json` mantém o pipeline
+analítico fail-closed. Promover AL para esses diretórios exige primeiro validar
+fontes, metodologias, dados analíticos e contratos de compatibilidade próprios.
+Nomes físicos de fontes, inclusive tabelas com sufixo `_rs`, podem continuar
+específicos do RS sem definir a identidade ou o universo. Esta incorporação não
+regenerou os outputs públicos atuais; Educação Indígena e integrações SIDRA,
+domínios PNE e Financeiro permanecem para etapas posteriores.
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 
@@ -256,15 +293,16 @@ internos, serialização, fragmentos ou diretório de relatório.
 ## Publicação e segurança
 
 O artefato publicável é `dist`. `npm run build` continua sendo o build completo:
-o Vite usa `copyPublicDir` e inclui `public/data`. O modo `app-only`, exposto por
-`npm run build:app`, desativa essa cópia e grava em `dist/app-only`; ele também é
-usado por `check:fast` para validação leve. `npm run preview` serve o `dist`
-existente e, para validar uma release, pressupõe um build completo atual. A
-hospedagem e o deploy continuam responsáveis por produzir e servir o pacote
-completo, com `index.html` como fallback. Dados já promovidos em `public/data` e
-o conteúdo materializado em `dist` têm ciclos operacionais separados.
-Credenciais, dumps privados e dados pessoais não podem entrar em `public`,
-`dist` ou arquivos versionados.
+o Vite desativa `copyPublicDir`, copia os ativos compartilhados sem a subárvore
+`data` e materializa em `dist/data` somente a publicação estadual validada. O
+modo `app-only`, exposto por `npm run build:app`, omite todos os ativos públicos
+e grava em `dist/app-only`; ele também é usado por `check:fast` para validação
+leve. `npm run preview` serve o `dist` existente e, para validar uma release,
+pressupõe um build completo atual. A hospedagem e o deploy continuam
+responsáveis por produzir e servir o pacote completo, com `index.html` como
+fallback. Dados já promovidos na raiz declarada e o conteúdo materializado em
+`dist` têm ciclos operacionais separados. Credenciais, dumps privados e dados
+pessoais não podem entrar em `public`, `dist` ou arquivos versionados.
 
 A Etapa 5B2 alterou somente o mecanismo de geração e publicação da Educação
 principal. Nenhuma fonte real foi consultada e nenhum arquivo público foi

@@ -61,37 +61,80 @@ e o executa no ambiente congelado pelo uv.
 
 ## Dados estáticos
 
-`config/states/rs.json` contém os metadados estaduais e
-`config/municipalities/rs.json` contém o registro municipal canônico do
-pipeline. Nesta etapa a plataforma continua operando exclusivamente com o Rio
-Grande do Sul: o código IBGE é a identidade, o nome é apresentação e
-compatibilidade temporária de agregados internos, e o slug permanece reservado
-às URLs. `public/data/municipios_index.json` conserva schema e caminho, mas é
-uma projeção publicada do registro, nunca a entrada do universo no pipeline.
+`config/states/rs.json` contém os metadados estaduais,
+`config/municipalities/rs.json` contém o registro municipal canônico do pipeline
+e `config/publications/rs.json` liga o produto RS à sua árvore de dados
+versionada. O Rio Grande do Sul continua sendo a única publicação analítica
+completa: o código IBGE é a identidade, o nome é apresentação e compatibilidade
+temporária de agregados internos, e o slug permanece reservado às URLs.
+`public/data/municipios_index.json` conserva schema e caminho, mas é uma
+projeção publicada do registro, nunca a entrada do universo no pipeline.
+
+O produto de Alagoas usa o cadastro oficial dos 102 municípios, versionado em
+`config/candidates/states/al.json` e
+`config/candidates/municipalities/al.json`. A proveniência fica em
+`data_pipeline/data/municipality_registry_sources/al`: o diretório preserva a
+resposta integral da API de Localidades do IBGE e um manifesto com URL, data,
+hashes, cobertura e política de normalização. `config/publications/al.json` liga
+esses contratos à raiz isolada `state-publications/al/data`. Essa publicação é
+deliberadamente `identity-only`: ela torna o site AL hospedável, mas declara PNE,
+Educação e Financiamento como indisponíveis até existirem dados analíticos
+oficiais validados para o estado.
+
+O Vite seleciona o perfil de produto pela variável de build `PLATFORM_STATE`,
+com `RS` como padrão compatível. Antes de servir ou empacotar dados, reconcilia
+configuração estadual, registro municipal, manifesto de publicação, índice
+público e diretórios municipais. Estado ausente, publicação incompleta ou
+mistura de identidades encerra o comando com erro, sem fallback para os dados do
+RS. A aplicação recebe somente a configuração validada do perfil selecionado.
 
 Na Educação, a exportação geral, a Visão Geral Municipal, a Educação Superior e
 a Educação Especial recebem `--state` e usam essa configuração com o registro
-municipal. Somente `RS` está configurado; `AL` falha antes de banco, fonte ou
-escrita. Os 182 slugs históricos que divergem do slug canônico são projetados
+municipal. Somente `RS` possui configuração ativa no pipeline analítico; os
+contratos de identidade do produto AL não são promovidos silenciosamente para
+esses diretórios, e uma atualização analítica de `AL` falha antes de banco,
+fonte ou escrita. Os 182
+slugs históricos que divergem do slug canônico são projetados
 pela compatibilidade versionada em
 `config/compatibility/education-municipality-routes/rs.json`; ela não define
 identidade e a geração não lê o índice público anterior. Essa parametrização não
 regenerou `public/data`: schemas, paths e dados publicados do RS permanecem os
 mesmos.
 
-`public/data` é parte do produto e deve continuar versionado. Desenvolvimento
+`public/data` e `state-publications/al/data` são partes dos respectivos produtos
+e devem continuar versionados. Desenvolvimento
 visual e validação leve da aplicação usam somente o build app-only:
 
 ```powershell
 npm run dev
 npm run check:fast
 npm run build:app
+npm run test:state-publication
+npm run test:al-municipality-registry
+npm run test:identity-publication
+npm run test:multistate-hosting
 ```
 
 `build:app` não copia `public/data`; `check:fast` continua executando typecheck,
-lint e esse build leve. A atualização e validação de dados não constroem mais a
-aplicação. Para atualizar somente Educação, configure `SESI_DB_DIR` para o
-projeto que fornece `utils_educacao`:
+lint e esse build leve. No desenvolvimento e no build completo, os ativos
+compartilhados de `public` são combinados somente com a raiz de dados declarada
+pela publicação estadual. Os comandos explícitos de desenvolvimento e release
+são:
+
+```powershell
+npm run dev:rs       # http://127.0.0.1:5187
+npm run dev:al       # http://127.0.0.1:5188
+npm run build:rs     # dist/rs
+npm run build:al     # dist/al
+```
+
+`npm run update:al-identity-publication` regenera a raiz AL em staging, valida o
+lote e só então o promove. `npm run check:al-identity-publication` apenas valida
+o conteúdo existente. Nenhum dos dois comandos acessa banco ou rede.
+
+A atualização e validação de dados não constroem mais a aplicação. Para
+atualizar somente Educação, configure `SESI_DB_DIR` para o projeto que fornece
+`utils_educacao`:
 
 ```powershell
 npm run update:data
@@ -176,8 +219,14 @@ Saídas de build, caches, relatórios, screenshots, logs e arquivos de inspeçã
 - [Produto](PRODUCT.md)
 - [Arquitetura](docs/ARQUITETURA.md)
 - [Pipeline e operação](docs/OPERACAO.md)
+- [Hospedagem multestado](docs/HOSPEDAGEM_MULTIESTADO.md)
 - [Metodologia](docs/METODOLOGIA.md)
 
 ## Publicação
 
-Execute `npm run build` e publique `dist` em hospedagem estática com fallback para `index.html`. A aplicação usa navegação por hash e carrega os JSONs por caminhos absolutos sob `/data`.
+Crie dois projetos de hospedagem sobre o mesmo repositório. O projeto RS executa
+`npm run build:cloudflare:rs`; o projeto AL executa
+`npm run build:cloudflare:al`; ambos publicam `dist`. Os comandos fixam a UF e
+impedem fallback cruzado. Consulte o guia de
+[hospedagem multestado](docs/HOSPEDAGEM_MULTIESTADO.md). A aplicação usa
+navegação por hash e carrega os JSONs por caminhos absolutos sob `/data`.

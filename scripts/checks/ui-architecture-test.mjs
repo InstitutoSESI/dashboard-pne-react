@@ -44,6 +44,7 @@ const APP_STYLE_ORDER = [
   './styles/financial-pages.css',
   './styles/navigation-shell.css',
   './styles/home-page.css',
+  './styles/state-publication-status.css',
 ]
 const MAIN_STYLE_ORDER = [
   './index.css',

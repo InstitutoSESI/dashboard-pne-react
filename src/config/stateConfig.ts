@@ -1,5 +1,6 @@
-import rawStateConfig from '../../config/states/rs.json' with { type: 'json' }
 import type { StateCode } from '../types/data'
+
+declare const __ACTIVE_STATE_CONFIG__: unknown
 
 const STATE_CONFIG_SCHEMA_VERSION = 'state-config-v1'
 
@@ -77,4 +78,11 @@ export function parseStateConfig(value: unknown): StateConfig {
   })
 }
 
-export const ACTIVE_STATE_CONFIG: StateConfig = parseStateConfig(rawStateConfig)
+function readInjectedActiveStateConfig(): unknown {
+  if (typeof __ACTIVE_STATE_CONFIG__ === 'undefined') {
+    throw new Error('Configuração estadual ativa não foi injetada pelo build.')
+  }
+  return __ACTIVE_STATE_CONFIG__
+}
+
+export const ACTIVE_STATE_CONFIG: StateConfig = parseStateConfig(readInjectedActiveStateConfig())

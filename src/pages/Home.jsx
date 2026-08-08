@@ -1,4 +1,5 @@
 import { ArrowRight, MapPin } from 'lucide-react'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 
 const ICON_STROKE = 1.7
 
@@ -96,7 +97,9 @@ export function Home({ onNavigate }) {
     <div className="home-portal">
       <header className="home-portal__hero">
         <div className="home-portal__hero-copy">
-          <p className="home-portal__identity">Painel SESI-RS · Inteligência Analítica Municipal</p>
+          <p className="home-portal__identity">
+            Painel SESI-{ACTIVE_STATE_CONFIG.stateCode} · Inteligência Analítica Municipal
+          </p>
           <h1 className="home-portal__title">Uma leitura integrada da educação do seu município.</h1>
           <p className="home-portal__lead">
             A plataforma conecta planejamento, indicadores educacionais e financiamento em um só

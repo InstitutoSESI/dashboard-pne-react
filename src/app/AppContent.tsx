@@ -1,5 +1,7 @@
 import { ErrorState } from '../components/ErrorState'
 import { LoadingState } from '../components/LoadingState'
+import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { StatePublicationStatusPage } from '../pages/StatePublicationStatusPage'
 import type { AppPageKey } from '../types/app'
 import type { InitialAppData } from '../types/data'
 import type { Navigate, ParsedAppLocation } from '../types/navigation'
@@ -19,6 +21,10 @@ export function AppContent({ activePage, initialData, navigationContext, onNavig
 
   if (initialData.error) {
     return <ErrorState title="Erro ao carregar dados iniciais" message={initialData.error} />
+  }
+
+  if (!ANALYTICS_AVAILABLE) {
+    return <StatePublicationStatusPage />
   }
 
   if (!initialData.indicadores) {

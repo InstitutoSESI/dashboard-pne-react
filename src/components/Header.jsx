@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
+import { ANALYTICS_AVAILABLE } from '../config/publicationConfig'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
@@ -57,6 +59,7 @@ const NAV_BLOCKS = [
 
 const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
+const PANEL_LABEL = `Painel SESI-${ACTIVE_STATE_CONFIG.stateCode}`
 
 export function Header({ activeEducationSection, activePage, onNavigate }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -153,11 +156,11 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
         aria-hidden={isMobile && !isDrawerOpen ? 'true' : undefined}
         className={`app-header${isDrawerOpen ? ' is-drawer-open' : ''}`}
         inert={isMobile && !isDrawerOpen ? true : undefined}
-        aria-label="Navegação principal do Painel SESI-RS"
+        aria-label={`Navegação principal do ${PANEL_LABEL}`}
       >
-        <div className="brand-lockup" aria-label="Painel SESI-RS de Inteligência Analítica Municipal">
+        <div className="brand-lockup" aria-label={`${PANEL_LABEL} de Inteligência Analítica Municipal`}>
           <div className="brand-copy">
-            <span className="brand-eyebrow">Painel SESI-RS</span>
+            <span className="brand-eyebrow">{PANEL_LABEL}</span>
             <strong className="brand-title">Inteligência Municipal</strong>
           </div>
           <button
@@ -187,32 +190,41 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
             <span className="nav-item__label">Home</span>
           </a>
 
-          {NAV_BLOCKS.map((item) => (
-            <SidebarAccordionGroup
-              activeItemKey={getActiveItemKey(item.id, activePage, activeEducationSection)}
-              icon={item.icon}
-              id={item.id}
-              isOpen={openGroup === item.id}
-              items={item.items}
-              key={item.id}
-              label={item.label}
-              onNavigate={navigate}
-              onToggle={(groupId) => setOpenGroup((current) => current === groupId ? null : groupId)}
-            />
-          ))}
+          {ANALYTICS_AVAILABLE ? (
+            <>
+              {NAV_BLOCKS.map((item) => (
+                <SidebarAccordionGroup
+                  activeItemKey={getActiveItemKey(item.id, activePage, activeEducationSection)}
+                  icon={item.icon}
+                  id={item.id}
+                  isOpen={openGroup === item.id}
+                  items={item.items}
+                  key={item.id}
+                  label={item.label}
+                  onNavigate={navigate}
+                  onToggle={(groupId) => setOpenGroup((current) => current === groupId ? null : groupId)}
+                />
+              ))}
 
-          <a
-            aria-current={activePage === 'relatorio-tecnico-municipal' ? 'page' : undefined}
-            className={activePage === 'relatorio-tecnico-municipal' ? 'nav-item is-active' : 'nav-item'}
-            href="#relatorio-tecnico-municipal"
-            onClick={(event) => {
-              event.preventDefault()
-              navigate('relatorio-tecnico-municipal')
-            }}
-          >
-            <span className="nav-item__icon" aria-hidden="true"><FileText /></span>
-            <span className="nav-item__label">Relatório Técnico Municipal</span>
-          </a>
+              <a
+                aria-current={activePage === 'relatorio-tecnico-municipal' ? 'page' : undefined}
+                className={activePage === 'relatorio-tecnico-municipal' ? 'nav-item is-active' : 'nav-item'}
+                href="#relatorio-tecnico-municipal"
+                onClick={(event) => {
+                  event.preventDefault()
+                  navigate('relatorio-tecnico-municipal')
+                }}
+              >
+                <span className="nav-item__icon" aria-hidden="true"><FileText /></span>
+                <span className="nav-item__label">Relatório Técnico Municipal</span>
+              </a>
+            </>
+          ) : (
+            <div className="sidebar-publication-note" role="status">
+              <strong>Cadastro municipal ativo</strong>
+              <span>Indicadores de {ACTIVE_STATE_CONFIG.stateName} em preparação.</span>
+            </div>
+          )}
         </nav>
 
         <SidebarInstitutionalSignature compact />
@@ -230,8 +242,8 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
           <Menu aria-hidden="true" />
           <span>Menu</span>
         </button>
-        <div className="sidebar-mobile-bar__brand" aria-label="Painel SESI-RS de Inteligência Analítica Municipal">
-          <span>Painel SESI-RS</span>
+        <div className="sidebar-mobile-bar__brand" aria-label={`${PANEL_LABEL} de Inteligência Analítica Municipal`}>
+          <span>{PANEL_LABEL}</span>
           <strong>Inteligência Municipal</strong>
         </div>
       </div>
