@@ -5,6 +5,7 @@ interface TrajectoryStageDefinition {
   description: string
   key: string
   label: string
+  question?: string
 }
 
 export interface TrajectoryStageCard {
@@ -46,6 +47,7 @@ const TRAJECTORY_STAGES: readonly TrajectoryStageDefinition[] = [
   {
     key: 'contexto',
     label: 'Contexto educacional',
+    question: 'Que contexto ajuda a interpretar os resultados educacionais?',
     description: 'Indicadores de contexto que não possuem recorte por etapa.',
   },
 ]
@@ -64,7 +66,10 @@ export function buildTrajectoryStageGroups(
   indicators: readonly EducationIndicatorResult[],
 ): TrajectoryStageGroup[] {
   const groups = new Map(
-    TRAJECTORY_STAGES.map((stage) => [stage.key, { ...stage, items: [] as TrajectoryStageCard[] }]),
+    TRAJECTORY_STAGES.map((stage) => [
+      stage.key,
+      { ...stage, items: [] as TrajectoryStageCard[] },
+    ]),
   )
 
   indicators.forEach((indicator) => {

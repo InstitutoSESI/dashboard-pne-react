@@ -134,7 +134,7 @@ export interface HigherEducationViewModel {
   availability: HigherEducationAvailability
   globalPeriod: string
   latestMunicipalUsableYear: number | null
-  groups: Array<{ id: string; title: string; description: string; order: number }>
+  groups: Array<{ id: string; title: string; question?: string; description: string; order: number }>
   indicators: HigherEducationIndicatorViewModel[]
   breakdowns: HigherEducationBreakdownViewModel[]
   quickReads: string[]

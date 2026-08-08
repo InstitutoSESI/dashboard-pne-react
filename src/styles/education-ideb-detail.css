@@ -1,0 +1,176 @@
+.educacao-ideb-detail .ideb-composition-card,
+.educacao-ideb-detail .ideb-components-history {
+  border: 1px solid var(--color-border-subtle, #d9e2dc);
+  border-radius: 20px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 12px 30px rgb(15 61 38 / 6%);
+  padding: clamp(1.25rem, 2.4vw, 2rem);
+}
+
+.educacao-ideb-detail .ideb-composition-card__header,
+.educacao-ideb-detail .ideb-components-history__header {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+}
+
+.educacao-ideb-detail :is(.ideb-composition-card__header, .ideb-components-history__header) h3 {
+  margin: 0;
+  color: var(--color-text-strong, #173f2a);
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+  line-height: 1.2;
+}
+
+.educacao-ideb-detail :is(.ideb-composition-card__header, .ideb-components-history__header) p {
+  margin: 0;
+  color: var(--color-text-muted, #5c6d63);
+  line-height: 1.55;
+}
+
+.educacao-ideb-detail .ideb-equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(0.55rem, 1.5vw, 1.1rem);
+}
+
+.educacao-ideb-detail .ideb-equation__term {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  justify-items: center;
+  gap: 0.35rem;
+  min-height: 148px;
+  border: 1px solid currentColor;
+  border-radius: 16px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.educacao-ideb-detail .ideb-equation__term > span {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.educacao-ideb-detail .ideb-equation__term strong {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.educacao-ideb-detail .ideb-equation__term small {
+  max-width: 18rem;
+  color: var(--color-text-muted, #68786f);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.educacao-ideb-detail .ideb-equation__term--learning {
+  color: #9a6500;
+  background: #fffaf0;
+}
+
+.educacao-ideb-detail .ideb-equation__term--flow {
+  color: #6d28d9;
+  background: #faf7ff;
+}
+
+.educacao-ideb-detail .ideb-equation__term--result {
+  color: #16713a;
+  background: #f3faf6;
+}
+
+.educacao-ideb-detail .ideb-equation__operator {
+  align-self: center;
+  color: var(--color-text-strong, #244c35);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.educacao-ideb-detail .ideb-composition-card__note {
+  margin: 1rem 0 0;
+  color: var(--color-text-muted, #5c6d63);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.educacao-ideb-detail .ideb-components-history__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.educacao-ideb-detail .ideb-component-chart-card {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-ideb-detail .ideb-component-chart-card .education-chart,
+.dashboard-shell .content-area .educacao-page--detail .educacao-ideb-detail .ideb-component-chart-card .education-chart__canvas,
+.dashboard-shell .content-area .educacao-page--detail .educacao-ideb-detail .ideb-component-chart-card .education-chart svg {
+  width: 100%;
+  min-width: 0;
+  min-height: 270px;
+  height: 270px;
+  max-height: 270px;
+}
+
+.dashboard-shell .content-area .educacao-page--detail .educacao-ideb-detail .ideb-component-chart-card .education-chart__canvas {
+  overflow-x: hidden;
+}
+
+.educacao-ideb-detail .ideb-components-history > .data-source-note {
+  margin-top: 1rem;
+}
+
+@media (max-width: 860px) {
+  .educacao-ideb-detail .ideb-equation {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .educacao-ideb-detail .ideb-equation__term--result {
+    grid-column: 1 / -1;
+    min-height: 120px;
+  }
+
+  .educacao-ideb-detail .ideb-equation__operator:nth-of-type(2) {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .educacao-ideb-detail .ideb-components-history__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .educacao-ideb-detail .ideb-equation {
+    grid-template-columns: 1fr;
+  }
+
+  .educacao-ideb-detail .ideb-equation__operator {
+    justify-self: center;
+  }
+
+  .educacao-ideb-detail .ideb-equation__term--result {
+    grid-column: auto;
+  }
+
+  .educacao-ideb-detail .ideb-equation__operator:nth-of-type(2) {
+    display: block;
+  }
+}
+
+@media print {
+  .educacao-ideb-detail .ideb-composition-card,
+  .educacao-ideb-detail .ideb-components-history,
+  .educacao-ideb-detail .ideb-component-chart-card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}

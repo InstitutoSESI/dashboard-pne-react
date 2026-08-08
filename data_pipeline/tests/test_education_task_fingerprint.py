@@ -917,6 +917,7 @@ def test_contract_allowlist_is_explicit_relative_and_complete() -> None:
         "data_pipeline/src/school_infrastructure_materialization.py",
         "data_pipeline/src/data/repository.py",
         "data_pipeline/src/data_loader.py",
+        "data_pipeline/src/rural_education_coverage.py",
         "data_pipeline/queries/school_infrastructure_source.sql",
         "data_pipeline/uv.lock",
     }

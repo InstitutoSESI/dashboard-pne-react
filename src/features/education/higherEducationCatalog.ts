@@ -5,7 +5,7 @@ import type {
 
 export const HIGHER_EDUCATION_GROUPS = Object.freeze([
   { id: 'enrollments', title: 'Matrículas e modalidades', description: 'Volume e composição das matrículas de graduação no município.', order: 1 },
-  { id: 'institutions', title: 'Instituições e polos', description: 'Sedes de instituições e polos de educação a distância.', order: 2 },
+  { id: 'institutions', title: 'Instituições e polos', question: 'Quais instituições e polos estão presentes no município?', description: 'Sedes de instituições e polos de educação a distância.', order: 2 },
   { id: 'access-flow', title: 'Acesso e fluxo', description: 'Vagas presenciais, ingressantes e concluintes.', order: 3 },
   { id: 'faculty', title: 'Docentes', description: 'Docentes vinculados às sedes institucionais do município.', order: 4 },
   { id: 'composition', title: 'Composição institucional', description: 'Distribuições por dependência, organização acadêmica e formação docente.', order: 5 },

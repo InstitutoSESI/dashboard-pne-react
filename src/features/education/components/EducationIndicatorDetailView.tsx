@@ -44,6 +44,7 @@ interface EducationSeriesPoint {
 
 interface EducationStageOption {
   explore?: unknown[]
+  idebCompositionSeries?: IdebCompositionPoint[]
   key: string
   label: string
   mainCutLabel?: string
@@ -60,6 +61,7 @@ interface EducationIndicatorDetailModel extends EducationIndicatorResult {
   formatValue?: (value: unknown) => string
   initialDisplay?: string
   initialYear?: number | null
+  idebCompositionSeries?: IdebCompositionPoint[]
   mainCutLabel?: string
   quickReading?: string
   scaleType?: string
@@ -75,6 +77,13 @@ interface EducationIndicatorDetailModel extends EducationIndicatorResult {
   variationDisplay?: string
   variationRaw?: number | null
   variationTone?: string
+}
+
+interface IdebCompositionPoint {
+  ano: number
+  ideb: number | null
+  indicador_rendimento: number | null
+  nota_media_padronizada: number | null
 }
 
 interface EducationIndicatorDetailViewProps {
@@ -154,6 +163,20 @@ export function EducationIndicatorDetailView({
   const hasMainSeries = (displayIndicator.series?.length ?? 0) >= 2
   const showStageFilter = stageOptions.length > 1
   const stageFilterLabel = indicator.stageFilterLabel ?? 'Etapa exibida'
+
+  if (displayIndicator.key === 'apr-ideb') {
+    return (
+      <IdebDetailPanel
+        indicator={displayIndicator}
+        onStageChange={setSelectedStageKey}
+        selectedStageOption={selectedStageOption}
+        showStageFilter={showStageFilter}
+        stageFilterLabel={stageFilterLabel}
+        stageOptions={stageOptions}
+      />
+    )
+  }
+
   return (
     <EducationIndicatorDetailShell
       summary={<EducationMetricSummary
@@ -221,6 +244,225 @@ export function EducationIndicatorDetailView({
       ) : null}
     </EducationIndicatorDetailShell>
   )
+}
+
+
+interface IdebDetailPanelProps {
+  indicator: EducationIndicatorDetailModel
+  onStageChange: (stageKey: string) => void
+  selectedStageOption: EducationStageOption | null
+  showStageFilter: boolean
+  stageFilterLabel: string
+  stageOptions: readonly EducationStageOption[]
+}
+
+function IdebDetailPanel({
+  indicator,
+  onStageChange,
+  selectedStageOption,
+  showStageFilter,
+  stageFilterLabel,
+  stageOptions,
+}: IdebDetailPanelProps) {
+  const compositionSeries = Array.isArray(indicator.idebCompositionSeries)
+    ? indicator.idebCompositionSeries.filter(isCompleteOrPartialIdebCompositionPoint)
+    : []
+  const latestComposition = [...compositionSeries].reverse().find((point) => (
+    isFiniteNumber(point.ideb)
+    && isFiniteNumber(point.nota_media_padronizada)
+    && isFiniteNumber(point.indicador_rendimento)
+  )) ?? null
+  const learningSeries = componentValueSeries(compositionSeries, 'nota_media_padronizada')
+  const flowSeries = componentValueSeries(compositionSeries, 'indicador_rendimento')
+  const hasMainSeries = (indicator.series?.length ?? 0) >= 2
+
+  return (
+    <EducationIndicatorDetailShell
+      className="educacao-ideb-detail"
+      summary={<EducationMetricSummary
+        currentValue={indicator.currentDisplay}
+        currentYear={indicator.currentYear}
+        initialValue={indicator.initialDisplay}
+        initialYear={indicator.initialYear}
+        statusLabel={indicator.statusLabel}
+        statusDetail={indicator.statusDetail}
+        statusTone={indicator.statusTone}
+        variation={{ display: indicator.variationDisplay, raw: indicator.variationRaw, tone: indicator.variationTone }}
+      />}
+      primaryPanel={(
+        <div className="indicator-chart-card educacao-main-chart-card">
+          <IndicatorChartHeader
+            title="Evolução do IDEB"
+            subtitle={`IDEB · Recorte exibido: ${indicator.mainCutLabel}`}
+            hasWideSegmented={showStageFilter}
+            summary={null}
+          >
+            {showStageFilter ? (
+              <div className="indicator-stage-select-wrap">
+                <label className="educacao-age-detail__control indicator-stage-select">
+                  <span>{stageFilterLabel}</span>
+                  <select
+                    aria-label="Recorte do histórico do IDEB"
+                    value={selectedStageOption?.key ?? ''}
+                    onChange={(event) => onStageChange(event.target.value)}
+                  >
+                    {stageOptions.map((option) => (
+                      <option key={option.key} value={option.key}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+          </IndicatorChartHeader>
+          {hasMainSeries ? (
+            <>
+              <EducationLineChart
+                color={indicator.chartColor}
+                formatLabel={indicator.formatValue}
+                scaleType="ideb"
+                series={indicator.series ?? []}
+                showPointLabels={indicator.showPointLabels}
+                title={null}
+              />
+              <EducationSourceNotes context={dataSourceContextForEducation(indicator)} />
+            </>
+          ) : (
+            <ChartEmptyState message="Histórico não disponível." />
+          )}
+        </div>
+      )}
+      quickReading={(
+        <EducationIndicatorQuickReading
+          cutLabel={indicator.mainCutLabel}
+          description={indicator.description}
+          text={indicator.quickReading}
+        />
+      )}
+    >
+      <section aria-labelledby="ideb-calculo-title" className="ideb-composition-card">
+        <header className="ideb-composition-card__header">
+          <span className="educacao-explore__eyebrow">Composição do indicador</span>
+          <h3 id="ideb-calculo-title">Como o IDEB é calculado</h3>
+          <p>O índice combina o aprendizado medido pelo Saeb com o fluxo escolar.</p>
+        </header>
+        {latestComposition ? (
+          <>
+            <div
+              aria-label={`${formatIdebComponent(latestComposition.nota_media_padronizada)} multiplicado por ${formatIdebComponent(latestComposition.indicador_rendimento)} resulta no IDEB ${formatIdeb(latestComposition.ideb)}`}
+              className="ideb-equation"
+            >
+              <article className="ideb-equation__term ideb-equation__term--learning">
+                <span>Aprendizado</span>
+                <strong>{formatIdebComponent(latestComposition.nota_media_padronizada)}</strong>
+                <small>Nota Média Padronizada (N)</small>
+              </article>
+              <span aria-hidden="true" className="ideb-equation__operator">×</span>
+              <article className="ideb-equation__term ideb-equation__term--flow">
+                <span>Fluxo</span>
+                <strong>{formatIdebComponent(latestComposition.indicador_rendimento)}</strong>
+                <small>Indicador de Rendimento (P)</small>
+              </article>
+              <span aria-hidden="true" className="ideb-equation__operator">=</span>
+              <article className="ideb-equation__term ideb-equation__term--result">
+                <span>IDEB</span>
+                <strong>{formatIdeb(latestComposition.ideb)}</strong>
+                <small>{latestComposition.ano} · {indicator.mainCutLabel}</small>
+              </article>
+            </div>
+            <p className="ideb-composition-card__note">
+              Fórmula oficial: N × P = IDEB. O cálculo usa os valores completos da fonte; os valores acima são exibidos arredondados.
+            </p>
+          </>
+        ) : (
+          <ChartEmptyState message="Composição do IDEB não disponível para este recorte." />
+        )}
+      </section>
+
+      <section aria-labelledby="ideb-componentes-title" className="ideb-components-history">
+        <header className="ideb-components-history__header">
+          <span className="educacao-explore__eyebrow">Série histórica</span>
+          <h3 id="ideb-componentes-title">Evolução dos componentes do IDEB</h3>
+          <p>As séries usam escalas próprias para preservar a leitura de cada componente.</p>
+        </header>
+        <div className="ideb-components-history__grid">
+          <article className="indicator-chart-card ideb-component-chart-card">
+            <IndicatorChartHeader
+              children={null}
+              title="Nota Média Padronizada (N)"
+              subtitle={`Aprendizado · ${indicator.mainCutLabel}`}
+              summary={null}
+            />
+            {learningSeries.length >= 2 ? (
+              <EducationLineChart
+                color="#b7791f"
+                formatLabel={formatIdebComponent}
+                scaleType="ideb"
+                series={learningSeries}
+                showPointLabels
+                title={null}
+              />
+            ) : <ChartEmptyState message="Histórico do aprendizado não disponível." />}
+          </article>
+          <article className="indicator-chart-card ideb-component-chart-card">
+            <IndicatorChartHeader
+              children={null}
+              title="Indicador de Rendimento (P)"
+              subtitle={`Fluxo escolar · ${indicator.mainCutLabel}`}
+              summary={null}
+            />
+            {flowSeries.length >= 2 ? (
+              <EducationLineChart
+                color="#7c3aed"
+                formatLabel={formatIdebComponent}
+                scaleType="ratio"
+                series={flowSeries}
+                showPointLabels
+                title={null}
+              />
+            ) : <ChartEmptyState message="Histórico do fluxo não disponível." />}
+          </article>
+        </div>
+        <EducationSourceNotes context={dataSourceContextForEducation(indicator)} />
+      </section>
+
+      {indicator.explore?.length ? (
+        <EducationIndicatorBreakdown indicator={indicator} />
+      ) : null}
+    </EducationIndicatorDetailShell>
+  )
+}
+
+function componentValueSeries(
+  series: IdebCompositionPoint[],
+  key: 'indicador_rendimento' | 'nota_media_padronizada',
+) {
+  return series.flatMap((point) => (
+    isFiniteNumber(point[key]) ? [{ ano: point.ano, valor: point[key] }] : []
+  ))
+}
+
+function isCompleteOrPartialIdebCompositionPoint(point: IdebCompositionPoint) {
+  return Number.isFinite(Number(point?.ano)) && [
+    point?.ideb,
+    point?.nota_media_padronizada,
+    point?.indicador_rendimento,
+  ].some(isFiniteNumber)
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function formatIdebComponent(value: unknown) {
+  return isFiniteNumber(value)
+    ? value.toLocaleString('pt-BR', { maximumFractionDigits: 2, minimumFractionDigits: 2 })
+    : EM
+}
+
+function formatIdeb(value: unknown) {
+  return isFiniteNumber(value)
+    ? value.toLocaleString('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
+    : EM
 }
 
 

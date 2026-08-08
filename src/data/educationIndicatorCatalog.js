@@ -79,6 +79,20 @@ export const EDUCATION_SECTION_LABELS = Object.freeze({
   [EDUCATION_SECTION_KEYS.technicalReport]: 'Relatório Técnico Municipal',
 })
 
+export const EDUCATION_SECTION_QUESTIONS = Object.freeze({
+  [EDUCATION_SECTION_KEYS.overview]: 'O que os dados revelam sobre a educação municipal?',
+  [EDUCATION_SECTION_KEYS.panorama]: 'Como está organizada a educação no município?',
+  [EDUCATION_SECTION_KEYS.attendance]: 'Quem é atendido e como a oferta se organiza?',
+  [EDUCATION_SECTION_KEYS.trajectory]: 'Como os estudantes avançam e aprendem?',
+  [EDUCATION_SECTION_KEYS.professionals]: 'Quem atua na educação e como as turmas se organizam?',
+  [EDUCATION_SECTION_KEYS.infrastructure]: 'Que condições as escolas oferecem?',
+  [EDUCATION_SECTION_KEYS.modalities]: 'Como a oferta chega a diferentes públicos e territórios?',
+  [EDUCATION_SECTION_KEYS.higherEducation]: 'Como a graduação está presente no município?',
+  [EDUCATION_SECTION_KEYS.demand]: 'Como o atendimento escolar pode evoluir?',
+  [EDUCATION_SECTION_KEYS.methodology]: 'Como estes indicadores são construídos e lidos?',
+  [EDUCATION_SECTION_KEYS.technicalReport]: 'O que os indicadores revelam para o planejamento municipal?',
+})
+
 const EDUCATION_SECTION_DESCRIPTIONS = Object.freeze({
   [EDUCATION_SECTION_KEYS.overview]: 'Síntese dos principais dados disponíveis para o município.',
   [EDUCATION_SECTION_KEYS.panorama]: 'Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município.',
@@ -135,7 +149,12 @@ const EDUCATION_DEMAND_INDICATOR_CATALOG = Object.freeze([
 
 const SECTION_GROUP_DEFINITIONS = Object.freeze({
   [attendance]: [
-    { key: 'matriculas-atendimento', label: 'Matrículas e atendimento', description: 'Matrículas observadas, tempo integral e redes de atendimento.' },
+    {
+      key: 'matriculas-atendimento',
+      label: 'Matrículas e atendimento',
+      question: 'Quantos estudantes estão matriculados?',
+      description: 'Matrículas observadas, tempo integral e redes de atendimento.',
+    },
     {
       key: 'oferta-etapa',
       label: 'Oferta por etapa',
@@ -153,16 +172,20 @@ const SECTION_GROUP_DEFINITIONS = Object.freeze({
         'rede-profissional',
       ]),
     },
-    { key: 'redes-ensino', label: 'Redes de ensino', description: 'Distribuição da oferta entre dependências administrativas.' },
+    {
+      key: 'redes-ensino',
+      label: 'Redes de ensino',
+      description: 'Distribuição da oferta entre dependências administrativas.',
+    },
   ],
   [trajectory]: [
     { key: 'fluxo-escolar', label: 'Fluxo escolar', description: 'Aprovação, reprovação, abandono e distorção idade-série.' },
     { key: 'aprendizagem', label: 'Aprendizagem', description: 'IDEB, SAEB e alfabetização.' },
-    { key: 'contexto-educacional', label: 'Contexto educacional', description: 'Indicadores de contexto socioeconômico.' },
+    { key: 'contexto-educacional', label: 'Contexto educacional', question: 'Que contexto ajuda a interpretar os resultados educacionais?', description: 'Indicadores de contexto socioeconômico.' },
   ],
   [professionals]: [
     { key: 'docentes', label: 'Docentes', description: 'Docentes registrados por etapa e modalidade.' },
-    { key: 'organizacao-turmas', label: 'Organização das turmas', description: 'Média de alunos por turma e série.' },
+    { key: 'organizacao-turmas', label: 'Organização das turmas', question: 'Como as turmas estão organizadas?', description: 'Média de alunos por turma e série.' },
   ],
   [infrastructure]: [
     {
@@ -172,7 +195,7 @@ const SECTION_GROUP_DEFINITIONS = Object.freeze({
       indicatorKeys: Object.freeze(['infraestrutura-basica']),
       indicatorCountKeys: SCHOOL_INFRASTRUCTURE_BASIC_INDICATOR_ORDER,
     },
-    { key: 'conectividade', label: 'Conectividade', description: 'Internet, redes locais e acesso para aprendizagem.' },
+    { key: 'conectividade', label: 'Conectividade', question: 'Como as escolas estão conectadas?', description: 'Internet, redes locais e acesso para aprendizagem.' },
     { key: 'equipamentos-recursos', label: 'Equipamentos e recursos pedagógicos', description: 'Dispositivos e recursos disponíveis para os alunos.' },
   ],
   [modalities]: [
@@ -183,9 +206,9 @@ const SECTION_GROUP_DEFINITIONS = Object.freeze({
       label: 'Educação indígena',
       description: 'Cobertura estimada para 4 a 17 anos e síntese municipal das matrículas, estabelecimentos, docentes e turmas da Educação Escolar Indígena.',
     },
-    { key: 'inclusao', label: 'Inclusão', description: 'Atendimento educacional especializado e salas de recursos.' },
+    { key: 'inclusao', label: 'Inclusão', question: 'Como a rede promove inclusão e atendimento especializado?', description: 'Atendimento educacional especializado e salas de recursos.' },
     { key: 'territorios', label: 'Territórios', description: 'Recortes territoriais disponíveis nos dados educacionais.' },
-    { key: 'sistema-s', label: 'Sistema S', description: 'Oferta do Sistema S quando houver dados disponíveis.', special: 'sistemaS' },
+    { key: 'sistema-s', label: 'Sistema S', question: 'Como o Sistema S participa da oferta profissional?', description: 'Oferta do Sistema S quando houver dados disponíveis.', special: 'sistemaS' },
   ],
 })
 
@@ -198,6 +221,7 @@ const INDICATOR_GROUP_KEYS = Object.freeze({
   'mat-profissional': 'profissional-tecnologica',
   'mat-integral': 'matriculas-atendimento',
   'mat-rural': 'territorios',
+  'rural-cobertura-estimada-4-17': 'territorios',
   'mat-publica': 'redes-ensino',
   'mat-privada': 'redes-ensino',
   'rede-total': 'redes-ensino',
@@ -358,6 +382,18 @@ const BASE_INDICATORS = [
     unit: 'alunos',
     formatType: 'number',
     source: 'INEP Censo Escolar',
+  },
+  {
+    key: 'rural-cobertura-estimada-4-17',
+    label: 'Cobertura estimada da população rural de 4 a 17 anos na Educação Básica',
+    description: 'Relação entre as matrículas por idade em escolas rurais ativas e a população rural estimada de 4 a 17 anos residente no município.',
+    section: modalities,
+    themeKey: 'matriculas',
+    dataBlock: 'matriculas',
+    seriesPath: 'coberturaRuralEstimada.series',
+    unit: '%',
+    formatType: 'percent',
+    source: 'IBGE — Censo Demográfico 2022; INEP — Censo Escolar',
   },
   {
     key: 'mat-publica',
@@ -646,12 +682,12 @@ const BASE_INDICATORS = [
   {
     key: 'apr-ideb',
     label: 'IDEB',
-    description: 'Último IDEB disponível para o recorte principal.',
+    description: 'Combina aprendizado e fluxo escolar: Nota Média Padronizada (N) × Indicador de Rendimento (P).',
     section: trajectory,
     sections: [overview, trajectory],
     themeKey: 'aprendizagem',
     dataBlock: 'aprendizagem',
-    seriesPath: 'series.ideb.<etapa>',
+    seriesPath: 'series.ideb.<etapa>.ideb',
     unit: 'índice',
     formatType: 'value',
     source: 'INEP SAEB/IDEB',
@@ -957,6 +993,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: overview,
     label: EDUCATION_SECTION_LABELS[overview],
+    question: EDUCATION_SECTION_QUESTIONS[overview],
     description: EDUCATION_SECTION_DESCRIPTIONS[overview],
     indicatorKeys: EDUCATION_INDICATOR_CATALOG.filter((item) => item.sections.includes(overview)).map((item) => item.key),
     status: 'curated-from-existing-summary',
@@ -964,6 +1001,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: panorama,
     label: EDUCATION_SECTION_LABELS[panorama],
+    question: EDUCATION_SECTION_QUESTIONS[panorama],
     description: EDUCATION_SECTION_DESCRIPTIONS[panorama],
     indicatorKeys: EDUCATION_INDICATOR_CATALOG.filter((item) => item.sections.includes(overview)).map((item) => item.key),
     status: 'municipal-overview',
@@ -971,6 +1009,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   ...[attendance, trajectory, professionals, infrastructure, modalities].map((key) => ({
     key,
     label: EDUCATION_SECTION_LABELS[key],
+    question: EDUCATION_SECTION_QUESTIONS[key],
     description: EDUCATION_SECTION_DESCRIPTIONS[key],
     indicatorKeys: EDUCATION_INDICATOR_CATALOG.filter((item) => item.sections.includes(key)).map((item) => item.key),
     groups: EDUCATION_SECTION_GROUPS[key],
@@ -979,6 +1018,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: higherEducation,
     label: EDUCATION_SECTION_LABELS[higherEducation],
+    question: EDUCATION_SECTION_QUESTIONS[higherEducation],
     description: EDUCATION_SECTION_DESCRIPTIONS[higherEducation],
     indicatorKeys: [],
     groups: [],
@@ -987,6 +1027,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: EDUCATION_SECTION_KEYS.demand,
     label: EDUCATION_SECTION_LABELS[EDUCATION_SECTION_KEYS.demand],
+    question: EDUCATION_SECTION_QUESTIONS[EDUCATION_SECTION_KEYS.demand],
     description: EDUCATION_SECTION_DESCRIPTIONS[EDUCATION_SECTION_KEYS.demand],
     indicatorKeys: EDUCATION_DEMAND_INDICATOR_CATALOG.map((indicator) => indicator.key),
     groups: [],
@@ -995,6 +1036,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: EDUCATION_SECTION_KEYS.methodology,
     label: EDUCATION_SECTION_LABELS[EDUCATION_SECTION_KEYS.methodology],
+    question: EDUCATION_SECTION_QUESTIONS[EDUCATION_SECTION_KEYS.methodology],
     description: EDUCATION_SECTION_DESCRIPTIONS[EDUCATION_SECTION_KEYS.methodology],
     indicatorKeys: [],
     groups: [],
@@ -1003,6 +1045,7 @@ export const EDUCATION_SECTION_CATALOG = Object.freeze([
   {
     key: EDUCATION_SECTION_KEYS.technicalReport,
     label: EDUCATION_SECTION_LABELS[EDUCATION_SECTION_KEYS.technicalReport],
+    question: EDUCATION_SECTION_QUESTIONS[EDUCATION_SECTION_KEYS.technicalReport],
     description: EDUCATION_SECTION_DESCRIPTIONS[EDUCATION_SECTION_KEYS.technicalReport],
     indicatorKeys: [],
     groups: [],

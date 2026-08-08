@@ -125,6 +125,68 @@ class EducationEnrollmentExportTest(unittest.TestCase):
                 pd.DataFrame(),
             )
 
+    def test_attaches_rural_coverage_contract_without_capping(self):
+        municipality_id = "4300001"
+        categories = pd.DataFrame(
+            [{
+                "ano": 2025,
+                "id_municipio": municipality_id,
+                "dependencia": "total",
+                "localizacao": "total",
+                "etapa_ensino": "fundamental",
+                "matriculas": 14,
+                "matriculas_integral": 0,
+            }]
+        )
+        official = pd.DataFrame(
+            [{
+                "ano": 2025,
+                "id_municipio": municipality_id,
+                "dependencia": "municipal",
+                "localizacao": "rural",
+                "mat_basico": 14,
+            }]
+        )
+        population = pd.DataFrame(
+            [{
+                "ano_censo": 2022,
+                "id_municipio": municipality_id,
+                "populacao_rural_estimada_4_17": 10.0,
+                "status_valor": "available",
+                "metadados_fonte": "{}",
+            }]
+        )
+        rural_enrollments = pd.DataFrame(
+            [
+                {
+                    "ano": 2025,
+                    "id_municipio": municipality_id,
+                    "faixa_etaria": age_group,
+                    "matriculas": value,
+                    "status_valor": "available",
+                    "metadados_fonte": "{}",
+                }
+                for age_group, value in (
+                    ("4_5", 2),
+                    ("6_10", 3),
+                    ("11_14", 4),
+                    ("15_17", 5),
+                )
+            ]
+        )
+
+        block = MODULE.montar_bloco_matriculas(
+            categories,
+            municipality_id,
+            official,
+            df_populacao_rural=population,
+            df_matriculas_rurais=rural_enrollments,
+        )
+
+        coverage = block["coberturaRuralEstimada"]
+        self.assertEqual(coverage["indicatorId"], "rural-cobertura-estimada-4-17")
+        self.assertEqual(coverage["series"]["2025"]["percentage"], 140)
+
 
 if __name__ == "__main__":
     unittest.main()

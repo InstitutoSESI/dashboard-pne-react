@@ -386,8 +386,8 @@ export function EducationPage({
       ]}
       description="Síntese das matrículas, da oferta educacional, do rendimento escolar e das mudanças observadas no município."
       domain={EDUCATION_SECTION_KEYS.panorama}
-      eyebrow="Educação municipal"
-      title="Panorama educacional"
+      eyebrow="Educação municipal / Panorama educacional"
+      title={section?.question ?? 'Como está organizada a educação no município?'}
       variant="section"
     />
   ) : isSistemaSTheme ? (
@@ -467,7 +467,8 @@ export function EducationPage({
         { icon: 'source', label: 'Referência', value: 'Fontes oficiais' },
       ]}
       description={section?.description}
-      title={section?.label ?? 'Metodologia e fontes'}
+      eyebrow={section?.label ?? 'Metodologia e fontes'}
+      title={section?.question ?? 'Como estes indicadores são construídos e lidos?'}
       variant="methodology"
     />
   ) : (
@@ -482,7 +483,9 @@ export function EducationPage({
       description={isOverviewSection ? pageCopy.description : section?.description}
       domain={selectedSectionKey}
       eyebrow={isOverviewSection ? pageCopy.eyebrow : `Indicadores de Educação / ${section?.label ?? 'Seção'}`}
-      title={isOverviewSection ? pageCopy.title : section?.label ?? pageCopy.title}
+      title={isOverviewSection
+        ? section?.question ?? pageCopy.title
+        : section?.question ?? section?.label ?? pageCopy.title}
       variant="section"
     />
   )

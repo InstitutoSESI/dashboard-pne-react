@@ -594,7 +594,7 @@ export function MunicipalTechnicalReport({
     ['4', 'Rendimento escolar', 'INEP — Taxas de Rendimento Escolar', overview?.schoolPerformance.referenceYear, '%'],
     ['5', 'Alunos e escolas com jornada em tempo integral', 'INEP — Censo Escolar', fullTimeItems[0]?.currentYear, '%'],
     ['6', 'Escolas que promovem educação ambiental', 'INEP — Censo Escolar', environmentalEducationItems[0]?.currentYear, '% de escolas'],
-    ['7', 'Educação escolar indígena e localização rural', 'INEP — Sinopse Estatística e Censo Escolar', byKey.get('indigena-matriculas')?.currentYear ?? byKey.get('mat-rural')?.currentYear, 'matrículas'],
+    ['7', 'Educação escolar indígena e territórios rurais', 'INEP — Censo Escolar; IBGE — Censo Demográfico 2022', byKey.get('rural-cobertura-estimada-4-17')?.currentYear ?? byKey.get('indigena-matriculas')?.currentYear ?? byKey.get('mat-rural')?.currentYear, 'matrículas e % estimado'],
     ['8', 'EJA articulada à Educação Profissional', 'INEP — Censo Escolar e Sinopse Estatística', ejaProfessionalItems[0]?.currentYear, 'matrículas e %'],
     ['9', 'Educação Especial, AEE e Educação Bilíngue de Surdos', 'INEP — Censo Escolar', specialEducationYear, 'diversas'],
     ['10', 'Educação Superior — graduação', 'INEP — Sinopse Estatística da Educação Superior', higherEducation?.latestMunicipalUsableYear, 'diversas'],
@@ -773,7 +773,7 @@ export function MunicipalTechnicalReport({
         </ReportSection>
 
         <ReportSection coverage="partial" model="table-only" number={7} section={MUNICIPAL_REPORT_SECTIONS[6]} metadata="INEP — Sinopse Estatística e Censo Escolar · Última referência disponível">
-          <IndicatorTable caption="Recortes indígenas e de localização rural disponíveis" items={getItems('indigena-cobertura-estimada-4-17', 'indigena-matriculas', 'indigena-estabelecimentos', 'indigena-docentes', 'indigena-turmas', 'mat-rural')} />
+          <IndicatorTable caption="Recortes indígenas e rurais disponíveis" items={getItems('indigena-cobertura-estimada-4-17', 'indigena-matriculas', 'indigena-estabelecimentos', 'indigena-docentes', 'indigena-turmas', 'mat-rural', 'rural-cobertura-estimada-4-17')} />
         </ReportSection>
 
         <ReportSection compact={!overview && !getItems('mat-eja').length && !ejaProfessionalItems.length} coverage="partial" model="metrics-only" number={8} section={MUNICIPAL_REPORT_SECTIONS[7]} metadata={`INEP — Censo Escolar e Sinopse Estatística · ${overview ? mainPeriod : 'Última referência disponível'}`}>

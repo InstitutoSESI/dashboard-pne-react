@@ -115,6 +115,7 @@ const REPORT_EDUCATION_ITEM_SECTIONS: Record<string, number> = {
   'indigena-docentes': 7,
   'indigena-turmas': 7,
   'mat-rural': 7,
+  'rural-cobertura-estimada-4-17': 7,
   'mat-eja': 8,
   eja_integrada_educacao_profissional: 8,
   'mat-profissional': 11,

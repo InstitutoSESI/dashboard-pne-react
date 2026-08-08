@@ -314,7 +314,6 @@
 .financial-page :where(
   .page-card,
   .financial-technical-note,
-  .financial-indicator-section,
   .financial-detail-view,
   .vaar-panel
 ) {
@@ -2758,45 +2757,6 @@
 
 /* Search, axes and indicator collection */
 
-.financial-grid-workspace {
-  gap: var(--space-4);
-}
-
-.financial-page .financial-indicator-section {
-  min-width: 0;
-  padding: var(--space-4);
-  border: var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  box-shadow: none;
-}
-
-.financial-indicator-filters {
-  padding: 0 0 var(--space-4);
-  border: 0;
-  border-bottom: var(--border-divider);
-  border-radius: 0;
-  background: transparent;
-}
-
-.financial-indicator-filters > .platform-segmented-control {
-  width: 100%;
-  max-width: none;
-}
-
-.financial-indicator-card-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--indicator-card-gap);
-  align-items: stretch;
-}
-
-.financial-grid-workspace .indicator-list.financial-indicator-card-grid {
-  flex: none;
-  max-height: none;
-  overflow: visible;
-  padding: 0;
-}
-
 .financial-page .financial-axis-section {
   gap: var(--space-5);
 }
@@ -3519,7 +3479,6 @@
 .financial-page--detail :is(
   .financial-intro-panel,
   .financial-metric-strip,
-  .financial-indicator-section,
   .financial-technical-note,
   .financial-methodology-note
 ) {
@@ -7280,14 +7239,7 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-.financial-page .financial-indicator-card-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--indicator-card-gap);
-}
 
-.financial-page .financial-grid-workspace .indicator-list.financial-indicator-card-grid {
-  gap: var(--space-4);
-}
 
 @media screen and (max-width: 700px) {
   .financial-page .financial-summary-grid {
@@ -7324,9 +7276,6 @@
   padding-top: var(--space-2);
 }
 
-.financial-page .financial-indicator-card .history-chart__canvas {
-  min-height: 0;
-}
 
 .financial-detail-view .financial-chart-card .history-chart__canvas,
 .financial-detail-view .financial-chart-card .history-chart svg {
@@ -7453,9 +7402,6 @@
 }
 
 @media screen and (min-width: 701px) and (max-width: 1180px) {
-  .financial-page .financial-indicator-card-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .financial-page .pnate-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7470,12 +7416,6 @@
   }
 }
 
-@media screen and (min-width: 701px) and (max-width: 860px) {
-  .financial-page .financial-indicator-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media screen and (max-width: 700px) {
   .financial-page .financial-hero {
     padding: var(--space-5) var(--space-4);
@@ -7486,9 +7426,6 @@
     text-wrap: pretty;
   }
 
-  .financial-page .financial-indicator-card-grid {
-    grid-template-columns: 1fr;
-  }
 
   .financial-page .financial-summary-grid,
   .financial-page .pnate-summary-grid {
@@ -7620,10 +7557,6 @@
   justify-content: flex-start;
 }
 
-.financial-page .fundeb-workspace .indicator-list.financial-indicator-card-grid {
-  padding: var(--space-5) var(--financial-panel-padding) var(--financial-panel-padding);
-  background: var(--surface-card);
-}
 
 @media screen and (max-width: 1080px) {
   .financial-page .fundeb-summary-grid {
@@ -7640,8 +7573,7 @@
 @media screen and (max-width: 700px) {
   .financial-page :is(.fundeb-summary, .fundeb-workspace) > .financial-section-heading,
   .financial-page .fundeb-summary-grid,
-  .fundeb-indicator-filters,
-  .financial-page .fundeb-workspace .indicator-list.financial-indicator-card-grid {
+  .fundeb-indicator-filters {
     padding-inline: var(--space-4);
   }
 

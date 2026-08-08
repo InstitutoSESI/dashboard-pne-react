@@ -798,28 +798,28 @@
   }
 
   /* Cards and common interactive states */
-  .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card) {
+  .content-area :where(.meta-card, .education-indicator-card) {
     border-color: var(--border-card);
     border-radius: var(--card-radius);
     background: var(--card-surface);
     box-shadow: var(--card-shadow);
   }
 
-  .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card):hover {
+  .content-area :where(.meta-card, .education-indicator-card):hover {
     border-color: var(--border-strong);
     box-shadow: var(--card-shadow-hover);
     transform: translateY(-1px);
   }
 
-  .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card).is-selected,
-  .content-area :where(.meta-card, .education-indicator-card, .financial-indicator-card)[aria-pressed="true"] {
+  .content-area :where(.meta-card, .education-indicator-card).is-selected,
+  .content-area :where(.meta-card, .education-indicator-card)[aria-pressed="true"] {
     border-color: var(--control-border-selected);
     background: var(--surface-card);
     box-shadow: inset 0 0 0 1px var(--border-focus);
     transform: none;
   }
 
-  .content-area :where(.meta-card__title, .education-indicator-card__title, .financial-indicator-card__title) {
+  .content-area :where(.meta-card__title, .education-indicator-card__title) {
     color: var(--text-strong);
     font-family: var(--font-sans);
     font-size: var(--control-font-size);
@@ -827,7 +827,7 @@
     line-height: var(--line-height-snug);
   }
 
-  .content-area :where(.meta-card__value-row, .education-indicator-card__value, .financial-indicator-card__value-row),
+  .content-area :where(.meta-card__value-row),
   .content-area :where(.metric-card__value, .education-summary-card__value) {
     font-variant-numeric: tabular-nums;
   }
@@ -1109,8 +1109,7 @@
 
   /* Editorial indicator cards shared by Education and Finance. */
   .indicator-card-shell.indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) {
     --indicator-direction-soft: var(--indicator-direction-data-soft);
     --indicator-direction-ink: var(--indicator-direction-data-ink);
@@ -1138,34 +1137,33 @@
     overflow: hidden;
   }
 
-  .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial).indicator-card-shell--direction-up {
+  .indicator-card-shell:is(.indicator-card-shell--education).indicator-card-shell--direction-up {
     --indicator-direction-soft: var(--indicator-direction-up-soft);
     --indicator-direction-ink: var(--indicator-direction-up-ink);
   }
 
-  .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial).indicator-card-shell--direction-stable {
+  .indicator-card-shell:is(.indicator-card-shell--education).indicator-card-shell--direction-stable {
     --indicator-direction-soft: var(--indicator-direction-stable-soft);
     --indicator-direction-ink: var(--indicator-direction-stable-ink);
   }
 
-  .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial).indicator-card-shell--direction-down {
+  .indicator-card-shell:is(.indicator-card-shell--education).indicator-card-shell--direction-down {
     --indicator-direction-soft: var(--indicator-direction-down-soft);
     --indicator-direction-ink: var(--indicator-direction-down-ink);
   }
 
-  .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial).indicator-card-shell--direction-missing {
+  .indicator-card-shell:is(.indicator-card-shell--education).indicator-card-shell--direction-missing {
     --indicator-direction-soft: var(--indicator-direction-missing-soft);
     --indicator-direction-ink: var(--indicator-direction-missing-ink);
   }
 
-  .indicator-card-shell:is(.indicator-card-shell--education, .indicator-card-shell--financial).indicator-card-shell--direction-data {
+  .indicator-card-shell:is(.indicator-card-shell--education).indicator-card-shell--direction-data {
     --indicator-direction-soft: var(--indicator-direction-data-soft);
     --indicator-direction-ink: var(--indicator-direction-data-ink);
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__topline {
     grid-area: topline;
     min-height: 24px;
@@ -1173,8 +1171,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__context {
     color: var(--green-deep);
     font-size: var(--font-size-xs);
@@ -1185,8 +1182,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .status-badge {
     min-height: 24px;
     padding: var(--space-1) var(--space-2);
@@ -1197,8 +1193,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__title {
     grid-area: title;
     min-height: 0;
@@ -1211,8 +1206,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__description {
     grid-area: description;
     min-height: 2.5em;
@@ -1228,8 +1222,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row {
     grid-area: value;
     min-width: 0;
@@ -1242,8 +1235,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row strong {
     min-width: 0;
     max-width: 100%;
@@ -1259,8 +1251,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row span {
     min-width: 0;
     max-width: 12ch;
@@ -1273,8 +1264,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__metadata {
     grid-area: metadata;
     min-width: 0;
@@ -1287,8 +1277,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) :is(.indicator-card-shell__metadata-item, .indicator-card-shell__insight-item) {
     min-width: 0;
     display: flex;
@@ -1298,8 +1287,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) :is(.indicator-card-shell__metadata-label, .indicator-card-shell__insight-label) {
     color: var(--text-soft);
     font-size: var(--font-size-xs);
@@ -1308,8 +1296,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) :is(.indicator-card-shell__metadata-value, .indicator-card-shell__insight-value) {
     min-width: 0;
     color: var(--text-strong);
@@ -1320,8 +1307,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__metadata-value {
     color: var(--green-ink);
     font-size: var(--font-size-sm);
@@ -1329,8 +1315,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__metadata-value--variation {
     color: var(--indicator-direction-ink);
     max-width: 100%;
@@ -1340,8 +1325,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__divider {
     grid-area: divider;
     width: 100%;
@@ -1350,8 +1334,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__insight {
     grid-area: insight;
     min-width: 0;
@@ -1366,8 +1349,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__footer {
     grid-area: footer;
     min-width: 0;
@@ -1381,8 +1363,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__footer > span:not(.indicator-card-shell__action) {
     min-width: 0;
     max-width: calc(100% - 32px);
@@ -1402,8 +1383,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__action {
     width: 24px;
     min-height: 24px;
@@ -1418,8 +1398,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__action .interaction-chevron {
     width: 24px;
     height: 24px;
@@ -1636,8 +1615,7 @@
 
 @container indicator-card (max-width: 300px) {
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row strong {
     font-size: var(--font-size-lg);
   }
@@ -1719,8 +1697,7 @@
   }
 
   .indicator-card-shell.indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) {
     min-height: var(--indicator-card-height-mobile);
     height: auto;
@@ -1738,8 +1715,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__title {
     max-height: none;
     display: block;
@@ -1747,8 +1723,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__description {
     max-height: none;
     display: block;
@@ -1756,22 +1731,19 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row {
     padding-left: var(--space-4);
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__value-row strong {
     font-size: var(--font-size-3xl);
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__metadata {
     padding: var(--space-2) 0 0;
     border-top: var(--border-divider);
@@ -1780,8 +1752,7 @@
   }
 
   .indicator-card-shell:is(
-    .indicator-card-shell--education,
-    .indicator-card-shell--financial
+    .indicator-card-shell--education
   ) .indicator-card-shell__insight {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

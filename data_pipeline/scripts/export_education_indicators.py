@@ -34,6 +34,9 @@ from src.education_municipality_routes import (  # noqa: E402
     load_education_municipality_route_compatibility,
 )
 from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
+from src.rural_education_coverage import (  # noqa: E402
+    build_coverage_contract as build_rural_coverage_contract,
+)
 from src.municipality_registry import (  # noqa: E402
     MunicipalityRegistry,
     MunicipalityRegistryError,
@@ -213,6 +216,14 @@ EDUCATION_VIEWS = (
     ("educacao_indigena_municipal", "educacao_indigena"),
     ("populacao_indigena_faixa_municipal", "populacao_indigena_faixas"),
     ("populacao_indigena_idade_municipal", "populacao_indigena_idades"),
+    (
+        "populacao_rural_estimada_4_17_municipal",
+        "populacao_rural_estimada_4_17",
+    ),
+    (
+        "matriculas_rurais_faixa_etaria_municipal",
+        "matriculas_rurais_faixa_etaria",
+    ),
     ("vw_educacao_sistema_s", "sistema_s"),
     ("vw_educacao_sistema_s_escolas", "sistema_s_escolas"),
     ("vw_vaar_municipio_dashboard", "vaar"),
@@ -242,6 +253,14 @@ def r1(valor):
     if v is None:
         return None
     return round(float(v), 1)
+
+
+def r6(valor):
+    """Preserva a precisão oficial dos componentes do IDEB, limitada a 6 casas."""
+    v = limpar_null(valor)
+    if v is None:
+        return None
+    return round(float(v), 6)
 
 
 def ri(valor):
@@ -562,6 +581,88 @@ def detalhamento_fluxo(df, dimensoes, filtros=None, incluir_distorcao=True):
     return linhas
 
 
+_CAMPOS_APRENDIZAGEM = [
+    "ideb",
+    "saeb_lp",
+    "saeb_mt",
+    "nota_media_padronizada",
+    "indicador_rendimento",
+    "taxa_alfabetizacao",
+    "media_inse",
+    "qtd_alunos_inse",
+]
+
+
+def _valor_unico_aprendizagem(grupo, campo, chave):
+    if campo not in grupo.columns:
+        return None
+
+    valores = []
+    for valor in grupo[campo].tolist():
+        normalizado = limpar_null(valor)
+        if normalizado is not None and normalizado not in valores:
+            valores.append(normalizado)
+
+    if len(valores) > 1:
+        raise ValueError(
+            f"Aprendizagem possui valores conflitantes para {campo} em {chave}: "
+            f"{valores}"
+        )
+    return valores[0] if valores else None
+
+
+def _consolidar_linhas_aprendizagem(sub, dimensoes):
+    if sub.empty:
+        return []
+
+    linhas = []
+    chaves_vistas = set()
+    for _, r in sub.sort_values(["ano", *dimensoes]).iterrows():
+        linha = {"ano": int(r["ano"])}
+        for dimensao in dimensoes:
+            valor = r[dimensao]
+            linha[dimensao] = None if pd.isna(valor) else valor
+
+        for campo in ["ideb", "saeb_lp", "saeb_mt", "taxa_alfabetizacao", "media_inse"]:
+            linha[campo] = r1(limpar_null(r.get(campo)))
+        for campo in ["nota_media_padronizada", "indicador_rendimento"]:
+            linha[campo] = r6(limpar_null(r.get(campo)))
+        linha["qtd_alunos_inse"] = ri(limpar_null(r.get("qtd_alunos_inse")))
+
+        if any(linha.get(campo) is not None for campo in _CAMPOS_APRENDIZAGEM):
+            chave_linha = tuple(linha.items())
+            if chave_linha not in chaves_vistas:
+                chaves_vistas.add(chave_linha)
+                linhas.append(linha)
+    return linhas
+
+
+def _consolidar_serie_ideb(sub):
+    serie = []
+    for ano, grupo in sub.groupby("ano", sort=True):
+        contexto = {"ano": int(ano)}
+        ideb = _valor_unico_aprendizagem(grupo, "ideb", contexto)
+        if ideb is None:
+            continue
+        serie.append({
+            "ano": int(ano),
+            "ideb": r1(ideb),
+            "saeb_lp": r1(_valor_unico_aprendizagem(grupo, "saeb_lp", contexto)),
+            "saeb_mt": r1(_valor_unico_aprendizagem(grupo, "saeb_mt", contexto)),
+            "nota_media_padronizada": r6(
+                _valor_unico_aprendizagem(
+                    grupo, "nota_media_padronizada", contexto
+                )
+            ),
+            "indicador_rendimento": r6(
+                _valor_unico_aprendizagem(
+                    grupo, "indicador_rendimento", contexto
+                )
+            ),
+        })
+    return serie
+
+
 def detalhamento_aprendizagem(df, dimensoes, filtros=None):
     filtros = filtros or {}
     sub = df.copy()
@@ -572,17 +673,7 @@ def detalhamento_aprendizagem(df, dimensoes, filtros=None):
     if sub.empty:
         return []
 
-    linhas = []
-    for _, r in sub.sort_values(["ano", *dimensoes]).iterrows():
-        linha = {"ano": int(r["ano"])}
-        for dimensao in dimensoes:
-            linha[dimensao] = r[dimensao]
-        for col in ["ideb", "saeb_lp", "saeb_mt", "taxa_alfabetizacao", "media_inse"]:
-            linha[col] = r1(limpar_null(r.get(col)))
-        linha["qtd_alunos_inse"] = ri(limpar_null(r.get("qtd_alunos_inse")))
-        if any(not limpar_null(linha.get(col)) is None for col in ["ideb", "saeb_lp", "saeb_mt", "taxa_alfabetizacao", "media_inse"]):
-            linhas.append(linha)
-    return linhas
+    return _consolidar_linhas_aprendizagem(sub, dimensoes)
 
 
 def detalhamento_oferta(df, dimensoes, filtros=None):
@@ -765,7 +856,9 @@ GRUPOS_INFRA = {
 # ── Fontes e avisos globais ──────────────────────────────────────────────
 
 FONTES = [
-    {"nome": "INEP - Censo Escolar", "tabelas": ["censo", "censo_escolas"]},
+    {"nome": "INEP - Censo Escolar", "tabelas": [
+        "censo", "censo_escolas", "matriculas_rurais_faixa_etaria_municipal",
+    ]},
     {"nome": "INEP - Media de Alunos por Turma (ATU)", "tabelas": ["alunos_turma"]},
     {"nome": "INEP - Sinopse Estatistica do Censo Escolar", "tabelas": [
         "matriculas_faixa_etaria", "docentes_pos_graduacao",
@@ -775,6 +868,7 @@ FONTES = [
     {"nome": "IBGE - Censo Demografico 2022", "tabelas": [
         "populacao_indigena_idade_municipal",
         "populacao_indigena_faixa_municipal",
+        "populacao_rural_estimada_4_17_municipal",
     ]},
     {"nome": "INEP - Taxas de Rendimento Escolar", "tabelas": ["rendimento_escolar"]},
     {"nome": "INEP - Distorcao Idade-Serie", "tabelas": ["distorcao_idade_serie"]},
@@ -788,7 +882,7 @@ FONTES = [
 AVISOS_GLOBAIS = [
     "null significa dado ausente, nao zero.",
     "Cobertura varia por indicador: Censo 2014-2025, Rendimento 2018-2025, "
-    "Distorcao 2019-2025, IDEB bienal 2011-2025, INSE 2019/2021/2023.",
+    "Distorcao 2019-2025, IDEB bienal 2005-2025, INSE 2019/2021/2023.",
 ]
 
 AVISOS_FLUXO = [
@@ -808,7 +902,8 @@ AVISOS_ALUNOS_TURMA = [
 ]
 
 AVISOS_APRENDIZAGEM = [
-    "IDEB e avaliado bienalmente (2011-2025). Anos sem avalicao tem null.",
+    "IDEB e avaliado bienalmente (2005-2025 nos anos iniciais e finais; "
+    "2017-2025 no ensino medio). Anos sem avaliacao tem null.",
     "Alfabetizacao disponivel apenas para 2023-2025.",
     "INSE disponivel para 2019, 2021 e 2023.",
 ]
@@ -1251,11 +1346,35 @@ def montar_bloco_matriculas(
     df_educacao_basica,
     df_faixa_etaria=None,
     df_cor_raca=None,
+    df_populacao_rural=None,
+    df_matriculas_rurais=None,
 ):
     """Constroi o bloco de matriculas para um municipio."""
+    populacao_rural = (
+        []
+        if df_populacao_rural is None or df_populacao_rural.empty
+        else df_populacao_rural[
+            df_populacao_rural["id_municipio"] == id_mun
+        ].to_dict("records")
+    )
+    matriculas_rurais = (
+        []
+        if df_matriculas_rurais is None or df_matriculas_rurais.empty
+        else df_matriculas_rurais[
+            df_matriculas_rurais["id_municipio"] == id_mun
+        ].to_dict("records")
+    )
+    cobertura_rural = build_rural_coverage_contract(
+        populacao_rural,
+        matriculas_rurais,
+    )
     d = df[df["id_municipio"] == id_mun].copy()
     if d.empty:
-        return _bloco_vazio("matriculas", ["etapa_ensino", "dependencia", "localizacao"])
+        bloco = _bloco_vazio(
+            "matriculas", ["etapa_ensino", "dependencia", "localizacao"]
+        )
+        bloco["coberturaRuralEstimada"] = cobertura_rural
+        return bloco
     educacao_basica = _normalizar_matriculas_educacao_basica(
         df_educacao_basica,
         id_mun,
@@ -1460,6 +1579,7 @@ def montar_bloco_matriculas(
             "etapa_ensino", "dependencia", "localizacao", "faixa_etaria", "cor_raca"
         ],
         "campos_indisponiveis": _campos_indisponiveis_matriculas(d, ultimo_ano),
+        "coberturaRuralEstimada": cobertura_rural,
     }
 
 
@@ -2262,17 +2382,16 @@ def montar_bloco_aprendizagem(df, id_mun):
         sub = d[
             (d["etapa_ensino"] == etapa)
             & (d["dependencia"].isin(["total", "publica"]))
-        ].sort_values("ano")
-        serie = []
-        for _, r in sub.iterrows():
-            v = limpar_null(r.get("ideb"))
-            if v is not None:
-                serie.append({
-                    "ano": int(r["ano"]),
-                    "ideb": r1(v),
-                    "saeb_lp": r1(limpar_null(r.get("saeb_lp"))),
-                    "saeb_mt": r1(limpar_null(r.get("saeb_mt"))),
-                })
+            & d["ideb"].notna()
+        ].copy()
+        if not sub.empty:
+            sub["_prioridade_dependencia"] = sub["dependencia"].map(
+                {"publica": 0, "total": 1}
+            ).fillna(2)
+            melhor_prioridade = sub.groupby("ano")["_prioridade_dependencia"].transform("min")
+            sub = sub[sub["_prioridade_dependencia"] == melhor_prioridade]
+
+        serie = _consolidar_serie_ideb(sub)
         if serie:
             ideb[etapa] = serie
 
@@ -2334,6 +2453,12 @@ def _resumo_aprendizagem(ideb, serie_alf, serie_inse):
             resumo[f"ideb_{etapa}"] = last["ideb"]
             resumo[f"saeb_lp_{etapa}"] = last.get("saeb_lp")
             resumo[f"saeb_mt_{etapa}"] = last.get("saeb_mt")
+            resumo[f"nota_media_padronizada_{etapa}"] = last.get(
+                "nota_media_padronizada"
+            )
+            resumo[f"indicador_rendimento_{etapa}"] = last.get(
+                "indicador_rendimento"
+            )
             resumo[f"ano_ideb_{etapa}"] = last["ano"]
     if serie_alf:
         resumo["taxa_alfabetizacao"] = serie_alf[-1]["taxa_alfabetizacao"]
@@ -2347,12 +2472,15 @@ def _resumo_aprendizagem(ideb, serie_alf, serie_inse):
 
 def _campos_indisponiveis_aprendizagem(d):
     indisponiveis = []
-    if d["ideb"].isna().all():
-        indisponiveis.append("ideb")
-    if d["taxa_alfabetizacao"].isna().all():
-        indisponiveis.append("taxa_alfabetizacao")
-    if d["media_inse"].isna().all():
-        indisponiveis.append("media_inse")
+    for campo in [
+        "ideb",
+        "nota_media_padronizada",
+        "indicador_rendimento",
+        "taxa_alfabetizacao",
+        "media_inse",
+    ]:
+        if campo not in d.columns or d[campo].isna().all():
+            indisponiveis.append(campo)
     return indisponiveis
 
 
@@ -2767,6 +2895,8 @@ def _exportar_municipios_impl(
                     view_df("matriculas_educacao_basica", id_mun),
                     view_df("matriculas_faixa_etaria", id_mun),
                     view_df("matriculas_cor_raca", id_mun),
+                    view_df("populacao_rural_estimada_4_17", id_mun),
+                    view_df("matriculas_rurais_faixa_etaria", id_mun),
                 ),
                 "rede_escolar": montar_bloco_rede(
                     view_df("rede_escolar", id_mun), id_mun,

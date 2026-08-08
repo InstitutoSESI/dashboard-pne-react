@@ -142,9 +142,20 @@ npm run update:education-data:incremental
 npm run update:data:education-incremental
 ```
 
-O primeiro comando exporta, particiona, atualiza Educação, incorpora o documento
+A cobertura educacional rural estimada possui aquisição explícita própria. O
+primeiro comando abaixo baixa e valida as tabelas 10089 e 9606 do SIDRA, lê os
+microdados locais do Censo Escolar e promove apenas o snapshot auditável; o
+segundo também atualiza as duas tabelas intermediárias no banco e publica a
+Educação pelo fluxo incremental controlado:
+
+```powershell
+npm run sync:rural-education-coverage
+npm run update:rural-education-coverage
+```
+
+`npm run update:data` exporta, particiona, atualiza Educação, incorpora o documento
 municipal de desigualdade em `details.json`, sincroniza `public/data` e valida os
-detalhes. O segundo atualiza somente Educação, materializa a desigualdade
+detalhes. `npm run update:education-data` atualiza somente Educação, materializa a desigualdade
 derivada e valida. `update:data:skip-build` permanece aceito como alias histórico
 do fluxo padrão sem build.
 

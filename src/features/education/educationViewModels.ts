@@ -553,11 +553,18 @@ function makeTheme(key, label, shortLabel, items) {
   return { key, label, shortLabel, items: themeItems }
 }
 
-function buildMatriculasIndicators(mat) {
+export function buildMatriculasIndicators(mat) {
   const series = mat.series ?? {}
   const resumo = mat.resumo_ultimo_ano ?? {}
   const byEtapa = resumo.por_etapa ?? {}
   const latestYear = mat.ultimo_ano
+  const ruralCoverage = mat.coberturaRuralEstimada ?? {}
+  const ruralCoverageSeries = Object.entries(ruralCoverage.series ?? {}).map(([year, item]) => ({
+    ano: Number(year),
+    valor: item?.status === 'available' ? item.percentage : null,
+    status: item?.status ?? 'unavailable',
+  }))
+  const latestRuralCoverage = [...ruralCoverageSeries].sort((a, b) => a.ano - b.ano).at(-1)
 
   return [
     createIndicator({ key: 'mat-total', label: 'Total de matrículas', description: 'Total oficial de matrículas da Educação Básica divulgado pelo Censo Escolar; não é recalculado pela soma das etapas e modalidades exibidas.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: normalizeYearSeries(series.total), currentValue: resumo.total_matriculas, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Total do município', explore: buildMatriculasExplore(mat, { cutKey: 'total', cutLabel: 'Total do município' }), stageFilterOptions: buildMatriculasStageOptions(mat) }),
@@ -568,6 +575,7 @@ function buildMatriculasIndicators(mat) {
     createIndicator({ key: 'mat-profissional', label: 'Matrículas na educação profissional — Censo Escolar', description: 'Matrículas registradas na educação profissional/técnica no Censo Escolar, por etapa de ensino.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Censo Escolar', categories: [FILTER_KEYS.profissional], stageLabel: 'Educação Profissional', series: normalizeYearSeries(series.por_etapa?.profissional), currentValue: byEtapa.profissional, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Educação Profissional · Censo Escolar', explore: buildMatriculasExplore(mat, { cutKey: 'profissional', cutLabel: 'Educação Profissional', stageKey: 'profissional' }) }),
     createIndicator({ key: 'mat-integral', label: 'Matrículas em tempo integral', description: 'Percentual total de matrículas em tempo integral no município.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: valueSeries(series.integral, 'percentual'), currentValue: resumo.percentual_integral, currentYear: latestYear, formatType: 'percent', mainCutLabel: 'Tempo integral no total do município', explore: buildMatriculasIntegralExplore(mat) }),
     createIndicator({ key: 'mat-rural', label: 'Matrículas em zona rural', description: 'Matrículas vinculadas à localização rural.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: normalizeYearSeries(series.por_localizacao?.rural), currentValue: resumo.matriculas_rural, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Zona rural', explore: buildMatriculasExplore(mat, { cutKey: 'rural', cutLabel: 'Zona rural', locationKey: 'rural' }) }),
+    createIndicator({ key: 'rural-cobertura-estimada-4-17', label: 'Cobertura estimada da população rural de 4 a 17 anos na Educação Básica', description: 'Relação entre as matrículas por idade em escolas rurais ativas e a população rural estimada de 4 a 17 anos residente no município.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: ruralCoverageSeries, currentValue: latestRuralCoverage?.valor ?? null, currentYear: latestRuralCoverage?.ano ?? null, unit: '%', formatType: 'percent', mainCutLabel: 'População rural de 4 a 17 anos', neutralTrend: true, zeroMessage: 'Não foram registradas matrículas de 4 a 17 anos em escolas rurais ativas', notices: ruralCoverage.methodologicalNotes ?? [], explore: buildRuralCoverageExplore(ruralCoverage) }),
     createIndicator({ key: 'mat-publica', label: 'Matrículas na rede pública', description: 'Matrículas na rede pública municipal, estadual e federal.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: normalizeYearSeries(series.por_dependencia?.publica), currentValue: resumo.matriculas_publica, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Rede pública', explore: buildMatriculasExplore(mat, { cutKey: 'publica', cutLabel: 'Rede pública', dependencyKey: 'publica' }) }),
     createIndicator({ key: 'mat-privada', label: 'Matrículas na rede privada', description: 'Matrículas na rede privada.', themeKey: 'matriculas', themeLabel: 'Matrículas e atendimento', themeShortLabel: 'Matrículas', categories: [FILTER_KEYS.todos], isGeral: true, series: normalizeYearSeries(series.por_dependencia?.privada), currentValue: resumo.matriculas_privada, currentYear: latestYear, formatType: 'number', mainCutLabel: 'Rede privada', explore: buildMatriculasExplore(mat, { cutKey: 'privada', cutLabel: 'Rede privada', dependencyKey: 'privada' }) }),
   ]
@@ -769,14 +777,26 @@ function buildFluxoIndicators(fluxo) {
   ]
 }
 
-function buildAprendizagemIndicators(aprend) {
+export function buildAprendizagemIndicators(aprend) {
   const series = aprend.series ?? {}
   const resumo = aprend.resumo_ultimo_ano ?? {}
   const preferredIdeb = getPreferredIdeb(resumo)
   const preferredSeries = preferredIdeb?.etapa ? series.ideb?.[preferredIdeb.etapa] : []
   const base = { themeKey: 'aprendizagem', themeLabel: 'Aprendizagem', themeShortLabel: 'Aprendizagem', categories: [FILTER_KEYS.todos], isGeral: true, currentYear: preferredIdeb?.ano ?? aprend.ultimo_ano?.ideb, notices: aprend.avisos ?? [] }
   return [
-    createIndicator({ ...base, key: 'apr-ideb', label: 'IDEB', description: 'Último IDEB disponível para o recorte principal.', series: valueSeries(preferredSeries, 'ideb'), currentValue: preferredIdeb?.ideb, formatType: 'value', mainCutLabel: preferredIdeb ? etapaLabel(preferredIdeb.etapa) : 'IDEB', explore: buildAprendizagemExplore(aprend, { metricKey: 'ideb', metricLabel: 'IDEB', formatLabel: formatValue }), stageFilterOptions: buildAprendizagemStageOptions(aprend, { metricKey: 'ideb', metricLabel: 'IDEB', formatLabel: formatValue }) }),
+    createIndicator({
+      ...base,
+      key: 'apr-ideb',
+      label: 'IDEB',
+      description: 'Índice calculado pela Nota Média Padronizada (aprendizado) multiplicada pelo Indicador de Rendimento (fluxo).',
+      series: valueSeries(preferredSeries, 'ideb'),
+      idebCompositionSeries: normalizeIdebCompositionSeries(preferredSeries),
+      currentValue: preferredIdeb?.ideb,
+      formatType: 'value',
+      mainCutLabel: preferredIdeb ? etapaLabel(preferredIdeb.etapa) : 'IDEB',
+      explore: buildAprendizagemExplore(aprend, { metricKey: 'ideb', metricLabel: 'IDEB', formatLabel: formatValue }),
+      stageFilterOptions: buildAprendizagemStageOptions(aprend, { metricKey: 'ideb', metricLabel: 'IDEB', formatLabel: formatValue }),
+    }),
     createIndicator({ ...base, key: 'apr-saeb-lp', label: 'SAEB Língua Portuguesa', description: 'Resultado de Língua Portuguesa no SAEB.', series: valueSeries(preferredSeries, 'saeb_lp'), currentValue: latestValue(preferredSeries, 'saeb_lp'), formatType: 'value', mainCutLabel: preferredIdeb ? etapaLabel(preferredIdeb.etapa) : 'SAEB LP', explore: buildAprendizagemExplore(aprend, { metricKey: 'saeb_lp', metricLabel: 'SAEB LP', formatLabel: formatValue }), stageFilterOptions: buildAprendizagemStageOptions(aprend, { metricKey: 'saeb_lp', metricLabel: 'SAEB LP', formatLabel: formatValue }) }),
     createIndicator({ ...base, key: 'apr-saeb-mt', label: 'SAEB Matemática', description: 'Resultado de Matemática no SAEB.', series: valueSeries(preferredSeries, 'saeb_mt'), currentValue: latestValue(preferredSeries, 'saeb_mt'), formatType: 'value', mainCutLabel: preferredIdeb ? etapaLabel(preferredIdeb.etapa) : 'SAEB MT', explore: buildAprendizagemExplore(aprend, { metricKey: 'saeb_mt', metricLabel: 'SAEB Matemática', formatLabel: formatValue }), stageFilterOptions: buildAprendizagemStageOptions(aprend, { metricKey: 'saeb_mt', metricLabel: 'SAEB Matemática', formatLabel: formatValue }) }),
     createIndicator({ ...base, key: 'apr-alfabetizacao', label: 'Alfabetização', description: 'Taxa de alfabetização disponível para os anos recentes.', categories: [FILTER_KEYS.fundamental], isGeral: false, stageLabel: 'Ensino Fundamental', series: valueSeries(series.alfabetizacao, 'taxa_alfabetizacao'), currentValue: resumo.taxa_alfabetizacao, currentYear: aprend.ultimo_ano?.alfabetizacao, formatType: 'percent', mainCutLabel: 'Alfabetização', explore: buildAprendizagemExplore(aprend, { metricKey: 'taxa_alfabetizacao', metricLabel: 'Alfabetização', formatLabel: formatPercent }) }),
@@ -832,6 +852,8 @@ export function buildIndigenousEducationIndicators(block) {
       indigenousUnitKey: 'cobertura',
       neutralTrend: true,
       zeroMessage: 'Não foram registradas matrículas nas etapas consideradas',
+      notices: mergeNotices(block.avisos, estimatedCoverage.methodologicalNotes),
+      explore: buildIndigenousCoverageExplore(estimatedCoverage),
     }),
     createIndicator({
       ...base,
@@ -874,6 +896,216 @@ export function buildIndigenousEducationIndicators(block) {
       indigenousUnitKey: 'turmas',
     }),
   ]
+}
+
+function mergeNotices(...groups) {
+  return [...new Set(
+    groups.flatMap((group) => (Array.isArray(group) ? group : [])).filter(Boolean),
+  )]
+}
+
+function coverageSeriesEntries(coverage) {
+  return Object.entries(coverage?.series ?? {})
+    .map(([year, point]) => ({ year: Number(year), point: point ?? {} }))
+    .filter(({ year }) => Number.isFinite(year))
+    .sort((a, b) => a.year - b.year)
+}
+
+function coverageStatusLabel(status) {
+  return ({
+    available: 'Disponível',
+    derived_zero: 'Zero derivado',
+    denominator_zero_with_enrollments: 'População-base zero com matrículas',
+    missing: 'Não informado',
+    not_applicable: 'Não aplicável',
+    suppressed: 'Suprimido',
+    unavailable: 'Indisponível',
+  })[status] ?? 'Indisponível'
+}
+
+function buildCoverageConstructionItem(coverage, {
+  key,
+  populationColumnLabel,
+  note,
+}) {
+  const population = coverage?.population ?? {}
+  const populationValue = population.status === 'available' ? population.value : null
+  const rows = coverageSeriesEntries(coverage).map(({ year, point }) => ({
+    ano: String(year),
+    populacao: populationValue,
+    matriculas: point.enrollments?.alignedTotal,
+    cobertura: point.status === 'available' ? point.percentage : null,
+    situacao: coverageStatusLabel(point.status),
+  }))
+
+  if (!rows.length) return null
+
+  return {
+    key,
+    type: 'table',
+    title: 'Como a cobertura estimada é calculada',
+    description: 'Compara, ano a ano, a população-base usada como denominador com as matrículas consideradas no numerador.',
+    tabLabel: 'Construção do indicador',
+    tabPriority: 0,
+    columns: [
+      { key: 'ano', label: 'Ano das matrículas', rowHeader: true },
+      { key: 'populacao', label: populationColumnLabel, format: formatValue },
+      { key: 'matriculas', label: 'Matrículas consideradas', format: formatNumber },
+      { key: 'cobertura', label: 'Cobertura estimada', format: formatPercent },
+      { key: 'situacao', label: 'Situação' },
+    ],
+    rows,
+    note,
+  }
+}
+
+function buildCoverageEnrollmentCompositionItem(coverage, {
+  components,
+  key,
+  note,
+  tabLabel = 'Matrículas consideradas',
+  title,
+}) {
+  const data = coverageSeriesEntries(coverage).flatMap(({ year, point }) => {
+    const enrollments = point.enrollments ?? {}
+    if (!components.every((component) => !isMissing(enrollments[component.key]))) return []
+    return [{
+      year,
+      values: Object.fromEntries(components.map((component) => [component.key, enrollments[component.key]])),
+    }]
+  })
+
+  if (!data.length) return null
+
+  return {
+    key,
+    type: 'stacked',
+    title,
+    description: 'Mostra quais faixas etárias ou etapas formam o total de matrículas usado no numerador.',
+    tabLabel,
+    tabPriority: 1,
+    categories: components.map(({ key: componentKey, label }) => ({ key: componentKey, label })),
+    data,
+    formatLabel: formatNumber,
+    note,
+  }
+}
+
+function buildRuralCoverageExplore(coverage) {
+  const population = coverage?.population ?? {}
+  const populationYear = population.year ?? 2022
+  const components = population.components ?? {}
+  const populationRows = [
+    {
+      faixa: '0 a 4 anos — somente a idade 4',
+      populacao: components.rural0To4,
+      parcela: !isMissing(components.age4Weight) ? Number(components.age4Weight) * 100 : null,
+    },
+    {
+      faixa: '5 a 9 anos — faixa integral',
+      populacao: components.rural5To9,
+      parcela: !isMissing(components.rural5To9) ? 100 : null,
+    },
+    {
+      faixa: '10 a 14 anos — faixa integral',
+      populacao: components.rural10To14,
+      parcela: !isMissing(components.rural10To14) ? 100 : null,
+    },
+    {
+      faixa: '15 a 19 anos — somente 15 a 17',
+      populacao: components.rural15To19,
+      parcela: !isMissing(components.age15To17Weight) ? Number(components.age15To17Weight) * 100 : null,
+    },
+    {
+      faixa: 'Total estimado de 4 a 17 anos',
+      populacao: population.status === 'available' ? population.value : null,
+      parcela: null,
+    },
+  ]
+  const hasPopulationData = !isMissing(population.value)
+    || Object.values(components).some((value) => !isMissing(value))
+
+  return [
+    buildCoverageConstructionItem(coverage, {
+      key: 'rural-cobertura-construcao',
+      populationColumnLabel: `População rural estimada (${populationYear})`,
+      note: `Cálculo anual: matrículas de 4 a 17 anos em escolas rurais ativas ÷ população rural estimada de 4 a 17 anos (${populationYear}) × 100. O denominador permanece fixo; a variação entre os anos decorre das matrículas.`,
+    }),
+    buildCoverageEnrollmentCompositionItem(coverage, {
+      key: 'rural-cobertura-matriculas',
+      title: 'Matrículas consideradas por faixa etária',
+      components: [
+        { key: 'age4To5', label: '4 e 5 anos' },
+        { key: 'age6To10', label: '6 a 10 anos' },
+        { key: 'age11To14', label: '11 a 14 anos' },
+        { key: 'age15To17', label: '15 a 17 anos' },
+      ],
+      note: 'A soma das quatro faixas forma o numerador anual. São matrículas registradas em escolas ativas de localização rural, não pessoas únicas nem estudantes necessariamente residentes na zona rural.',
+    }),
+    hasPopulationData ? {
+      key: 'rural-cobertura-populacao',
+      type: 'table',
+      title: 'Como a população rural de 4 a 17 anos foi estimada',
+      description: 'Detalha as faixas rurais do Censo 2022 e a parcela de cada faixa incorporada ao denominador.',
+      tabLabel: 'População-base',
+      tabPriority: 2,
+      columns: [
+        { key: 'faixa', label: 'Faixa usada', rowHeader: true },
+        { key: 'populacao', label: `População rural (${populationYear})`, format: formatValue },
+        { key: 'parcela', label: 'Parcela incluída', format: formatPercent },
+      ],
+      rows: populationRows,
+      note: 'Estimativa: (população rural de 0–4 × peso da idade 4) + população rural de 5–9 + população rural de 10–14 + (população rural de 15–19 × peso das idades 15–17). Os pesos das faixas de borda usam a distribuição etária total do próprio município.',
+    } : null,
+  ].filter(Boolean)
+}
+
+function buildIndigenousCoverageExplore(coverage) {
+  const population = coverage?.population ?? {}
+  const populationYear = population.year ?? 2022
+  const referenceAgeGroups = coverage?.referenceAgeGroups ?? {}
+  const populationData = [
+    { key: 'preSchool', label: '4 a 5 anos' },
+    { key: 'elementarySchool', label: '6 a 14 anos' },
+    { key: 'highSchool', label: '15 a 17 anos' },
+  ].map(({ key, label }) => ({
+    label,
+    value: referenceAgeGroups[key]?.status === 'available'
+      ? referenceAgeGroups[key].population2022
+      : null,
+  }))
+  const hasPopulationDetail = populationData.some(({ value }) => !isMissing(value))
+
+  return [
+    buildCoverageConstructionItem(coverage, {
+      key: 'indigena-cobertura-construcao',
+      populationColumnLabel: `População indígena (${populationYear})`,
+      note: `Cálculo anual: matrículas de pré-escola, ensino fundamental e ensino médio na Educação Escolar Indígena ÷ população indígena de 4 a 17 anos residente no município (${populationYear}) × 100. O denominador permanece fixo; a variação entre os anos decorre das matrículas.`,
+    }),
+    buildCoverageEnrollmentCompositionItem(coverage, {
+      key: 'indigena-cobertura-matriculas',
+      title: 'Matrículas consideradas por etapa de ensino',
+      components: [
+        { key: 'preSchool', label: 'Pré-escola' },
+        { key: 'elementarySchool', label: 'Ensino Fundamental' },
+        { key: 'highSchool', label: 'Ensino Médio' },
+      ],
+      note: 'A soma das três etapas forma o numerador anual. A Sinopse Estatística contabiliza matrículas na oferta classificada como Educação Escolar Indígena, não pessoas únicas.',
+    }),
+    hasPopulationDetail ? {
+      key: 'indigena-cobertura-populacao',
+      type: 'bar',
+      presentation: 'compact-comparison',
+      title: `População indígena de 4 a 17 anos por faixa etária — ${populationYear}`,
+      description: 'Abre o denominador censitário nos três grupos etários correspondentes às etapas consideradas.',
+      tabLabel: 'População por idade',
+      tabPriority: 2,
+      color: '#2563eb',
+      data: populationData,
+      formatLabel: formatNumber,
+      note: 'A soma das faixas de 4–5, 6–14 e 15–17 anos forma a população indígena de 4 a 17 anos usada como denominador.',
+    } : null,
+  ].filter(Boolean)
 }
 
 export function createIndicator(config) {
@@ -1155,6 +1387,9 @@ function buildAprendizagemStageOptions(aprend, metric) {
       label: etapaLabel(key),
       mainCutLabel: etapaLabel(key),
       series: valueSeries(stageSeries?.[key], metric.metricKey),
+      ...(metric.metricKey === 'ideb'
+        ? { idebCompositionSeries: normalizeIdebCompositionSeries(stageSeries?.[key]) }
+        : {}),
       explore: buildAprendizagemExplore(aprend, { ...metric, stageKey: key, cutLabel: etapaLabel(key) }),
     }))
     .filter(Boolean)
@@ -2236,6 +2471,32 @@ function valueSeries(series, key) {
   return normalizeYearSeries(Array.isArray(series) ? series.map((point) => ({ ano: point.ano, valor: point[key] })) : [])
 }
 
+
+export function normalizeIdebCompositionSeries(series) {
+  if (!Array.isArray(series)) return []
+  return series
+    .map((point) => ({
+      ano: Number(point?.ano),
+      ideb: finiteOrNull(point?.ideb),
+      nota_media_padronizada: finiteOrNull(point?.nota_media_padronizada),
+      indicador_rendimento: finiteOrNull(point?.indicador_rendimento),
+    }))
+    .filter((point) => Number.isFinite(point.ano) && [
+      point.ideb,
+      point.nota_media_padronizada,
+      point.indicador_rendimento,
+    ].some((value) => value !== null))
+    .sort((left, right) => left.ano - right.ano)
+}
+
+
+function finiteOrNull(value) {
+  if (isMissing(value)) return null
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+
 export function safeValueSeries(raw, metricKey) {
   if (!Array.isArray(raw)) return []
   if (metricKey === 'alunos_por_docente') {
@@ -2417,7 +2678,15 @@ function getPreferredIdeb(resumo) {
     .filter(([key, value]) => key.startsWith('ideb_') && !isMissing(value))
     .map(([key, ideb]) => {
       const etapa = key.replace('ideb_', '')
-      return { etapa, ideb, ano: resumo[`ano_ideb_${etapa}`], saeb_lp: resumo[`saeb_lp_${etapa}`], saeb_mt: resumo[`saeb_mt_${etapa}`] }
+      return {
+        etapa,
+        ideb,
+        ano: resumo[`ano_ideb_${etapa}`],
+        saeb_lp: resumo[`saeb_lp_${etapa}`],
+        saeb_mt: resumo[`saeb_mt_${etapa}`],
+        nota_media_padronizada: resumo[`nota_media_padronizada_${etapa}`],
+        indicador_rendimento: resumo[`indicador_rendimento_${etapa}`],
+      }
     })
     .sort((a, b) => Number(b.ano ?? 0) - Number(a.ano ?? 0))[0] ?? null
 }

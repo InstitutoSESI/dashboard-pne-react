@@ -225,6 +225,14 @@ export const MUNICIPAL_REPORT_PUBLIC_LABELS: Record<string, MunicipalReportPubli
     sourceLabel: INEP_CENSO,
     interpretationNote: 'Localização rural não identifica, por si só, uma população específica.',
   },
+  'rural-cobertura-estimada-4-17': {
+    publicTitle: 'Cobertura estimada da população rural de 4 a 17 anos na Educação Básica',
+    publicShortTitle: 'Cobertura educacional rural estimada',
+    publicDescription: 'Relação entre as matrículas por idade em escolas rurais ativas e a população rural estimada de 4 a 17 anos residente no município.',
+    unitLabel: 'percentual estimado',
+    sourceLabel: INEP_CENSO_IBGE_INDIGENA,
+    interpretationNote: 'É uma aproximação territorial: o denominador rural é estimado, a localização da escola não identifica o domicílio do estudante e o resultado pode superar 100%.',
+  },
   'mat-eja': {
     publicTitle: 'Matrículas na Educação de Jovens e Adultos',
     publicShortTitle: 'Matrículas na EJA',
