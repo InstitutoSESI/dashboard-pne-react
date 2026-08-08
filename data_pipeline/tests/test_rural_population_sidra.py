@@ -9,6 +9,7 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src import rural_population_sidra as sidra
+from src.state_config import load_state_config
 
 
 def rural_rows(values=None, statuses=None):
@@ -39,6 +40,12 @@ def age_rows(values=None):
 
 
 class RuralPopulationSidraTest(unittest.TestCase):
+    def test_query_urls_use_the_configured_state_prefix(self):
+        al = load_state_config("AL")
+        self.assertIn("localidades=N6[N3[27]]", sidra.rural_group_data_url(al))
+        self.assertIn("localidades=N6[N3[27]]", sidra.exact_age_data_url(al))
+        self.assertNotIn("N3[43]", sidra.rural_group_data_url(al))
+
     def test_special_symbols_preserve_distinct_states(self):
         self.assertEqual(sidra.parse_sidra_value("-"), (0, "available"))
         self.assertEqual(sidra.parse_sidra_value("0"), (0, "available"))

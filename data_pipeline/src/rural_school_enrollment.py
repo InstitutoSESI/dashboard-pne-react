@@ -10,6 +10,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from src.censo_escolar_panel import find_annual_source, sha256_file
+from src.state_config import normalize_state_code
 
 
 SUPPORTED_YEARS = (2023, 2024, 2025)
@@ -80,6 +81,7 @@ def aggregate_rural_enrollment_year(
     path: Path,
     *,
     year: int,
+    state_code: str,
     municipality_codes: set[str],
     chunk_size: int = DEFAULT_CHUNK_SIZE,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -87,13 +89,14 @@ def aggregate_rural_enrollment_year(
 
     if year not in SUPPORTED_YEARS:
         raise ValueError(f"Ano não suportado: {year}.")
+    normalized_state_code = normalize_state_code(state_code)
     _validate_header(path)
     totals: defaultdict[str, dict[str, int]] = defaultdict(
         lambda: {key: 0 for key in AGE_COLUMNS}
     )
     observed_municipalities: set[str] = set()
     source_rows = 0
-    rs_rows = 0
+    state_rows = 0
     active_rural_rows = 0
     all_null_rows = 0
 
@@ -114,12 +117,12 @@ def aggregate_rural_enrollment_year(
                 f"{path.name}: NU_ANO_CENSO divergente de {year}: {unexpected}."
             )
         uf = _normalise_text_series(chunk["SG_UF"]).str.upper()
-        rs = chunk.loc[uf.eq("RS")].copy()
-        rs_rows += len(rs)
-        if rs.empty:
+        state_frame = chunk.loc[uf.eq(normalized_state_code)].copy()
+        state_rows += len(state_frame)
+        if state_frame.empty:
             continue
 
-        codes = _normalise_text_series(rs["CO_MUNICIPIO"])
+        codes = _normalise_text_series(state_frame["CO_MUNICIPIO"])
         invalid_code = ~codes.str.fullmatch(_MUNICIPAL_CODE_PATTERN, na=False)
         if invalid_code.any():
             examples = codes[invalid_code].head(5).tolist()
@@ -129,10 +132,12 @@ def aggregate_rural_enrollment_year(
             raise ValueError(
                 f"{path.name}: municípios fora do registro canônico: {sorted(unexpected_codes)}."
             )
-        rs["CO_MUNICIPIO"] = codes
-        status = _normalise_text_series(rs["TP_SITUACAO_FUNCIONAMENTO"])
-        location = _normalise_text_series(rs["TP_LOCALIZACAO"])
-        selected = rs.loc[status.eq(ACTIVE_STATUS) & location.eq(RURAL_LOCATION)].copy()
+        state_frame["CO_MUNICIPIO"] = codes
+        status = _normalise_text_series(state_frame["TP_SITUACAO_FUNCIONAMENTO"])
+        location = _normalise_text_series(state_frame["TP_LOCALIZACAO"])
+        selected = state_frame.loc[
+            status.eq(ACTIVE_STATUS) & location.eq(RURAL_LOCATION)
+        ].copy()
         active_rural_rows += len(selected)
         if selected.empty:
             continue
@@ -158,7 +163,7 @@ def aggregate_rural_enrollment_year(
         "sourceSize": path.stat().st_size,
         "sourceSha256": sha256_file(path),
         "filters": {
-            "state": "SG_UF == 'RS'",
+            "state": f"SG_UF == '{normalized_state_code}'",
             "schoolStatus": "TP_SITUACAO_FUNCIONAMENTO == 1",
             "schoolLocation": "TP_LOCALIZACAO == 2",
         },
@@ -196,7 +201,7 @@ def aggregate_rural_enrollment_year(
     audit = {
         "year": year,
         "sourceRows": source_rows,
-        "rsRows": rs_rows,
+        "stateRows": state_rows,
         "activeRuralSchoolRows": active_rural_rows,
         "allAgeFieldsNullRowsExcluded": all_null_rows,
         "municipalitiesWithObservedRows": len(observed_municipalities),
@@ -210,6 +215,7 @@ def aggregate_rural_enrollment_years(
     source_dir: Path,
     *,
     years: Iterable[int],
+    state_code: str,
     municipality_codes: set[str],
     chunk_size: int = DEFAULT_CHUNK_SIZE,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -222,6 +228,7 @@ def aggregate_rural_enrollment_years(
         annual_rows, audit = aggregate_rural_enrollment_year(
             path,
             year=year,
+            state_code=state_code,
             municipality_codes=municipality_codes,
             chunk_size=chunk_size,
         )

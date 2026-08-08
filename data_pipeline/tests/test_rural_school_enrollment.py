@@ -47,6 +47,7 @@ class RuralSchoolEnrollmentTest(unittest.TestCase):
             rows, audit = aggregate_rural_enrollment_year(
                 path,
                 year=2025,
+                state_code="RS",
                 municipality_codes={"4300109", "4300208"},
                 chunk_size=2,
             )
@@ -65,8 +66,31 @@ class RuralSchoolEnrollmentTest(unittest.TestCase):
                 aggregate_rural_enrollment_year(
                     path,
                     year=2025,
+                    state_code="RS",
                     municipality_codes={"4300109"},
                 )
+
+    def test_filters_the_requested_state_without_rs_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "microdados_ed_basica_2025.csv"
+            write_csv(
+                path,
+                [
+                    [2025, "RS", "4300109", 1, 2, 90, 90, 90, 90],
+                    [2025, "AL", "2704302", 1, 2, 2, 3, 4, 5],
+                ],
+            )
+            rows, audit = aggregate_rural_enrollment_year(
+                path,
+                year=2025,
+                state_code="al",
+                municipality_codes={"2704302"},
+            )
+        total = next(row for row in rows if row["faixa_etaria"] == "4_17")
+        self.assertEqual(total["id_municipio"], "2704302")
+        self.assertEqual(total["matriculas"], 14)
+        self.assertEqual(audit["stateRows"], 1)
+        self.assertEqual(audit["source"]["filters"]["state"], "SG_UF == 'AL'")
 
 
 if __name__ == "__main__":

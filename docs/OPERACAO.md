@@ -385,10 +385,10 @@ respectivos comandos e não devem ser usados como entrada permanente.
 ### Publicação transacional da Educação principal
 
 O entrypoint valida `StateConfig`, `MunicipalityRegistry` e a compatibilidade
-dos 182 slugs antes de criar o staging. `RS` e `rs` selecionam a mesma
-configuração; um estado não configurado, como `AL`, falha antes de banco,
-staging ou escrita. `--help` e `--dry-run` também não criam staging nem acessam
-fontes.
+do cadastro municipal da UF antes de criar o staging. Códigos como `RS`/`rs` e
+`AL`/`al` selecionam a mesma configuração; um estado não configurado falha antes
+de banco, staging ou escrita. `--help` e `--dry-run` também não criam staging
+nem acessam fontes.
 
 O run materializa primeiro todos os documentos e acumula o relatório completo
 de falhas municipais. Qualquer falha impede os índices e a promoção. A árvore
@@ -427,8 +427,8 @@ Shadow propaga `--education-fingerprint-shadow` ao orquestrador e
 `--education-fingerprint-skip` e `--fingerprint-skip`. Sem essas flags, nenhum
 digest novo é calculado e nenhum task state é lido ou escrito. `--help` não cria
 diretório; em `--dry-run`, a CLI apenas informa o modo, sem banco ou digest
-tabular. Lotes parciais continuam recusados e `AL` falha antes do primeiro
-efeito. `--no-promote` permanece disponível para shadow, mas é incompatível com
+tabular. Lotes parciais continuam recusados. `--no-promote` permanece
+disponível para shadow, mas é incompatível com
 skip porque não representa publicação final reutilizável.
 
 O snapshot da cobertura educacional rural é atualizado somente por comando
@@ -437,19 +437,25 @@ cache auditável; com o comando de atualização, as tabelas intermediárias sã
 substituídas em uma transação e a Educação é publicada pelo fluxo incremental:
 
 ```powershell
-npm run sync:rural-education-coverage
-npm run update:rural-education-coverage
+npm run sync:rural-education-coverage -- --state RS
+npm run sync:rural-education-coverage -- --state AL
+npm run update:rural-education-coverage -- --state RS
 ```
 
 O denominador usa as faixas rurais quinquenais da tabela SIDRA 10089 e os pesos
 municipais por idade simples da tabela 9606 somente nas bordas 4 e 15–17. O
 numerador usa `QT_MAT_BAS_4_5`, `QT_MAT_BAS_6_10`, `QT_MAT_BAS_11_14` e
 `QT_MAT_BAS_15_17` das escolas em atividade (`TP_SITUACAO_FUNCIONAMENTO=1`) e
-rurais (`TP_LOCALIZACAO=2`). O snapshot fica em
-`data_pipeline/data/rural_education_coverage`; a execução com `--reuse-raw`
-revalida as respostas SIDRA já preservadas sem acessar a rede.
+rurais (`TP_LOCALIZACAO=2`). Cada snapshot fica em
+`data_pipeline/data/rural_education_coverage/<uf>`; a execução com
+`--reuse-raw` revalida as respostas SIDRA já preservadas sem acessar a rede.
+O recorte SIDRA, o prefixo IBGE e a contagem municipal são derivados do
+registro da UF. Se ambas as tabelas rurais estiverem vazias no banco, o
+exportador usa somente um snapshot estadual íntegro; tabela parcialmente
+preenchida, UF divergente ou hash inválido encerram a publicação.
 
-O contrato usa `taskId=education.core.rs`, estado `RS`, schema
+O contrato usa `taskId=education.core.<uf>`, estado normalizado por publicação,
+schema
 `education-task-fingerprint-v1`, algoritmo de fontes
 `education-source-digest-v1` e algoritmo de input
 `education-input-fingerprint-v1`. Os source digests cobrem os 21 DataFrames
@@ -476,11 +482,11 @@ seis casas além da maior precisão publicada; mudança acima desse limiar
 invalida o digest.
 
 O task state local fica em
-`data_pipeline/export/task-state/RS/education-core.json`. A escrita usa arquivo
+`data_pipeline/export/task-state/<UF>/education-core.json`. A escrita usa arquivo
 temporário, `fsync` e substituição atômica. O arquivo não é versionado, não é
 compartilhado entre estados e nunca é usado como fonte analítica. Ele contém
 somente digests, metadados de schema/versão/contagem e o manifesto forte dos
-499 outputs administrados. Não contém credenciais, ambiente completo, URL de
+outputs administrados da UF. Não contém credenciais, ambiente completo, URL de
 conexão, path pessoal nem valores municipais analíticos.
 
 A decisão exige manifesto anterior válido, mesmo `inputFingerprint` e os 499

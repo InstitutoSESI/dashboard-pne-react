@@ -325,6 +325,32 @@ class StaticDataSyncTests(unittest.TestCase):
         )
         self.assertFalse(print_dry_run.call_args.kwargs["run_sync"])
         self.assertIn("--state", dict(commands)["inequality"])
+        self.assertIn(str(update.PUBLIC_DATA_DIR), dict(commands)["validate"])
+
+    def test_al_validation_uses_the_state_publication_root(self) -> None:
+        args = SimpleNamespace(
+            dry_run=True,
+            skip_export=False,
+            skip_partition=False,
+            skip_education=False,
+            education_only=True,
+            skip_build=True,
+            build=False,
+            validate_only=False,
+            no_include_derived=False,
+            profile=False,
+            state="AL",
+        )
+        with (
+            patch.object(update, "parse_args", return_value=args),
+            patch.object(update, "print_dry_run") as print_dry_run,
+        ):
+            self.assertEqual(update.main(), 0)
+
+        commands = print_dry_run.call_args.args[0]
+        validate_command = dict(commands)["validate"]
+        self.assertIn(str(update.resolve_public_data_dir("AL")), validate_command)
+        self.assertEqual(validate_command[-2:], ["--state", "AL"])
 
     def test_full_update_materializes_staging_from_current_education_output(self) -> None:
         args = SimpleNamespace(

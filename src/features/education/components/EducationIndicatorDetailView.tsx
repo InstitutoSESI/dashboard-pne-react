@@ -369,7 +369,7 @@ function IdebDetailPanel({
                 <small>{latestComposition.ano} · {indicator.mainCutLabel}</small>
               </article>
             </div>
-            <p className="ideb-composition-card__note">
+            <p className="educacao-explore__note ideb-composition-card__note">
               Fórmula oficial: N × P = IDEB. O cálculo usa os valores completos da fonte; os valores acima são exibidos arredondados.
             </p>
           </>
@@ -394,7 +394,7 @@ function IdebDetailPanel({
             />
             {learningSeries.length >= 2 ? (
               <EducationLineChart
-                color="#b7791f"
+                color="var(--signal-ochre)"
                 formatLabel={formatIdebComponent}
                 scaleType="ideb"
                 series={learningSeries}
@@ -412,7 +412,7 @@ function IdebDetailPanel({
             />
             {flowSeries.length >= 2 ? (
               <EducationLineChart
-                color="#7c3aed"
+                color="var(--institutional-blue)"
                 formatLabel={formatIdebComponent}
                 scaleType="ratio"
                 series={flowSeries}

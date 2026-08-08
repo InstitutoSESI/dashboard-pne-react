@@ -77,7 +77,7 @@ function EducationSupportDataItem({ fullRow, item, paired, supportId, third, wid
       id={itemId}
       title={title}
     >
-      <ExploreItem item={item} />
+      <ExploreItem item={item} sectionTitle={title} />
     </EducationSupportDataCard>
   )
 }
@@ -137,7 +137,7 @@ function getDetailTabLabel(item) {
   return item.title ?? 'Detalhamento'
 }
 
-function ExploreItem({ item }) {
+function ExploreItem({ item, sectionTitle }) {
   const isSchoolStageMethodology = item.key === 'rede-etapa' && Boolean(item.note)
   const noteEl = isSchoolStageMethodology ? (
     <MethodNote className="educacao-explore__note">{item.note}</MethodNote>
@@ -151,6 +151,7 @@ function ExploreItem({ item }) {
           categories={item.categories}
           data={item.data}
           formatLabel={item.formatLabel}
+          sectionTitle={sectionTitle}
           title={item.title}
         />
         {noteEl}
@@ -195,6 +196,7 @@ function ExploreItem({ item }) {
               categories={item.historyCategories}
               data={item.historyData}
               formatLabel={item.formatLabel}
+              sectionTitle={sectionTitle}
               title={item.historyTitle}
             />
           </div>

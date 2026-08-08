@@ -431,7 +431,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
                       type="button"
                     >
                       <span className="cycle-theme-nav__chip-label">
-                        {group.shortLabel ?? group.label}
+                        {group.label}
                       </span>
                       <span className="cycle-theme-nav__chip-count">{group.items.length}</span>
                     </button>

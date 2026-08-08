@@ -13,6 +13,7 @@ export function EducationStackedBarChart({
   categories,
   data,
   title,
+  sectionTitle,
   formatLabel = (v) => String(v),
 }) {
   const [activeSegment, setActiveSegment] = useState(null)
@@ -26,7 +27,7 @@ export function EducationStackedBarChart({
 
   return (
     <div className="education-chart education-chart--stacked">
-      {title && <h4 className="education-chart__title">{title}</h4>}
+      {title && title !== sectionTitle ? <h4 className="education-chart__title">{title}</h4> : null}
       {chart.categories.length ? (
         <ChartLegend className="education-stacked-legend" items={chart.categories} />
       ) : null}
@@ -171,7 +172,9 @@ function buildStackedChart(data, categories) {
   return {
     categories: visibleCategories,
     rows,
-    visibleYearSet: new Set(selectPneYearTicks(rows, 6).map((row) => row.year)),
+    visibleYearSet: new Set(
+      (rows.length <= 8 ? rows : selectPneYearTicks(rows, 6)).map((row) => row.year),
+    ),
     yTicks,
   }
 }

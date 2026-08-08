@@ -20,12 +20,12 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from src.state_config import StateConfig
+
 
 CENSUS_YEAR = 2022
 VARIABLE_ID = "93"
 TERRITORIAL_LEVEL = "N6"
-RS_STATE_ID = "43"
-EXPECTED_MUNICIPALITIES = 497
 IMPORTER_SCHEMA_VERSION = 1
 
 RURAL_GROUP_AGGREGATE_ID = "10089"
@@ -59,12 +59,12 @@ EXACT_AGE_METADATA_URL = (
 )
 
 
-def rural_group_data_url() -> str:
+def rural_group_data_url(state_config: StateConfig) -> str:
     age_ids = ",".join(RURAL_GROUP_AGE_IDS.values())
     return (
         "https://servicodados.ibge.gov.br/api/v3/agregados/"
         f"{RURAL_GROUP_AGGREGATE_ID}/periodos/{CENSUS_YEAR}/variaveis/{VARIABLE_ID}"
-        f"?localidades={TERRITORIAL_LEVEL}[N3[{RS_STATE_ID}]]"
+        f"?localidades={TERRITORIAL_LEVEL}[N3[{state_config.municipality_ibge_prefix}]]"
         f"&classificacao={SEX_CLASSIFICATION_ID}[{SEX_TOTAL_ID}]"
         f"|{RURAL_GROUP_AGE_CLASSIFICATION_ID}[{age_ids}]"
         f"|{LOCATION_CLASSIFICATION_ID}[{LOCATION_TOTAL_ID}]"
@@ -73,12 +73,12 @@ def rural_group_data_url() -> str:
     )
 
 
-def exact_age_data_url() -> str:
+def exact_age_data_url(state_config: StateConfig) -> str:
     age_ids = ",".join(EXACT_AGE_IDS.values())
     return (
         "https://servicodados.ibge.gov.br/api/v3/agregados/"
         f"{EXACT_AGE_AGGREGATE_ID}/periodos/{CENSUS_YEAR}/variaveis/{VARIABLE_ID}"
-        f"?localidades={TERRITORIAL_LEVEL}[N3[{RS_STATE_ID}]]"
+        f"?localidades={TERRITORIAL_LEVEL}[N3[{state_config.municipality_ibge_prefix}]]"
         f"&classificacao={RACE_CLASSIFICATION_ID}[{RACE_TOTAL_ID}]"
         f"|{SEX_CLASSIFICATION_ID}[{SEX_TOTAL_ID}]"
         f"|{EXACT_AGE_CLASSIFICATION_ID}[{age_ids}]"
@@ -538,6 +538,7 @@ def estimate_population_4_17(
 def extract_to_directory(
     output_dir: Path,
     *,
+    state_config: StateConfig,
     municipality_codes: set[str],
     rural_metadata_content: bytes | None = None,
     rural_data_content: bytes | None = None,
@@ -546,11 +547,28 @@ def extract_to_directory(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Adquire, valida e materializa um snapshot auditável em diretório de staging."""
 
+    if len(municipality_codes) != state_config.expected_municipality_count:
+        raise ValueError(
+            "Universo municipal rural diverge da configuração estadual: "
+            f"{len(municipality_codes)}/{state_config.expected_municipality_count}."
+        )
+    invalid_codes = sorted(
+        code
+        for code in municipality_codes
+        if re.fullmatch(r"\d{7}", code) is None
+        or not code.startswith(state_config.municipality_ibge_prefix)
+    )
+    if invalid_codes:
+        raise ValueError(
+            f"Universo municipal rural contém códigos fora de {state_config.state_code}: "
+            f"{invalid_codes[:5]}."
+        )
+
     output_dir.mkdir(parents=True, exist_ok=True)
     rural_metadata_content = rural_metadata_content or download_bytes(RURAL_GROUP_METADATA_URL)
-    rural_data_content = rural_data_content or download_bytes(rural_group_data_url())
+    rural_data_content = rural_data_content or download_bytes(rural_group_data_url(state_config))
     exact_metadata_content = exact_metadata_content or download_bytes(EXACT_AGE_METADATA_URL)
-    exact_data_content = exact_data_content or download_bytes(exact_age_data_url())
+    exact_data_content = exact_data_content or download_bytes(exact_age_data_url(state_config))
 
     rural_contract = validate_rural_group_metadata(json.loads(rural_metadata_content))
     exact_contract = validate_exact_age_metadata(json.loads(exact_metadata_content))
@@ -558,17 +576,22 @@ def extract_to_directory(
         "provider": "IBGE",
         "survey": "Censo Demográfico 2022",
         "period": CENSUS_YEAR,
+        "state": {
+            "code": state_config.state_code,
+            "municipalityIbgePrefix": state_config.municipality_ibge_prefix,
+            "expectedMunicipalityCount": state_config.expected_municipality_count,
+        },
         "ruralGroups": {
             **rural_contract,
             "metadataUrl": RURAL_GROUP_METADATA_URL,
-            "queryUrl": rural_group_data_url(),
+            "queryUrl": rural_group_data_url(state_config),
             "metadataSha256": _sha256(rural_metadata_content),
             "responseSha256": _sha256(rural_data_content),
         },
         "exactAgeWeights": {
             **exact_contract,
             "metadataUrl": EXACT_AGE_METADATA_URL,
-            "queryUrl": exact_age_data_url(),
+            "queryUrl": exact_age_data_url(state_config),
             "metadataSha256": _sha256(exact_metadata_content),
             "responseSha256": _sha256(exact_data_content),
         },
@@ -596,9 +619,10 @@ def extract_to_directory(
     }
     for filename, content in raw_files.items():
         (output_dir / filename).write_bytes(content)
-    (output_dir / "population_estimates.json").write_text(
-        json.dumps(estimates, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    (output_dir / "population_estimates.json").write_bytes(
+        (json.dumps(estimates, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+            "utf-8"
+        )
     )
     manifest = {
         "schemaVersion": IMPORTER_SCHEMA_VERSION,
@@ -611,8 +635,9 @@ def extract_to_directory(
             "são estimadas com pesos da distribuição etária municipal da tabela 9606."
         ),
     }
-    (output_dir / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    (output_dir / "manifest.json").write_bytes(
+        (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+            "utf-8"
+        )
     )
     return estimates, manifest

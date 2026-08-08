@@ -911,18 +911,6 @@ function coverageSeriesEntries(coverage) {
     .sort((a, b) => a.year - b.year)
 }
 
-function coverageStatusLabel(status) {
-  return ({
-    available: 'Disponível',
-    derived_zero: 'Zero derivado',
-    denominator_zero_with_enrollments: 'População-base zero com matrículas',
-    missing: 'Não informado',
-    not_applicable: 'Não aplicável',
-    suppressed: 'Suprimido',
-    unavailable: 'Indisponível',
-  })[status] ?? 'Indisponível'
-}
-
 function buildCoverageConstructionItem(coverage, {
   key,
   populationColumnLabel,
@@ -935,7 +923,6 @@ function buildCoverageConstructionItem(coverage, {
     populacao: populationValue,
     matriculas: point.enrollments?.alignedTotal,
     cobertura: point.status === 'available' ? point.percentage : null,
-    situacao: coverageStatusLabel(point.status),
   }))
 
   if (!rows.length) return null
@@ -952,7 +939,6 @@ function buildCoverageConstructionItem(coverage, {
       { key: 'populacao', label: populationColumnLabel, format: formatValue },
       { key: 'matriculas', label: 'Matrículas consideradas', format: formatNumber },
       { key: 'cobertura', label: 'Cobertura estimada', format: formatPercent },
-      { key: 'situacao', label: 'Situação' },
     ],
     rows,
     note,
@@ -994,36 +980,6 @@ function buildCoverageEnrollmentCompositionItem(coverage, {
 function buildRuralCoverageExplore(coverage) {
   const population = coverage?.population ?? {}
   const populationYear = population.year ?? 2022
-  const components = population.components ?? {}
-  const populationRows = [
-    {
-      faixa: '0 a 4 anos — somente a idade 4',
-      populacao: components.rural0To4,
-      parcela: !isMissing(components.age4Weight) ? Number(components.age4Weight) * 100 : null,
-    },
-    {
-      faixa: '5 a 9 anos — faixa integral',
-      populacao: components.rural5To9,
-      parcela: !isMissing(components.rural5To9) ? 100 : null,
-    },
-    {
-      faixa: '10 a 14 anos — faixa integral',
-      populacao: components.rural10To14,
-      parcela: !isMissing(components.rural10To14) ? 100 : null,
-    },
-    {
-      faixa: '15 a 19 anos — somente 15 a 17',
-      populacao: components.rural15To19,
-      parcela: !isMissing(components.age15To17Weight) ? Number(components.age15To17Weight) * 100 : null,
-    },
-    {
-      faixa: 'Total estimado de 4 a 17 anos',
-      populacao: population.status === 'available' ? population.value : null,
-      parcela: null,
-    },
-  ]
-  const hasPopulationData = !isMissing(population.value)
-    || Object.values(components).some((value) => !isMissing(value))
 
   return [
     buildCoverageConstructionItem(coverage, {
@@ -1042,21 +998,6 @@ function buildRuralCoverageExplore(coverage) {
       ],
       note: 'A soma das quatro faixas forma o numerador anual. São matrículas registradas em escolas ativas de localização rural, não pessoas únicas nem estudantes necessariamente residentes na zona rural.',
     }),
-    hasPopulationData ? {
-      key: 'rural-cobertura-populacao',
-      type: 'table',
-      title: 'Como a população rural de 4 a 17 anos foi estimada',
-      description: 'Detalha as faixas rurais do Censo 2022 e a parcela de cada faixa incorporada ao denominador.',
-      tabLabel: 'População-base',
-      tabPriority: 2,
-      columns: [
-        { key: 'faixa', label: 'Faixa usada', rowHeader: true },
-        { key: 'populacao', label: `População rural (${populationYear})`, format: formatValue },
-        { key: 'parcela', label: 'Parcela incluída', format: formatPercent },
-      ],
-      rows: populationRows,
-      note: 'Estimativa: (população rural de 0–4 × peso da idade 4) + população rural de 5–9 + população rural de 10–14 + (população rural de 15–19 × peso das idades 15–17). Os pesos das faixas de borda usam a distribuição etária total do próprio município.',
-    } : null,
   ].filter(Boolean)
 }
 

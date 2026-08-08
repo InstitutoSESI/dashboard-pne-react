@@ -149,9 +149,15 @@ segundo também atualiza as duas tabelas intermediárias no banco e publica a
 Educação pelo fluxo incremental controlado:
 
 ```powershell
-npm run sync:rural-education-coverage
-npm run update:rural-education-coverage
+npm run sync:rural-education-coverage -- --state RS
+npm run sync:rural-education-coverage -- --state AL
+npm run update:rural-education-coverage -- --state RS
 ```
+
+Os snapshots ficam isolados por UF em
+`data_pipeline/data/rural_education_coverage/<uf>`. Sem `--apply`, o sync nunca
+escreve no banco; quando as tabelas rurais da UF estiverem vazias, o exportador
+de Educação usa o snapshot estadual validado como fallback fail-closed.
 
 `npm run update:data` exporta, particiona, atualiza Educação, incorpora o documento
 municipal de desigualdade em `details.json`, sincroniza `public/data` e valida os
@@ -160,7 +166,7 @@ derivada e valida. `update:data:skip-build` permanece aceito como alias históri
 do fluxo padrão sem build.
 
 `npm run update:education-data:fingerprint-shadow` executa a mesma Educação
-integral e apenas reporta se a tarefa `education.core.rs` poderia ser pulada;
+integral e apenas reporta se a tarefa `education.core.<uf>` poderia ser pulada;
 nenhum skip é ativado. `update:education-data:incremental` torna o skip opt-in
 somente no fluxo `education-only`; `update:data:education-incremental` mantém os
 demais domínios integrais e torna incremental apenas a etapa educacional.

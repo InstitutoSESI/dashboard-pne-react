@@ -3,6 +3,8 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -25,6 +27,53 @@ SPEC.loader.exec_module(MODULE)
 
 
 class EducationEnrollmentExportTest(unittest.TestCase):
+    def test_loads_validated_state_snapshot_when_both_rural_tables_are_empty(self):
+        frames = {
+            "populacao_rural_estimada_4_17": pd.DataFrame(),
+            "matriculas_rurais_faixa_etaria": pd.DataFrame(),
+        }
+        population_rows = [{
+            "ano_censo": 2022,
+            "id_municipio": "2704302",
+            "metadados_fonte": {"provider": "IBGE"},
+        }]
+        enrollment_rows = [{
+            "ano": 2025,
+            "id_municipio": "2704302",
+            "faixa_etaria": "4_17",
+            "matriculas": 10,
+            "metadados_fonte": {"provider": "INEP"},
+        }]
+        state = SimpleNamespace(state_code="AL")
+        manifest = {"snapshotSha256": "abc"}
+
+        with patch.object(
+            MODULE,
+            "load_rural_education_snapshot",
+            return_value=(population_rows, enrollment_rows, manifest),
+        ):
+            loaded = MODULE._load_rural_snapshot_fallback(frames, state, object())
+
+        self.assertTrue(loaded)
+        self.assertEqual(len(frames["populacao_rural_estimada_4_17"]), 1)
+        self.assertEqual(len(frames["matriculas_rurais_faixa_etaria"]), 1)
+        self.assertEqual(
+            frames["populacao_rural_estimada_4_17"].iloc[0]["metadados_fonte"],
+            '{"provider":"IBGE"}',
+        )
+
+    def test_rejects_partial_rural_sources_in_database(self):
+        frames = {
+            "populacao_rural_estimada_4_17": pd.DataFrame([{"id_municipio": "2704302"}]),
+            "matriculas_rurais_faixa_etaria": pd.DataFrame(),
+        }
+        with self.assertRaisesRegex(MODULE.EducationPublicationError, "Fontes rurais parciais"):
+            MODULE._load_rural_snapshot_fallback(
+                frames,
+                SimpleNamespace(state_code="AL"),
+                object(),
+            )
+
     def test_total_uses_official_basic_education_value(self):
         municipality_id = "4300001"
         categories = pd.DataFrame(

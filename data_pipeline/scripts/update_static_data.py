@@ -935,6 +935,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
         "run",
         "validate:details",
         "--",
+        "--data-dir",
+        str(public_data_root),
         "--state",
         state_config.state_code,
     ]

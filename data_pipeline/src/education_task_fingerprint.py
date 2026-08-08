@@ -221,6 +221,7 @@ _SHARED_CONTRACT_FILES = (
     "data_pipeline/src/municipality_registry.py",
     "data_pipeline/src/pipeline_profiling.py",
     "data_pipeline/src/rural_education_coverage.py",
+    "data_pipeline/src/rural_education_snapshot.py",
     "data_pipeline/src/school_infrastructure.py",
     "data_pipeline/src/school_infrastructure_materialization.py",
     "data_pipeline/src/state_config.py",

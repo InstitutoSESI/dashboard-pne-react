@@ -4207,7 +4207,7 @@
 }
 
 @media screen {
-  .cycle-theme-nav {
+  .dashboard-shell .content-area .cycle-theme-nav {
     position: sticky;
     top: var(--context-bar-height);
     z-index: 8;
@@ -4216,24 +4216,24 @@
     border-bottom: var(--border-divider);
     background: var(--surface-card);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
     gap: var(--space-4);
   }
 
-  .cycle-theme-nav__chips {
+  .dashboard-shell .content-area .cycle-theme-nav__chips {
     min-width: 0;
     display: flex;
     flex: 1 1 auto;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-2);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
+    overflow: visible;
   }
 
-  .cycle-theme-nav__chip {
+  .dashboard-shell .content-area .cycle-theme-nav__chip {
     min-height: var(--control-height);
-    max-width: 22ch;
+    max-width: none;
     padding: var(--control-padding-block) var(--control-padding-inline);
     border: var(--border-width) solid var(--control-border);
     border-radius: var(--control-radius);
@@ -4251,11 +4251,11 @@
     transition: var(--control-transition);
   }
 
-  .cycle-theme-nav__chip-label {
+  .dashboard-shell .content-area .cycle-theme-nav__chip-label {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .cycle-theme-nav__chip-count {
@@ -4288,20 +4288,26 @@
     color: var(--text-strong);
   }
 
-  .cycle-theme-nav__search {
+  .dashboard-shell .content-area .cycle-theme-nav__search {
     width: min(280px, 34vw);
     flex: 0 0 auto;
+  }
+
+  .dashboard-shell .content-area .legal-goals-theme-filter__chips.platform-filter-list {
+    flex-wrap: wrap;
+    padding-bottom: 0;
+    overflow-x: visible;
   }
 }
 
 @media screen and (max-width: 900px) {
-  .cycle-theme-nav {
+  .dashboard-shell .content-area .cycle-theme-nav {
     align-items: stretch;
     flex-direction: column;
     gap: var(--space-2);
   }
 
-  .cycle-theme-nav__search {
+  .dashboard-shell .content-area .cycle-theme-nav__search {
     width: 100%;
   }
 

@@ -304,6 +304,24 @@ test('cycle cards keep metrics on one row and move technical metadata to detail 
   assert.doesNotMatch(detailNote, /\b(?:mat_infantil_pre|pop_4_5)\b/)
 })
 
+test('theme filters wrap complete labels without horizontal clipping', () => {
+  const cyclePageSource = readFileSync(
+    new URL('../../src/pages/CyclePage.jsx', import.meta.url),
+    'utf8',
+  )
+  const css = readFileSync(
+    new URL('../../src/styles/pne-cycle-experience.css', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(cyclePageSource, /\{group\.label\}/)
+  assert.doesNotMatch(cyclePageSource, /group\.shortLabel/)
+  assert.match(css, /\.dashboard-shell \.content-area \.cycle-theme-nav__chips \{[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow: visible;/)
+  assert.match(css, /\.dashboard-shell \.content-area \.cycle-theme-nav__chip \{[\s\S]*?max-width: none;/)
+  assert.match(css, /\.dashboard-shell \.content-area \.cycle-theme-nav__chip-label \{[\s\S]*?white-space: normal;/)
+  assert.match(css, /\.legal-goals-theme-filter__chips\.platform-filter-list \{[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow-x: visible;/)
+})
+
 test('print and mobile CSS expose sources and use responsive grids without internal scroll', () => {
   const sourceNotes = readFileSync(
     new URL('../../src/components/PneSourceNotes.jsx', import.meta.url),

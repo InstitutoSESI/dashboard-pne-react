@@ -1374,7 +1374,6 @@ test('retrato indígena preserva cobertura e os quatro totais oficiais, inclusiv
     populacao: 16,
     matriculas: 2,
     cobertura: 12.5,
-    situacao: 'Disponível',
   })
   assert.deepEqual(items[0].explore[1].data.at(-1), {
     year: 2025,
@@ -1443,22 +1442,44 @@ test('territórios expõem a cobertura rural estimada sem limitar valores acima 
   assert.deepEqual(item.explore.map((detail) => detail.key), [
     'rural-cobertura-construcao',
     'rural-cobertura-matriculas',
-    'rural-cobertura-populacao',
   ])
   assert.deepEqual(item.explore[0].rows, [
-    { ano: '2023', populacao: 400, matriculas: 395, cobertura: 98.75, situacao: 'Disponível' },
-    { ano: '2024', populacao: 400, matriculas: null, cobertura: null, situacao: 'Indisponível' },
-    { ano: '2025', populacao: 400, matriculas: 502, cobertura: 125.5, situacao: 'Disponível' },
+    { ano: '2023', populacao: 400, matriculas: 395, cobertura: 98.75 },
+    { ano: '2024', populacao: 400, matriculas: null, cobertura: null },
+    { ano: '2025', populacao: 400, matriculas: 502, cobertura: 125.5 },
   ])
   assert.deepEqual(item.explore[1].data.map(({ year }) => year), [2023, 2025])
-  assert.deepEqual(item.explore[2].rows.at(-1), {
-    faixa: 'Total estimado de 4 a 17 anos',
-    populacao: 400,
-    parcela: null,
-  })
+  assert.doesNotMatch(JSON.stringify(item.explore), /População-base|Situação/)
   assert.match(item.explore[0].note, /÷.*× 100/)
   assert.equal(catalogItem.groupKey, 'territorios')
   assert.equal(catalogItem.seriesPath, 'coberturaRuralEstimada.series')
+})
+
+test('gráfico rural preserva todos os anos curtos e evita título duplicado', () => {
+  const chartSource = readFileSync(path.resolve('src/components/EducationStackedBarChart.jsx'), 'utf8')
+  const supportSource = readFileSync(
+    path.resolve('src/features/education/components/EducationIndicatorSupportData.jsx'),
+    'utf8',
+  )
+
+  assert.match(chartSource, /rows\.length <= 8 \? rows : selectPneYearTicks\(rows, 6\)/)
+  assert.match(chartSource, /title && title !== sectionTitle/)
+  assert.match(chartSource, /aria-label=\{title \|\| 'Gráfico de barras empilhadas'\}/)
+  assert.match(supportSource, /sectionTitle=\{sectionTitle\}/)
+})
+
+test('detalhe do IDEB usa cores institucionais e preserva a proporção dos SVGs', () => {
+  const detailSource = readFileSync(
+    path.resolve('src/features/education/components/EducationIndicatorDetailView.tsx'),
+    'utf8',
+  )
+  const cssSource = readFileSync(path.resolve('src/styles/education-ideb-detail.css'), 'utf8')
+
+  assert.match(detailSource, /color="var\(--signal-ochre\)"/)
+  assert.match(detailSource, /color="var\(--institutional-blue\)"/)
+  assert.doesNotMatch(`${detailSource}\n${cssSource}`, /#6d28d9|#7c3aed/i)
+  assert.match(cssSource, /\.education-chart svg[\s\S]*height: auto;/)
+  assert.doesNotMatch(cssSource, /(?:min-height|height|max-height): 270px/)
 })
 
 test('indicadores de infraestrutura expõem recortes por rede e localização', () => {

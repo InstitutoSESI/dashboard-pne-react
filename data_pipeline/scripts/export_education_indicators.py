@@ -35,7 +35,12 @@ from src.education_municipality_routes import (  # noqa: E402
 )
 from src.indigenous_education_coverage import build_coverage_contract  # noqa: E402
 from src.rural_education_coverage import (  # noqa: E402
+    ENROLLMENT_YEARS,
     build_coverage_contract as build_rural_coverage_contract,
+)
+from src.rural_education_snapshot import (  # noqa: E402
+    load_rural_education_snapshot,
+    resolve_rural_education_snapshot_dir,
 )
 from src.municipality_registry import (  # noqa: E402
     MunicipalityRegistry,
@@ -3302,6 +3307,58 @@ def diagnosticar_jsons(gerados_mun):
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
+def _load_rural_snapshot_fallback(frames, state_config, registry):
+    """Usa o snapshot estadual quando o par rural ainda não existe no banco."""
+
+    population_key = "populacao_rural_estimada_4_17"
+    enrollment_key = "matriculas_rurais_faixa_etaria"
+    population = frames[population_key]
+    enrollment = frames[enrollment_key]
+    if population.empty != enrollment.empty:
+        raise EducationPublicationError(
+            "Fontes rurais parciais no banco: população e matrículas devem existir juntas."
+        )
+    if not population.empty:
+        return False
+
+    snapshot_dir = resolve_rural_education_snapshot_dir(state_config)
+    snapshot = load_rural_education_snapshot(
+        state_config,
+        registry,
+        expected_years=ENROLLMENT_YEARS,
+        snapshot_dir=snapshot_dir,
+    )
+    if snapshot is None:
+        log(
+            f"Snapshot rural ausente para {state_config.state_code}; "
+            "o contrato será publicado como indisponível."
+        )
+        return False
+
+    population_rows, enrollment_rows, manifest = snapshot
+    for key, rows in (
+        (population_key, population_rows),
+        (enrollment_key, enrollment_rows),
+    ):
+        frame = pd.DataFrame(rows)
+        if "metadados_fonte" in frame.columns:
+            frame["metadados_fonte"] = frame["metadados_fonte"].map(
+                lambda value: json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                if isinstance(value, dict)
+                else value
+            )
+        frames[key] = frame
+    log(
+        f"Snapshot rural estadual carregado para {state_config.state_code}: "
+        f"sha256={manifest['snapshotSha256']}."
+    )
+    return True
+
+
 def load_education_inputs(state_config, registry, *, diagnostic=False):
     """Carrega uma unica vez todas as fontes da tarefa educacional."""
 
@@ -3335,6 +3392,7 @@ def load_education_inputs(state_config, registry, *, diagnostic=False):
                 )
                 frames[key] = frame
             log(f"  {view_name}: {len(frame)} linhas")
+        _load_rural_snapshot_fallback(frames, state_config, registry)
         sources_event.add_counters(
             sourceFrames=len(frames) + 1,
             sourceRows=len(municipalities)
