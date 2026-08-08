@@ -92,3 +92,11 @@ export const ACTIVE_STATE_CONFIG: StateConfig = parseStateConfig(readInjectedAct
  * recorte estadual é comunicado pelo conteúdo, não pela marca.
  */
 export const PLATFORM_LABEL = 'Painel SESI de Educação'
+
+/**
+ * Identificador municipal IBGE (7 dígitos) do estado ativo. Contratos de dados
+ * municipais devem validar contra este padrão, nunca contra um prefixo fixo.
+ */
+export const ACTIVE_MUNICIPALITY_ID_PATTERN = new RegExp(
+  `^${ACTIVE_STATE_CONFIG.municipalityIbgePrefix}\\d{5}$`,
+)

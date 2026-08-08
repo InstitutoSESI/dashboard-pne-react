@@ -1,4 +1,5 @@
 import type { MunicipalEducationOverviewV1 } from '../features/education/municipalEducationOverviewTypes'
+import { ACTIVE_MUNICIPALITY_ID_PATTERN } from '../config/stateConfig.js'
 
 export const MUNICIPAL_EDUCATION_OVERVIEW_SCHEMA_VERSION = 'municipal-education-overview-v1' as const
 
@@ -29,7 +30,7 @@ interface MunicipalEducationOverviewLoadState {
 
 export function normalizeMunicipalEducationOverviewId(idMunicipality: string): string {
   const normalized = idMunicipality.trim()
-  if (!/^43\d{5}$/.test(normalized)) {
+  if (!ACTIVE_MUNICIPALITY_ID_PATTERN.test(normalized)) {
     throw new MunicipalEducationOverviewLoadError('invalid_identifier', 'Município inválido para a visão geral da educação.')
   }
   return normalized

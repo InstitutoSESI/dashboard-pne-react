@@ -39,7 +39,13 @@ function calculateContractsHash() {
 }
 
 async function loadTypeScriptModule(path) {
-  const source = readFileSync(path, 'utf8');
+  // O módulo é importado isolado via data: URL, onde imports relativos não
+  // resolvem. Este teste valida a publicação RS, então o padrão do estado
+  // ativo é substituído pelo equivalente RS.
+  const source = readFileSync(path, 'utf8').replace(
+    /import \{ ACTIVE_MUNICIPALITY_ID_PATTERN \} from '[^']*stateConfig(?:\.js)?';?\r?\n/,
+    'const ACTIVE_MUNICIPALITY_ID_PATTERN = /^43\\d{5}$/;\n',
+  );
   const output = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;

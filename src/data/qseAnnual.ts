@@ -1,3 +1,5 @@
+import { ACTIVE_MUNICIPALITY_ID_PATTERN } from '../config/stateConfig.js'
+
 export const QSE_ANNUAL_SCHEMA_VERSION = 'qse-annual-v1' as const
 
 export interface QseAnnualPoint {
@@ -44,7 +46,7 @@ export class QseAnnualLoadError extends Error {
 
 export const resolveQseAnnualPath = (ibgeCode: string): string => {
   const normalized = ibgeCode.trim()
-  if (!/^43\d{5}$/.test(normalized)) {
+  if (!ACTIVE_MUNICIPALITY_ID_PATTERN.test(normalized)) {
     throw new QseAnnualLoadError('invalid_identifier', 'Código municipal inválido.')
   }
   return `/data/municipios/${normalized}/qse-anual.json`
@@ -110,7 +112,7 @@ export const isQseAnnualDocument = (payload: unknown): payload is QseAnnualDocum
     || candidate.indicatorId !== 'qse.distributed_amount'
     || typeof candidate.dataVersion !== 'string'
     || !candidate.municipality
-    || !/^43\d{5}$/.test(candidate.municipality.ibgeCode)
+    || !ACTIVE_MUNICIPALITY_ID_PATTERN.test(candidate.municipality.ibgeCode)
     || !Array.isArray(candidate.series)
     || !candidate.series.every(validatePoint)
   ) return false

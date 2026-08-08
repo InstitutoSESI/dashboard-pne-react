@@ -1,4 +1,5 @@
 import type { MunicipalFinanceDocumentV1 } from '../features/diagnostic/municipalFinanceTypes';
+import { ACTIVE_MUNICIPALITY_ID_PATTERN } from '../config/stateConfig.js';
 
 export const MUNICIPAL_FINANCE_SCHEMA_VERSION = 'municipal-finance-v1' as const;
 
@@ -61,7 +62,7 @@ const idleState = (): MunicipalFinanceLoadState => ({ status: 'idle', data: null
 
 export const normalizeMunicipalFinanceIdentifier = (identifier: string): string => {
   const normalized = identifier.trim().toLowerCase();
-  if (!/^43\d{5}$/.test(normalized)) {
+  if (!ACTIVE_MUNICIPALITY_ID_PATTERN.test(normalized)) {
     throw new MunicipalFinanceLoadError('invalid_identifier', `Identificador municipal inválido: ${identifier}`);
   }
   return normalized;

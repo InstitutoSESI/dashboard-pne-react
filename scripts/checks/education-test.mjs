@@ -20,6 +20,11 @@ execFileSync(process.execPath, [
 process.on('exit', () => rmSync(output, { force: true, recursive: true }))
 
 const moduleUrl = (relativePath) => pathToFileURL(path.join(output, relativePath)).href
+
+// O build injeta __ACTIVE_STATE_CONFIG__ via define do Vite; fora do build o
+// stateConfig falha fechado. Este teste valida a publicação RS, então o
+// mesmo contrato é injetado aqui antes de importar os módulos compilados.
+globalThis.__ACTIVE_STATE_CONFIG__ = JSON.parse(readFileSync('config/states/rs.json', 'utf8'))
 const selectors = await import(moduleUrl('src/features/education/educationSelectors.js'))
 const viewModels = await import(moduleUrl('src/features/education/educationViewModels.js'))
 const trajectoryStages = await import(moduleUrl('src/features/education/educationTrajectoryStages.js'))

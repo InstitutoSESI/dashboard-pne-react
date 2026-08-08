@@ -13,7 +13,13 @@ const readText = (relativePath) => readFile(join(repoRoot, relativePath), 'utf8'
 const readJson = (relativePath) => readText(relativePath).then(JSON.parse)
 
 async function loadTypeScriptModule(relativePath) {
-  const source = await readText(relativePath)
+  // O módulo é importado isolado via data: URL, onde imports relativos não
+  // resolvem. Este teste valida a publicação RS, então o padrão do estado
+  // ativo é substituído pelo equivalente RS.
+  const source = (await readText(relativePath)).replace(
+    /import \{ ACTIVE_MUNICIPALITY_ID_PATTERN \} from '[^']*stateConfig(?:\.js)?';?\r?\n/,
+    'const ACTIVE_MUNICIPALITY_ID_PATTERN = /^43\\d{5}$/;\n',
+  )
   const output = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText
