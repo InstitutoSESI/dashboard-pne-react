@@ -376,12 +376,31 @@ tabular. Lotes parciais continuam recusados e `AL` falha antes do primeiro
 efeito. `--no-promote` permanece disponível para shadow, mas é incompatível com
 skip porque não representa publicação final reutilizável.
 
+O snapshot da cobertura educacional rural é atualizado somente por comando
+explícito. Sem `--apply`, a execução adquire/valida as fontes e promove apenas o
+cache auditável; com o comando de atualização, as tabelas intermediárias são
+substituídas em uma transação e a Educação é publicada pelo fluxo incremental:
+
+```powershell
+npm run sync:rural-education-coverage
+npm run update:rural-education-coverage
+```
+
+O denominador usa as faixas rurais quinquenais da tabela SIDRA 10089 e os pesos
+municipais por idade simples da tabela 9606 somente nas bordas 4 e 15–17. O
+numerador usa `QT_MAT_BAS_4_5`, `QT_MAT_BAS_6_10`, `QT_MAT_BAS_11_14` e
+`QT_MAT_BAS_15_17` das escolas em atividade (`TP_SITUACAO_FUNCIONAMENTO=1`) e
+rurais (`TP_LOCALIZACAO=2`). O snapshot fica em
+`data_pipeline/data/rural_education_coverage`; a execução com `--reuse-raw`
+revalida as respostas SIDRA já preservadas sem acessar a rede.
+
 O contrato usa `taskId=education.core.rs`, estado `RS`, schema
 `education-task-fingerprint-v1`, algoritmo de fontes
 `education-source-digest-v1` e algoritmo de input
-`education-input-fingerprint-v1`. Os source digests cobrem os 19 DataFrames
-reais: a tabela municipal, 15 views PostgreSQL e três tabelas PostgreSQL
-alimentadas por snapshots locais de Educação/População Indígena. Transformações
+`education-input-fingerprint-v1`. Os source digests cobrem os 21 DataFrames
+reais: a tabela municipal, 15 views PostgreSQL e cinco tabelas PostgreSQL
+alimentadas por snapshots locais de Educação/População Indígena e cobertura
+rural. Transformações
 em memória, como os contratos municipais de infraestrutura escolar e os blocos
 de apresentação, são cobertas pela allowlist de código e contrato. O
 `utils_educacao` efetivamente importado é resolvido antes do digest; seu arquivo

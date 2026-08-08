@@ -24,6 +24,18 @@ const PNE_2026_THEMES_BY_ID = new Map(
   presentationPolicy.themes.map((theme) => [theme.themeId, theme]),
 )
 
+/*
+ * Perguntas editoriais dos temas do ciclo 2026–2036. O contrato de apresentação
+ * (contracts/pne2026-diagnostic-presentation-policy.json) é a fonte dos temas e
+ * da ordem; a pergunta é camada de leitura da interface e por isso vive aqui,
+ * sem tocar no JSON de contrato. Ciclo em curso: tom presente.
+ */
+const PNE_2026_THEME_QUESTIONS = {
+  atendimento_escolar_v2: 'Quem a rede está atendendo hoje?',
+  aprendizagem_trajetoria_escolar_v2: 'Como estão a aprendizagem e o fluxo escolar?',
+  profissionais_educacao_v2: 'Quem são e como atuam os profissionais da educação?',
+}
+
 const EDUCACAO_INFANTIL_KEYS = ['creche', 'pre_escola']
 
 const ENSINO_FUNDAMENTAL_KEYS = [
@@ -73,6 +85,7 @@ const THEMATIC_GROUPS = [
     key: 'educacao_basica',
     label: 'Educação Básica',
     shortLabel: 'Educação Básica',
+    question: 'O acesso à educação básica alcançou o previsto?',
     icon: 'EB',
     accent: '#2563eb',
     indicatorKeys: BASIC_EDUCATION_FILTERS[0].indicatorKeys,
@@ -114,6 +127,7 @@ const THEMATIC_GROUPS = [
     key: 'ideb_saeb_fluxo',
     label: 'IDEB / SAEB e Fluxo Escolar',
     shortLabel: 'IDEB / SAEB',
+    question: 'O que IDEB, SAEB e o fluxo escolar mostraram no ciclo?',
     icon: 'IS',
     accent: '#4f46e5',
     indicatorKeys: [
@@ -188,6 +202,7 @@ const THEMATIC_GROUPS = [
     key: 'escolaridade_populacao',
     label: 'Escolaridade e Alfabetização',
     shortLabel: 'Escolaridade e Alfabetização',
+    question: 'A escolaridade da população aumentou?',
     icon: 'EP',
     accent: '#0f766e',
     indicatorKeys: [
@@ -284,6 +299,7 @@ function buildPne2026ThematicGroups(categories) {
         key: theme.themeId,
         label: theme.label,
         shortLabel: theme.label,
+        question: PNE_2026_THEME_QUESTIONS[theme.themeId] ?? null,
         items: entries.map(({ item }) => item),
       }]
     })

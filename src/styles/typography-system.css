@@ -95,12 +95,18 @@
     letter-spacing: var(--tracking-flat);
   }
 
-  /* Alguns cabecalhos de grupo possuem seletores de dominio mais especificos.
-     Eles continuam sendo subtitulos funcionais, portanto usam a voz Sans. */
-  .dashboard-shell .content-area :is(
-    .education-indicator-group__heading,
-    .pne-diagnostic-theme__heading
-  ) h3 {
+  /* As perguntas que abrem grupos educacionais exercem o mesmo papel de
+     titulo de secao, independentemente do modulo que fornece os indicadores. */
+  .dashboard-shell .content-area .education-indicator-group__heading :is(h2, h3) {
+    font-family: var(--font-serif);
+    font-size: var(--type-section-title-size);
+    font-weight: var(--type-heading-weight);
+    line-height: var(--type-heading-line-height);
+    letter-spacing: var(--tracking-title);
+  }
+
+  /* Temas do diagnostico permanecem subtitulos funcionais em Sans. */
+  .dashboard-shell .content-area .pne-diagnostic-theme__heading h3 {
     font-family: var(--font-sans);
     font-size: var(--type-subsection-title-size);
     font-weight: var(--type-heading-weight);
@@ -149,7 +155,6 @@
     .indicator-card-shell__title,
     .meta-card__title,
     .education-indicator-card__title,
-    .financial-indicator-card__title,
     .education-section-link__title,
     .educacao-module-card__title,
     .educacao-scope-card__title,
@@ -373,7 +378,6 @@
   /* Dados preservam duas densidades deliberadas: 32px para valor principal e
      24px para cartao compacto. Nao ha terceiro tamanho de destaque. */
   .dashboard-shell .content-area :is(
-    .education-indicator-card__value,
     .education-summary-card__value,
     .education-card__value,
     .meta-card__metric--current,

@@ -169,6 +169,18 @@ EDUCATION_SOURCE_DEFINITIONS = (
         "postgres_table_from_local_snapshot",
     ),
     EducationSourceDefinition(
+        "education.snapshot.populacao_rural_estimada_4_17_municipal",
+        "populacao_rural_estimada_4_17",
+        "populacao_rural_estimada_4_17_municipal",
+        "postgres_table_from_local_snapshot",
+    ),
+    EducationSourceDefinition(
+        "education.snapshot.matriculas_rurais_faixa_etaria_municipal",
+        "matriculas_rurais_faixa_etaria",
+        "matriculas_rurais_faixa_etaria_municipal",
+        "postgres_table_from_local_snapshot",
+    ),
+    EducationSourceDefinition(
         "education.view.vw_educacao_sistema_s",
         "sistema_s",
         "vw_educacao_sistema_s",
@@ -204,6 +216,7 @@ EDUCATION_CONTRACT_FILE_ALLOWLIST = (
     "data_pipeline/src/indigenous_education_coverage.py",
     "data_pipeline/src/municipality_registry.py",
     "data_pipeline/src/pipeline_profiling.py",
+    "data_pipeline/src/rural_education_coverage.py",
     "data_pipeline/src/school_infrastructure.py",
     "data_pipeline/src/school_infrastructure_materialization.py",
     "data_pipeline/src/state_config.py",

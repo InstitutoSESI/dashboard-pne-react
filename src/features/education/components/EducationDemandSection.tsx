@@ -43,9 +43,13 @@ interface EducationDemandSectionProps {
 }
 
 const DISPLAY_TITLES: Partial<Record<EducationProjectedIndicator['indicatorKey'], string>> = {
+  creche: 'Atendimento em creche — 0 a 3 anos',
+  pre_escola: 'Atendimento na pré-escola — 4 a 5 anos',
+  infantil_0_5: 'Educação Infantil — 0 a 5 anos',
   basico_6_17: 'Educação básica — 6 a 17 anos',
   obrigatoria_4_17: 'Escolaridade obrigatória — 4 a 17 anos',
   escolar_6_14: 'Atendimento escolar — 6 a 14 anos',
+  basico_15_17: 'Educação básica — 15 a 17 anos',
 }
 
 /*
@@ -139,8 +143,9 @@ export function EducationDemandSection({
         description={(
           <span>Histórico dos indicadores e cenários de atendimento até 2036, considerando a evolução das matrículas e da população.</span>
         )}
+        eyebrow="Indicadores de Educação / Cenários de atendimento escolar"
         headingRef={pageTitleRef}
-        title="Cenários de atendimento escolar"
+        title="Como o atendimento escolar pode evoluir?"
         variant="scenarios"
       />
 
@@ -196,7 +201,7 @@ export function EducationDemandSection({
               </div>
             )}
             id="education-attendance-section-title"
-            title="Atendimento por indicador"
+            title="Escolha o indicador e o recorte"
             variant="scenarios"
           />
 
@@ -232,6 +237,9 @@ function ProjectedIndicatorSection({ cut, indicator }: {
   const description = indicator.kind === 'age_coverage'
     ? `Relação entre as matrículas registradas no município e a população de referência de ${indicator.ageRange}.`
     : 'Participação da educação básica pública em tempo integral, com trajetória futura para as referências do PNE.'
+  const eyebrowLabel = indicator.kind === 'age_coverage'
+    ? 'Cobertura por faixa etária'
+    : 'Tempo integral'
 
   return (
     <section
@@ -240,6 +248,7 @@ function ProjectedIndicatorSection({ cut, indicator }: {
     >
       <header className="detail-heading educacao-detail-heading education-attendance-detail__header">
         <div className="detail-heading__copy">
+          <span className="eyebrow">{eyebrowLabel}</span>
           <h2 id={`education-attendance-${indicator.indicatorKey}-title`}>{displayTitle}</h2>
           <p>{description}</p>
         </div>

@@ -3,6 +3,7 @@ import { ContentState } from '../../../components/ContentState.jsx'
 import { DetailNavigation } from '../../../components/DetailNavigation.jsx'
 import { EducationIndicatorCard } from '../../../components/EducationIndicatorCard.jsx'
 import { IndigenousEducationPanel } from '../../../components/IndigenousEducationPanel.jsx'
+import { QuestionHeading } from '../../../components/QuestionHeading.jsx'
 import { SearchField } from '../../../components/SearchField.jsx'
 import { SistemaSPanel } from '../../../components/SistemaSPanel.jsx'
 import {
@@ -135,6 +136,7 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
     items: Array<EducationIndicatorResult | TrajectoryStageCard>
     key?: string
     label?: string
+    question?: string
   }> = selectedSectionKey === EDUCATION_SECTION_KEYS.trajectory
     ? trajectoryStageGroups
     : visibleGroups
@@ -252,10 +254,22 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
         </div>
       ) : (
         <div className="education-indicator-groups">
-          {renderedGroups.map((group) => (
+          {renderedGroups.map((group) => {
+            /*
+             * Curadoria editorial: o grupo vira pergunta quando o catálogo
+             * define `question`; sem isso, o título é factual (label) e sem
+             * eyebrow, que só repetiria o mesmo texto.
+             */
+            const asQuestion = Boolean(group.question)
+            return (
             <section className={`education-indicator-group education-indicator-group--${group.key}`} key={group.key} aria-labelledby={`education-group-${group.key}`}>
               <div className="education-indicator-group__heading">
-                <h3 id={`education-group-${group.key}`}>{group.label}</h3>
+                <div>
+                  {asQuestion ? <span className="eyebrow">{group.label}</span> : null}
+                  <h2 id={`education-group-${group.key}`}>
+                    {asQuestion ? <QuestionHeading text={group.question} /> : group.label}
+                  </h2>
+                </div>
                 <span>{formatEducationGroupCount(group)}</span>
               </div>
               <p className="education-indicator-group__description">{group.description}</p>
@@ -279,13 +293,14 @@ export function EducationIndicatorsSection({ actions, viewModel }: EducationIndi
                 })}
               </div>
             </section>
-          ))}
+            )
+          })}
           {showSistemaSGroup ? (
             <section className="education-special-group" aria-labelledby="education-section-sistema-s-title">
               <div className="education-indicator-group__heading">
                 <div>
-                  <span className="eyebrow">{section?.label}</span>
-                  <h3 id="education-section-sistema-s-title">Sistema S</h3>
+                  <span className="eyebrow">Sistema S</span>
+                  <h2 id="education-section-sistema-s-title">Como o Sistema S participa da oferta profissional?</h2>
                 </div>
                 <span>4 indicadores</span>
               </div>

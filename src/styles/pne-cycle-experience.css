@@ -4115,3 +4115,228 @@
     word-break: normal;
   }
 }
+
+/* ==========================================================================
+   Rodada: temas em scroll contínuo
+   --------------------------------------------------------------------------
+   A listagem das páginas de ciclo mostrava um tema por vez: o leitor precisava
+   escolher antes de ver qualquer coisa e perdia a noção do conjunto. Agora
+   todos os temas ficam empilhados em seções e a barra de temas vira índice —
+   âncora + scroll-spy — em vez de filtro.
+
+   Bloco NOVO e no fim do arquivo de propósito: as regras de .cycle-filter-panel
+   aparecem duplicadas em vários @media acima e editá-las seria armadilha. Aqui
+   só existem classes novas (.cycle-theme-nav, .cycle-theme-section), sem
+   colisão com a cascata anterior.
+   ========================================================================== */
+
+.cycle-theme-sections {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-10);
+}
+
+.cycle-theme-section {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Âncora compensa os dois sticky empilhados: context-bar (68px) + barra de
+   temas (chips de 44px, faixa de rolagem horizontal e padding), mais uma folga
+   para o título não encostar na barra. */
+.cycle-theme-section {
+  scroll-margin-top: calc(
+    var(--context-bar-height) + var(--control-height) + var(--space-8) + var(--space-4)
+  );
+}
+
+.dashboard-shell .content-area .cycle-page .cycle-theme-section__heading {
+  min-width: 0;
+  padding-left: var(--space-4);
+  border-left: 4px solid var(--signal-blue);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.dashboard-shell .content-area .cycle-page .cycle-theme-section__heading > div {
+  min-width: 0;
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--space-1);
+}
+
+.dashboard-shell .content-area .cycle-page .cycle-theme-section__heading h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--tracking-title);
+  line-height: var(--type-heading-line-height);
+  text-wrap: wrap;
+}
+
+/* Assinatura da pergunta: o "?" final carrega o azul institucional. */
+.dashboard-shell .content-area .cycle-page .cycle-theme-section__heading .question-heading-mark {
+  color: var(--signal-blue);
+}
+
+.dashboard-shell .content-area .cycle-page .cycle-theme-section__count {
+  min-height: 28px;
+  padding: 4px var(--space-3);
+  border: var(--border-default);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  color: var(--text-subtle);
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+  white-space: nowrap;
+}
+
+/* Recorte de Etapa vive dentro da seção de Educação Básica, não mais no painel
+   global de filtro: ele só governa os cartões daquela seção. */
+.cycle-page .cycle-theme-section__filter {
+  margin-top: 0;
+}
+
+@media screen {
+  .cycle-theme-nav {
+    position: sticky;
+    top: var(--context-bar-height);
+    z-index: 8;
+    min-width: 0;
+    padding: var(--space-3) 0;
+    border-bottom: var(--border-divider);
+    background: var(--surface-card);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .cycle-theme-nav__chips {
+    min-width: 0;
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: var(--space-2);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .cycle-theme-nav__chip {
+    min-height: var(--control-height);
+    max-width: 22ch;
+    padding: var(--control-padding-block) var(--control-padding-inline);
+    border: var(--border-width) solid var(--control-border);
+    border-radius: var(--control-radius);
+    background: var(--control-surface-muted);
+    color: var(--control-text);
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--control-gap);
+    font-family: inherit;
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+    text-align: left;
+    transition: var(--control-transition);
+  }
+
+  .cycle-theme-nav__chip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cycle-theme-nav__chip-count {
+    color: var(--text-muted);
+    flex: 0 0 auto;
+    font-size: var(--font-size-2xs);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cycle-theme-nav__chip:hover {
+    border-color: var(--border-strong);
+    background: var(--control-surface);
+    color: var(--text-strong);
+  }
+
+  .cycle-theme-nav__chip:focus-visible {
+    outline: 2px solid var(--green-primary);
+    outline-offset: 2px;
+  }
+
+  .cycle-theme-nav__chip.is-active {
+    border-color: var(--control-border-selected);
+    background: var(--control-surface-selected);
+    color: var(--text-strong);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .cycle-theme-nav__chip.is-active .cycle-theme-nav__chip-count {
+    color: var(--text-strong);
+  }
+
+  .cycle-theme-nav__search {
+    width: min(280px, 34vw);
+    flex: 0 0 auto;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .cycle-theme-nav {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .cycle-theme-nav__search {
+    width: 100%;
+  }
+
+  .cycle-theme-sections {
+    gap: var(--space-8);
+  }
+
+  /* Empilhada, a barra ocupa duas linhas de controle. */
+  .cycle-theme-section {
+    scroll-margin-top: calc(
+      var(--context-bar-height) + var(--control-height) * 2 + var(--space-10) + var(--space-4)
+    );
+  }
+}
+
+@media screen and (max-width: 620px) {
+  /*
+   * Nesta faixa a context-bar deixa de ser sticky nas páginas de ciclo (regra
+   * existente mais acima neste arquivo), então a barra de temas encosta no
+   * topo da janela e a âncora não precisa mais descontá-la.
+   */
+  .cycle-theme-nav {
+    top: 0;
+  }
+
+  .cycle-theme-section {
+    scroll-margin-top: calc(
+      var(--control-height) * 2 + var(--space-10) + var(--space-4)
+    );
+  }
+}
+
+/* Índice de navegação não tem função no papel. */
+@media print {
+  .cycle-theme-nav {
+    display: none !important;
+  }
+}

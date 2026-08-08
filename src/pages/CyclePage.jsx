@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { CategoryTabs } from '../components/CategoryTabs'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DataSourceNote } from '../components/DataSourceNote'
 import { DetailNavigation } from '../components/DetailNavigation'
 import { IndicatorDetail } from '../components/IndicatorDetail'
 import { MetaCard } from '../components/MetaCard'
+import { QuestionHeading } from '../components/QuestionHeading'
 import { SearchField } from '../components/SearchField'
 import { SegmentedControl } from '../components/SegmentedControl'
 import { PNE_2026_INDICATOR_GOAL_REFS } from '../data/pne2026IndicatorGoalRefs'
@@ -55,12 +55,13 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     ),
     [indicadores, cycle],
   )
-  const [selectedGroupKey, setSelectedGroupKey] = useState('')
   const [selectedBasicEducationFilterKey, setSelectedBasicEducationFilterKey] = useState('todos')
   const [selectedIndicatorKey, setSelectedIndicatorKey] = useState(initialDetailKey)
   const [isDetailOpen, setIsDetailOpen] = useState(Boolean(initialDetailKey))
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeThemeKey, setActiveThemeKey] = useState('')
   const previousCycleRef = useRef(cycle)
+  const themeSectionRefs = useRef(new Map())
   const municipioResults = municipioData?.[cycle]?.indicadores ?? null
   const combinedMunicipioResults = useMemo(
     () => resolvePneCycleMunicipalResults(
@@ -97,63 +98,57 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     () => buildThematicGroups(visibleCategories, cycle),
     [cycle, visibleCategories],
   )
-  const selectedGroup = useMemo(() => {
-    if (!thematicGroups.length) return null
-    return (
-      thematicGroups.find((group) => group.key === selectedGroupKey) ??
-      thematicGroups[0]
-    )
-  }, [thematicGroups, selectedGroupKey])
-
-  useEffect(() => {
-    if (!selectedGroup || selectedGroup.key === selectedGroupKey) return
-    setSelectedGroupKey(selectedGroup.key)
-    setSelectedBasicEducationFilterKey('todos')
-  }, [selectedGroup, selectedGroupKey])
-
-  const selectedBasicEducationFilter = useMemo(() => {
-    const filters = selectedGroup?.filters ?? []
-    if (!filters.length) return null
-    return (
-      filters.find((filter) => filter.key === selectedBasicEducationFilterKey) ??
-      filters[0]
-    )
-  }, [selectedGroup, selectedBasicEducationFilterKey])
-  const visibleGroupItems = useMemo(
-    () => selectedBasicEducationFilter?.items ?? selectedGroup?.items ?? [],
-    [selectedBasicEducationFilter, selectedGroup],
-  )
-
-  useEffect(() => {
-    if (!selectedIndicatorKey) return
-    const currentGroup = thematicGroups.find((group) => group.key === selectedGroupKey)
-    if (currentGroup?.items?.some((item) => item.key === selectedIndicatorKey)) return
-
-    const targetGroup = thematicGroups.find((group) => (
-      group.items?.some((item) => item.key === selectedIndicatorKey)
-    ))
-    if (!targetGroup || targetGroup.key === selectedGroupKey) return
-    setSelectedGroupKey(targetGroup.key)
-    setSelectedBasicEducationFilterKey('todos')
-  }, [selectedGroupKey, selectedIndicatorKey, thematicGroups])
-
-  const filteredGroupItems = useMemo(() => {
+  /*
+   * Rodada "temas em scroll contínuo": a listagem deixou de exibir um tema por
+   * vez. Todos os grupos temáticos são materializados de uma só vez e a barra
+   * sticky passa a ser índice de navegação (âncora + scroll-spy), não filtro de
+   * conteúdo. Sobram dois filtros reais: a busca, que agora atravessa todos os
+   * grupos, e o recorte de Etapa, que só existe na Educação Básica e por isso
+   * vive dentro da própria seção.
+   */
+  const renderedGroups = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase('pt-BR')
-    if (!query) return visibleGroupItems
-    return visibleGroupItems.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(query))
-  }, [visibleGroupItems, searchQuery])
-  const activeIndicatorKey = useMemo(
-    () => filteredGroupItems.some((item) => item.key === selectedIndicatorKey)
-      ? selectedIndicatorKey
-      : '',
-    [filteredGroupItems, selectedIndicatorKey],
+    return thematicGroups.flatMap((group) => {
+      const stageFilters = group.filters ?? []
+      const stageFilter = stageFilters.length
+        ? stageFilters.find((filter) => filter.key === selectedBasicEducationFilterKey)
+          ?? stageFilters[0]
+        : null
+      const stageItems = stageFilter?.items ?? group.items ?? []
+      const items = query
+        ? stageItems.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(query))
+        : stageItems
+      if (!items.length) return []
+      return [{ ...group, items, stageFilterKey: stageFilter?.key ?? '' }]
+    })
+  }, [searchQuery, selectedBasicEducationFilterKey, thematicGroups])
+  const themeNavKeys = useMemo(
+    () => renderedGroups.map((group) => group.key),
+    [renderedGroups],
   )
+  const themeNavSignature = themeNavKeys.join('|')
+
+  /*
+   * Sequência anterior/próxima do detalhe segue o grupo temático do item
+   * aberto — o mesmo recorte que o leitor tem à vista na listagem.
+   */
+  const activeGroup = useMemo(
+    () => renderedGroups.find((group) => (
+      group.items.some((item) => item.key === selectedIndicatorKey)
+    )) ?? null,
+    [renderedGroups, selectedIndicatorKey],
+  )
+  const detailSequenceItems = useMemo(() => activeGroup?.items ?? [], [activeGroup])
   const activeItem = useMemo(
-    () => filteredGroupItems.find((item) => item.key === activeIndicatorKey) ?? null,
-    [activeIndicatorKey, filteredGroupItems],
+    () => detailSequenceItems.find((item) => item.key === selectedIndicatorKey) ?? null,
+    [detailSequenceItems, selectedIndicatorKey],
   )
+  const activeIndicatorKey = activeItem?.key ?? ''
   const activeResult = activeItem ? normalizedMunicipioResults?.[activeItem.key] : null
-  const { activeIndex, previousItem, nextItem } = resolveDetailSequence(filteredGroupItems, activeItem?.key)
+  const { activeIndex, previousItem, nextItem } = resolveDetailSequence(
+    detailSequenceItems,
+    activeIndicatorKey,
+  )
   const cycleManagementStats = useMemo(
     () => buildCycleManagementStats(
       cycle === 'pne_2026_2036' ? categories : visibleCategories,
@@ -174,11 +169,55 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
   const inequalityPilotLoading = shouldLoadInequalityPilot
     && Boolean(municipioData?.id_municipio)
     && municipioDetailsLoading
-  const activeThemeLabel = selectedGroup?.shortLabel ?? selectedGroup?.label ?? null
+  const activeThemeLabel = activeGroup?.shortLabel ?? activeGroup?.label ?? null
   const detailNavigation = useDetailViewNavigation({
     activeKey: activeIndicatorKey,
     isOpen: isShowingDetail,
   })
+
+  const registerThemeSection = useCallback((groupKey, node) => {
+    if (node) themeSectionRefs.current.set(groupKey, node)
+    else themeSectionRefs.current.delete(groupKey)
+  }, [])
+
+  useEffect(() => {
+    setActiveThemeKey((current) => {
+      if (!themeNavSignature) return ''
+      const keys = themeNavSignature.split('|')
+      return keys.includes(current) ? current : keys[0]
+    })
+  }, [themeNavSignature])
+
+  /*
+   * Scroll-spy da barra de temas. A janela útil (rootMargin) ignora o topo
+   * coberto pelos sticky e a metade inferior da tela, de modo que o tema ativo
+   * é o que ocupa a faixa de leitura, não o que apenas encostou na viewport.
+   */
+  useEffect(() => {
+    if (isShowingDetail || !themeNavSignature) return undefined
+    if (typeof IntersectionObserver === 'undefined') return undefined
+
+    const keys = themeNavSignature.split('|')
+    const nodes = keys
+      .map((key) => themeSectionRefs.current.get(key))
+      .filter(Boolean)
+    if (!nodes.length) return undefined
+
+    const intersecting = new Set()
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const key = entry.target.dataset.themeKey
+        if (!key) return
+        if (entry.isIntersecting) intersecting.add(key)
+        else intersecting.delete(key)
+      })
+      const nextKey = keys.find((key) => intersecting.has(key))
+      if (nextKey) setActiveThemeKey(nextKey)
+    }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 })
+
+    nodes.forEach((node) => observer.observe(node))
+    return () => observer.disconnect()
+  }, [isShowingDetail, themeNavSignature])
 
   useEffect(() => {
     if (cycle === 'pne_2026_2036' && rawInitialDetailKey !== initialDetailKey) {
@@ -199,41 +238,34 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [cycle])
 
+  /* Troca de ciclo reinicia a leitura: busca, recorte de etapa e detalhe. */
   useEffect(() => {
     if (previousCycleRef.current === cycle) return
 
     previousCycleRef.current = cycle
-    const nextGroup = thematicGroups.find((group) => group.key === selectedGroupKey)
-      ?? thematicGroups[0]
-      ?? null
-    const filterIsValid = nextGroup?.filters?.some(
-      (filter) => filter.key === selectedBasicEducationFilterKey,
-    )
-
-    setSelectedGroupKey(nextGroup?.key ?? '')
-    setSelectedBasicEducationFilterKey(filterIsValid ? selectedBasicEducationFilterKey : 'todos')
-    setSelectedIndicatorKey('')
-    setIsDetailOpen(false)
-  }, [
-    cycle,
-    selectedBasicEducationFilterKey,
-    selectedGroupKey,
-    thematicGroups,
-  ])
-
-  function handleGroupSelect(groupKey) {
-    setSelectedGroupKey(groupKey)
     setSelectedBasicEducationFilterKey('todos')
     setSelectedIndicatorKey('')
     setIsDetailOpen(false)
     setSearchQuery('')
+    setActiveThemeKey('')
+  }, [cycle])
+
+  function handleThemeNavSelect(groupKey) {
+    setActiveThemeKey(groupKey)
+    const node = themeSectionRefs.current.get(groupKey)
+    if (!node) return
+    const prefersReducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    node.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    })
   }
 
   function handleBasicEducationFilterSelect(filterKey) {
     setSelectedBasicEducationFilterKey(filterKey)
     setSelectedIndicatorKey('')
     setIsDetailOpen(false)
-    setSearchQuery('')
   }
 
   function handleCardSelect(itemKey) {
@@ -347,7 +379,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
               previousItem={previousItem}
               statusLabel={activeThemeLabel}
               statusTone="info"
-              total={filteredGroupItems.length}
+              total={detailSequenceItems.length}
             />
             <IndicatorDetail
               cycle={cycle}
@@ -370,72 +402,126 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
               previousItem={previousItem}
               statusLabel={activeThemeLabel}
               statusTone="info"
-              total={filteredGroupItems.length}
+              total={detailSequenceItems.length}
             />
           </div>
         ) : (
           <>
-            <div className="cycle-filter-panel platform-filter-panel">
-              <div className="cycle-filter-panel__heading platform-exploration-toolbar">
-                <div>
-                  <span className="eyebrow">Temas das metas</span>
-                  <h2>{selectedGroup?.label ?? 'Metas do ciclo'}</h2>
-                </div>
-                <SearchField
-                  ariaLabel="Buscar meta"
-                  className="cycle-search platform-search-field"
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onClear={() => setSearchQuery('')}
-                  placeholder="Buscar meta..."
-                  value={searchQuery}
-                />
+            {/*
+              * Barra sticky de temas: índice de navegação, não filtro. Os chips
+              * ancoram nas seções e o scroll-spy devolve a posição de leitura;
+              * a busca segue ao lado porque continua sendo o único recorte que
+              * atravessa todos os temas.
+              */}
+            <div className="cycle-theme-nav">
+              <div
+                aria-label="Temas das metas"
+                className="cycle-theme-nav__chips"
+                role="group"
+              >
+                {renderedGroups.map((group) => {
+                  const isActiveTheme = group.key === activeThemeKey
+                  return (
+                    <button
+                      aria-current={isActiveTheme ? 'true' : undefined}
+                      className={`cycle-theme-nav__chip${isActiveTheme ? ' is-active' : ''}`}
+                      key={group.key}
+                      onClick={() => handleThemeNavSelect(group.key)}
+                      title={group.label}
+                      type="button"
+                    >
+                      <span className="cycle-theme-nav__chip-label">
+                        {group.shortLabel ?? group.label}
+                      </span>
+                      <span className="cycle-theme-nav__chip-count">{group.items.length}</span>
+                    </button>
+                  )
+                })}
               </div>
-
-              <CategoryTabs
-                categories={thematicGroups}
-                selectedCategory={selectedGroup?.key}
-                onSelectCategory={handleGroupSelect}
-                ariaLabel="Temas"
+              <SearchField
+                ariaLabel="Buscar meta"
+                className="cycle-search platform-search-field cycle-theme-nav__search"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onClear={() => setSearchQuery('')}
+                placeholder="Buscar meta..."
+                value={searchQuery}
               />
-
-              {selectedGroup?.filters?.length ? (
-                <div className="basic-education-filter-wrap">
-                  <div className="basic-education-filter-wrap__header">
-                    <span>Etapa</span>
-                  </div>
-                  <BasicEducationFilter
-                    filters={selectedGroup.filters}
-                    selectedFilter={selectedBasicEducationFilter?.key}
-                    onSelectFilter={handleBasicEducationFilterSelect}
-                  />
-                </div>
-              ) : null}
             </div>
 
-            {filteredGroupItems.length === 0 ? (
+            {renderedGroups.length === 0 ? (
               <div className="meta-grid-empty">
-                <p>Nenhum indicador disponível para este município neste tema.</p>
+                <p>
+                  {searchQuery.trim()
+                    ? `Nenhuma meta encontrada para “${searchQuery.trim()}” neste ciclo.`
+                    : 'Nenhum indicador disponível para este município neste ciclo.'}
+                </p>
               </div>
             ) : (
-              <div className="meta-card-grid">
-                {filteredGroupItems.map((item) => (
-                  <MetaCard
-                    buttonRef={(node) => detailNavigation.registerCard(item.key, node)}
-                    cycle={cycle}
-                    isSelected={isDetailOpen && item.key === selectedIndicatorKey}
-                    item={item}
-                    details={municipioDetails?.[item.key]}
-                    key={item.key}
-                    onSelect={() => handleCardSelect(item.key)}
-                    result={normalizedMunicipioResults?.[item.key]}
-                    stateReference={stateReference}
-                    stageLabel={
-                      selectedGroup?.key === 'educacao_basica'
-                        ? getStageTagLabel(item.key, selectedGroup.filters)
-                        : null
-                    }
-                  />
-                ))}
+              <div className="cycle-theme-sections">
+                {renderedGroups.map((group) => {
+                  /*
+                   * Curadoria editorial: o tema vira pergunta quando o
+                   * catálogo define `question`; sem isso, o título é factual
+                   * (label) e sem eyebrow, que só repetiria o mesmo texto.
+                   */
+                  const asQuestion = Boolean(group.question)
+                  return (
+                  <section
+                    aria-labelledby={`tema-${group.key}-titulo`}
+                    className="cycle-theme-section"
+                    data-theme-key={group.key}
+                    id={`tema-${group.key}`}
+                    key={group.key}
+                    ref={(node) => registerThemeSection(group.key, node)}
+                  >
+                    <div className="cycle-theme-section__heading">
+                      <div>
+                        {asQuestion ? <span className="eyebrow">{group.label}</span> : null}
+                        <h2 id={`tema-${group.key}-titulo`}>
+                          {asQuestion ? <QuestionHeading text={group.question} /> : group.label}
+                        </h2>
+                      </div>
+                      <span className="cycle-theme-section__count">
+                        {formatThemeIndicatorCount(group.items.length)}
+                      </span>
+                    </div>
+
+                    {group.filters?.length ? (
+                      <div className="basic-education-filter-wrap cycle-theme-section__filter">
+                        <div className="basic-education-filter-wrap__header">
+                          <span>Etapa</span>
+                        </div>
+                        <BasicEducationFilter
+                          filters={group.filters}
+                          selectedFilter={group.stageFilterKey}
+                          onSelectFilter={handleBasicEducationFilterSelect}
+                        />
+                      </div>
+                    ) : null}
+
+                    <div className="meta-card-grid">
+                      {group.items.map((item) => (
+                        <MetaCard
+                          buttonRef={(node) => detailNavigation.registerCard(item.key, node)}
+                          cycle={cycle}
+                          isSelected={isDetailOpen && item.key === selectedIndicatorKey}
+                          item={item}
+                          details={municipioDetails?.[item.key]}
+                          key={item.key}
+                          onSelect={() => handleCardSelect(item.key)}
+                          result={normalizedMunicipioResults?.[item.key]}
+                          stateReference={stateReference}
+                          stageLabel={
+                            group.key === 'educacao_basica'
+                              ? getStageTagLabel(item.key, group.filters)
+                              : null
+                          }
+                        />
+                      ))}
+                    </div>
+                  </section>
+                  )
+                })}
               </div>
             )}
 
@@ -540,6 +626,10 @@ function appendPne2026ComparableItems(categories, cycle) {
   return items.length
     ? [...categories, { key: 'pne2026_comparable', items }]
     : categories
+}
+
+function formatThemeIndicatorCount(count) {
+  return `${count} ${count === 1 ? 'indicador' : 'indicadores'}`
 }
 
 function PneHeaderMetric({ detail, label, tone, value }) {

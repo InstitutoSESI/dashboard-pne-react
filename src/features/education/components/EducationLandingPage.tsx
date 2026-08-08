@@ -87,7 +87,8 @@ export function EducationLandingPage({ municipalitySlug, overview }: EducationLa
     <main className="education-landing-page">
       <section className="education-landing-summary" aria-labelledby="education-landing-title">
         <div className="education-landing-summary__intro">
-          <h1 id="education-landing-title">Panorama da educação do município</h1>
+          <span className="eyebrow">Panorama da educação do município</span>
+          <h1 id="education-landing-title">Como está a educação no município?</h1>
           <p>Matrículas, oferta, trajetória escolar e financiamento em uma base única. Comece pela síntese e aprofunde por tema.</p>
           <a className="platform-navigation-button" href={educationHref(EDUCATION_SECTION_KEYS.panorama, municipalitySlug)}>
             Abrir Panorama educacional completo
@@ -98,7 +99,7 @@ export function EducationLandingPage({ municipalitySlug, overview }: EducationLa
 
       <section className="education-landing-paths" aria-labelledby="education-paths-title">
         <header>
-          <h2 id="education-paths-title">Aprofunde por tema</h2>
+          <h2 id="education-paths-title">Que dimensão da educação você quer compreender?</h2>
           <p>Cada frente reúne os indicadores de um recorte da rede, com período e fonte declarados no próprio dado.</p>
         </header>
         <div className="education-landing-paths__grid">
@@ -114,7 +115,7 @@ export function EducationLandingPage({ municipalitySlug, overview }: EducationLa
 
       <details className="page-card education-landing-concepts">
         <summary>
-          <strong>Termos para interpretar os dados</strong>
+          <strong>O que é importante saber para interpretar os dados?</strong>
           <span>Seis conceitos que evitam leituras equivocadas dos indicadores.</span>
         </summary>
         <dl>
@@ -125,7 +126,7 @@ export function EducationLandingPage({ municipalitySlug, overview }: EducationLa
       </details>
 
       <aside className="education-landing-sources" aria-labelledby="education-landing-sources-title">
-        <h2 id="education-landing-sources-title">Fontes e metodologia</h2>
+        <h2 id="education-landing-sources-title">De onde vêm estas informações?</h2>
         <p>Os indicadores utilizam principalmente Censo Escolar, Sinopse Estatística, taxas de rendimento, SAEB e IDEB do INEP, além de estimativas populacionais do IBGE. Períodos, universos e limitações aparecem junto de cada indicador.</p>
         <a href={educationHref(EDUCATION_SECTION_KEYS.methodology, municipalitySlug)}>Consultar metodologia e fontes</a>
       </aside>

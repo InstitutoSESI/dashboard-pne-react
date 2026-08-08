@@ -91,6 +91,7 @@ function isEducationSupportProfileItem(item) {
 }
 
 function getEducationSupportDescription(item) {
+  if (item.description) return item.description
   if (item.type === 'stacked') return 'Distribuição histórica do indicador no recorte selecionado.'
   if (item.type === 'bar') return 'Comparação dos valores mais recentes entre as categorias disponíveis.'
   if (item.type === 'line') return 'Evolução anual da série complementar usada nesta leitura.'
@@ -277,4 +278,3 @@ function EducationCompactComparison({ data, formatLabel = String, title }) {
     </dl>
   )
 }
-

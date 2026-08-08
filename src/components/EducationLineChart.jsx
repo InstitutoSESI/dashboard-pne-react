@@ -234,6 +234,18 @@ function getYAxisDomain(values, scaleType) {
     return niceDomain(Math.max(0, minVal - margin), maxVal + margin)
   }
 
+  if (scaleType === 'ratio') {
+    const margin = Math.max(rawRange * 0.45, 0.02)
+    if (minVal === maxVal) {
+      return {
+        min: Math.max(0, minVal - 0.05),
+        max: Math.min(1, maxVal + 0.05),
+      }
+    }
+    const domain = niceDomain(Math.max(0, minVal - margin), Math.min(1, maxVal + margin))
+    return { min: Math.max(0, domain.min), max: Math.min(1, domain.max) }
+  }
+
   if (scaleType === 'count') {
     if (maxVal <= 0) return niceDomain(minVal, maxVal)
     const relativeRange = rawRange / maxVal
@@ -273,6 +285,6 @@ function niceStep(value) {
 }
 
 function formatAxisTick(value, scaleType) {
-  const digits = scaleType === 'ideb' || scaleType === 'inse' ? 1 : 0
+  const digits = scaleType === 'ratio' ? 2 : scaleType === 'ideb' || scaleType === 'inse' ? 1 : 0
   return value.toLocaleString('pt-BR', { maximumFractionDigits: digits })
 }

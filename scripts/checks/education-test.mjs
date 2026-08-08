@@ -1148,6 +1148,55 @@ test('panorama preserva valor único e ausência sem fabricar variação', () =>
   assert.equal(learningPresentation.formatMunicipalLearningValue(stages[0].metrics.saebMt), '—')
 })
 
+test('detalhe do IDEB preserva N e P em cada etapa e troca o recorte sem perder a composição', () => {
+  const learningBlock = {
+    series: {
+      ideb: {
+        fundamental_anos_iniciais: [
+          { ano: 2023, ideb: 5.2, nota_media_padronizada: 5.603421, indicador_rendimento: 0.936284 },
+          { ano: 2025, ideb: 5.4, nota_media_padronizada: 5.734219, indicador_rendimento: 0.949371 },
+        ],
+        fundamental_anos_finais: [
+          { ano: 2023, ideb: 4.3, nota_media_padronizada: 5.021337, indicador_rendimento: 0.864308 },
+          { ano: 2025, ideb: 4.7, nota_media_padronizada: 5.207414, indicador_rendimento: 0.903521 },
+        ],
+      },
+    },
+    detalhamentos: {
+      por_etapa: [],
+      por_rede: [],
+      por_etapa_rede: [],
+    },
+    ultimo_ano: { ideb: 2025 },
+    resumo_ultimo_ano: {
+      ideb_fundamental_anos_iniciais: 5.4,
+      ano_ideb_fundamental_anos_iniciais: 2025,
+      ideb_fundamental_anos_finais: 4.7,
+      ano_ideb_fundamental_anos_finais: 2025,
+    },
+  }
+  const indicators = viewModels.buildAprendizagemIndicators(learningBlock)
+  const ideb = indicators.find((item) => item.key === 'apr-ideb')
+
+  assert.deepEqual(ideb.idebCompositionSeries.at(-1), {
+    ano: 2025,
+    ideb: 5.4,
+    nota_media_padronizada: 5.734219,
+    indicador_rendimento: 0.949371,
+  })
+  const finalYears = viewModels.applyEducationIndicatorStageOption(
+    ideb,
+    'fundamental_anos_finais',
+  )
+  assert.equal(finalYears.mainCutLabel, 'Anos Finais')
+  assert.deepEqual(finalYears.idebCompositionSeries.at(-1), {
+    ano: 2025,
+    ideb: 4.7,
+    nota_media_padronizada: 5.207414,
+    indicador_rendimento: 0.903521,
+  })
+})
+
 test('trajetória organiza os cards por etapa e preserva o recorte escolhido', () => {
   const stageSeries = (initialValue, currentValue) => [
     { ano: 2023, valor: initialValue },
@@ -1271,11 +1320,30 @@ test('retrato indígena preserva cobertura e os quatro totais oficiais, inclusiv
       turmas: [{ ano: 2023, valor: 3 }, { ano: 2024, valor: 0 }, { ano: 2025, valor: 0 }],
     },
     coberturaEstimada: {
+      population: { year: 2022, value: 16, status: 'available' },
       series: {
-        2023: { percentage: 12.5, status: 'available' },
-        2024: { percentage: 0, status: 'available' },
-        2025: { percentage: 0, status: 'available' },
+        2023: {
+          enrollments: { preSchool: 1, elementarySchool: 1, highSchool: 0, alignedTotal: 2 },
+          percentage: 12.5,
+          status: 'available',
+        },
+        2024: {
+          enrollments: { preSchool: 0, elementarySchool: 0, highSchool: 0, alignedTotal: 0 },
+          percentage: 0,
+          status: 'available',
+        },
+        2025: {
+          enrollments: { preSchool: 0, elementarySchool: 0, highSchool: 0, alignedTotal: 0 },
+          percentage: 0,
+          status: 'available',
+        },
       },
+      referenceAgeGroups: {
+        preSchool: { ageRange: '4 a 5 anos', population2022: 2, status: 'available' },
+        elementarySchool: { ageRange: '6 a 14 anos', population2022: 11, status: 'available' },
+        highSchool: { ageRange: '15 a 17 anos', population2022: 3, status: 'available' },
+      },
+      methodologicalNotes: ['Indicador estimado; não é taxa oficial de escolarização.'],
     },
   })
 
@@ -1290,6 +1358,102 @@ test('retrato indígena preserva cobertura e os quatro totais oficiais, inclusiv
   assert.equal(items[0].currentDisplay, '0,0%')
   assert.ok(items.slice(1).every((item) => item.currentDisplay === '0'))
   assert.ok(items.every((item) => item.neutralTrend === true))
+  assert.deepEqual(items[0].notices, ['Indicador estimado; não é taxa oficial de escolarização.'])
+  assert.deepEqual(items[0].explore.map((item) => item.key), [
+    'indigena-cobertura-construcao',
+    'indigena-cobertura-matriculas',
+    'indigena-cobertura-populacao',
+  ])
+  assert.deepEqual(items[0].explore[0].rows[0], {
+    ano: '2023',
+    populacao: 16,
+    matriculas: 2,
+    cobertura: 12.5,
+    situacao: 'Disponível',
+  })
+  assert.deepEqual(items[0].explore[1].data.at(-1), {
+    year: 2025,
+    values: { preSchool: 0, elementarySchool: 0, highSchool: 0 },
+  })
+  assert.deepEqual(items[0].explore[2].data, [
+    { label: '4 a 5 anos', value: 2 },
+    { label: '6 a 14 anos', value: 11 },
+    { label: '15 a 17 anos', value: 3 },
+  ])
+})
+
+test('territórios expõem a cobertura rural estimada sem limitar valores acima de 100%', () => {
+  const items = viewModels.buildMatriculasIndicators({
+      ultimo_ano: 2025,
+      series: {},
+      resumo_ultimo_ano: { por_etapa: {} },
+      detalhamentos: {
+        tempo_integral_por_etapa: [],
+        tempo_integral_por_rede: [],
+        tempo_integral_por_localizacao: [],
+      },
+      coberturaRuralEstimada: {
+        population: {
+          year: 2022,
+          value: 400,
+          status: 'available',
+          components: {
+            rural0To4: 100,
+            rural5To9: 120,
+            rural10To14: 140,
+            rural15To19: 200,
+            age4Weight: 0.2,
+            age15To17Weight: 0.6,
+          },
+        },
+        series: {
+          2023: {
+            enrollments: { age4To5: 40, age6To10: 120, age11To14: 135, age15To17: 100, alignedTotal: 395 },
+            percentage: 98.75,
+            status: 'available',
+          },
+          2024: {
+            enrollments: { age4To5: 40, age6To10: null, age11To14: 135, age15To17: 100, alignedTotal: null },
+            percentage: null,
+            status: 'unavailable',
+          },
+          2025: {
+            enrollments: { age4To5: 50, age6To10: 150, age11To14: 170, age15To17: 132, alignedTotal: 502 },
+            percentage: 125.5,
+            status: 'available',
+          },
+        },
+        methodologicalNotes: ['Indicador estimado; não é taxa oficial de escolarização.'],
+      },
+  })
+  const item = items.find(({ key }) => key === 'rural-cobertura-estimada-4-17')
+  const catalogItem = educationCatalog.getEducationIndicatorCatalogItem(
+    'rural-cobertura-estimada-4-17',
+  )
+
+  assert.equal(item.currentValue, 125.5)
+  assert.equal(item.currentDisplay, '125,5%')
+  assert.equal(item.neutralTrend, true)
+  assert.deepEqual(item.notices, ['Indicador estimado; não é taxa oficial de escolarização.'])
+  assert.deepEqual(item.explore.map((detail) => detail.key), [
+    'rural-cobertura-construcao',
+    'rural-cobertura-matriculas',
+    'rural-cobertura-populacao',
+  ])
+  assert.deepEqual(item.explore[0].rows, [
+    { ano: '2023', populacao: 400, matriculas: 395, cobertura: 98.75, situacao: 'Disponível' },
+    { ano: '2024', populacao: 400, matriculas: null, cobertura: null, situacao: 'Indisponível' },
+    { ano: '2025', populacao: 400, matriculas: 502, cobertura: 125.5, situacao: 'Disponível' },
+  ])
+  assert.deepEqual(item.explore[1].data.map(({ year }) => year), [2023, 2025])
+  assert.deepEqual(item.explore[2].rows.at(-1), {
+    faixa: 'Total estimado de 4 a 17 anos',
+    populacao: 400,
+    parcela: null,
+  })
+  assert.match(item.explore[0].note, /÷.*× 100/)
+  assert.equal(catalogItem.groupKey, 'territorios')
+  assert.equal(catalogItem.seriesPath, 'coberturaRuralEstimada.series')
 })
 
 test('indicadores de infraestrutura expõem recortes por rede e localização', () => {
@@ -1443,6 +1607,88 @@ test('catálogo de infraestrutura separa 18 indicadores de 14 conteúdos navegá
     const backward = selectors.selectEducationDetailSequence(contents, key)
     assert.equal(backward.activeIndex, sequence.length - reverseIndex - 1)
   })
+})
+
+test('catálogos educacionais contextualizam seções com perguntas curtas; grupos seguem curadoria editorial pergunta/informação', () => {
+  const assertContextQuestion = (entry, scope) => {
+    assert.equal(typeof entry.question, 'string', `${scope} deve declarar uma pergunta`)
+    assert.match(entry.question, /\?$/, `${scope} deve terminar com interrogação`)
+    assert.ok(entry.question.length <= 72, `${scope} deve preservar uma leitura compacta`)
+  }
+
+  /*
+   * Seções (nível de página/H1) continuam 100% pergunta. Grupos e etapas, por
+   * outro lado, seguem curadoria editorial título a título: alguns têm
+   * `question` (viram pergunta), outros não (viram título factual a partir de
+   * `label`/`title`). Quando `question` existe, ainda validamos o formato.
+   */
+  const assertCuratedHeading = (entry, scope, factualKey = 'label') => {
+    if (entry.question !== undefined) {
+      assertContextQuestion(entry, scope)
+      return
+    }
+    assert.equal(typeof entry[factualKey], 'string', `${scope} sem pergunta deve declarar um título factual (${factualKey})`)
+    assert.ok(entry[factualKey].length > 0, `${scope} deve ter um título factual não vazio`)
+  }
+
+  educationCatalog.EDUCATION_SECTION_CATALOG.forEach((section) => {
+    assertContextQuestion(section, `Seção ${section.key}`)
+  })
+
+  Object.entries(educationCatalog.EDUCATION_SECTION_GROUPS).forEach(([sectionKey, groups]) => {
+    groups.forEach((group) => assertCuratedHeading(group, `Grupo ${sectionKey}/${group.key}`))
+  })
+
+  const trajectoryGroups = trajectoryStages.buildTrajectoryStageGroups([{
+    key: 'fixture-trajetoria',
+    label: 'Indicador de trajetória',
+    stageFilterOptions: [
+      'fundamental',
+      'fundamental_anos_iniciais',
+      'fundamental_anos_finais',
+      'medio',
+      'contexto',
+    ].map((key) => ({ key, label: key, series: [] })),
+  }])
+  assert.equal(trajectoryGroups.length, 5)
+  trajectoryGroups.forEach((group) => assertCuratedHeading(group, `Etapa ${group.key}`))
+
+  higherEducationCatalog.HIGHER_EDUCATION_GROUPS.forEach((group) => {
+    assertCuratedHeading(group, `Educação Superior/${group.id}`, 'title')
+  })
+})
+
+test('cabeçalhos de grupos educacionais compartilham tipografia, largura e responsividade', () => {
+  const shellStyles = readFileSync(path.resolve('src/styles/education-page-shell.css'), 'utf8')
+  const typographyStyles = readFileSync(path.resolve('src/styles/typography-system.css'), 'utf8')
+  const higherEducationStyles = readFileSync(path.resolve('src/styles/education-higher-education.css'), 'utf8')
+  const technicalReportStyles = readFileSync(path.resolve('src/styles/education-technical-report.css'), 'utf8')
+  const higherEducationSource = readFileSync(
+    path.resolve('src/features/education/components/HigherEducationSection.tsx'),
+    'utf8',
+  )
+  const groupCopyRule = shellStyles.match(/\.education-indicator-group__heading > div\s*\{([\s\S]*?)\}/)?.[1] ?? ''
+  const groupTitleRule = shellStyles.match(/\.education-indicator-group__heading :is\(h2, h3\)\s*\{([\s\S]*?)\}/)?.[1] ?? ''
+
+  assert.match(groupCopyRule, /width:\s*100%/)
+  assert.match(groupCopyRule, /max-width:\s*none/)
+  assert.match(groupCopyRule, /flex:\s*1 1 auto/)
+  assert.match(groupTitleRule, /font-size:\s*var\(--type-section-title-size\)/)
+  assert.match(groupTitleRule, /font-weight:\s*var\(--type-heading-weight\)/)
+  assert.match(groupTitleRule, /line-height:\s*var\(--type-heading-line-height\)/)
+  assert.match(groupTitleRule, /text-wrap:\s*wrap/)
+  assert.match(
+    typographyStyles,
+    /\.education-indicator-group__heading :is\(h2, h3\)[\s\S]*?font-family:\s*var\(--font-serif\)[\s\S]*?font-size:\s*var\(--type-section-title-size\)/,
+  )
+  assert.doesNotMatch(
+    `${higherEducationStyles}\n${technicalReportStyles}`,
+    /\.higher-education-indicator-groups \.education-indicator-group__heading/,
+  )
+  assert.match(
+    higherEducationSource,
+    /className="cycle-workspace educacao-workspace higher-education-workspace"/,
+  )
 })
 
 test('view model canônico cria o conteúdo composto e preserva Internet histórica', () => {

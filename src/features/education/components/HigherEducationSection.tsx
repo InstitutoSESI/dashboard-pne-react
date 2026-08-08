@@ -9,6 +9,7 @@ import { EducationQuickReading } from '../../../components/EducationQuickReading
 import { EducationTable } from '../../../components/EducationTable'
 import { ErrorState } from '../../../components/ErrorState'
 import { MetricCard } from '../../../components/MetricCard'
+import { QuestionHeading } from '../../../components/QuestionHeading'
 import type { AsyncDataState } from '../../../types/async'
 import type {
   HigherEducationAnnualPoint,
@@ -24,7 +25,6 @@ import {
   publicHigherEducationTitle,
 } from '../higherEducationPresentation'
 import { EducationCompactHeader } from './EducationCompactHeader'
-import { EducationSectionBar } from './EducationSectionBar'
 
 type HigherEducationPayload = { viewModel: HigherEducationViewModel } | null
 
@@ -152,81 +152,78 @@ function HigherEducationLanding({
             ? []
             : [{ icon: 'source' as const, label: 'Situação da informação', value: situation }]),
         ]}
-        description="Indicadores de atendimento, trajetória escolar, profissionais, infraestrutura, modalidades e condições da oferta educacional no município."
+        description="Matrículas, instituições, polos, acesso, fluxo e docentes mostram a presença municipal da graduação."
         eyebrow="Indicadores de Educação / Educação Superior"
-        title="Educação Superior"
+        title="Como a graduação está presente no município?"
         variant="section"
       />
-      <EducationSectionBar
-        id="higher-education-section-title"
-        title="Indicadores disponíveis"
-        description="Panorama municipal das matrículas, instituições, polos, acesso, fluxo e docentes da Educação Superior."
-        search={(
-          <div className="education-section-bar__search">
-            <div>
-              <span className="eyebrow">Indicadores da seção</span>
-              <strong className="education-section-filter-count">{countLabel}</strong>
-            </div>
-          </div>
-        )}
-      />
-      {viewModel.availability === 'historical_only' ? (
-        <ContentState kind="unavailable" className="state-box higher-education-information-state">
-          <strong>Informações históricas disponíveis</strong>
-          <span>O município possui registros de Educação Superior no período publicado, mas não apresenta informações utilizáveis no último ano da base.</span>
-        </ContentState>
-      ) : null}
-      {viewModel.availability === 'unavailable' ? (
-        <>
-          <ContentState kind="unavailable" className="state-box higher-education-unavailable">
-            <strong>Sem informações municipais integradas</strong>
-            <span>Não foram identificadas informações utilizáveis de Educação Superior para o município no período de 2018 a 2024 nas tabelas utilizadas.</span>
+      <section className="cycle-workspace educacao-workspace higher-education-workspace">
+        <div className="education-filter-bar higher-education-filter-bar" aria-label="Indicadores da Educação Superior">
+          <span className="education-filter-bar__count">{countLabel}</span>
+        </div>
+        {viewModel.availability === 'historical_only' ? (
+          <ContentState kind="unavailable" className="state-box higher-education-information-state">
+            <strong>Informações históricas disponíveis</strong>
+            <span>O município possui registros de Educação Superior no período publicado, mas não apresenta informações utilizáveis no último ano da base.</span>
           </ContentState>
-          <SourceAndReading />
-        </>
-      ) : (
-        <>
-          <div className="education-indicator-groups higher-education-indicator-groups">
-            {viewModel.groups.filter((group) => group.id !== 'composition').map((group) => {
-              const indicators = viewModel.indicators.filter((item) => item.group === group.id)
-              const availableIndicators = indicators.filter((item) => item.latestPoint)
-              const unavailableIndicators = indicators.filter((item) => !item.latestPoint)
-              const countLabel = availableIndicators.length === 0
-                ? 'Sem informação municipal'
-                : unavailableIndicators.length
-                  ? `${availableIndicators.length} com dados · ${unavailableIndicators.length} sem informação`
-                  : `${availableIndicators.length} ${availableIndicators.length === 1 ? 'indicador' : 'indicadores'}`
-              return (
-                <section className="education-indicator-group" aria-labelledby={`higher-education-${group.id}-title`} key={group.id}>
-                  <div className="education-indicator-group__heading">
-                    <div><span className="eyebrow">Indicadores relacionados</span><h3 id={`higher-education-${group.id}-title`}>{group.title}</h3></div>
-                    <span>{countLabel}</span>
-                  </div>
-                  <p className="education-indicator-group__description">{group.description}</p>
-                  <div className="education-indicator-card-grid">
-                    {availableIndicators.map((indicator) => (
-                      <EducationIndicatorCard
-                        buttonRef={(node: HTMLButtonElement | null) => registerCard(indicator.id, node)}
-                        indicator={cardAdapter(indicator)}
-                        key={indicator.id}
-                        onSelect={() => onOpenIndicator(indicator.id)}
-                      />
-                    ))}
-                  </div>
-                  {unavailableIndicators.length ? (
-                    <ContentState kind="empty" className="higher-education-unavailable-strip">
-                      <strong>Sem informação municipal:</strong>
-                      <span>{formatIndicatorList(unavailableIndicators.map(publicHigherEducationTitle))}.</span>
-                    </ContentState>
-                  ) : null}
-                </section>
-              )
-            })}
-          </div>
-          <InstitutionalComposition viewModel={viewModel} />
-          <SourceAndReading />
-        </>
-      )}
+        ) : null}
+        {viewModel.availability === 'unavailable' ? (
+          <>
+            <ContentState kind="unavailable" className="state-box higher-education-unavailable">
+              <strong>Sem informações municipais integradas</strong>
+              <span>Não foram identificadas informações utilizáveis de Educação Superior para o município no período de 2018 a 2024 nas tabelas utilizadas.</span>
+            </ContentState>
+            <SourceAndReading />
+          </>
+        ) : (
+          <>
+            <div className="education-indicator-groups higher-education-indicator-groups">
+              {viewModel.groups.filter((group) => group.id !== 'composition').map((group) => {
+                const indicators = viewModel.indicators.filter((item) => item.group === group.id)
+                const availableIndicators = indicators.filter((item) => item.latestPoint)
+                const unavailableIndicators = indicators.filter((item) => !item.latestPoint)
+                const countLabel = availableIndicators.length === 0
+                  ? 'Sem informação municipal'
+                  : unavailableIndicators.length
+                    ? `${availableIndicators.length} com dados · ${unavailableIndicators.length} sem informação`
+                    : `${availableIndicators.length} ${availableIndicators.length === 1 ? 'indicador' : 'indicadores'}`
+                return (
+                  <section className="education-indicator-group" aria-labelledby={`higher-education-${group.id}-title`} key={group.id}>
+                    <div className="education-indicator-group__heading">
+                      <div>
+                        {group.question ? <span className="eyebrow">{group.title}</span> : null}
+                        <h2 id={`higher-education-${group.id}-title`}>
+                          {group.question ? <QuestionHeading text={group.question} /> : group.title}
+                        </h2>
+                      </div>
+                      <span>{countLabel}</span>
+                    </div>
+                    <p className="education-indicator-group__description">{group.description}</p>
+                    <div className="education-indicator-card-grid">
+                      {availableIndicators.map((indicator) => (
+                        <EducationIndicatorCard
+                          buttonRef={(node: HTMLButtonElement | null) => registerCard(indicator.id, node)}
+                          indicator={cardAdapter(indicator)}
+                          key={indicator.id}
+                          onSelect={() => onOpenIndicator(indicator.id)}
+                        />
+                      ))}
+                    </div>
+                    {unavailableIndicators.length ? (
+                      <ContentState kind="empty" className="higher-education-unavailable-strip">
+                        <strong>Sem informação municipal:</strong>
+                        <span>{formatIndicatorList(unavailableIndicators.map(publicHigherEducationTitle))}.</span>
+                      </ContentState>
+                    ) : null}
+                  </section>
+                )
+              })}
+            </div>
+            <InstitutionalComposition viewModel={viewModel} />
+            <SourceAndReading />
+          </>
+        )}
+      </section>
     </main>
   )
 }
@@ -526,9 +523,10 @@ function ModalityComposition({
 function InstitutionalComposition({ viewModel }: { viewModel: HigherEducationViewModel }) {
   const breakdowns = viewModel.breakdowns.filter((item) => item.year != null)
   if (!breakdowns.length) return null
+  const group = viewModel.groups.find((item) => item.id === 'composition')
   return (
     <section className="education-indicator-group higher-education-composition-section" aria-labelledby="higher-education-composition-title">
-      <div className="education-indicator-group__heading"><div><h3 id="higher-education-composition-title">Composição institucional</h3></div></div>
+      <div className="education-indicator-group__heading"><div>{group?.question ? <span className="eyebrow">{group.title}</span> : null}<h2 id="higher-education-composition-title">{group?.question ? <QuestionHeading text={group.question} /> : (group?.title ?? 'Composição institucional')}</h2></div></div>
       <p className="education-indicator-group__description">Síntese do último ano utilizável próprio de cada decomposição.</p>
       <div className="higher-education-support-grid">{breakdowns.map((item) => <BreakdownCard breakdown={item} compact key={item.id} />)}</div>
     </section>
