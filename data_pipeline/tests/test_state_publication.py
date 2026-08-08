@@ -26,8 +26,8 @@ def test_real_state_publications_resolve_distinct_contracts() -> None:
     assert rs.analytics_message is None
     assert rs.enabled_products is None
     assert rs.public_data_directory == REPO_ROOT / "public" / "data"
-    assert al.analytics_status == "identity-only"
-    assert al.enabled_products is None
+    assert al.analytics_status == "partial"
+    assert al.enabled_products == ("educacao",)
     assert al.state_config_path == REPO_ROOT / "config" / "states" / "al.json"
     assert al.municipality_registry_path == (
         REPO_ROOT / "config" / "municipalities" / "al.json"
@@ -53,10 +53,11 @@ def test_complete_publication_enables_every_product() -> None:
         assert rs.product_enabled(product) is True
 
 
-def test_identity_only_publication_enables_no_product() -> None:
+def test_partial_al_publication_enables_only_education() -> None:
     al = load_state_publication("AL")
-    for product in ("pne", "educacao", "financiamento"):
-        assert al.product_enabled(product) is False
+    assert al.product_enabled("educacao") is True
+    assert al.product_enabled("pne") is False
+    assert al.product_enabled("financiamento") is False
 
 
 def _write_manifest(repo_root: Path, payload: object) -> None:

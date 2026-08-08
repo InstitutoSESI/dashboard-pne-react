@@ -25,6 +25,7 @@ from src.indigenous_population_sidra import (  # noqa: E402
     CENSUS_YEAR,
     extract_to_directory,
 )
+from src.state_config import load_state_config  # noqa: E402
 
 sys.path.insert(0, str(SESI_DB_DIR))
 from utils_educacao import get_engine  # noqa: E402
@@ -34,28 +35,34 @@ LONG_TABLE = "populacao_indigena_idade_municipal"
 GROUP_TABLE = "populacao_indigena_faixa_municipal"
 
 
-def canonical_municipality_codes() -> set[str]:
+def canonical_municipality_codes(state_config) -> set[str]:
     engine = get_engine("sesi")
     frame = pd.read_sql_query(
         "SELECT id_municipio FROM municipios "
-        "WHERE sigla_uf = 'RS' ORDER BY id_municipio",
+        "WHERE sigla_uf = %(state)s ORDER BY id_municipio",
         engine,
+        params={"state": state_config.state_code},
     )
     codes = set(frame["id_municipio"].astype(str))
-    if len(codes) != 497 or any(len(code) != 7 for code in codes):
+    if len(codes) != state_config.expected_municipality_count or any(
+        len(code) != 7 or not code.startswith(state_config.municipality_ibge_prefix)
+        for code in codes
+    ):
         raise ValueError(
             f"Cadastro municipal canônico inválido: {len(codes)} códigos do RS."
         )
     return codes
 
 
-def replace_tables(rows: list[dict], age_groups: list[dict]) -> None:
+def replace_tables(rows: list[dict], age_groups: list[dict], state_code: str) -> None:
     engine = get_engine("sesi")
     long_frame = pd.DataFrame(rows).copy()
     long_frame["metadados_fonte"] = long_frame["metadados_fonte"].map(
         lambda value: json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     )
     group_frame = pd.DataFrame(age_groups)
+    long_frame["sigla_uf"] = state_code
+    group_frame["sigla_uf"] = state_code
     with engine.begin() as connection:
         connection.execute(
             text(
@@ -69,6 +76,7 @@ def replace_tables(rows: list[dict], age_groups: list[dict]) -> None:
                     valor_original TEXT NOT NULL,
                     tabela_origem TEXT NOT NULL,
                     metadados_fonte TEXT NOT NULL,
+                    sigla_uf VARCHAR(2),
                     PRIMARY KEY (ano_censo, id_municipio, idade)
                 )
                 """
@@ -87,18 +95,35 @@ def replace_tables(rows: list[dict], age_groups: list[dict]) -> None:
                     pessoas_indigenas INTEGER NULL,
                     status_valor TEXT NOT NULL,
                     tabela_origem TEXT NOT NULL,
+                    sigla_uf VARCHAR(2),
                     PRIMARY KEY (ano_censo, id_municipio, faixa_etaria)
                 )
                 """
             )
         )
+        for table in (LONG_TABLE, GROUP_TABLE):
+            connection.execute(
+                text(
+                    f"ALTER TABLE {table} "
+                    "ADD COLUMN IF NOT EXISTS sigla_uf VARCHAR(2)"
+                )
+            )
+            connection.execute(
+                text(f"UPDATE {table} SET sigla_uf = 'RS' WHERE sigla_uf IS NULL")
+            )
         connection.execute(
-            text(f"DELETE FROM {LONG_TABLE} WHERE ano_censo = :year"),
-            {"year": CENSUS_YEAR},
+            text(
+                f"DELETE FROM {LONG_TABLE} "
+                "WHERE sigla_uf = :state AND ano_censo = :year"
+            ),
+            {"state": state_code, "year": CENSUS_YEAR},
         )
         connection.execute(
-            text(f"DELETE FROM {GROUP_TABLE} WHERE ano_censo = :year"),
-            {"year": CENSUS_YEAR},
+            text(
+                f"DELETE FROM {GROUP_TABLE} "
+                "WHERE sigla_uf = :state AND ano_censo = :year"
+            ),
+            {"state": state_code, "year": CENSUS_YEAR},
         )
         long_frame.to_sql(
             LONG_TABLE,
@@ -120,10 +145,11 @@ def replace_tables(rows: list[dict], age_groups: list[dict]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--state", default="RS", help="UF da carga (RS ou AL).")
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=DATA_PIPELINE_DIR / "data" / "indigenous_population_sidra",
+        default=None,
         help="Diretório do cache bruto, normalizado e do manifesto.",
     )
     parser.add_argument(
@@ -133,13 +159,22 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    municipality_codes = canonical_municipality_codes()
+    state_config = load_state_config(args.state)
+    base_output_dir = DATA_PIPELINE_DIR / "data" / "indigenous_population_sidra"
+    output_dir = args.output_dir or (
+        base_output_dir
+        if state_config.state_code == "RS"
+        else base_output_dir / state_config.state_code.lower()
+    )
+    municipality_codes = canonical_municipality_codes(state_config)
     rows, age_groups, manifest = extract_to_directory(
-        args.output_dir.resolve(),
+        output_dir.resolve(),
         municipality_codes=municipality_codes,
+        state_code=state_config.state_code,
+        state_id=state_config.municipality_ibge_prefix,
     )
     if args.apply:
-        replace_tables(rows, age_groups)
+        replace_tables(rows, age_groups, state_config.state_code)
         manifest["databaseWrite"] = "applied"
     else:
         manifest["databaseWrite"] = "validated_only"

@@ -28,6 +28,7 @@ from src.education_transactional_publication import (  # noqa: E402
     EducationPublicationError,
     EducationStagingError,
     EducationValidationError,
+    iter_managed_education_public_files,
     promote_education_staging,
     publish_education_transactionally,
     render_education_json,
@@ -213,6 +214,26 @@ def test_integral_generation_is_validated_and_can_remain_only_in_staging(
     assert result.staged_output.is_dir()
     assert len(result.validation.files) == contract.registry.municipality_count + 2
     assert _snapshot(contract.public_root) == before
+
+
+def test_first_publication_creates_missing_education_root(contract, tmp_path):
+    public_root = tmp_path / "first-publication" / "educacao"
+    public_root.parent.mkdir(parents=True)
+
+    result = publish_education_transactionally(
+        registry=contract.registry,
+        route_compatibility=contract.compatibility,
+        materialize=_materializer(contract),
+        public_root=public_root,
+        staging_directory=tmp_path / "first-publication-stage",
+    )
+
+    assert result.stats is not None
+    assert result.stats.created == contract.registry.municipality_count + 2
+    assert public_root.is_dir()
+    assert len(tuple(iter_managed_education_public_files(public_root))) == (
+        contract.registry.municipality_count + 2
+    )
 
 
 def test_publication_is_untouched_until_materialization_and_validation_finish(

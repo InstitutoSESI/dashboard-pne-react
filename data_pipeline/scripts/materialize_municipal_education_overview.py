@@ -50,16 +50,37 @@ from src.state_config import (  # noqa: E402
 
 
 DEFAULT_OUTPUT_DIR = PUBLIC_DATA_DIR / "educacao" / "visao-geral-municipal"
-EXPECTED_PUBLICATION_STATES = {
-    "published": 426,
-    "partial": 71,
-    "unavailable": 0,
-    "invalid": 0,
-}
-EXPECTED_RECONCILIATIONS = {
-    "reconciled": 11_494,
-    "divergent": 0,
-    "not_evaluated": 1_428,
+PUBLICATION_STATE_KEYS = ("published", "partial", "unavailable", "invalid")
+RECONCILIATION_STATE_KEYS = ("reconciled", "divergent", "not_evaluated")
+STATE_EXPECTED_DISTRIBUTIONS = {
+    "RS": {
+        "publicationStates": {
+            "published": 426,
+            "partial": 71,
+            "unavailable": 0,
+            "invalid": 0,
+        },
+        "reconciliations": {
+            "reconciled": 11_494,
+            "divergent": 0,
+            "not_evaluated": 1_428,
+        },
+        "nullCoreMunicipalities": 71,
+    },
+    "AL": {
+        "publicationStates": {
+            "published": 93,
+            "partial": 9,
+            "unavailable": 0,
+            "invalid": 0,
+        },
+        "reconciliations": {
+            "reconciled": 2_484,
+            "divergent": 0,
+            "not_evaluated": 168,
+        },
+        "nullCoreMunicipalities": 9,
+    },
 }
 OFFICIAL_CENSUS_FIELDS = {
     "QT_MAT_BAS": "mat_basico_oficial",
@@ -574,31 +595,46 @@ def validate_contract_directory(
         sizes.append(len(canonical_content))
         canonical_contracts[entry["idMunicipality"]] = canonical_content
 
-    if set(publication_states) - set(EXPECTED_PUBLICATION_STATES):
+    if set(publication_states) - set(PUBLICATION_STATE_KEYS):
         raise RuntimeError(f"Estados de publicação desconhecidos: {dict(publication_states)}.")
     publication_distribution = {
-        state: publication_states[state] for state in EXPECTED_PUBLICATION_STATES
+        state: publication_states[state] for state in PUBLICATION_STATE_KEYS
     }
     reconciliation_distribution = {
-        state: reconciliation_states[state] for state in EXPECTED_RECONCILIATIONS
+        state: reconciliation_states[state] for state in RECONCILIATION_STATE_KEYS
     }
-    if (
-        require_expected_distribution
-        and publication_distribution != EXPECTED_PUBLICATION_STATES
-    ):
+    expected_distribution = STATE_EXPECTED_DISTRIBUTIONS.get(state_code)
+    if require_expected_distribution and expected_distribution is None:
+        raise RuntimeError(f"Distribuição esperada não configurada para {state_code}.")
+    expected_publication = (
+        expected_distribution["publicationStates"] if expected_distribution else None
+    )
+    expected_reconciliations = (
+        expected_distribution["reconciliations"] if expected_distribution else None
+    )
+    expected_null_core = (
+        expected_distribution["nullCoreMunicipalities"]
+        if expected_distribution
+        else None
+    )
+    if require_expected_distribution and expected_publication is None:
+        raise RuntimeError(f"Distribuição de publicação esperada ausente para {state_code}.")
+    if require_expected_distribution and expected_reconciliations is None:
+        raise RuntimeError(f"Distribuição de reconciliações esperada ausente para {state_code}.")
+    if require_expected_distribution and publication_distribution != expected_publication:
         raise RuntimeError(
             f"Distribuição de publicação divergente: {publication_distribution}."
         )
     if (
         require_expected_distribution
-        and reconciliation_distribution != EXPECTED_RECONCILIATIONS
+        and reconciliation_distribution != expected_reconciliations
     ):
         raise RuntimeError(
             f"Distribuição de reconciliações divergente: {reconciliation_distribution}."
         )
-    if require_expected_distribution and len(null_core_municipalities) != 71:
+    if require_expected_distribution and len(null_core_municipalities) != expected_null_core:
         raise RuntimeError(
-            "Esperados 71 municípios com nullCoreRows; "
+            f"Esperados {expected_null_core} municípios com nullCoreRows; "
             f"encontrados {len(null_core_municipalities)}."
         )
     expected_count = len(expected_by_id)
@@ -694,6 +730,7 @@ def materialize_contracts(
     generated_at: str,
     supplemental_by_municipality: Mapping[str, Mapping[str, Any]] | None = None,
     performance_by_municipality: Mapping[str, Iterable[Mapping[str, Any]]] | None = None,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, dict[str, Any]]:
     rows_list = [dict(row) for row in rows]
     entries_list = [dict(entry) for entry in entries]
@@ -737,7 +774,11 @@ def materialize_contracts(
     global_null_audit = audit_fully_null_rows(
         row for row in rows_list if int(row["ano"]) == REFERENCE_YEAR
     )
-    if global_null_audit["affectedMunicipalityYears"] != 71:
+    expected_distribution = STATE_EXPECTED_DISTRIBUTIONS.get(state_code)
+    if expected_distribution is None:
+        raise RuntimeError(f"Distribuição esperada não configurada para {state_code}.")
+    expected_null_core = expected_distribution["nullCoreMunicipalities"]
+    if global_null_audit["affectedMunicipalityYears"] != expected_null_core:
         raise RuntimeError(
             "A auditoria de nullCoreRows divergiu do baseline VGM-2.1: "
             f"{global_null_audit['affectedMunicipalityYears']} encontrados."
@@ -831,6 +872,7 @@ def main(argv: list[str] | None = None) -> int:
         generated_at,
         supplemental_by_municipality=supplemental,
         performance_by_municipality=performance,
+        state_code=state_config.state_code,
     )
 
     temporary_parent = output_directory.parent

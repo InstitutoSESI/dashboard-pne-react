@@ -100,16 +100,17 @@ test('normaliza UF textual e rejeita valor inválido sem fallback', () => {
   assert.throws(() => normalizePlatformState(''), /PLATFORM_STATE inválido/)
   const alProfile = loadStateBuildProfile({ repoRoot, stateCode: 'AL', requirePublication: false })
   assert.equal(alProfile.stateConfig.stateName, 'Alagoas')
-  assert.equal(alProfile.publication.analyticsStatus, 'identity-only')
+  assert.equal(alProfile.publication.analyticsStatus, 'partial')
   assert.equal(alProfile.municipalityRegistry, null)
   assert.equal(alProfile.publicDataDirectory, null)
 })
 
-test('perfil real de AL publica 102 identidades sem ativar analytics do RS', () => {
+test('perfil real de AL publica Educação para 102 municípios sem ativar analytics do RS', () => {
   const profile = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
   assert.equal(profile.stateConfig.expectedMunicipalityCount, 102)
   assert.equal(profile.municipalityRegistry.municipalityCount, 102)
-  assert.equal(profile.publication.analyticsStatus, 'identity-only')
+  assert.equal(profile.publication.analyticsStatus, 'partial')
+  assert.deepEqual([...profile.publication.enabledProducts], ['educacao'])
   assert.equal(profile.publication.publicDataDirectory, 'state-publications/al/data')
   assert.ok(profile.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('27')))
 })

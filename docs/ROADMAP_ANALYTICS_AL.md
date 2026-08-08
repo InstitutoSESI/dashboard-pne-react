@@ -2,7 +2,8 @@
 
 Gerado em 2026-08-07 a partir de auditoria completa do pipeline. Objetivo: levar a
 publicação de AL de `identity-only` até `complete`, com o mesmo esqueleto de
-visualizações do RS.
+visualizações do RS. Em 2026-08-08, a Fase 1 foi promovida para `partial`, com
+somente Educação habilitada.
 
 ## 0. Descoberta estrutural
 
@@ -110,12 +111,13 @@ Hardcodes principais no `data_pipeline` (verificados, arquivo:linha):
   fingerprint, amostras de QA (Maceió `2704302`), contrato `partial`
   (`enabledProducts: ["educacao"]`). Aceite: 102 contratos municipais; RS sem regressão.
 
-  **Scaffolding concluído** (configs promovidas, `config/compatibility/education-municipality-routes/al.json`
+  **Concluída em 2026-08-08** (configs promovidas, `config/compatibility/education-municipality-routes/al.json`
   com 36 overrides, `resolve_public_data_dir`, fingerprint por UF, amostras de QA
   do registro ativo e `state-publication-v3` com `partial`/`enabledProducts`).
-  `config/publications/al.json` permanece `identity-only`: o flip para `partial`
-  depende da Fase 0 popular o banco `sesi` com AL e de rodar
-  `update_static_data.py --state AL --education-only`.
+  O banco `sesi` foi carregado por UF e `update_static_data.py --state AL
+  --education-only` publicou os 102 contratos municipais, além dos artefatos de
+  visão geral, Educação Superior e Educação Especial. PNE e Financiamento
+  permanecem nas fases seguintes.
 - **Fase 2 — Financiamento** (paralelizável; 6 de 8 fontes não dependem do banco).
   SIOPE `@Sig_UF='AL'`, regex FUNDEB/QSE `^AL`/`27\d{5}`, crosswalk
   `siope_ibge_crosswalk_al_v1.json`.

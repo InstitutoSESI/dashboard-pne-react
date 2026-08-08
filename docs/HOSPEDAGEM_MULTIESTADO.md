@@ -7,7 +7,7 @@ manifesto correspondente.
 | Projeto | Comando de build | Diretório de saída | Cobertura |
 | --- | --- | --- | --- |
 | RS | `npm run build:cloudflare:rs` | `dist` | PNE, Educação e Financeiro completos |
-| AL | `npm run build:cloudflare:al` | `dist` | cadastro oficial dos 102 municípios; analytics indisponível |
+| AL | `npm run build:cloudflare:al` | `dist` | cadastro oficial dos 102 municípios e Educação; PNE e Financiamento indisponíveis |
 
 ## Cloudflare Pages
 
@@ -28,8 +28,6 @@ alterar esse comportamento de SPA.
 ## Validação local antes do deploy
 
 ```powershell
-npm run update:al-identity-publication
-npm run check:al-identity-publication
 npm run test:state-publication
 npm run test:multistate-hosting
 npm run build:rs
@@ -52,12 +50,11 @@ Durante desenvolvimento, use `npm run dev:rs` em
 - `config/publications/rs.json` aponta para `public/data` e exige analytics
   completo.
 - `config/publications/al.json` aponta para `state-publications/al/data` e
-  declara `identity-only`.
+  declara `partial` com somente `educacao` habilitada.
 - O build rejeita códigos, nomes, slugs, contagens ou diretórios municipais que
   não coincidam com o registro canônico selecionado.
-- A raiz AL contém somente `publication.json`, `municipios_index.json` e um
-  `municipios/<IBGE>/index.json` por município. Não contém indicadores, PNE,
-  Educação ou Financeiro do RS.
-- O pipeline analítico continua aceitando apenas a configuração ativa do RS.
-  Disponibilizar analytics de AL exige fontes, metodologias, contratos e testes
-  próprios; a hospedagem atual não inventa nem replica esses dados.
+- A raiz AL contém o catálogo canônico, Educação básica, Superior e Especial.
+  Não contém PNE, Financiamento nem qualquer identidade municipal 43xxxxx.
+- O pipeline educacional aceita RS e AL com filtro explícito de UF. Os produtos
+  ainda não publicados permanecem fail-closed; a hospedagem não inventa nem
+  replica dados do RS.

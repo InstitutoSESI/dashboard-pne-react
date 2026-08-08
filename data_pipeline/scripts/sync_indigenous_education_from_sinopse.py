@@ -27,6 +27,7 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.config import SESI_DB_DIR  # noqa: E402
+from src.state_config import load_state_config  # noqa: E402
 
 sys.path.insert(0, str(SESI_DB_DIR))
 from utils_educacao import get_engine  # noqa: E402
@@ -35,6 +36,7 @@ from utils_educacao import get_engine  # noqa: E402
 RS_MUNICIPALITIES = 497
 SUPPORTED_YEARS = (2023, 2024, 2025)
 TARGET_UF = "Rio Grande do Sul"
+TARGET_STATE_CODE = "RS"
 TABLE_NAME = "educacao_indigena_municipal"
 
 CUTS = (
@@ -326,6 +328,8 @@ def _parse_sheet(workbook, *, year: int, unit_key: str) -> tuple[pd.DataFrame, d
 
 
 def _reference_checks(frame: pd.DataFrame) -> dict:
+    if TARGET_STATE_CODE != "RS":
+        return {}
     checks = {}
     for municipality_id, expected_by_unit in REFERENCE_VALUES_2025.items():
         observed = {}
@@ -411,6 +415,8 @@ def parse_sources(source_dir: Path, years: tuple[int, ...]) -> tuple[pd.DataFram
 
 def replace_years(frame: pd.DataFrame, years: tuple[int, ...]) -> None:
     engine = get_engine("sesi")
+    frame = frame.copy()
+    frame["sigla_uf"] = TARGET_STATE_CODE
     create_sql = f"""
         CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
             id_municipio VARCHAR(7) NOT NULL,
@@ -421,14 +427,30 @@ def replace_years(frame: pd.DataFrame, years: tuple[int, ...]) -> None:
             valor INTEGER NULL,
             tabela_fonte TEXT NOT NULL,
             grupo_comparabilidade TEXT NOT NULL,
+            sigla_uf VARCHAR(2),
             PRIMARY KEY (id_municipio, ano, unidade, recorte)
         )
     """
     with engine.begin() as connection:
         connection.execute(text(create_sql))
         connection.execute(
-            text(f"DELETE FROM {TABLE_NAME} WHERE ano = ANY(:years)"),
-            {"years": list(years)},
+            text(
+                f"ALTER TABLE {TABLE_NAME} "
+                "ADD COLUMN IF NOT EXISTS sigla_uf VARCHAR(2)"
+            )
+        )
+        connection.execute(
+            text(
+                f"UPDATE {TABLE_NAME} SET sigla_uf = 'RS' "
+                "WHERE sigla_uf IS NULL"
+            )
+        )
+        connection.execute(
+            text(
+                f"DELETE FROM {TABLE_NAME} "
+                "WHERE sigla_uf = :state AND ano = ANY(:years)"
+            ),
+            {"state": TARGET_STATE_CODE, "years": list(years)},
         )
         frame.to_sql(
             TABLE_NAME,
@@ -441,7 +463,9 @@ def replace_years(frame: pd.DataFrame, years: tuple[int, ...]) -> None:
 
 
 def main() -> None:
+    global RS_MUNICIPALITIES, TARGET_UF, TARGET_STATE_CODE
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--state", default="RS", help="UF da carga (RS ou AL).")
     parser.add_argument(
         "--source-dir",
         type=Path,
@@ -467,8 +491,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    state_config = load_state_config(args.state)
+    TARGET_STATE_CODE = state_config.state_code
+    TARGET_UF = state_config.state_name
+    RS_MUNICIPALITIES = state_config.expected_municipality_count
+
     years = tuple(sorted(set(args.years)))
     frame, summary = parse_sources(args.source_dir.resolve(), years)
+    summary["state"] = TARGET_STATE_CODE
     if args.apply:
         replace_years(frame, years)
         summary["database_write"] = "applied"

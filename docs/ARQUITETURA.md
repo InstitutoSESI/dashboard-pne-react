@@ -28,8 +28,8 @@ copiados sem a subárvore `data`, e somente os dados do perfil validado ocupam
 `dist/data`. No desenvolvimento, um middleware intercepta todo caminho `/data`
 e nunca deixa uma ausência cair na publicação de outra UF. O build app-only
 continua sem copiar dado público. RS é o padrão compatível e a publicação
-analítica completa. AL é uma publicação `identity-only`, com raiz própria e
-indisponibilidade analítica explícita; não existe fallback de AL para RS.
+analítica completa. AL é uma publicação `partial`, com raiz própria e somente
+Educação habilitada; não existe fallback de AL para RS.
 
 ## Camadas
 
@@ -67,7 +67,7 @@ municípios e o locale `pt-BR`. `config/publications/rs.json` declara o contrato
 `state-publication-v3` e aponta a publicação RS para `public/data`, com analytics
 completo. O manifesto AL usa o mesmo schema, aponta para `config/states/al.json`,
 `config/municipalities/al.json` e `state-publications/al/data`, e declara
-`analyticsStatus=identity-only`. O frontend recebe ambos os contratos validados
+`analyticsStatus=partial` e `enabledProducts=["educacao"]`. O frontend recebe ambos os contratos validados
 pelo build; módulos analíticos só são carregados quando o perfil os declara
 disponíveis.
 
@@ -96,7 +96,8 @@ compatibilidade temporária; slug é rota pública.
 
 `municipios_index.json` continua sendo o único catálogo municipal público. Em
 uma publicação analítica completa ele é carregado junto com `indicadores.json`;
-em uma publicação `identity-only`, somente o catálogo é solicitado.
+em uma publicação `partial`, somente os produtos listados em `enabledProducts`
+são solicitados; em AL isso significa o catálogo e Educação.
 Ele agora é uma projeção publicada do registro canônico, com o mesmo schema,
 ordem e caminho existentes. Na fronteira de carregamento, o payload bruto em português
 `MunicipalityIndexEntryPayload` é validado e convertido para a única coleção

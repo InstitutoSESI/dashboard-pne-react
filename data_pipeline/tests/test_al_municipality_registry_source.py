@@ -105,8 +105,8 @@ def test_al_official_source_materializes_the_exact_candidate_registry() -> None:
     }
 
 
-def test_al_configs_are_promoted_while_the_publication_stays_identity_only() -> None:
-    """Fase 1: configuração e registro ativos; publicação ainda sem analytics."""
+def test_al_configs_are_promoted_with_education_as_the_only_analytics_product() -> None:
+    """Fase 1: configuração, registro e Educação ativos de forma fail-closed."""
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     publication = json.loads(ACTIVE_PUBLICATION_PATH.read_text(encoding="utf-8"))
 
@@ -121,8 +121,8 @@ def test_al_configs_are_promoted_while_the_publication_stays_identity_only() -> 
     assert not CANDIDATE_ROOT.exists()
     assert publication["schemaVersion"] == "state-publication-v3"
     assert publication["stateCode"] == "AL"
-    assert publication["analyticsStatus"] == "identity-only"
-    assert publication["enabledProducts"] is None
+    assert publication["analyticsStatus"] == "partial"
+    assert publication["enabledProducts"] == ["educacao"]
     assert publication["stateConfigPath"] == "config/states/al.json"
     assert publication["municipalityRegistryPath"] == (
         "config/municipalities/al.json"

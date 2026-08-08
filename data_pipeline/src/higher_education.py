@@ -812,7 +812,7 @@ def _parse_sheet(
         seen_municipalities.add(municipality_id)
 
         official_name = municipality_universe[municipality_id]
-        if municipality_name != official_name:
+        if normalize_header(municipality_name) != normalize_header(official_name):
             raise ValueError(
                 f"Nome municipal divergente na tabela {table} de {year}: "
                 f"{municipality_id} usa {municipality_name!r}, esperado "

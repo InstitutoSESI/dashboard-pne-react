@@ -12,8 +12,11 @@ export default defineConfig([
     'node_modules/**',
     '.venv/**',
     '**/.venv/**',
+    '**/.pytest_cache/**',
+    '**/__pycache__/**',
     'public/data/**',
     'data_pipeline/export/**',
+    'tmp/**',
     '*.log',
   ]),
   {

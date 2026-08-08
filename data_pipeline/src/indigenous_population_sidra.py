@@ -67,12 +67,12 @@ METADATA_URL = (
 )
 
 
-def data_url() -> str:
+def data_url(state_id: str = RS_STATE_ID) -> str:
     ages = ",".join(AGE_IDS.values())
     return (
         "https://servicodados.ibge.gov.br/api/v3/agregados/"
         f"{AGGREGATE_ID}/periodos/{CENSUS_YEAR}/variaveis/{VARIABLE_ID}"
-        f"?localidades={TERRITORIAL_LEVEL}[N3[{RS_STATE_ID}]]"
+        f"?localidades={TERRITORIAL_LEVEL}[N3[{state_id}]]"
         f"&classificacao={AGE_CLASSIFICATION_ID}[{ages}]"
         f"|{LOCATION_CLASSIFICATION_ID}[{LOCATION_TOTAL_ID}]"
         f"|{HOUSEHOLD_SITUATION_CLASSIFICATION_ID}"
@@ -460,12 +460,14 @@ def extract_to_directory(
     metadata_content: bytes | None = None,
     data_content: bytes | None = None,
     municipality_codes: set[str] | None = None,
+    state_code: str = "RS",
+    state_id: str = RS_STATE_ID,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     """Baixa, valida e materializa fonte bruta, estrutura longa e faixas."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
     metadata_content = metadata_content or download_bytes(METADATA_URL)
-    data_content = data_content or download_bytes(data_url())
+    data_content = data_content or download_bytes(data_url(state_id))
     metadata = json.loads(metadata_content)
     query_contract = validate_metadata(metadata)
     extracted_at = datetime.now(timezone.utc).isoformat()
@@ -480,7 +482,8 @@ def extract_to_directory(
         "territorialLevel": query_contract["territorialLevel"],
         "extractedAt": extracted_at,
         "metadataUrl": METADATA_URL,
-        "queryUrl": data_url(),
+        "queryUrl": data_url(state_id),
+        "stateCode": state_code,
         "responseSha256": response_hash,
         "metadataSha256": _sha256(metadata_content),
         "importerSchemaVersion": IMPORTER_SCHEMA_VERSION,
@@ -504,7 +507,9 @@ def extract_to_directory(
     }
 
     (output_dir / "metadata_9970.json").write_bytes(metadata_content)
-    (output_dir / "response_9970_rs_2022.json").write_bytes(data_content)
+    (output_dir / f"response_9970_{state_code.lower()}_2022.json").write_bytes(
+        data_content
+    )
     (output_dir / "population_by_age.json").write_text(
         json.dumps(rows, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

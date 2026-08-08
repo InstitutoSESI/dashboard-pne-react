@@ -86,7 +86,8 @@ passa por conversão numérica. O resultado fica em
 `config/municipalities/al.json`, junto à configuração estadual ativa em
 `config/states/al.json`. O manifesto de produto `config/publications/al.json` usa
 esses contratos e publica a raiz isolada `state-publications/al/data`, mantendo
-`analyticsStatus=identity-only` enquanto não houver dados analíticos de AL.
+`analyticsStatus=partial` com `enabledProducts=["educacao"]`; PNE e
+Financiamento permanecem indisponíveis.
 
 Valide snapshot, hashes, cobertura, hierarquia estadual, slugs e projeção exata
 com:
@@ -94,7 +95,8 @@ com:
 ```powershell
 npm run test:al-municipality-registry
 npm run test:identity-publication
-npm run check:al-identity-publication
+npm run test:state-publication
+npm run test:multistate-hosting
 ```
 
 Esse comando é local e não acessa a rede. Uma atualização da fonte é uma tarefa

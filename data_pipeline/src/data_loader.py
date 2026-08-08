@@ -230,7 +230,17 @@ def load_special_education_school_source_data(*, municipality_ids=None):
             "Fonte da Educação Especial converteu código municipal para número; "
             f"inválidos={invalid[:5]}."
         )
-    extra = sorted(set(raw_codes) - expected_ids)
+    expected_prefixes = {identifier[:2] for identifier in expected_ids}
+    if len(expected_prefixes) != 1:
+        raise ValueError(
+            "O filtro da Educação Especial deve pertencer a uma única UF."
+        )
+    expected_prefix = next(iter(expected_prefixes))
+    extra = sorted(
+        code
+        for code in set(raw_codes) - expected_ids
+        if code.startswith(expected_prefix)
+    )
     if extra:
         raise ValueError(
             "Fonte da Educação Especial contém códigos fora do registro: "

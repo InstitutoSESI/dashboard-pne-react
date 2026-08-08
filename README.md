@@ -76,9 +76,8 @@ O produto de Alagoas usa o cadastro oficial dos 102 municípios, versionado em
 resposta integral da API de Localidades do IBGE e um manifesto com URL, data,
 hashes, cobertura e política de normalização. `config/publications/al.json` liga
 esses contratos à raiz isolada `state-publications/al/data`. Essa publicação é
-deliberadamente `identity-only`: ela torna o site AL hospedável, mas declara PNE,
-Educação e Financiamento como indisponíveis até existirem dados analíticos
-oficiais validados para o estado.
+`partial`, habilita somente `educacao` e mantém PNE e Financiamento
+indisponíveis até existirem dados oficiais validados para esses produtos.
 
 O Vite seleciona o perfil de produto pela variável de build `PLATFORM_STATE`,
 com `RS` como padrão compatível. Antes de servir ou empacotar dados, reconcilia
@@ -89,10 +88,9 @@ RS. A aplicação recebe somente a configuração validada do perfil selecionado
 
 Na Educação, a exportação geral, a Visão Geral Municipal, a Educação Superior e
 a Educação Especial recebem `--state` e usam essa configuração com o registro
-municipal. Somente `RS` possui configuração ativa no pipeline analítico; os
-contratos de identidade do produto AL não são promovidos silenciosamente para
-esses diretórios, e uma atualização analítica de `AL` falha antes de banco,
-fonte ou escrita. Os 182
+municipal. RS e AL possuem configuração ativa no pipeline educacional, sempre
+com filtro explícito de UF e raiz pública própria; os demais pipelines continuam
+fail-closed para AL. Os 182
 slugs históricos que divergem do slug canônico são projetados
 pela compatibilidade versionada em
 `config/compatibility/education-municipality-routes/rs.json`; ela não define
@@ -127,9 +125,10 @@ npm run build:rs     # dist/rs
 npm run build:al     # dist/al
 ```
 
-`npm run update:al-identity-publication` regenera a raiz AL em staging, valida o
-lote e só então o promove. `npm run check:al-identity-publication` apenas valida
-o conteúdo existente. Nenhum dos dois comandos acessa banco ou rede.
+O catálogo de identidade preservado na raiz AL continua sendo validado pelos
+testes de registro. Como a publicação agora é `partial`, os comandos antigos de
+materialização integral `identity-only` foram removidos do fluxo: Educação é
+atualizada pelos exportadores analíticos e validada como produto habilitado.
 
 A atualização e validação de dados não constroem mais a aplicação. Para
 atualizar somente Educação, configure `SESI_DB_DIR` para o projeto que fornece

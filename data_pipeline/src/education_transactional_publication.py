@@ -737,9 +737,14 @@ def _promote_education_staging_impl(
     profile_session = get_active_profile_session()
     output_root = Path(output_root).resolve()
     public_root = Path(public_root).resolve()
-    if not public_root.is_dir():
+    public_root_missing = not public_root.exists()
+    if not public_root_missing and not public_root.is_dir():
         raise EducationPromotionError(
-            f"Diretorio publico educacional ausente: {public_root}."
+            f"Raiz publica educacional nao e diretorio: {public_root}."
+        )
+    if public_root_missing and not public_root.parent.is_dir():
+        raise EducationPromotionError(
+            f"Diretorio pai da publicacao educacional ausente: {public_root.parent}."
         )
     report = validate_education_staging(
         output_root,
@@ -760,6 +765,9 @@ def _promote_education_staging_impl(
     created_target_directories: list[Path] = []
     rollback_failed = False
     try:
+        if public_root_missing:
+            public_root.mkdir(parents=False, exist_ok=False)
+            created_target_directories.append(public_root)
         for action in actions:
             if action.kind in {"updated", "removed"}:
                 backup = backup_root / action.relative
