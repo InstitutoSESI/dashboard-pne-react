@@ -1,9 +1,16 @@
-# Roadmap técnico — Analytics de Alagoas
+# Roadmap técnico — Analytics de Alagoas (histórico)
 
 Gerado em 2026-08-07 a partir de auditoria completa do pipeline. Objetivo: levar a
 publicação de AL de `identity-only` até `complete`, com o mesmo esqueleto de
 visualizações do RS. Em 2026-08-08, a Fase 1 foi promovida para `partial`, com
 somente Educação habilitada.
+
+**Estado atual (2026-08-09): objetivo concluído.** O manifesto
+`config/publications/al.json` declara `analyticsStatus=complete`, a raiz
+`state-publications/al/data` contém os 102 municípios e os produtos PNE,
+Educação e Financiamento. O restante deste documento preserva a auditoria e a
+sequência de implantação como registro histórico; descrições de `partial` e de
+produtos ainda indisponíveis referem-se aos marcos intermediários.
 
 ## 0. Descoberta estrutural
 
@@ -161,7 +168,7 @@ Fase 0 ──► Fase 1 ──► Fase 3 ──► Fase 4 ──► Fase 5
    `SESI/DB/data/populacao`, tendo `pop_estimada.py` do projeto CEI como
    referência. Não é pré-requisito do scaffolding de AL neste repositório.
 
-### 4.2 Pendentes
+### 4.2 Pendências registradas na auditoria original
 
 1. **Cortes temporais** da referência estadual (2015–2025, baseline 2025,
    `STATE_PROJECTION_MINIMUM_OBSERVATIONS = 5`): validar densidade da série de AL.

@@ -107,6 +107,10 @@
   grid-column: 1 / -1;
 }
 
+.education-support-data__item--coverage {
+  grid-column: 1 / -1;
+}
+
 .education-support-data__item-heading {
   min-height: 68px;
   padding-bottom: var(--space-3);
@@ -172,6 +176,64 @@
 .education-support-data__item-content > .education-chart > .education-chart__canvas > svg {
   width: 100%;
   min-width: 0;
+  height: auto;
+  max-height: none;
+}
+
+/* Coberturas estimadas usam os mesmos contornos, tabela e sistema de notas dos
+   demais dados de apoio. A variante apenas remove larguras legadas que faziam
+   a memória de cálculo parecer um artefato externo ao painel. */
+.education-support-data__item--coverage .education-support-data__item-heading {
+  min-height: 0;
+}
+
+.education-support-data__item--coverage .educacao-explore-table,
+.education-support-data__item--coverage .education-table-wrap,
+.education-support-data__item--coverage .education-table {
+  width: 100%;
+  min-width: 0;
+}
+
+.education-support-data__item--coverage .education-table-wrap {
+  margin: 0;
+  box-shadow: none;
+  overflow-x: hidden;
+  scrollbar-gutter: auto;
+}
+
+.education-support-data__item--coverage .education-table {
+  table-layout: fixed;
+}
+
+.education-support-data__item--coverage .education-table :is(th, td) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.education-support-data__item--coverage .education-table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.education-support-data__item--coverage .education-chart--stacked {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.education-support-data__item--coverage .education-support-data__item-content > .education-chart--stacked > .education-chart__canvas {
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin-inline: auto;
+  overflow-x: hidden;
+}
+
+.education-support-data__item--coverage .education-support-data__item-content > .education-chart--stacked > .education-chart__canvas > svg {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
   max-height: none;
 }
@@ -330,6 +392,17 @@
     min-height: 300px;
     height: 300px;
     max-height: 300px;
+  }
+}
+
+@media screen and (max-width: 700px) {
+  .education-support-data__item--coverage .education-table-wrap {
+    overflow-x: auto;
+  }
+
+  .education-support-data__item--coverage .education-table {
+    min-width: 620px;
+    table-layout: auto;
   }
 }
 

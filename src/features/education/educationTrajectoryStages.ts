@@ -5,7 +5,7 @@ interface TrajectoryStageDefinition {
   description: string
   key: string
   label: string
-  question?: string
+  contextTitle?: string
 }
 
 export interface TrajectoryStageCard {
@@ -47,7 +47,7 @@ const TRAJECTORY_STAGES: readonly TrajectoryStageDefinition[] = [
   {
     key: 'contexto',
     label: 'Contexto educacional',
-    question: 'Que contexto ajuda a interpretar os resultados educacionais?',
+    contextTitle: 'Contexto para interpretar os resultados educacionais',
     description: 'Indicadores de contexto que não possuem recorte por etapa.',
   },
 ]

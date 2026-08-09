@@ -146,7 +146,7 @@ export function EducationDemandSection({
         )}
         eyebrow="Indicadores de Educação / Cenários de atendimento escolar"
         headingRef={pageTitleRef}
-        title="Como o atendimento escolar pode evoluir?"
+        title="Cenários para a evolução do atendimento escolar"
         variant="scenarios"
       />
 

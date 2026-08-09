@@ -1443,6 +1443,9 @@ test('territórios expõem a cobertura rural estimada sem limitar valores acima 
     'rural-cobertura-construcao',
     'rural-cobertura-matriculas',
   ])
+  assert.deepEqual(item.explore.map((detail) => detail.supportLayout), ['full', 'full'])
+  assert.deepEqual(item.explore.map((detail) => detail.supportVariant), ['coverage', 'coverage'])
+  assert.equal(item.explore[0].description, null)
   assert.deepEqual(item.explore[0].rows, [
     { ano: '2023', populacao: 400, matriculas: 395, cobertura: 98.75 },
     { ano: '2024', populacao: 400, matriculas: null, cobertura: null },
@@ -1461,11 +1464,23 @@ test('gráfico rural preserva todos os anos curtos e evita título duplicado', (
     path.resolve('src/features/education/components/EducationIndicatorSupportData.jsx'),
     'utf8',
   )
+  const supportStyles = readFileSync(
+    path.resolve('src/styles/education-indicator-support-data.css'),
+    'utf8',
+  )
 
   assert.match(chartSource, /rows\.length <= 8 \? rows : selectPneYearTicks\(rows, 6\)/)
   assert.match(chartSource, /title && title !== sectionTitle/)
   assert.match(chartSource, /aria-label=\{title \|\| 'Gráfico de barras empilhadas'\}/)
   assert.match(supportSource, /sectionTitle=\{sectionTitle\}/)
+  assert.match(supportSource, /caption=\{sectionTitle\}/)
+  assert.doesNotMatch(supportSource, /<h4>\{item\.title\}<\/h4>/)
+  assert.match(supportSource, /supportVariant === 'coverage'/)
+  assert.match(supportStyles, /\.education-support-data__item--coverage \.education-table[\s\S]*?table-layout: fixed/)
+  assert.match(supportStyles, /\.education-support-data__item--coverage \.education-table-wrap[\s\S]*?scrollbar-gutter: auto/)
+  assert.match(supportStyles, /\.education-support-data__item--coverage \.education-table tbody tr:last-child :is\(th, td\)[\s\S]*?border-bottom: 0/)
+  assert.match(supportStyles, /\.education-support-data__item--coverage \.education-support-data__item-content > \.education-chart--stacked > \.education-chart__canvas[\s\S]*?max-width: 720px/)
+  assert.match(supportStyles, /\.education-support-data__item--coverage \.education-support-data__item-content > \.education-chart--stacked > \.education-chart__canvas > svg[\s\S]*?min-width: 0/)
 })
 
 test('detalhe do IDEB usa cores institucionais e preserva a proporção dos SVGs', () => {
@@ -1479,6 +1494,9 @@ test('detalhe do IDEB usa cores institucionais e preserva a proporção dos SVGs
   assert.match(detailSource, /color="var\(--institutional-blue\)"/)
   assert.doesNotMatch(`${detailSource}\n${cssSource}`, /#6d28d9|#7c3aed/i)
   assert.match(cssSource, /\.education-chart svg[\s\S]*height: auto;/)
+  assert.match(cssSource, /\.ideb-component-chart-card \.education-chart svg[\s\S]*?min-width: 0;/)
+  assert.match(cssSource, /\.ideb-component-chart-card \.education-chart__canvas[\s\S]*?overflow-x: hidden;/)
+  assert.match(cssSource, /@container workspace \(max-width: 860px\)[\s\S]*?grid-template-columns: 1fr;/)
   assert.doesNotMatch(cssSource, /(?:min-height|height|max-height): 270px/)
 })
 
@@ -1635,30 +1653,31 @@ test('catálogo de infraestrutura separa 18 indicadores de 14 conteúdos navegá
   })
 })
 
-test('catálogos educacionais contextualizam seções com perguntas curtas; grupos seguem curadoria editorial pergunta/informação', () => {
-  const assertContextQuestion = (entry, scope) => {
-    assert.equal(typeof entry.question, 'string', `${scope} deve declarar uma pergunta`)
-    assert.match(entry.question, /\?$/, `${scope} deve terminar com interrogação`)
-    assert.ok(entry.question.length <= 72, `${scope} deve preservar uma leitura compacta`)
+test('catálogos educacionais usam títulos contextuais declarativos e preservam alternativas factuais', () => {
+  const assertContextTitle = (entry, scope) => {
+    assert.equal(typeof entry.contextTitle, 'string', `${scope} deve declarar um título contextual`)
+    assert.doesNotMatch(entry.contextTitle, /\?$/, `${scope} não deve ser formulado como pergunta`)
+    assert.ok(entry.contextTitle.length <= 72, `${scope} deve preservar uma leitura compacta`)
+    assert.equal(entry.question, undefined, `${scope} não deve manter o contrato editorial de pergunta`)
   }
 
   /*
-   * Seções (nível de página/H1) continuam 100% pergunta. Grupos e etapas, por
-   * outro lado, seguem curadoria editorial título a título: alguns têm
-   * `question` (viram pergunta), outros não (viram título factual a partir de
-   * `label`/`title`). Quando `question` existe, ainda validamos o formato.
+   * Seções de página sempre recebem contexto. Grupos e etapas continuam com
+   * curadoria título a título: alguns acrescentam `contextTitle`; os demais usam
+   * diretamente o `label`/`title` factual.
    */
   const assertCuratedHeading = (entry, scope, factualKey = 'label') => {
-    if (entry.question !== undefined) {
-      assertContextQuestion(entry, scope)
+    if (entry.contextTitle !== undefined) {
+      assertContextTitle(entry, scope)
       return
     }
-    assert.equal(typeof entry[factualKey], 'string', `${scope} sem pergunta deve declarar um título factual (${factualKey})`)
+    assert.equal(entry.question, undefined, `${scope} não deve declarar pergunta`)
+    assert.equal(typeof entry[factualKey], 'string', `${scope} deve declarar um título factual (${factualKey})`)
     assert.ok(entry[factualKey].length > 0, `${scope} deve ter um título factual não vazio`)
   }
 
   educationCatalog.EDUCATION_SECTION_CATALOG.forEach((section) => {
-    assertContextQuestion(section, `Seção ${section.key}`)
+    assertContextTitle(section, `Seção ${section.key}`)
   })
 
   Object.entries(educationCatalog.EDUCATION_SECTION_GROUPS).forEach(([sectionKey, groups]) => {
@@ -1682,6 +1701,32 @@ test('catálogos educacionais contextualizam seções com perguntas curtas; grup
   higherEducationCatalog.HIGHER_EDUCATION_GROUPS.forEach((group) => {
     assertCuratedHeading(group, `Educação Superior/${group.id}`, 'title')
   })
+})
+
+test('páginas educacionais usam títulos declarativos nos blocos de orientação', () => {
+  const sources = [
+    'src/features/education/components/EducationLandingPage.tsx',
+    'src/features/education/components/EducationDemandSection.tsx',
+    'src/features/education/components/EducationOverviewSection.tsx',
+    'src/features/education/components/HigherEducationSection.tsx',
+  ].map((sourcePath) => readFileSync(path.resolve(sourcePath), 'utf8')).join('\n')
+
+  assert.doesNotMatch(sources, /title=["'][^"']*\?["']/)
+  assert.doesNotMatch(sources, />\s*[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][^<{\r\n]*\?\s*<\/(?:h[1-3]|strong)>/)
+  assert.equal(
+    educationCatalog.EDUCATION_SECTION_CONTEXT_TITLES[educationCatalog.EDUCATION_SECTION_KEYS.overview],
+    'Visão geral da educação municipal',
+  )
+  assert.equal(
+    educationCatalog.EDUCATION_SECTION_CONTEXT_TITLES[educationCatalog.EDUCATION_SECTION_KEYS.panorama],
+    'Panorama educacional do município',
+  )
+  assert.match(sources, /title="Cenários para a evolução do atendimento escolar"/)
+  assert.match(sources, /title="Distribuição das matrículas da Educação Infantil em 2025"/)
+  assert.match(sources, /title="Oferta e presença da graduação no município"/)
+  assert.match(sources, />Dimensões da educação municipal<\/h2>/)
+  assert.match(sources, />Resultados de aprendizagem no IDEB e no SAEB<\/h2>/)
+  assert.match(sources, />Fontes e referências do panorama educacional<\/h2>/)
 })
 
 test('cabeçalhos de grupos educacionais compartilham tipografia, largura e responsividade', () => {

@@ -322,6 +322,34 @@ test('theme filters wrap complete labels without horizontal clipping', () => {
   assert.match(css, /\.legal-goals-theme-filter__chips\.platform-filter-list \{[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow-x: visible;/)
 })
 
+test('cycle themes use contextual headings and keep cards away from workspace edges', () => {
+  const cyclePageSource = readFileSync(
+    new URL('../../src/pages/CyclePage.jsx', import.meta.url),
+    'utf8',
+  )
+  const thematicGroupsSource = readFileSync(
+    new URL('../../src/data/thematicGroups.js', import.meta.url),
+    'utf8',
+  )
+  const priorityMatrixSource = readFileSync(
+    new URL('../../src/pages/PriorityMatrixPage.jsx', import.meta.url),
+    'utf8',
+  )
+  const css = readFileSync(
+    new URL('../../src/styles/pne-cycle-experience.css', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(cyclePageSource, /group\.contextTitle \?\? group\.label/)
+  assert.doesNotMatch(cyclePageSource, /QuestionHeading|group\.question/)
+  assert.match(thematicGroupsSource, /contextTitle:/)
+  assert.doesNotMatch(thematicGroupsSource, /question:/)
+  assert.doesNotMatch(priorityMatrixSource, /title:\s*['"][^'"]*\?['"]/)
+  assert.match(priorityMatrixSource, /title: 'Causas e relações para investigação'/)
+  assert.match(css, /\.cycle-theme-sections \{[\s\S]*?box-sizing: border-box;[\s\S]*?padding-inline: var\(--space-4\);/)
+  assert.match(css, /@media screen and \(max-width: 700px\)[\s\S]*?\.cycle-theme-sections \{[\s\S]*?padding-inline: var\(--space-3\);/)
+})
+
 test('print and mobile CSS expose sources and use responsive grids without internal scroll', () => {
   const sourceNotes = readFileSync(
     new URL('../../src/components/PneSourceNotes.jsx', import.meta.url),

@@ -36,9 +36,14 @@ export function EducationIndicatorBreakdown({ indicator }) {
   const compactItems = detailItems.filter((item) => !isEducationSupportWideItem(item) && !isEducationSupportProfileItem(item))
   const lastCompactItem = compactItems.at(-1)
   const hasOddCompactRow = compactItems.length % 2 === 1
+  const hasCoverageSupport = detailItems.some((item) => item.supportVariant === 'coverage')
 
   return (
     <EducationSupportDataSection
+      className={hasCoverageSupport ? 'education-support-data--coverage' : ''}
+      description={hasCoverageSupport
+        ? 'Memória de cálculo e composição das matrículas usadas na estimativa.'
+        : undefined}
       footer={<EducationSourceNotes context={dataSourceContextForEducation(indicator)} />}
       id={supportId}
     >
@@ -68,10 +73,13 @@ function EducationSupportDataItem({ fullRow, item, paired, supportId, third, wid
   const itemId = `${supportId}-${String(item.key ?? 'item').replace(/[^a-z0-9_-]/gi, '-')}`
   const contextLabel = getDetailTabLabel(item)
   const title = item.title ?? contextLabel
+  const variantClass = item.supportVariant
+    ? ` education-support-data__item--${String(item.supportVariant).replace(/[^a-z0-9_-]/gi, '-')}`
+    : ''
 
   return (
     <EducationSupportDataCard
-      className={`${wide ? 'education-support-data__item--wide' : ''}${paired ? ' education-support-data__item--paired' : ''}${third ? ' education-support-data__item--third' : ''}${fullRow ? ' education-support-data__item--full-row' : ''}`}
+      className={`${wide ? 'education-support-data__item--wide' : ''}${paired ? ' education-support-data__item--paired' : ''}${third ? ' education-support-data__item--third' : ''}${fullRow ? ' education-support-data__item--full-row' : ''}${variantClass}`}
       description={getEducationSupportDescription(item)}
       eyebrow={contextLabel}
       id={itemId}
@@ -91,6 +99,7 @@ function isEducationSupportProfileItem(item) {
 }
 
 function getEducationSupportDescription(item) {
+  if (item.description === null) return null
   if (item.description) return item.description
   if (item.type === 'stacked') return 'Distribuição histórica do indicador no recorte selecionado.'
   if (item.type === 'bar') return 'Comparação dos valores mais recentes entre as categorias disponíveis.'
@@ -138,8 +147,11 @@ function getDetailTabLabel(item) {
 }
 
 function ExploreItem({ item, sectionTitle }) {
-  const isSchoolStageMethodology = item.key === 'rede-etapa' && Boolean(item.note)
-  const noteEl = isSchoolStageMethodology ? (
+  const usesMethodNote = Boolean(item.note) && (
+    item.key === 'rede-etapa'
+    || item.supportVariant === 'coverage'
+  )
+  const noteEl = usesMethodNote ? (
     <MethodNote className="educacao-explore__note">{item.note}</MethodNote>
   ) : item.note ? (
     <p className="educacao-explore__note">{item.note}</p>
@@ -247,8 +259,7 @@ function ExploreItem({ item, sectionTitle }) {
   if (item.type === 'table') {
     return (
       <div className="educacao-explore-table">
-        <h4>{item.title}</h4>
-        <EducationTable columns={item.columns} rows={item.rows} />
+        <EducationTable caption={sectionTitle} columns={item.columns} rows={item.rows} />
         {noteEl}
       </div>
     )

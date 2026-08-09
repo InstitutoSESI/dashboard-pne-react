@@ -2,15 +2,15 @@ import { PnePageHeader } from '../components/PnePageHeader'
 
 const GUIDING_QUESTIONS = [
   {
-    title: 'Quais problemas apresentam indícios no município?',
+    title: 'Indícios de problemas no município',
     description: 'Reunir sinais e evidências relacionados a cada meta do PNE para apoiar a identificação dos problemas que merecem atenção.',
   },
   {
-    title: 'Como cada problema parece se manifestar localmente?',
+    title: 'Manifestação local dos problemas',
     description: 'Organizar as formas de manifestação observadas no contexto municipal, considerando públicos, territórios e etapas de ensino.',
   },
   {
-    title: 'Quais causas e relações precisam ser investigadas?',
+    title: 'Causas e relações para investigação',
     description: 'Registrar hipóteses e conexões que ainda precisam de análise antes da definição de prioridades e caminhos de ação.',
   },
 ]

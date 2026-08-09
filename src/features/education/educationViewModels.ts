@@ -912,6 +912,7 @@ function coverageSeriesEntries(coverage) {
 }
 
 function buildCoverageConstructionItem(coverage, {
+  description = 'Compara, ano a ano, a população-base usada como denominador com as matrículas consideradas no numerador.',
   key,
   populationColumnLabel,
   note,
@@ -931,7 +932,7 @@ function buildCoverageConstructionItem(coverage, {
     key,
     type: 'table',
     title: 'Como a cobertura estimada é calculada',
-    description: 'Compara, ano a ano, a população-base usada como denominador com as matrículas consideradas no numerador.',
+    description,
     tabLabel: 'Construção do indicador',
     tabPriority: 0,
     columns: [
@@ -983,6 +984,7 @@ function buildRuralCoverageExplore(coverage) {
 
   return [
     buildCoverageConstructionItem(coverage, {
+      description: null,
       key: 'rural-cobertura-construcao',
       populationColumnLabel: `População rural estimada (${populationYear})`,
       note: `Cálculo anual: matrículas de 4 a 17 anos em escolas rurais ativas ÷ população rural estimada de 4 a 17 anos (${populationYear}) × 100. O denominador permanece fixo; a variação entre os anos decorre das matrículas.`,
@@ -998,7 +1000,13 @@ function buildRuralCoverageExplore(coverage) {
       ],
       note: 'A soma das quatro faixas forma o numerador anual. São matrículas registradas em escolas ativas de localização rural, não pessoas únicas nem estudantes necessariamente residentes na zona rural.',
     }),
-  ].filter(Boolean)
+  ]
+    .filter(Boolean)
+    .map((item) => ({
+      ...item,
+      supportLayout: 'full',
+      supportVariant: 'coverage',
+    }))
 }
 
 function buildIndigenousCoverageExplore(coverage) {

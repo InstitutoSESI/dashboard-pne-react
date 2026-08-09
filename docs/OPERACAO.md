@@ -62,9 +62,10 @@ persistência do navegador usa
 `dashboard-context-v2`, com estado e código municipal. Valores antigos baseados
 em nome são migrados uma única vez quando há correspondência inequívoca. Não há
 seletor de estado dentro de uma publicação: cada hospedagem fixa uma UF no
-build. PNE, Educação e Financeiro estão disponíveis no RS e permanecem
-explicitamente indisponíveis no produto AL. Nomes físicos de fontes podem
-continuar específicos do RS.
+build. PNE, Educação e Financeiro estão disponíveis em RS e AL, sempre a partir
+da raiz pública do perfil selecionado. Indisponibilidades pontuais continuam
+explícitas no contrato de cada indicador. Nomes físicos de fontes podem
+continuar específicos de uma UF sem definir a identidade municipal.
 
 Os comandos do pipeline analítico aceitam `--state RS`; o frontend e o
 empacotamento usam `PLATFORM_STATE`. `rs` é normalizado para `RS`. O manifesto
@@ -75,7 +76,7 @@ contagem, ordem, código, nome, slug, path ou diretório municipal divergente.
 Ausência e zero continuam distintos nos contratos educacionais. A mudança não
 executou atualização real nem regenerou os outputs públicos existentes do RS.
 
-### Publicação de identidade de Alagoas
+### Publicação analítica de Alagoas
 
 O snapshot oficial da API de Localidades do IBGE está em
 `data_pipeline/data/municipality_registry_sources/al/raw`, acompanhado do
@@ -85,9 +86,9 @@ parse_float=str)`: todo token numérico chega como texto e o código IBGE nunca
 passa por conversão numérica. O resultado fica em
 `config/municipalities/al.json`, junto à configuração estadual ativa em
 `config/states/al.json`. O manifesto de produto `config/publications/al.json` usa
-esses contratos e publica a raiz isolada `state-publications/al/data`, mantendo
-`analyticsStatus=partial` com `enabledProducts=["educacao"]`; PNE e
-Financiamento permanecem indisponíveis.
+esses contratos e publica a raiz isolada `state-publications/al/data`, com
+`analyticsStatus=complete` e `enabledProducts=null`. Essa raiz contém PNE,
+Educação e Financiamento para os 102 municípios.
 
 Valide snapshot, hashes, cobertura, hierarquia estadual, slugs e projeção exata
 com:
@@ -102,9 +103,9 @@ npm run test:multistate-hosting
 Esse comando é local e não acessa a rede. Uma atualização da fonte é uma tarefa
 `SOURCE_REFRESH`: exige autorização explícita de rede, novo snapshot integral,
 manifesto reconciliado e validação antes de substituir o candidato. Não copie o
-candidato para `config/states` ou `config/municipalities` isoladamente. Essa
-ativação analítica só pode ocorrer junto aos contratos e dados de AL validados
-como um lote completo.
+candidato para `config/states` ou `config/municipalities` isoladamente. Toda
+republicação analítica deve manter contratos e dados de AL validados como um lote
+completo.
 
 Para desenvolvimento e release dos dois produtos:
 

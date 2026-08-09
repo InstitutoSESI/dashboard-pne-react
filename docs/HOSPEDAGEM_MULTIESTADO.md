@@ -7,7 +7,7 @@ manifesto correspondente.
 | Projeto | Comando de build | Diretório de saída | Cobertura |
 | --- | --- | --- | --- |
 | RS | `npm run build:cloudflare:rs` | `dist` | PNE, Educação e Financeiro completos |
-| AL | `npm run build:cloudflare:al` | `dist` | cadastro oficial dos 102 municípios e Educação; PNE e Financiamento indisponíveis |
+| AL | `npm run build:cloudflare:al` | `dist` | PNE, Educação e Financeiro completos para 102 municípios |
 
 ## Cloudflare Pages
 
@@ -50,11 +50,10 @@ Durante desenvolvimento, use `npm run dev:rs` em
 - `config/publications/rs.json` aponta para `public/data` e exige analytics
   completo.
 - `config/publications/al.json` aponta para `state-publications/al/data` e
-  declara `partial` com somente `educacao` habilitada.
+  exige analytics completo.
 - O build rejeita códigos, nomes, slugs, contagens ou diretórios municipais que
   não coincidam com o registro canônico selecionado.
-- A raiz AL contém o catálogo canônico, Educação básica, Superior e Especial.
-  Não contém PNE, Financiamento nem qualquer identidade municipal 43xxxxx.
-- O pipeline educacional aceita RS e AL com filtro explícito de UF. Os produtos
-  ainda não publicados permanecem fail-closed; a hospedagem não inventa nem
-  replica dados do RS.
+- A raiz AL contém o catálogo canônico e as árvores de Educação, PNE e
+  Financiamento. Não contém qualquer identidade municipal 43xxxxx.
+- Os pipelines aceitam a UF explicitamente e a hospedagem permanece fail-closed:
+  não inventa nem replica dados de outro estado.

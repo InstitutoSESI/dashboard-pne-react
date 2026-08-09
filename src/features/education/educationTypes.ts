@@ -34,7 +34,7 @@ export interface EducationIndicatorResult {
 export interface EducationSection {
   key: EducationSectionKey
   label?: string
-  question?: string
+  contextTitle?: string
   description?: string
   indicatorKeys?: EducationIndicatorKey[]
   indicatorCount?: number
@@ -44,7 +44,7 @@ export interface EducationSection {
 export interface EducationSectionGroup {
   key?: string
   label?: string
-  question?: string
+  contextTitle?: string
   description?: string
   indicatorKeys: EducationIndicatorKey[]
   indicatorCount?: number

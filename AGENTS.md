@@ -4,13 +4,13 @@ Estas instruções se aplicam a todo o repositório. Instruções específicas d
 
 ## 1. Propósito da plataforma
 
-Esta é uma plataforma municipal de acompanhamento educacional voltada principalmente a gestores municipais. Priorize dados oficiais, rastreabilidade da origem ao artefato publicado e uma experiência de impressão confiável. O Rio Grande do Sul (497 municípios) é o estado com publicação analítica completa; Alagoas (102 municípios) está em implantação, hoje com publicação `identity-only`. Não generalize o sistema para outros estados sem pedido explícito.
+Esta é uma plataforma municipal de acompanhamento educacional voltada principalmente a gestores municipais. Priorize dados oficiais, rastreabilidade da origem ao artefato publicado e uma experiência de impressão confiável. Rio Grande do Sul (497 municípios) e Alagoas (102 municípios) possuem publicações analíticas completas e isoladas. Não generalize o sistema para outros estados sem pedido explícito.
 
 ## 2. Fontes canônicas de identidade
 
 - O código IBGE textual com sete dígitos é a única identidade municipal.
-- `config/states/rs.json` é a configuração estadual ativa.
-- `config/municipalities/rs.json` é o registro municipal canônico.
+- `config/states/rs.json` e `config/states/al.json` são as configurações estaduais ativas.
+- `config/municipalities/rs.json` e `config/municipalities/al.json` são os registros municipais canônicos.
 - Slugs são metadados públicos de rota, nunca identidade. A compatibilidade dos 182 slugs em `config/compatibility/education-municipality-routes/rs.json` é um contrato ativo.
 - Nomes servem somente para apresentação e validação.
 - `public/data/municipios_index.json` é uma projeção publicada, não uma fonte canônica de identidade.
@@ -86,7 +86,7 @@ Valide links, comandos e paths citados. Em limpeza, prove ausência de consumido
 
 ### MULTISTATE
 
-RS e AL são estados configurados: o RS com publicação analítica completa e o AL em implantação, ainda `identity-only`. Implementação para outro estado exige solicitação explícita, configuração, registro municipal, contratos de compatibilidade e testes próprios; não copie pressupostos do RS silenciosamente.
+RS e AL são estados configurados, ambos com publicação analítica completa e raízes públicas próprias. Implementação para outro estado exige solicitação explícita, configuração, registro municipal, contratos de compatibilidade e testes próprios; não copie pressupostos de uma UF silenciosamente.
 
 ### BUILD E DEPLOY
 

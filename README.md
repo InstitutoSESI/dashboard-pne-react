@@ -61,11 +61,11 @@ e o executa no ambiente congelado pelo uv.
 
 ## Dados estáticos
 
-`config/states/rs.json` contém os metadados estaduais,
-`config/municipalities/rs.json` contém o registro municipal canônico do pipeline
-e `config/publications/rs.json` liga o produto RS à sua árvore de dados
-versionada. O Rio Grande do Sul continua sendo a única publicação analítica
-completa: o código IBGE é a identidade, o nome é apresentação e compatibilidade
+`config/states/rs.json` e `config/states/al.json` contêm os metadados estaduais,
+`config/municipalities/<uf>.json` contém o registro municipal canônico do pipeline
+e `config/publications/<uf>.json` liga cada produto à sua árvore de dados
+versionada. Rio Grande do Sul e Alagoas possuem publicações analíticas completas
+e isoladas: o código IBGE é a identidade, o nome é apresentação e compatibilidade
 temporária de agregados internos, e o slug permanece reservado às URLs.
 `public/data/municipios_index.json` conserva schema e caminho, mas é uma
 projeção publicada do registro, nunca a entrada do universo no pipeline.
@@ -75,9 +75,9 @@ O produto de Alagoas usa o cadastro oficial dos 102 municípios, versionado em
 `data_pipeline/data/municipality_registry_sources/al`: o diretório preserva a
 resposta integral da API de Localidades do IBGE e um manifesto com URL, data,
 hashes, cobertura e política de normalização. `config/publications/al.json` liga
-esses contratos à raiz isolada `state-publications/al/data`. Essa publicação é
-`partial`, habilita somente `educacao` e mantém PNE e Financiamento
-indisponíveis até existirem dados oficiais validados para esses produtos.
+esses contratos à raiz isolada `state-publications/al/data`, com
+`analyticsStatus=complete` e os produtos PNE, Educação e Financiamento
+publicados para os 102 municípios.
 
 O Vite seleciona o perfil de produto pela variável de build `PLATFORM_STATE`,
 com `RS` como padrão compatível. Antes de servir ou empacotar dados, reconcilia
@@ -89,8 +89,8 @@ RS. A aplicação recebe somente a configuração validada do perfil selecionado
 Na Educação, a exportação geral, a Visão Geral Municipal, a Educação Superior e
 a Educação Especial recebem `--state` e usam essa configuração com o registro
 municipal. RS e AL possuem configuração ativa no pipeline educacional, sempre
-com filtro explícito de UF e raiz pública própria; os demais pipelines continuam
-fail-closed para AL. Os 182
+com filtro explícito de UF e raiz pública própria. PNE e Financiamento também
+são publicados nas raízes estaduais correspondentes, sem fallback entre UFs. Os 182
 slugs históricos que divergem do slug canônico são projetados
 pela compatibilidade versionada em
 `config/compatibility/education-municipality-routes/rs.json`; ela não define
@@ -126,9 +126,9 @@ npm run build:al     # dist/al
 ```
 
 O catálogo de identidade preservado na raiz AL continua sendo validado pelos
-testes de registro. Como a publicação agora é `partial`, os comandos antigos de
-materialização integral `identity-only` foram removidos do fluxo: Educação é
-atualizada pelos exportadores analíticos e validada como produto habilitado.
+testes de registro. A publicação agora é `complete`; os comandos transitórios de
+materialização `identity-only` e o estágio `partial` não fazem parte do fluxo
+de release atual. Cada domínio mantém seus próprios exportadores e validações.
 
 A atualização e validação de dados não constroem mais a aplicação. Para
 atualizar somente Educação, configure `SESI_DB_DIR` para o projeto que fornece
@@ -216,7 +216,7 @@ Credenciais ficam em `data_pipeline/.env`, criado a partir de `data_pipeline/.en
 ## Estrutura
 
 - `src`: aplicação React, rotas, componentes, features, modelos e estilos.
-- `config/states`: configurações estaduais versionadas; somente o RS está ativo.
+- `config/states`: configurações estaduais versionadas; RS e AL estão ativos.
 - `config/municipalities`: identidade municipal canônica versionada por estado.
 - `public/data`: dados públicos servidos diretamente ao navegador.
 - `data_pipeline/src`: cálculo, acesso às fontes e contratos de dados.

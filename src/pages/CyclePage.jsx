@@ -3,7 +3,6 @@ import { DataSourceNote } from '../components/DataSourceNote'
 import { DetailNavigation } from '../components/DetailNavigation'
 import { IndicatorDetail } from '../components/IndicatorDetail'
 import { MetaCard } from '../components/MetaCard'
-import { QuestionHeading } from '../components/QuestionHeading'
 import { SearchField } from '../components/SearchField'
 import { SegmentedControl } from '../components/SegmentedControl'
 import { PNE_2026_INDICATOR_GOAL_REFS } from '../data/pne2026IndicatorGoalRefs'
@@ -459,12 +458,7 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
             ) : (
               <div className="cycle-theme-sections">
                 {renderedGroups.map((group) => {
-                  /*
-                   * Curadoria editorial: o tema vira pergunta quando o
-                   * catálogo define `question`; sem isso, o título é factual
-                   * (label) e sem eyebrow, que só repetiria o mesmo texto.
-                   */
-                  const asQuestion = Boolean(group.question)
+                  const hasContextTitle = Boolean(group.contextTitle)
                   return (
                   <section
                     aria-labelledby={`tema-${group.key}-titulo`}
@@ -476,9 +470,9 @@ export function CyclePage({ cycle, indicadores, municipioData, selectedMunicipio
                   >
                     <div className="cycle-theme-section__heading">
                       <div>
-                        {asQuestion ? <span className="eyebrow">{group.label}</span> : null}
+                        {hasContextTitle ? <span className="eyebrow">{group.label}</span> : null}
                         <h2 id={`tema-${group.key}-titulo`}>
-                          {asQuestion ? <QuestionHeading text={group.question} /> : group.label}
+                          {group.contextTitle ?? group.label}
                         </h2>
                       </div>
                       <span className="cycle-theme-section__count">

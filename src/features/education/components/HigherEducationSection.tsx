@@ -9,7 +9,6 @@ import { EducationQuickReading } from '../../../components/EducationQuickReading
 import { EducationTable } from '../../../components/EducationTable'
 import { ErrorState } from '../../../components/ErrorState'
 import { MetricCard } from '../../../components/MetricCard'
-import { QuestionHeading } from '../../../components/QuestionHeading'
 import type { AsyncDataState } from '../../../types/async'
 import type {
   HigherEducationAnnualPoint,
@@ -154,7 +153,7 @@ function HigherEducationLanding({
         ]}
         description="Matrículas, instituições, polos, acesso, fluxo e docentes mostram a presença municipal da graduação."
         eyebrow="Indicadores de Educação / Educação Superior"
-        title="Como a graduação está presente no município?"
+        title="Oferta e presença da graduação no município"
         variant="section"
       />
       <section className="cycle-workspace educacao-workspace higher-education-workspace">
@@ -191,9 +190,9 @@ function HigherEducationLanding({
                   <section className="education-indicator-group" aria-labelledby={`higher-education-${group.id}-title`} key={group.id}>
                     <div className="education-indicator-group__heading">
                       <div>
-                        {group.question ? <span className="eyebrow">{group.title}</span> : null}
+                        {group.contextTitle ? <span className="eyebrow">{group.title}</span> : null}
                         <h2 id={`higher-education-${group.id}-title`}>
-                          {group.question ? <QuestionHeading text={group.question} /> : group.title}
+                          {group.contextTitle ?? group.title}
                         </h2>
                       </div>
                       <span>{countLabel}</span>
@@ -526,7 +525,7 @@ function InstitutionalComposition({ viewModel }: { viewModel: HigherEducationVie
   const group = viewModel.groups.find((item) => item.id === 'composition')
   return (
     <section className="education-indicator-group higher-education-composition-section" aria-labelledby="higher-education-composition-title">
-      <div className="education-indicator-group__heading"><div>{group?.question ? <span className="eyebrow">{group.title}</span> : null}<h2 id="higher-education-composition-title">{group?.question ? <QuestionHeading text={group.question} /> : (group?.title ?? 'Composição institucional')}</h2></div></div>
+      <div className="education-indicator-group__heading"><div>{group?.contextTitle ? <span className="eyebrow">{group.title}</span> : null}<h2 id="higher-education-composition-title">{group?.contextTitle ?? group?.title ?? 'Composição institucional'}</h2></div></div>
       <p className="education-indicator-group__description">Síntese do último ano utilizável próprio de cada decomposição.</p>
       <div className="higher-education-support-grid">{breakdowns.map((item) => <BreakdownCard breakdown={item} compact key={item.id} />)}</div>
     </section>

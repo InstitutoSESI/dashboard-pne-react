@@ -27,9 +27,9 @@ O build desativa a cópia genérica de `public`: ativos compartilhados são
 copiados sem a subárvore `data`, e somente os dados do perfil validado ocupam
 `dist/data`. No desenvolvimento, um middleware intercepta todo caminho `/data`
 e nunca deixa uma ausência cair na publicação de outra UF. O build app-only
-continua sem copiar dado público. RS é o padrão compatível e a publicação
-analítica completa. AL é uma publicação `partial`, com raiz própria e somente
-Educação habilitada; não existe fallback de AL para RS.
+continua sem copiar dado público. RS é o padrão compatível. RS e AL possuem
+publicações analíticas completas, cada uma com raiz própria; não existe fallback
+entre estados.
 
 ## Camadas
 
@@ -67,9 +67,9 @@ municípios e o locale `pt-BR`. `config/publications/rs.json` declara o contrato
 `state-publication-v3` e aponta a publicação RS para `public/data`, com analytics
 completo. O manifesto AL usa o mesmo schema, aponta para `config/states/al.json`,
 `config/municipalities/al.json` e `state-publications/al/data`, e declara
-`analyticsStatus=partial` e `enabledProducts=["educacao"]`. O frontend recebe ambos os contratos validados
-pelo build; módulos analíticos só são carregados quando o perfil os declara
-disponíveis.
+`analyticsStatus=complete` com `enabledProducts=null`. O frontend recebe ambos
+os contratos validados pelo build; módulos analíticos só são carregados quando o
+perfil os declara disponíveis.
 
 O `state-publication-v3` acrescenta o status `partial` e o campo
 `enabledProducts`. Uma publicação `partial` exige mensagem de indisponibilidade e
@@ -97,7 +97,7 @@ compatibilidade temporária; slug é rota pública.
 `municipios_index.json` continua sendo o único catálogo municipal público. Em
 uma publicação analítica completa ele é carregado junto com `indicadores.json`;
 em uma publicação `partial`, somente os produtos listados em `enabledProducts`
-são solicitados; em AL isso significa o catálogo e Educação.
+são solicitados. RS e AL usam atualmente o contrato completo.
 Ele agora é uma projeção publicada do registro canônico, com o mesmo schema,
 ordem e caminho existentes. Na fronteira de carregamento, o payload bruto em português
 `MunicipalityIndexEntryPayload` é validado e convertido para a única coleção
@@ -171,10 +171,10 @@ estado anterior em ordem reversa se ocorrer exceção. Arquivos byte a byte
 idênticos não são substituídos e preservam o `mtime`; órfãos dentro do padrão
 municipal administrado só são removidos depois da validação integral.
 
-Esta fundação separa produto hospedável de cobertura analítica. Somente o RS tem
-suporte analítico completo; `rs` é normalizado para `RS`. AL pode ser servido e
-empacotado como produto somente de identidade, sem expor qualquer JSON analítico
-do RS. A fonte oficial de identidade de AL foi incorporada em
+Esta fundação separa produto hospedável de cobertura analítica. RS e AL possuem
+suporte analítico completo e raízes públicas isoladas; códigos de estado em
+minúsculas são normalizados antes da resolução do perfil. A fonte oficial de
+identidade de AL foi incorporada em
 `data_pipeline/data/municipality_registry_sources/al`, com o corpo integral da
 rota de municípios por UF da API de Localidades do IBGE, hashes de transporte,
 resposta e snapshot, cobertura de 102 municípios e manifesto de proveniência.
@@ -183,17 +183,13 @@ ficam em `config/states/al.json` e `config/municipalities/al.json`; o parser lê
 tokens numéricos como texto desde a desserialização e os códigos canônicos
 permanecem strings de sete dígitos.
 
-A publicação AL contém exatamente um manifesto, o índice dos 102 municípios e
-um índice por código IBGE, todos com analytics `unavailable`. O materializador
-gera em staging, valida o conjunto integral e promove com escrita atômica,
-preservação de arquivos idênticos e rollback. A ausência intencional de
-`config/states/al.json` e `config/municipalities/al.json` mantém o pipeline
-analítico fail-closed. Promover AL para esses diretórios exige primeiro validar
-fontes, metodologias, dados analíticos e contratos de compatibilidade próprios.
-Nomes físicos de fontes, inclusive tabelas com sufixo `_rs`, podem continuar
-específicos do RS sem definir a identidade ou o universo. Esta incorporação não
-regenerou os outputs públicos atuais; Educação Indígena e integrações SIDRA,
-domínios PNE e Financeiro permanecem para etapas posteriores.
+A publicação AL contém o índice dos 102 municípios e as árvores analíticas de
+Educação, Financiamento, PNE 2014–2024, PNE 2026–2036 e Diagnóstico v3. O
+manifesto completo, a configuração estadual e o registro municipal são
+validados antes de servir ou empacotar essa raiz. O isolamento permanece
+fail-closed: ausência, divergência de identidade ou arquivo de outra UF encerra
+o fluxo em vez de recorrer aos dados do RS. Nomes físicos de fontes, inclusive
+tabelas com sufixo `_rs`, não definem identidade nem universo municipal.
 
 `public/data` é saída publicada e versionada. Snapshots que não podem ser reconstruídos durante um build comum ficam em `data_pipeline/data`. Os cenários aprovados em `data_pipeline/data/planning_scenarios` alimentam o export principal.
 

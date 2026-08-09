@@ -67,7 +67,7 @@ export function EducationOverviewSection({ data, learningStages }: EducationOver
         })}
         detailsLabel={'Ver indicadores da Educa\u00e7\u00e3o Infantil'}
         stage="earlyChildhood"
-        title="Como as matrículas da Educação Infantil se distribuem em 2025?"
+        title="Distribuição das matrículas da Educação Infantil em 2025"
       />
       <EducationStageSnapshot
         data={data}
@@ -78,7 +78,7 @@ export function EducationOverviewSection({ data, learningStages }: EducationOver
         })}
         detailsLabel={'Ver indicadores do Ensino Fundamental'}
         stage="elementary"
-        title="Como as matrículas do Ensino Fundamental se distribuem em 2025?"
+        title="Distribuição das matrículas do Ensino Fundamental em 2025"
       />
       <HighSchoolStageSnapshot data={data} />
       <SchoolPerformanceSection data={data} />
@@ -143,7 +143,7 @@ function EducationOverviewSummary({ data }: Pick<EducationOverviewSectionProps, 
   return (
     <section className="municipal-education-overview__section municipal-education-overview__section--summary" aria-labelledby="municipal-education-summary-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="municipal-education-summary-title">Como as matrículas da Educação Básica se distribuem em 2025?</h2>
+        <h2 id="municipal-education-summary-title">Distribuição das matrículas da Educação Básica em 2025</h2>
       </div>
       <div className="municipal-education-summary">
         <dl className="municipal-education-summary__primary">
@@ -237,7 +237,7 @@ function SpecialEducationSummary({ data }: Pick<EducationOverviewSectionProps, '
   return (
     <section className="municipal-education-overview__section municipal-special-education" aria-labelledby="municipal-special-education-title">
       <div>
-        <h2 id="municipal-special-education-title">Como as matrículas da Educação Especial estão organizadas em 2025?</h2>
+        <h2 id="municipal-special-education-title">Organização das matrículas da Educação Especial em 2025</h2>
         <p>As matrículas da Educação Especial já estão incluídas nas etapas e modalidades apresentadas acima.</p>
       </div>
       <dl>
@@ -259,7 +259,7 @@ function HighSchoolStageSnapshot({ data }: Pick<EducationOverviewSectionProps, '
   return (
     <section className="municipal-education-overview__section municipal-education-stage" aria-labelledby="high-school-snapshot-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="high-school-snapshot-title">Como as matrículas do Ensino Médio se distribuem em 2025?</h2>
+        <h2 id="high-school-snapshot-title">Distribuição das matrículas do Ensino Médio em 2025</h2>
       </div>
       <dl className="municipal-education-stage__summary municipal-education-stage__summary--two-columns">
         <OverviewMetric
@@ -298,7 +298,7 @@ function SchoolPerformanceSection({ data }: Pick<EducationOverviewSectionProps, 
   return (
     <section className="municipal-education-overview__section municipal-school-performance" aria-labelledby="municipal-school-performance-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="municipal-school-performance-title">Como foi o rendimento escolar em 2025?</h2>
+        <h2 id="municipal-school-performance-title">Rendimento escolar em 2025</h2>
       </div>
       <div className="municipal-school-performance__table-region" tabIndex={0}>
         <table>
@@ -322,7 +322,7 @@ function LearningOutcomesSection({
   return (
     <section className="municipal-education-overview__section municipal-learning-outcomes" aria-labelledby="municipal-learning-outcomes-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="municipal-learning-outcomes-title">O que IDEB e SAEB mostram sobre a aprendizagem?</h2>
+        <h2 id="municipal-learning-outcomes-title">Resultados de aprendizagem no IDEB e no SAEB</h2>
         <p>Resultados mais recentes por etapa. A variação mostra a diferença, em pontos, para a edição anterior disponível.</p>
       </div>
       <div className="municipal-learning-outcomes__table-region" tabIndex={0}>
@@ -410,7 +410,7 @@ function EnrollmentComparisonSection({ data }: Pick<EducationOverviewSectionProp
   return (
     <section className="municipal-education-overview__section municipal-enrollment-comparison" aria-labelledby="municipal-enrollment-comparison-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="municipal-enrollment-comparison-title">Como as matrículas mudaram entre 2015 e 2025?</h2>
+        <h2 id="municipal-enrollment-comparison-title">Evolução das matrículas entre 2015 e 2025</h2>
         <p>Os valores mostram as matrículas registradas em 2015 e 2025. A variação corresponde à mudança percentual entre os dois anos.</p>
       </div>
       <ComparisonTable
@@ -727,7 +727,7 @@ function EducationOverviewSources({ data }: Pick<EducationOverviewSectionProps, 
   return (
     <footer className="municipal-education-overview__section municipal-education-sources" aria-labelledby="municipal-education-sources-title">
       <div className="municipal-education-overview__section-heading">
-        <h2 id="municipal-education-sources-title">De onde vêm estas informações?</h2>
+        <h2 id="municipal-education-sources-title">Fontes e referências do panorama educacional</h2>
       </div>
       {data.sources.length ? (
         <ul className="municipal-education-sources__list">
@@ -744,7 +744,7 @@ function EducationOverviewSources({ data }: Pick<EducationOverviewSectionProps, 
       ) : null}
       {methodology.length ? (
         <div className="municipal-education-sources__methodology">
-          <h3>Como ler estes dados</h3>
+          <h3>Orientações para leitura dos dados</h3>
           <ul>{methodology.map((note) => <li key={note}>{note}</li>)}</ul>
         </div>
       ) : null}
