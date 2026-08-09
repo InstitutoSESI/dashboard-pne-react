@@ -4197,12 +4197,6 @@
   white-space: nowrap;
 }
 
-/* Recorte de Etapa vive dentro da seção de Educação Básica, não mais no painel
-   global de filtro: ele só governa os cartões daquela seção. */
-.cycle-page .cycle-theme-section__filter {
-  margin-top: 0;
-}
-
 @media screen {
   .dashboard-shell .content-area .cycle-theme-nav {
     position: sticky;
@@ -4347,5 +4341,201 @@
 @media print {
   .cycle-theme-nav {
     display: none !important;
+  }
+}
+
+/* ==========================================================================
+   Rodada: listagem do ciclo com a gramática visual de Indicadores educacionais
+   --------------------------------------------------------------------------
+   A listagem do PNE pintava o workspace de Papel (--surface-card), o mesmo tom
+   dos cartões: figure/ground nulo, cartões "sumindo" no painel. Aqui a listagem
+   passa a usar as três camadas já validadas na Educação —
+   Mesa (--bg-app) > painel (--surface-raised) > cartão (--surface-card) —
+   e reaproveita a anatomia da .legal-goals-filter-panel e do
+   .education-indicator-group. Ver [[cartao-indicador-uniforme]] e o comentário
+   de abertura de education-page-shell.css.
+
+   Bloco NOVO e no fim do arquivo de propósito, como a rodada anterior: as
+   regras de workspace e de barra de temas aparecem espalhadas em @media acima
+   e editá-las seria armadilha. A especificidade é elevada de propósito para
+   vencer `.content-area .cycle-workspace` (institutional-refresh.css:54, que
+   repinta de Papel) e a sombra de institutional-refresh.css:975 — exatamente
+   a manobra que a Educação já faz.
+
+   A vista de detalhe (.cycle-page--detail) fica fora: continua em Papel.
+   ========================================================================== */
+
+.cycle-page:not(.cycle-page--detail) {
+  --cycle-panel-padding: var(--panel-inset);
+}
+
+@media screen and (max-width: 1180px) {
+  .cycle-page:not(.cycle-page--detail) {
+    --cycle-panel-padding: var(--panel-inset-intermediate);
+  }
+}
+
+@media screen and (max-width: 620px) {
+  .cycle-page:not(.cycle-page--detail) {
+    --cycle-panel-padding: var(--panel-inset-mobile);
+  }
+}
+
+/*
+ * Camada 2: painel elevado, sem sombra, como .educacao-workspace.
+ *
+ * O recuo horizontal fica em zero de propósito. A Educação paga dois recuos
+ * (painel + grupo) porque o cartão dela pede 316px; o cartão de meta pede
+ * 420px (--meta-card-min) e, com 1.280px de janela, mais 40px de recuo
+ * derrubariam a grade de duas colunas para uma. Quem afasta o conteúdo das
+ * bordas continua sendo o recuo próprio de .cycle-theme-sections e do painel
+ * de navegação, preservando a grade de duas colunas.
+ */
+.dashboard-shell .content-area .cycle-page:not(.cycle-page--detail) .cycle-card-workspace {
+  min-width: 0;
+  padding: var(--cycle-panel-padding) 0;
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  gap: var(--space-4);
+  box-shadow: none;
+}
+
+/* A legenda fica fora do painel, sobre a Mesa: ganha Papel próprio para não
+   ficar solta nem competir com o painel. */
+.dashboard-shell .content-area .cycle-page:not(.cycle-page--detail) .cycle-status-legend {
+  border: var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+@media screen {
+  /*
+   * Navegação do ciclo: mesma estrutura visual de .legal-goals-filter-panel.
+   * O painel compartilhado fornece as duas linhas (título + busca e rótulo +
+   * opções); aqui ficam somente o comportamento sticky e os ajustes do ciclo.
+   */
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav.platform-filter-panel {
+    position: sticky;
+    top: calc(var(--context-bar-height) + var(--space-2));
+    z-index: 6;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-inline: var(--space-4);
+    padding: var(--panel-inset);
+    border: var(--border-default);
+    border-color: var(--border-line);
+    border-radius: var(--radius-md);
+    background: var(--surface-sand);
+    box-shadow: none;
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__heading {
+    min-width: 0;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__heading h2 {
+    margin: 0;
+    color: var(--text-strong);
+    text-wrap: balance;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__search {
+    width: min(420px, 42vw);
+    max-width: 420px;
+    flex: 0 1 420px;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__chips.platform-filter-list {
+    flex-wrap: wrap;
+    padding-bottom: 0;
+    overflow: visible;
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__chip.platform-filter-option {
+    min-height: var(--control-height);
+    max-width: none;
+    padding: var(--control-padding-block) var(--control-padding-inline);
+    border: var(--border-width) solid var(--control-border);
+    border-radius: var(--control-radius);
+    background: var(--surface-muted);
+    color: var(--control-text);
+    font-size: var(--control-font-size);
+    font-weight: var(--control-font-weight);
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__chip.platform-filter-option:hover {
+    border-color: var(--border-strong);
+    background: var(--control-surface);
+    color: var(--text-strong);
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__chip.platform-filter-option.is-active {
+    border-color: var(--control-border-selected);
+    background: var(--control-surface-selected);
+    color: var(--control-text-selected);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /*
+   * Seções alinhadas ao .education-indicator-group: respiro de topo em vez de
+   * divisor. A Educação declara `border-top` em education-page-shell.css mas o
+   * anula em education-pages-refinements.css:229 — quem separa os grupos é a
+   * barra de acento do título somada ao vão. O PNE segue o mesmo resultado.
+   *
+   * Âncora: a barra tem altura variável (os chips quebram em uma, duas ou três
+   * linhas conforme a janela e o resultado da busca), então CyclePage mede a
+   * barra e publica --cycle-theme-nav-height no workspace. O respiro entre a
+   * barra e o título vem do padding-top da própria seção. O valor de reserva
+   * cobre o pior caso enquanto a medida não chega.
+   */
+  .cycle-page .cycle-theme-section {
+    padding-top: var(--space-8);
+    gap: var(--space-5);
+    scroll-margin-top: calc(
+      var(--context-bar-height) + var(--space-2) + var(--cycle-theme-nav-height, 190px)
+    );
+  }
+
+  /* O estado vazio é irmão das seções, não filho: precisa do mesmo recuo para
+     não encostar nas bordas do painel. */
+  .cycle-page:not(.cycle-page--detail) .meta-grid-empty {
+    margin-inline: var(--space-4);
+  }
+}
+
+@media screen and (max-width: 700px) {
+  /* Acompanha o recuo reduzido das seções e empilha a busca sem criar rolagem
+     horizontal dentro do painel. */
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav.platform-filter-panel {
+    margin-inline: var(--space-3);
+  }
+
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav__search {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+  }
+
+  .cycle-page:not(.cycle-page--detail) .meta-grid-empty {
+    margin-inline: var(--space-3);
+  }
+}
+
+@media screen and (max-width: 620px) {
+  /*
+   * Nesta faixa a context-bar deixa de ser sticky nas páginas de ciclo. Como o
+   * painel padronizado pode ocupar várias linhas, ele também deixa de ser
+   * sticky para não encobrir a maior parte da área de leitura.
+   */
+  .dashboard-shell .content-area .cycle-page .cycle-theme-nav.platform-filter-panel {
+    position: static;
+    top: auto;
+  }
+
+  .cycle-page .cycle-theme-section {
+    scroll-margin-top: var(--space-4);
   }
 }

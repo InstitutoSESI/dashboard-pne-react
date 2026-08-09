@@ -100,12 +100,16 @@ export function Home({ onNavigate }) {
           <p className="home-portal__identity">
             {PLATFORM_LABEL} · Inteligência Analítica Municipal
           </p>
-          <h1 className="home-portal__title">Uma leitura integrada da educação do seu município.</h1>
+          <h1 className="home-portal__title">
+            Uma leitura integrada da educação nos municípios{' '}
+            <span className="home-portal__state-name">
+              {ACTIVE_STATE_CONFIG.stateNameForms.withDe}
+            </span>
+            .
+          </h1>
           <p className="home-portal__lead">
-            <strong>Estado de referência: {ACTIVE_STATE_CONFIG.stateName}.</strong> Todos os
-            indicadores, metas e valores exibidos referem-se aos municípios desse estado. A
-            plataforma conecta planejamento, indicadores educacionais e financiamento em um só
-            percurso. Você escolhe o município, explora cada frente e reúne as evidências em uma
+            A plataforma reúne planejamento, indicadores educacionais e financiamento em um só
+            percurso. Escolha um município, explore cada frente e reúna as evidências em uma
             síntese técnica.
           </p>
 

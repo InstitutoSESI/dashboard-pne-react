@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from data_pipeline.scripts.materialize_pne2026_public_diagnostic_v3 import (
+    _bootstrap_cycle_methodology_results,
     compare_staging_directories,
     prepare_staging,
     staging_hashes,
@@ -24,6 +25,99 @@ from data_pipeline.src.pne2026_public_diagnostic_v3 import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PUBLICATION_ROOT = REPO_ROOT / "public" / "data" / "pne2026-diagnostic-v3"
+
+
+class CycleBootstrapTest(unittest.TestCase):
+    def test_only_repairs_missing_or_no_observation_from_available_cycle_data(
+        self,
+    ):
+        active_payload = {
+            "results": [
+                {
+                    "relationId": "relation.1.a.creche",
+                    "dataStatus": "unavailable",
+                    "reasonCode": "no_observation",
+                },
+                {
+                    "relationId": "relation.1.c.pre_escola",
+                    "dataStatus": "suppressed",
+                    "reasonCode": "small_numbers",
+                },
+                {
+                    "relationId": "relation.8.b.salas_climatizadas",
+                    "dataStatus": "unavailable",
+                    "reasonCode": "source_unavailable",
+                },
+            ]
+        }
+        cycle_indicators = {
+            "creche": {
+                "available": True,
+                "end_year": 2025,
+                "end_value": 0,
+                "distance": -60,
+                "display": {
+                    "status": "Meta não atingida",
+                    "interpretation": "Observação zero preservada.",
+                },
+            },
+            "pre_escola": {
+                "available": True,
+                "end_year": 2025,
+                "end_value": 80,
+                "distance": -20,
+            },
+            "basico_6_17": {
+                "available": True,
+                "end_year": 2025,
+                "end_value": 100,
+                "distance": 0,
+            },
+            "salas_climatizadas": {
+                "available": True,
+                "end_year": 2025,
+                "end_value": 50,
+                "distance": -50,
+            },
+            "idade_regular_quinto": {"available": False},
+        }
+
+        results = _bootstrap_cycle_methodology_results(
+            active_payload,
+            cycle_indicators,
+        )
+
+        self.assertEqual(
+            set(results),
+            {"relation.1.a.creche", "relation.4.a.basico_6_17"},
+        )
+        self.assertEqual(results["relation.1.a.creche"]["value"], 0.0)
+        self.assertEqual(results["relation.1.a.creche"]["year"], 2025)
+        self.assertEqual(
+            results["relation.1.a.creche"]["classification"],
+            "advance",
+        )
+        self.assertEqual(
+            results["relation.1.a.creche"]["publicReading"],
+            "Observação zero preservada.",
+        )
+        self.assertEqual(
+            results["relation.4.a.basico_6_17"]["classification"],
+            "maintain",
+        )
+
+    def test_available_cycle_result_fails_closed_when_distance_is_missing(self):
+        with self.assertRaisesRegex(RuntimeError, "distância finita"):
+            _bootstrap_cycle_methodology_results(
+                {"results": []},
+                {
+                    "creche": {
+                        "available": True,
+                        "end_year": 2025,
+                        "end_value": 42,
+                    }
+                },
+            )
 
 
 class Pne2026PublicDiagnosticV3Test(unittest.TestCase):

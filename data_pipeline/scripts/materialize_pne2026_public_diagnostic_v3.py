@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -81,6 +82,7 @@ STATE_NAME_NOMINATIVE = "o Rio Grande do Sul"
 STATE_NAME_WITH_COM = "com o Rio Grande do Sul"
 PUBLIC_DATA_RELATIVE = "public/data"
 SOURCE_DATA_ROOT = DATA_PIPELINE_DIR / "data"
+BOOTSTRAP_PLACEHOLDER_REASON_CODES = frozenset({"no_observation"})
 
 
 def configure_state(state_code: str = "RS") -> None:
@@ -358,6 +360,130 @@ def _registry(snapshot: WorktreeSnapshot) -> list[dict[str, Any]]:
     if len(set(identifiers)) != EXPECTED_MUNICIPALITIES:
         raise RuntimeError("O registro versionado contém códigos IBGE duplicados.")
     return entries
+
+
+def _is_finite_json_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _municipal_cycle_indicators(
+    snapshot: WorktreeSnapshot,
+    entry: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], bytes]:
+    municipality_id = str(entry["id_municipio"])
+    path = f"{PUBLIC_DATA_RELATIVE}/municipios/{municipality_id}/index.json"
+    content = snapshot.read_bytes(path)
+    payload = _load_json_bytes(content, path)
+    if (
+        str(payload.get("id_municipio")) != municipality_id
+        or str(payload.get("municipio")) != str(entry["nome"])
+    ):
+        raise RuntimeError(
+            f"{municipality_id}: identidade divergente no ciclo municipal."
+        )
+    cycle = payload.get("pne_2026_2036")
+    if not isinstance(cycle, Mapping):
+        raise RuntimeError(
+            f"{municipality_id}: ciclo PNE 2026-2036 ausente."
+        )
+    indicators = cycle.get("indicadores")
+    if not isinstance(indicators, Mapping):
+        raise RuntimeError(
+            f"{municipality_id}: indicadores do ciclo PNE 2026-2036 ausentes."
+        )
+    return indicators, content
+
+
+def _cycle_indicator_methodology_result(
+    relation: Mapping[str, Any],
+    indicator: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if indicator.get("available") is not True:
+        return None
+    year = indicator.get("end_year")
+    value = indicator.get("end_value")
+    if (
+        not isinstance(year, int)
+        or isinstance(year, bool)
+        or not _is_finite_json_number(value)
+    ):
+        raise RuntimeError(
+            "Resultado municipal available sem ano/valor finito: "
+            f"{relation['relationId']}."
+        )
+    projected: dict[str, Any] = {
+        "dataStatus": "available",
+        "year": year,
+        "value": float(value),
+    }
+    if relation.get("canDistance"):
+        distance = indicator.get("distance")
+        if not _is_finite_json_number(distance):
+            raise RuntimeError(
+                "Resultado municipal comparável sem distância finita: "
+                f"{relation['relationId']}."
+            )
+        projected["distance"] = float(distance)
+        if relation.get("canStatus") and relation["mode"] == "progress":
+            projected["classification"] = (
+                "maintain" if float(distance) >= 0 else "advance"
+            )
+    display = indicator.get("display")
+    if isinstance(display, Mapping):
+        if display.get("status") and relation.get("canStatus"):
+            projected["status"] = str(display["status"])
+        if display.get("interpretation"):
+            projected["publicReading"] = str(display["interpretation"])
+    return projected
+
+
+def _bootstrap_cycle_methodology_results(
+    active_payload: Mapping[str, Any],
+    cycle_indicators: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    active_results = active_payload.get("results")
+    if not isinstance(active_results, list):
+        raise RuntimeError("Release ativa sem lista de resultados no bootstrap.")
+    active_by_relation: dict[str, Mapping[str, Any]] = {}
+    for result in active_results:
+        if not isinstance(result, Mapping):
+            raise RuntimeError(
+                "Release ativa contém resultado inválido no bootstrap."
+            )
+        relation_id = str(result.get("relationId") or "")
+        if relation_id in active_by_relation:
+            raise RuntimeError(
+                f"Release ativa contém relação duplicada: {relation_id}."
+            )
+        active_by_relation[relation_id] = result
+
+    bootstrapped: dict[str, dict[str, Any]] = {}
+    for relation in CONTRACT["relations"]:
+        relation_id = str(relation["relationId"])
+        if (
+            relation["mode"] == "hidden"
+            or relation.get("includeInDiagnostic") is not True
+            or relation_id not in _POLICY_BY_RELATION_ID
+        ):
+            continue
+        active_result = active_by_relation.get(relation_id)
+        if active_result is not None and not (
+            active_result.get("dataStatus") == "unavailable"
+            and active_result.get("reasonCode")
+            in BOOTSTRAP_PLACEHOLDER_REASON_CODES
+        ):
+            continue
+        indicator = cycle_indicators.get(str(relation["indicatorId"]))
+        if not isinstance(indicator, Mapping):
+            continue
+        projected = _cycle_indicator_methodology_result(relation, indicator)
+        if projected is not None:
+            bootstrapped[relation_id] = projected
+    return bootstrapped
 
 
 def _build_manifest(
@@ -1075,6 +1201,9 @@ def prepare_staging() -> dict[str, Any]:
     changed_non_package_record_count = 0
     changed_tracking_record_count = 0
     changed_projection_record_count = 0
+    bootstrap_repair_count = 0
+    bootstrap_municipality_count = 0
+    bootstrap_by_relation: Counter[str] = Counter()
     with WorktreeSnapshot() as snapshot:
         entries = _registry(snapshot)
         for entry in entries:
@@ -1097,6 +1226,10 @@ def prepare_staging() -> dict[str, Any]:
             )
             education_bytes = snapshot.read_bytes(education_path)
             education = _load_json_bytes(education_bytes, education_path)
+            cycle_indicators, cycle_bytes = _municipal_cycle_indicators(
+                snapshot,
+                entry,
+            )
             _update_aggregate_digest(
                 source_digest,
                 f"educacao-especial/municipios/{municipality_id}.json",
@@ -1111,6 +1244,11 @@ def prepare_staging() -> dict[str, Any]:
                 source_digest,
                 f"educacao-municipal/{municipality_id}.json",
                 education_bytes,
+            )
+            _update_aggregate_digest(
+                source_digest,
+                f"pne-cycle/municipios/{municipality_id}/index.json",
+                cycle_bytes,
             )
 
             if (
@@ -1169,9 +1307,22 @@ def prepare_staging() -> dict[str, Any]:
                 raise RuntimeError(
                     f"{municipality_id}: identidade divergente na release ativa."
                 )
+            bootstrap_results = _bootstrap_cycle_methodology_results(
+                active_payload,
+                cycle_indicators,
+            )
+            for relation_id in package_results:
+                bootstrap_results.pop(relation_id, None)
+            bootstrap_relation_ids = set(bootstrap_results)
+            if bootstrap_relation_ids:
+                bootstrap_municipality_count += 1
+                bootstrap_repair_count += len(bootstrap_relation_ids)
+                bootstrap_by_relation.update(bootstrap_relation_ids)
+            methodology_results = dict(bootstrap_results)
+            methodology_results.update(package_results)
             payload = rebase_pne2026_public_diagnostic_v3(
                 active_payload,
-                methodology_results=package_results,
+                methodology_results=methodology_results,
             )
             if payload["municipality"]["id"] != municipality_id:
                 raise RuntimeError(
@@ -1189,6 +1340,7 @@ def prepare_staging() -> dict[str, Any]:
                 active_relation_ids
                 - TRACKING_ROUND_RELATION_IDS
                 - PROJECTION_MIGRATION_RELATION_IDS
+                - bootstrap_relation_ids
             )
             output_preserved_relation_ids = (
                 set(output_by_relation)
@@ -1205,9 +1357,12 @@ def prepare_staging() -> dict[str, Any]:
                 ):
                     changed_non_package_record_count += 1
             for relation_id in (
-                active_relation_ids
-                & set(output_by_relation)
-                & TRACKING_ROUND_RELATION_IDS
+                (
+                    active_relation_ids
+                    & set(output_by_relation)
+                    & TRACKING_ROUND_RELATION_IDS
+                )
+                - bootstrap_relation_ids
             ):
                 if (
                     active_by_relation[relation_id]
@@ -1215,9 +1370,12 @@ def prepare_staging() -> dict[str, Any]:
                 ):
                     changed_tracking_record_count += 1
             for relation_id in (
-                active_relation_ids
-                & set(output_by_relation)
-                & PROJECTION_MIGRATION_RELATION_IDS
+                (
+                    active_relation_ids
+                    & set(output_by_relation)
+                    & PROJECTION_MIGRATION_RELATION_IDS
+                )
+                - bootstrap_relation_ids
             ):
                 if (
                     active_by_relation[relation_id]
@@ -1281,6 +1439,18 @@ def prepare_staging() -> dict[str, Any]:
                     "populationReferenceYear": 2022,
                     "sourceState": "worktree",
                     "municipalityCount": EXPECTED_MUNICIPALITIES,
+                },
+                "cycleBootstrap": {
+                    "sourceState": "worktree",
+                    "municipalityCount": EXPECTED_MUNICIPALITIES,
+                    "eligiblePlaceholderReasonCodes": sorted(
+                        BOOTSTRAP_PLACEHOLDER_REASON_CODES
+                    ),
+                    "repairedMunicipalityCount": bootstrap_municipality_count,
+                    "repairedResultCount": bootstrap_repair_count,
+                    "repairedByRelation": dict(
+                        sorted(bootstrap_by_relation.items())
+                    ),
                 },
                 "macroRound": macro_source_metadata,
                 "consolidatedRound": consolidated_audit,

@@ -29,6 +29,10 @@ function allFiles(root) {
   return files.toSorted()
 }
 
+function readJson(filePath) {
+  return JSON.parse(readFileSync(filePath, 'utf8'))
+}
+
 test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   const rs = loadStateBuildProfile({ repoRoot, stateCode: 'RS' })
   const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
@@ -122,6 +126,70 @@ test('raiz AL contém os três produtos nos subtrees canônicos', () => {
     assert.equal(typeof payload.pne_2014_2024, 'object')
     assert.equal(typeof payload.pne_2026_2036, 'object')
   }
+})
+
+test('diagnóstico PNE de AL publica as mesmas relações de RS sem falsos vazios', () => {
+  const contract = readJson(
+    path.join(repoRoot, 'contracts', 'pne2026-goal-indicator-contract.json'),
+  )
+  const eligibleRelations = contract.relations.filter(
+    (relation) => relation.mode !== 'hidden' && relation.includeInDiagnostic === true,
+  )
+  const expectedRelationIds = eligibleRelations
+    .map(({ relationId }) => relationId)
+    .toSorted()
+  const relationById = new Map(
+    eligibleRelations.map((relation) => [relation.relationId, relation]),
+  )
+
+  const activeReleaseRoot = (dataRoot) => {
+    const current = readJson(path.join(dataRoot, 'pne2026-diagnostic-v3', 'current.json'))
+    return path.join(dataRoot, 'pne2026-diagnostic-v3', 'releases', current.releaseId)
+  }
+  const rs = loadStateBuildProfile({ repoRoot, stateCode: 'RS' })
+  const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
+  const rsReleaseRoot = activeReleaseRoot(rs.publicDataDirectory)
+  const alReleaseRoot = activeReleaseRoot(al.publicDataDirectory)
+  const rsReference = readJson(
+    path.join(rsReleaseRoot, 'municipios', '4300034.json'),
+  )
+  assert.deepEqual(
+    rsReference.results.map(({ relationId }) => relationId).toSorted(),
+    expectedRelationIds,
+  )
+
+  const falseEmptyResults = []
+  for (const { ibgeCode } of al.municipalityRegistry.municipalities) {
+    const diagnostic = readJson(
+      path.join(alReleaseRoot, 'municipios', `${ibgeCode}.json`),
+    )
+    assert.deepEqual(
+      diagnostic.results.map(({ relationId }) => relationId).toSorted(),
+      expectedRelationIds,
+      `${ibgeCode}: conjunto de relações divergente`,
+    )
+    const cycle = readJson(
+      path.join(al.publicDataDirectory, 'municipios', ibgeCode, 'index.json'),
+    ).pne_2026_2036.indicadores
+    for (const result of diagnostic.results) {
+      const relation = relationById.get(result.relationId)
+      const source = cycle[relation.indicatorId]
+      if (
+        result.dataStatus === 'unavailable'
+        && result.reasonCode === 'no_observation'
+        && source?.available === true
+        && Number.isInteger(source.end_year)
+        && Number.isFinite(source.end_value)
+      ) {
+        falseEmptyResults.push(`${ibgeCode}:${result.relationId}`)
+      }
+    }
+  }
+  assert.equal(
+    falseEmptyResults.length,
+    0,
+    `resultados municipais disponíveis foram publicados como vazios: ${falseEmptyResults.slice(0, 10).join(', ')}`,
+  )
 })
 
 test('empacotamento AL não copia nenhum arquivo da publicação RS', async () => {

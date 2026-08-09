@@ -322,6 +322,24 @@ test('theme filters wrap complete labels without horizontal clipping', () => {
   assert.match(css, /\.legal-goals-theme-filter__chips\.platform-filter-list \{[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow-x: visible;/)
 })
 
+test('PNE cycle uses one navigation panel with the legal-goals filter layout', () => {
+  const cyclePageSource = readFileSync(
+    new URL('../../src/pages/CyclePage.jsx', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(cyclePageSource, /cycle-theme-nav platform-filter-panel/)
+  assert.match(cyclePageSource, /cycle-theme-nav__heading platform-exploration-toolbar/)
+  assert.match(cyclePageSource, /cycle-theme-nav__themes platform-filter-group/)
+  assert.match(cyclePageSource, /cycle-theme-nav__chips platform-filter-list/)
+  assert.match(cyclePageSource, /cycle-theme-nav__chip platform-filter-option/)
+  assert.match(cyclePageSource, />Navegar por tema</)
+  assert.doesNotMatch(cyclePageSource, /selectedBasicEducationFilterKey/)
+  assert.doesNotMatch(cyclePageSource, /<BasicEducationFilter/)
+  assert.doesNotMatch(cyclePageSource, />Etapa</)
+  assert.match(cyclePageSource, /getStageTagLabel\(item\.key, group\.filters\)/)
+})
+
 test('cycle themes use contextual headings and keep cards away from workspace edges', () => {
   const cyclePageSource = readFileSync(
     new URL('../../src/pages/CyclePage.jsx', import.meta.url),
