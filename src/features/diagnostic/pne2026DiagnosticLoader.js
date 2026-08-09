@@ -165,7 +165,11 @@ export function parsePne2026DiagnosticReleasePointer(candidate) {
   return structuredClone(candidate)
 }
 
-export function parsePne2026DiagnosticV3Manifest(candidate, pointer) {
+export function parsePne2026DiagnosticV3Manifest(
+  candidate,
+  pointer,
+  expectedMunicipalityCount,
+) {
   validateExactFields(candidate, RELEASE_MANIFEST_FIELDS, 'manifesto do release')
   for (const [field, expected] of Object.entries(FIXED_RELEASE_IDENTITY)) {
     invariant(
@@ -176,7 +180,14 @@ export function parsePne2026DiagnosticV3Manifest(candidate, pointer) {
   }
   invariant(SHA256_PATTERN.test(candidate.aggregateHash), 'aggregateHash inválido.')
   invariant(SHA256_PATTERN.test(candidate.semanticHash), 'semanticHash inválido.')
-  invariant(candidate.municipalityCount === 497, 'municipalityCount divergente.')
+  invariant(
+    Number.isInteger(expectedMunicipalityCount) && expectedMunicipalityCount > 0,
+    'expectedMunicipalityCount inválido.',
+  )
+  invariant(
+    candidate.municipalityCount === expectedMunicipalityCount,
+    'municipalityCount divergente.',
+  )
   const nonNegativeInteger = (value) => (
     Number.isInteger(value) && value >= 0
   )
@@ -250,7 +261,15 @@ export function parsePne2026DiagnosticV3Manifest(candidate, pointer) {
   return structuredClone(candidate)
 }
 
+/**
+ * @param {{
+ *   expectedMunicipalityCount?: number,
+ *   fetchJson?: (path: any, options: any) => Promise<any>,
+ *   logger?: (...data: any[]) => void,
+ * }} [options]
+ */
 export function createPne2026DiagnosticLoader({
+  expectedMunicipalityCount,
   fetchJson = defaultFetchJson,
   logger = console.error,
 } = {}) {
@@ -330,7 +349,11 @@ export function createPne2026DiagnosticLoader({
         })
       }
       try {
-        return parsePne2026DiagnosticV3Manifest(candidate, pointer)
+        return parsePne2026DiagnosticV3Manifest(
+          candidate,
+          pointer,
+          expectedMunicipalityCount,
+        )
       } catch (error) {
         throw structuredError(error, {
           code: 'invalid_manifest',

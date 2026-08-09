@@ -47,6 +47,11 @@ function createAlFixture(publicationOverrides = {}) {
     schemaVersion: 'state-config-v1',
     stateCode: 'AL',
     stateName: 'Alagoas',
+    stateNameForms: {
+      nominative: 'Alagoas',
+      withDe: 'de Alagoas',
+      withCom: 'com Alagoas',
+    },
     municipalityIbgePrefix: '27',
     expectedMunicipalityCount: municipalities.length,
     locale: 'pt-BR',

@@ -15,10 +15,12 @@ const STATE_CONFIG_FIELDS = [
   'schemaVersion',
   'stateCode',
   'stateName',
+  'stateNameForms',
   'municipalityIbgePrefix',
   'expectedMunicipalityCount',
   'locale',
 ]
+const STATE_NAME_FORM_FIELDS = ['nominative', 'withDe', 'withCom']
 const MUNICIPALITY_REGISTRY_FIELDS = [
   'schemaVersion',
   'stateCode',
@@ -125,6 +127,32 @@ export function parseBuildStateConfig(payload, requestedStateCode) {
     throw new Error(`Configuração estadual inválida: stateCode ${JSON.stringify(stateCode)} diverge de ${requestedStateCode}.`)
   }
   const stateName = requireNonEmptyString(config, 'stateName', 'Configuração estadual inválida')
+  const stateNameForms = assertRecord(
+    config.stateNameForms,
+    'Configuração estadual inválida: stateNameForms',
+  )
+  assertExactFields(
+    stateNameForms,
+    STATE_NAME_FORM_FIELDS,
+    'Configuração estadual inválida: stateNameForms',
+  )
+  const parsedStateNameForms = Object.freeze({
+    nominative: requireNonEmptyString(
+      stateNameForms,
+      'nominative',
+      'Configuração estadual inválida: stateNameForms',
+    ),
+    withDe: requireNonEmptyString(
+      stateNameForms,
+      'withDe',
+      'Configuração estadual inválida: stateNameForms',
+    ),
+    withCom: requireNonEmptyString(
+      stateNameForms,
+      'withCom',
+      'Configuração estadual inválida: stateNameForms',
+    ),
+  })
   const municipalityIbgePrefix = requireNonEmptyString(
     config,
     'municipalityIbgePrefix',
@@ -153,6 +181,7 @@ export function parseBuildStateConfig(payload, requestedStateCode) {
     schemaVersion: STATE_CONFIG_SCHEMA_VERSION,
     stateCode,
     stateName,
+    stateNameForms: parsedStateNameForms,
     municipalityIbgePrefix,
     expectedMunicipalityCount: config.expectedMunicipalityCount,
     locale,

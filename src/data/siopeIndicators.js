@@ -147,7 +147,7 @@ function formatPointsForReading(value) {
   })} p.p.`
 }
 
-export function buildSiopeExerciseReading(mdeAnalysis, execution) {
+export function buildSiopeExerciseReading(mdeAnalysis, execution, stateNameForms) {
   const sentences = []
 
   if (
@@ -184,8 +184,8 @@ export function buildSiopeExerciseReading(mdeAnalysis, execution) {
     if (Number.isFinite(stateRate)) {
       const difference = paidRate - stateRate
       stateText = Math.abs(difference) < 0.000001
-        ? ', resultado igual à referência do RS'
-        : `, resultado ${formatPointsForReading(difference)} ${difference > 0 ? 'acima' : 'abaixo'} da referência do RS`
+        ? `, resultado igual à referência ${stateNameForms.withDe}`
+        : `, resultado ${formatPointsForReading(difference)} ${difference > 0 ? 'acima' : 'abaixo'} da referência ${stateNameForms.withDe}`
     }
     sentences.push(
       `Em ${latestExecution.referenceYear}, ${formatPercentForReading(paidRate)} das despesas empenhadas `

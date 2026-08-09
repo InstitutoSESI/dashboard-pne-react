@@ -42,6 +42,9 @@ class StateConfigTests(unittest.TestCase):
         self.assertEqual(config.schema_version, "state-config-v1")
         self.assertEqual(config.state_code, "RS")
         self.assertEqual(config.state_name, "Rio Grande do Sul")
+        self.assertEqual(config.state_name_forms.nominative, "o Rio Grande do Sul")
+        self.assertEqual(config.state_name_forms.with_de, "do Rio Grande do Sul")
+        self.assertEqual(config.state_name_forms.with_com, "com o Rio Grande do Sul")
         self.assertEqual(config.municipality_ibge_prefix, "43")
         self.assertEqual(config.expected_municipality_count, 497)
         self.assertEqual(config.locale, "pt-BR")
@@ -74,6 +77,24 @@ class StateConfigTests(unittest.TestCase):
             self._load(missing)
         with self.assertRaisesRegex(StateConfigError, "campos inesperados: extra"):
             self._load({**self.valid, "extra": "blocked"})
+
+    def test_rejects_invalid_state_name_forms(self) -> None:
+        with self.assertRaisesRegex(StateConfigError, "stateNameForms.*objeto"):
+            self._load({**self.valid, "stateNameForms": None})
+        missing = dict(self.valid["stateNameForms"])
+        missing.pop("withCom")
+        with self.assertRaisesRegex(StateConfigError, "stateNameForms.*withCom"):
+            self._load({**self.valid, "stateNameForms": missing})
+        with self.assertRaisesRegex(StateConfigError, "stateNameForms.*extra"):
+            self._load(
+                {
+                    **self.valid,
+                    "stateNameForms": {
+                        **self.valid["stateNameForms"],
+                        "extra": "blocked",
+                    },
+                }
+            )
 
     def test_missing_state_fails_without_fallback(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

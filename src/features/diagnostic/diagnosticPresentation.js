@@ -481,7 +481,7 @@ export function buildPublicSummaryText(summary = {}) {
   return `Entre os ${comparableCount} indicadores com comparação disponível, ${summary.maintainCount} ${summary.maintainCount === 1 ? 'referência foi alcançada' : 'referências foram alcançadas'} e ${summary.advanceCount} ${summary.advanceCount === 1 ? 'está abaixo da referência' : 'estão abaixo da referência'}.`
 }
 
-export function buildPublicDiagnosticCopy(publicDiagnostic, municipio) {
+export function buildPublicDiagnosticCopy(publicDiagnostic, municipio, stateNameForms) {
   if (
     publicDiagnostic?.viewModelVersion
     !== DIAGNOSTIC_VIEW_MODEL_VERSION
@@ -501,12 +501,12 @@ export function buildPublicDiagnosticCopy(publicDiagnostic, municipio) {
     'Plano Nacional de Educação (PNE) 2026–2036',
     '',
     'Resumo do diagnóstico',
-    ...buildSummaryCopyLines(legalSummary),
+    ...buildSummaryCopyLines(legalSummary, stateNameForms),
   ]
 
   if (essentials.length) {
     lines.push('', 'Resultados essenciais')
-    for (const item of essentials) appendCopyResult(lines, item)
+    for (const item of essentials) appendCopyResult(lines, item, stateNameForms)
   }
 
   const remainingGoals = legalResults
@@ -521,7 +521,9 @@ export function buildPublicDiagnosticCopy(publicDiagnostic, municipio) {
   if (remainingGoals.length) {
     lines.push('', 'Demais resultados')
     for (const goal of remainingGoals) {
-      for (const result of goal.results) appendCopyResult(lines, { goal, result })
+      for (const result of goal.results) {
+        appendCopyResult(lines, { goal, result }, stateNameForms)
+      }
     }
   }
 
@@ -628,7 +630,7 @@ export function getPublicRelationshipNote(result) {
   return isNonEmptyText(result?.relationshipNote) ? result.relationshipNote : ''
 }
 
-export function getPublicSupportingReadings(result) {
+export function getPublicSupportingReadings(result, stateNameForms) {
   if (![
     PNE_2026_RELATIONSHIP_MODES.PROGRESS,
     PNE_2026_RELATIONSHIP_MODES.TRACKING,
@@ -641,7 +643,7 @@ export function getPublicSupportingReadings(result) {
   ) {
     readings.push({
       kind: 'position',
-      title: 'Posição entre os municípios do RS',
+      title: `Posição entre os municípios ${stateNameForms.withDe}`,
       lines: [normalizePublicPercentages(result.statewidePosition.reading)],
     })
   }
@@ -712,7 +714,7 @@ function flattenPublicResults(publicDiagnostic) {
   ))
 }
 
-function buildSummaryCopyLines(summary = {}) {
+function buildSummaryCopyLines(summary = {}, stateNameForms) {
   return [
     Number.isFinite(summary.comparableIndicatorCount)
       ? `Indicadores com comparação disponível: ${summary.comparableIndicatorCount}.`
@@ -723,15 +725,15 @@ function buildSummaryCopyLines(summary = {}) {
       ? `Sem comparação no período: ${summary.unavailableComparisonCount}.`
       : '',
     Number.isFinite(summary.stateAboveOrNearCount)
-      ? `Acima ou próximos do RS: ${summary.stateAboveOrNearCount}.`
+      ? `Acima ou próximos ${stateNameForms.withDe}: ${summary.stateAboveOrNearCount}.`
       : '',
     Number.isFinite(summary.stateBelowCount)
-      ? `Abaixo do RS: ${summary.stateBelowCount}.`
+      ? `Abaixo ${stateNameForms.withDe}: ${summary.stateBelowCount}.`
       : '',
   ].filter(Boolean)
 }
 
-function appendCopyResult(lines, { goal, result }) {
+function appendCopyResult(lines, { goal, result }, stateNameForms) {
   lines.push(
     '',
     `Meta ${goal.goalId} — ${goal.title}`,
@@ -759,14 +761,14 @@ function appendCopyResult(lines, { goal, result }) {
   const stateComparison = getPublicStateComparison(result)
   if (stateComparison) {
     lines.push(
-      'Comparação com o RS',
+      `Comparação ${stateNameForms.withCom}`,
       isNonEmptyText(stateComparison.valueReading)
         ? stateComparison.valueReading
-        : `Município ${stateComparison.municipalityValue}; Rio Grande do Sul ${stateComparison.stateValue}; ${stateComparison.year}.`,
+        : `Município ${stateComparison.municipalityValue}; ${stateNameForms.nominative} ${stateComparison.stateValue}; ${stateComparison.year}.`,
       stateComparison.reading,
     )
   }
-  for (const reading of getPublicSupportingReadings(result)) {
+  for (const reading of getPublicSupportingReadings(result, stateNameForms)) {
     lines.push(reading.title, ...reading.lines)
   }
 }

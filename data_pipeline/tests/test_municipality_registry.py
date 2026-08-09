@@ -11,7 +11,7 @@ from data_pipeline.src.municipality_registry import (
     load_municipality_registry,
     normalize_municipality_name,
 )
-from data_pipeline.src.state_config import StateConfig, load_state_config
+from data_pipeline.src.state_config import StateConfig, StateNameForms, load_state_config
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -134,6 +134,11 @@ class MunicipalityRegistryTests(unittest.TestCase):
             schema_version="state-config-v1",
             state_code="RS",
             state_name="Rio Grande do Sul",
+            state_name_forms=StateNameForms(
+                nominative="o Rio Grande do Sul",
+                with_de="do Rio Grande do Sul",
+                with_com="com o Rio Grande do Sul",
+            ),
             municipality_ibge_prefix="43",
             expected_municipality_count=2,
             locale="pt-BR",

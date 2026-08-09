@@ -182,6 +182,11 @@ assert.deepEqual(
     schemaVersion: 'state-config-v1',
     stateCode: 'RS',
     stateName: 'Rio Grande do Sul',
+    stateNameForms: {
+      nominative: 'o Rio Grande do Sul',
+      withDe: 'do Rio Grande do Sul',
+      withCom: 'com o Rio Grande do Sul',
+    },
     municipalityIbgePrefix: '43',
     expectedMunicipalityCount: 497,
     locale: 'pt-BR',

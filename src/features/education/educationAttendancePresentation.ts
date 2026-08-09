@@ -4,6 +4,7 @@ import type {
   EducationProjectedIndicator,
 } from './educationAttendanceTypes'
 import { getPne2026IndicatorReferenceProfile } from '../../data/pne2026GoalIndicatorContract.js'
+import { ACTIVE_STATE_CONFIG } from '../../config/stateConfig.js'
 
 export interface EducationProjectionViewContract {
   available: boolean
@@ -125,10 +126,10 @@ export function projectionAssumptionText(
     return 'A trajetória parte do valor atual e mostra o avanço necessário para alcançar as referências de 2031 e 2036.'
   }
   if (selectedBasis === 'municipal_state_shrunk_theil_sen_log') {
-    return 'Combina o histórico de matrículas do município e do Rio Grande do Sul com a mudança esperada da população da faixa etária.'
+    return `Combina o histórico de matrículas do município e ${ACTIVE_STATE_CONFIG.stateNameForms.withDe} com a mudança esperada da população da faixa etária.`
   }
   if (selectedBasis === 'state_aggregate_damped_holt') {
-    return 'A evolução das matrículas considerada é a do Rio Grande do Sul. Para o município, o cenário considera a mudança esperada da população da faixa etária.'
+    return `A evolução das matrículas considerada é a ${ACTIVE_STATE_CONFIG.stateNameForms.withDe}. Para o município, o cenário considera a mudança esperada da população da faixa etária.`
   }
   return 'Mantém como referência o número mais recente de matrículas e considera a mudança esperada da população da faixa etária no município.'
 }

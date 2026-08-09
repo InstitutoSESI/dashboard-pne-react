@@ -25,7 +25,7 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
 
 from src import pipeline_profiling as profiling  # noqa: E402
 from src.municipality_registry import load_municipality_registry  # noqa: E402
-from src.state_config import StateConfig  # noqa: E402
+from src.state_config import StateConfig, StateNameForms  # noqa: E402
 
 
 def _load_script(module_name: str, filename: str):
@@ -76,6 +76,11 @@ def _one_municipality_registry(tmp_path: Path):
         schema_version="state-config-v1",
         state_code="RS",
         state_name="Rio Grande do Sul",
+        state_name_forms=StateNameForms(
+            nominative="o Rio Grande do Sul",
+            with_de="do Rio Grande do Sul",
+            with_com="com o Rio Grande do Sul",
+        ),
         municipality_ibge_prefix="43",
         expected_municipality_count=1,
         locale="pt-BR",

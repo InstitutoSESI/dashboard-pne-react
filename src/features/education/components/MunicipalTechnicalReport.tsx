@@ -1,5 +1,6 @@
 import { useState, type MouseEvent } from 'react'
 import { buildAppHash } from '../../../app/appHash'
+import { ACTIVE_STATE_CONFIG } from '../../../config/stateConfig.js'
 import { FINANCIAL_PAGE_KEYS } from '../../../data/financialPageKeys'
 import {
   formatOverviewEnrollments,
@@ -612,7 +613,7 @@ export function MunicipalTechnicalReport({
           <div className="municipal-technical-report__hero-copy">
             <span className="eyebrow">Documento técnico municipal · Ano-base {mainPeriod}</span>
             <h1>Relatório Técnico Municipal</h1>
-            <span className="municipal-technical-report__hero-subject">{municipalityName} · Rio Grande do Sul</span>
+            <span className="municipal-technical-report__hero-subject">{municipalityName} · {ACTIVE_STATE_CONFIG.stateName}</span>
             <p>As seções exigidas para o diagnóstico educacional do município, geradas a partir das bases públicas oficiais — prontas para leitura, impressão e entrega, sem preenchimento manual.</p>
           </div>
           <div className="municipal-technical-report__hero-actions">

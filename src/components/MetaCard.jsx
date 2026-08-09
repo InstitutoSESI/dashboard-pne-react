@@ -10,6 +10,7 @@ import { formatPpDifference, getStateReferenceComparison } from '../utils/stateR
 import { getPneCycleCopy } from '../utils/pneCycleCopy'
 import { InteractionChevron } from './InteractionChevron'
 import { buildPne2026AccumulativePresentationModel } from '../utils/pneAccumulativeCycle'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import {
   PNE_2026_RELATIONSHIP_MODES,
   reconcilePne2026MunicipalResult,
@@ -314,14 +315,14 @@ export function MetaCard({
       {stateComparison ? (
         <span
           className={`meta-card__state-reference meta-card__state-reference--${stateComparisonTone}`}
-          aria-label={`Referência RS ${formatIndicatorValue(stateComparison.stateValue, unit)}; Município vs RS ${formatPpDifference(stateComparison.difference)}; ano ${stateComparison.year}`}
+          aria-label={`Referência ${ACTIVE_STATE_CONFIG.stateName} ${formatIndicatorValue(stateComparison.stateValue, unit)}; Município vs ${ACTIVE_STATE_CONFIG.stateName} ${formatPpDifference(stateComparison.difference)}; ano ${stateComparison.year}`}
         >
           <span>
-            <span>Referência RS</span>
+            <span>Referência {ACTIVE_STATE_CONFIG.stateName}</span>
             <strong>{formatIndicatorValue(stateComparison.stateValue, unit)}</strong>
           </span>
           <span>
-            <span>Município vs RS</span>
+            <span>Município vs {ACTIVE_STATE_CONFIG.stateName}</span>
             <strong>{formatPpDifference(stateComparison.difference)}</strong>
           </span>
         </span>

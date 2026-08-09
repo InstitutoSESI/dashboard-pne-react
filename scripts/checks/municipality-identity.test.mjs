@@ -66,6 +66,12 @@ test('valida e congela a configuração estadual canônica do RS', () => {
   assert.equal(activeState.schemaVersion, 'state-config-v1')
   assert.equal(activeState.stateCode, 'RS')
   assert.equal(activeState.stateName, 'Rio Grande do Sul')
+  assert.deepEqual(activeState.stateNameForms, {
+    nominative: 'o Rio Grande do Sul',
+    withDe: 'do Rio Grande do Sul',
+    withCom: 'com o Rio Grande do Sul',
+  })
+  assert.equal(Object.isFrozen(activeState.stateNameForms), true)
   assert.equal(activeState.municipalityIbgePrefix, '43')
   assert.equal(activeState.expectedMunicipalityCount, 497)
   assert.equal(activeState.locale, 'pt-BR')
@@ -88,6 +94,17 @@ test('rejeita configurações estaduais inválidas sem fallback silencioso', () 
   assert.throws(
     () => stateConfigModule.parseStateConfig({ ...rawStateConfig, locale: 'locale inválido' }),
     /locale/,
+  )
+  assert.throws(
+    () => stateConfigModule.parseStateConfig({ ...rawStateConfig, stateNameForms: null }),
+    /stateNameForms/,
+  )
+  assert.throws(
+    () => stateConfigModule.parseStateConfig({
+      ...rawStateConfig,
+      stateNameForms: { ...rawStateConfig.stateNameForms, extra: 'blocked' },
+    }),
+    /campos de stateNameForms divergentes/,
   )
 })
 

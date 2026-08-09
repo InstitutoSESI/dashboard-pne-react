@@ -20,11 +20,13 @@ _STATE_CONFIG_FIELDS = frozenset(
         "schemaVersion",
         "stateCode",
         "stateName",
+        "stateNameForms",
         "municipalityIbgePrefix",
         "expectedMunicipalityCount",
         "locale",
     }
 )
+_STATE_NAME_FORM_FIELDS = frozenset({"nominative", "withDe", "withCom"})
 
 
 class StateConfigError(ValueError):
@@ -32,10 +34,18 @@ class StateConfigError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class StateNameForms:
+    nominative: str
+    with_de: str
+    with_com: str
+
+
+@dataclass(frozen=True, slots=True)
 class StateConfig:
     schema_version: str
     state_code: str
     state_name: str
+    state_name_forms: StateNameForms
     municipality_ibge_prefix: str
     expected_municipality_count: int
     locale: str
@@ -68,6 +78,31 @@ def _require_non_empty_string(payload: dict[str, Any], field: str) -> str:
             f"Configuração estadual inválida: {field!r} deve ser texto não vazio."
         )
     return value
+
+
+def _parse_state_name_forms(payload: object) -> StateNameForms:
+    if not isinstance(payload, dict):
+        raise StateConfigError(
+            "Configuração estadual inválida: 'stateNameForms' deve ser um objeto."
+        )
+    fields = set(payload)
+    missing = sorted(_STATE_NAME_FORM_FIELDS - fields)
+    unexpected = sorted(fields - _STATE_NAME_FORM_FIELDS)
+    if missing:
+        raise StateConfigError(
+            "Configuração estadual inválida: campos obrigatórios ausentes em "
+            "'stateNameForms': " + ", ".join(missing) + "."
+        )
+    if unexpected:
+        raise StateConfigError(
+            "Configuração estadual inválida: campos inesperados em "
+            "'stateNameForms': " + ", ".join(unexpected) + "."
+        )
+    return StateNameForms(
+        nominative=_require_non_empty_string(payload, "nominative"),
+        with_de=_require_non_empty_string(payload, "withDe"),
+        with_com=_require_non_empty_string(payload, "withCom"),
+    )
 
 
 def _parse_state_config(
@@ -115,6 +150,7 @@ def _parse_state_config(
         )
 
     state_name = _require_non_empty_string(payload, "stateName")
+    state_name_forms = _parse_state_name_forms(payload["stateNameForms"])
     municipality_ibge_prefix = _require_non_empty_string(
         payload, "municipalityIbgePrefix"
     )
@@ -139,6 +175,7 @@ def _parse_state_config(
         schema_version=schema_version,
         state_code=state_code,
         state_name=state_name,
+        state_name_forms=state_name_forms,
         municipality_ibge_prefix=municipality_ibge_prefix,
         expected_municipality_count=expected_count,
         locale=locale,

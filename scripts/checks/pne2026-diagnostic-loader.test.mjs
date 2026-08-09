@@ -53,6 +53,7 @@ const capesSource = JSON.parse(await readFile(
 ))
 
 function createFixtureLoader({
+  expectedMunicipalityCount = 497,
   pointer = current,
   manifest = releaseManifest,
   payload = v3Payload,
@@ -63,6 +64,7 @@ function createFixtureLoader({
   const calls = []
   const logs = []
   const loader = createPne2026DiagnosticLoader({
+    expectedMunicipalityCount,
     fetchJson: async (path, options) => {
       calls.push({ path, options })
       if (path === PNE_2026_DIAGNOSTIC_V3_CURRENT_PATH) {
@@ -99,6 +101,27 @@ test('happy path requests only current, active manifest, and active municipality
   assert.equal(fixture.logs.length, 0)
 })
 
+test('manifest follows the active state municipality count and rejects another universe', async () => {
+  const alManifest = {
+    ...structuredClone(releaseManifest),
+    municipalityCount: 102,
+  }
+  const alFixture = createFixtureLoader({
+    expectedMunicipalityCount: 102,
+    manifest: alManifest,
+  })
+  const result = await alFixture.load(MUNICIPALITY_ID)
+  assert.equal(result.diagnosticSource, 'v3')
+
+  const mismatchedFixture = createFixtureLoader({
+    expectedMunicipalityCount: 102,
+  })
+  await assert.rejects(mismatchedFixture.load(MUNICIPALITY_ID), {
+    code: 'invalid_manifest',
+    stage: 'manifest',
+  })
+})
+
 test('same release deduplicates payloads while current is refreshed', async () => {
   const fixture = createFixtureLoader()
   await fixture.load(MUNICIPALITY_ID)
@@ -119,6 +142,7 @@ test('a new release cannot reuse the previous release payload cache', async () =
   const calls = []
   const secondRelease = 'a'.repeat(64)
   const loader = createPne2026DiagnosticLoader({
+    expectedMunicipalityCount: 497,
     fetchJson: async (path) => {
       calls.push(path)
       if (path === PNE_2026_DIAGNOSTIC_V3_CURRENT_PATH) {
@@ -228,6 +252,7 @@ for (const [name, expectedCode, arrange] of failures) {
 test('a failed request can be retried through the existing loader', async () => {
   let currentAttempts = 0
   const loader = createPne2026DiagnosticLoader({
+    expectedMunicipalityCount: 497,
     logger: () => {},
     fetchJson: async (path) => {
       if (path === PNE_2026_DIAGNOSTIC_V3_CURRENT_PATH) {

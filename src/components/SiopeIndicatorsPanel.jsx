@@ -12,6 +12,7 @@ import { DataSourceNote } from './DataSourceNote'
 import { DisclosureChevron } from './DisclosureChevron'
 import { FinancialIndicatorDisclosures } from './FinancialIndicatorMetadata'
 import { ContentState } from './ContentState'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import {
   FinancialChartFrame,
   FinancialDataRow,
@@ -467,8 +468,8 @@ function ExecutionSection({ execution }) {
             </p>
             {hasNumber(stateDifference) ? (
               <p>
-                {formatPercentagePoints(Math.abs(stateDifference))} {stateDifference >= 0 ? 'acima' : 'abaixo'} da referência RS,
-                calculada pela soma dos valores pagos dividida pela soma dos valores empenhados dos 497 municípios.
+                {formatPercentagePoints(Math.abs(stateDifference))} {stateDifference >= 0 ? 'acima' : 'abaixo'} da referência {ACTIVE_STATE_CONFIG.stateNameForms.withDe},
+                calculada pela soma dos valores pagos dividida pela soma dos valores empenhados dos {ACTIVE_STATE_CONFIG.expectedMunicipalityCount} municípios.
               </p>
             ) : null}
           </div>
@@ -626,7 +627,11 @@ export function SiopeIndicatorsPanel({ idMunicipio, detailKey = '', onDetailChan
   const paidValue = execution && isPublishableFinancialValue(execution.paid) ? execution.paid : null
   const hasMixedScopeValues = Boolean(publicModelByKey.get('valor_aplicado_mde_reais') && paidValue)
   const mdeAnalysis = buildSiopeMdeAnalysis(model.municipality)
-  const exerciseReading = buildSiopeExerciseReading(mdeAnalysis, execution)
+  const exerciseReading = buildSiopeExerciseReading(
+    mdeAnalysis,
+    execution,
+    ACTIVE_STATE_CONFIG.stateNameForms,
+  )
   const { activeIndex: selectedIndex, previousItem: previousIndicator, nextItem: nextIndicator } = resolveDetailSequence(detailIndicatorModels, selectedIndicatorModel?.key)
 
   function handleIndicatorSelect(indicatorKey) {

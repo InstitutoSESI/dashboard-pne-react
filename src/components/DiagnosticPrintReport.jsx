@@ -1,4 +1,4 @@
-import { PLATFORM_LABEL } from '../config/stateConfig'
+import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import {
   buildPublicSummaryText,
   DIAGNOSTIC_RESULT_VIEWS,
@@ -119,7 +119,10 @@ function DiagnosticPrintIndicator({ goal, result }) {
   const isComplementary = result.mode === 'complementary'
   const isAvailable = result.dataStatus === 'available'
   const stateComparison = getPublicStateComparison(result)
-  const supportingReadings = getPublicSupportingReadings(result)
+  const supportingReadings = getPublicSupportingReadings(
+    result,
+    ACTIVE_STATE_CONFIG.stateNameForms,
+  )
   const publicReading = getPublicResultReading(result)
   const status = getPublicResultStatus(result)
   const contextReadings = supportingReadings.filter(({ kind }) => kind !== 'trajectory')
@@ -148,12 +151,12 @@ function DiagnosticPrintIndicator({ goal, result }) {
       },
     ] : []),
     {
-      label: 'Referência RS',
+      label: `Referência ${ACTIVE_STATE_CONFIG.stateName}`,
       value: stateComparison?.stateValue,
       detail: stateComparison ? `Ano ${stateComparison.year}` : '',
     },
     {
-      label: 'Município x RS',
+      label: `Município x ${ACTIVE_STATE_CONFIG.stateName}`,
       value: stateComparison?.difference,
     },
   ].filter(({ value }) => value !== '' && value !== null && value !== undefined)
@@ -185,7 +188,7 @@ function DiagnosticPrintIndicator({ goal, result }) {
       {comparisonItemCount ? (
         <section className={`diagnostic-print-indicator__comparison-row diagnostic-print-indicator__comparison-row--count-${comparisonItemCount}`}>
           {stateComparison?.reading ? (
-            <DiagnosticPrintReading title="Comparação com o RS">
+            <DiagnosticPrintReading title={`Comparação ${ACTIVE_STATE_CONFIG.stateNameForms.withCom}`}>
               <p>{stateComparison.reading}</p>
             </DiagnosticPrintReading>
           ) : null}

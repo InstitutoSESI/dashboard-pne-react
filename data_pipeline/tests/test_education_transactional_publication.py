@@ -35,7 +35,7 @@ from src.education_transactional_publication import (  # noqa: E402
     validate_education_staging,
 )
 from src.municipality_registry import load_municipality_registry  # noqa: E402
-from src.state_config import StateConfig, load_state_config  # noqa: E402
+from src.state_config import StateConfig, StateNameForms, load_state_config  # noqa: E402
 
 
 def _load_script(name: str):
@@ -66,6 +66,11 @@ def contract(tmp_path: Path):
         schema_version="state-config-v1",
         state_code="RS",
         state_name="Rio Grande do Sul",
+        state_name_forms=StateNameForms(
+            nominative="o Rio Grande do Sul",
+            with_de="do Rio Grande do Sul",
+            with_com="com o Rio Grande do Sul",
+        ),
         municipality_ibge_prefix="43",
         expected_municipality_count=len(records),
         locale="pt-BR",

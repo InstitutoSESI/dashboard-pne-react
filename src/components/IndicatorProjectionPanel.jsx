@@ -9,6 +9,7 @@ import {
 } from '../utils/pneChartSystem'
 import { useChartViewport } from '../hooks/useChartViewport'
 import { buildProjectionEndLabelLayout } from '../utils/projectionEndLabels'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 
 const DEFAULT_CHART_WIDTH = 980
 const DEFAULT_CHART_HEIGHT = 260
@@ -137,7 +138,7 @@ export function IndicatorProjectionPanel({
         {!contextOnly ? (
           <p className="complementary-projection__method">
             Este cenário mantém o último número observado de matrículas e atualiza o
-            denominador com a variação populacional projetada para a faixa etária no RS.
+            denominador com a variação populacional projetada para a faixa etária {ACTIVE_STATE_CONFIG.stateNameForms.withDe}.
             É uma linha de base para planejamento, sem intervalo probabilístico, e não
             representa uma previsão oficial.
           </p>

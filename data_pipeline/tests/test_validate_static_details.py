@@ -20,7 +20,7 @@ VALIDATOR_SPEC.loader.exec_module(validator)
 
 from data_pipeline.src.municipal_inequality import build_document  # noqa: E402
 from src.municipality_registry import load_municipality_registry  # noqa: E402
-from src.state_config import StateConfig  # noqa: E402
+from src.state_config import StateConfig, StateNameForms  # noqa: E402
 
 
 class ValidateStaticDetailsTests(unittest.TestCase):
@@ -35,6 +35,11 @@ class ValidateStaticDetailsTests(unittest.TestCase):
             schema_version="state-config-v1",
             state_code="RS",
             state_name="Rio Grande do Sul",
+            state_name_forms=StateNameForms(
+                nominative="o Rio Grande do Sul",
+                with_de="do Rio Grande do Sul",
+                with_com="com o Rio Grande do Sul",
+            ),
             municipality_ibge_prefix="43",
             expected_municipality_count=len(cls.municipalities),
             locale="pt-BR",

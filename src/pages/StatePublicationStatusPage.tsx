@@ -1,6 +1,6 @@
 import { Database, MapPinned, ShieldCheck } from 'lucide-react'
 import { ACTIVE_PUBLICATION_CONFIG } from '../config/publicationConfig'
-import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig.js'
 import { useMunicipality } from '../context/MunicipalityContext'
 
 export function StatePublicationStatusPage() {
@@ -14,7 +14,7 @@ export function StatePublicationStatusPage() {
         </p>
         <h1>{ACTIVE_STATE_CONFIG.stateName} já está configurada para hospedagem.</h1>
         <p className="state-publication-status__lead">
-          O cadastro territorial oficial está ativo e isolado da publicação do Rio Grande do Sul.
+          O cadastro territorial oficial está ativo e isolado na publicação {ACTIVE_STATE_CONFIG.stateNameForms.withDe}.
           Os módulos analíticos serão liberados somente depois da validação das fontes próprias de
           Alagoas.
         </p>
@@ -30,7 +30,7 @@ export function StatePublicationStatusPage() {
         <article>
           <ShieldCheck aria-hidden="true" />
           <span>Isolamento confirmado</span>
-          <strong>Sem dados do RS</strong>
+          <strong>Sem dados de outras UFs</strong>
           <p>O artefato de AL possui uma raiz pública própria e falha diante de contaminação.</p>
         </article>
         <article>

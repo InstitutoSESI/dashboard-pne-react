@@ -3,11 +3,28 @@ import type { StateCode } from '../types/data'
 declare const __ACTIVE_STATE_CONFIG__: unknown
 
 const STATE_CONFIG_SCHEMA_VERSION = 'state-config-v1'
+const STATE_CONFIG_FIELDS = [
+  'schemaVersion',
+  'stateCode',
+  'stateName',
+  'stateNameForms',
+  'municipalityIbgePrefix',
+  'expectedMunicipalityCount',
+  'locale',
+] as const
+const STATE_NAME_FORM_FIELDS = ['nominative', 'withDe', 'withCom'] as const
+
+export interface StateNameForms {
+  readonly nominative: string
+  readonly withDe: string
+  readonly withCom: string
+}
 
 export interface StateConfig {
   readonly schemaVersion: typeof STATE_CONFIG_SCHEMA_VERSION
   readonly stateCode: StateCode
   readonly stateName: string
+  readonly stateNameForms: StateNameForms
   readonly municipalityIbgePrefix: string
   readonly expectedMunicipalityCount: number
   readonly locale: string
@@ -19,13 +36,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readNonEmptyString(
   config: Record<string, unknown>,
-  field: keyof StateConfig,
+  field: string,
 ): string {
   const value = config[field]
   if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`Configuração estadual inválida: "${field}" deve ser texto não vazio.`)
   }
   return value
+}
+
+function assertExactFields(
+  value: Record<string, unknown>,
+  expectedFields: readonly string[],
+  label: string,
+): void {
+  const actual = Object.keys(value).sort()
+  const expected = [...expectedFields].sort()
+  if (actual.length !== expected.length || actual.some((field, index) => field !== expected[index])) {
+    throw new Error(
+      `Configuração estadual inválida: campos de ${label} divergentes; esperados ${expected.join(', ')}.`,
+    )
+  }
+}
+
+function readStateNameForms(config: Record<string, unknown>): StateNameForms {
+  const value = config.stateNameForms
+  if (!isRecord(value)) {
+    throw new Error('Configuração estadual inválida: "stateNameForms" deve ser um objeto.')
+  }
+  assertExactFields(value, STATE_NAME_FORM_FIELDS, 'stateNameForms')
+  return Object.freeze({
+    nominative: readNonEmptyString(value, 'nominative'),
+    withDe: readNonEmptyString(value, 'withDe'),
+    withCom: readNonEmptyString(value, 'withCom'),
+  })
 }
 
 function validateLocale(locale: string): void {
@@ -43,6 +87,7 @@ export function parseStateConfig(value: unknown): StateConfig {
   if (!isRecord(value)) {
     throw new Error('Configuração estadual inválida: o documento deve ser um objeto JSON.')
   }
+  assertExactFields(value, STATE_CONFIG_FIELDS, 'stateConfig')
 
   const schemaVersion = readNonEmptyString(value, 'schemaVersion')
   if (schemaVersion !== STATE_CONFIG_SCHEMA_VERSION) {
@@ -55,6 +100,7 @@ export function parseStateConfig(value: unknown): StateConfig {
   }
 
   const stateName = readNonEmptyString(value, 'stateName')
+  const stateNameForms = readStateNameForms(value)
   const municipalityIbgePrefix = readNonEmptyString(value, 'municipalityIbgePrefix')
   if (!/^\d{2}$/.test(municipalityIbgePrefix)) {
     throw new Error('Configuração estadual inválida: "municipalityIbgePrefix" deve conter dois dígitos.')
@@ -72,6 +118,7 @@ export function parseStateConfig(value: unknown): StateConfig {
     schemaVersion: STATE_CONFIG_SCHEMA_VERSION,
     stateCode,
     stateName,
+    stateNameForms,
     municipalityIbgePrefix,
     expectedMunicipalityCount: Number(expectedMunicipalityCount),
     locale,

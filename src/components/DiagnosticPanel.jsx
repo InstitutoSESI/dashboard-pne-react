@@ -24,6 +24,7 @@ import { DiagnosticPrintReport } from './DiagnosticPrintReport'
 import { DisclosureChevron } from './DisclosureChevron'
 import { PnePageHeader } from './PnePageHeader'
 import { PNE_2026_GOAL_TEXTS } from '../data/pne2026GoalTexts'
+import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
 import {
   buildPublicDiagnosticCopy,
   buildPublicSummaryText,
@@ -67,7 +68,7 @@ const VIEW_OPTIONS = [
   },
 ]
 
-const DIAGNOSTIC_DESCRIPTION = 'Veja os resultados do município em relação às metas do PNE e ao contexto dos municípios do Rio Grande do Sul.'
+const DIAGNOSTIC_DESCRIPTION = `Veja os resultados do município em relação às metas do PNE e ao contexto dos municípios ${ACTIVE_STATE_CONFIG.stateNameForms.withDe}.`
 const ACCELERATED_PACKAGE_RELATIONS = new Set([
   'relation.9.d.educacao_indigena_cobertura_estimada_4_17',
   'relation.10.b.aee_oferta_escolas_elegiveis',
@@ -155,7 +156,11 @@ export function DiagnosticPanel({
     try {
       if (!globalThis.navigator?.clipboard?.writeText) throw new Error('clipboard')
       await globalThis.navigator.clipboard.writeText(
-        buildPublicDiagnosticCopy(publicDiagnostic, municipio),
+        buildPublicDiagnosticCopy(
+          publicDiagnostic,
+          municipio,
+          ACTIVE_STATE_CONFIG.stateNameForms,
+        ),
       )
       setCopyStatus('copied')
     } catch {
@@ -361,18 +366,18 @@ function DiagnosticLegend() {
       </summary>
       <div className="pne-diagnostic-legend__body platform-support-disclosure__body">
         <p className="pne-diagnostic-legend__intro">
-          Em cada indicador, além da meta do PNE, o município aparece ao lado do Rio Grande do Sul — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
+          Em cada indicador, além da meta do PNE, o município aparece ao lado {ACTIVE_STATE_CONFIG.stateNameForms.withDe} — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
         </p>
         <div className="pne-diagnostic-legend__grid">
           <LegendCard
-            desc="Onde o município está entre todos os do RS neste indicador."
+            desc={`Onde o município está entre todos os municípios ${ACTIVE_STATE_CONFIG.stateNameForms.withDe} neste indicador.`}
             icon="position"
             items={[
               ['positive', 'Faixa superior', 'entre os de resultado mais favorável'],
               ['neutral', 'Faixa intermediária', 'no meio da distribuição estadual'],
               ['attention', 'Faixa prioritária', 'entre os com maior espaço para avançar'],
             ]}
-            title="Posição no RS"
+            title={`Posição entre municípios ${ACTIVE_STATE_CONFIG.stateNameForms.withDe}`}
           />
           <LegendCard
             desc="Comparação com municípios de porte educacional parecido."
@@ -527,7 +532,10 @@ function ResultCard({
   const hasReference = isAvailable && Number.isFinite(result.indicatorReference?.value)
   const distanceAvailable = Number.isFinite(result.distance)
   const stateComparison = getPublicStateComparison(result)
-  const supportingReadings = getPublicSupportingReadings(result)
+  const supportingReadings = getPublicSupportingReadings(
+    result,
+    ACTIVE_STATE_CONFIG.stateNameForms,
+  )
   const status = getPublicResultStatus(result)
   const titleId = `pne-diagnostic-result-${goal.goalId}-${result.indicatorId}`
   const Heading = `h${headingLevel}`
@@ -615,7 +623,7 @@ function ResultCard({
         </section>
 
         {hasCompare ? (
-          <section className="pne-diagnostic-result__panel pne-diagnostic-result__panel--compare" aria-label="Comparação com o Rio Grande do Sul e municípios semelhantes">
+          <section className="pne-diagnostic-result__panel pne-diagnostic-result__panel--compare" aria-label={`Comparação ${ACTIVE_STATE_CONFIG.stateNameForms.withCom} e municípios semelhantes`}>
             <p className="pne-diagnostic-result__panel-label">Como se compara</p>
             <dl className="pne-diagnostic-result__compare">
               {stateComparison ? (
@@ -624,7 +632,7 @@ function ResultCard({
                     <span className="pne-diagnostic-result__compare-icon" aria-hidden="true">
                       <DiagnosticSupportIcon name="comparison" />
                     </span>
-                    Rio Grande do Sul
+                    {ACTIVE_STATE_CONFIG.stateNameForms.nominative}
                   </dt>
                   <dd className="pne-diagnostic-result__compare-values">
                     <span className="pne-diagnostic-result__compare-value">{stateComparison.stateValue}</span>
@@ -636,7 +644,7 @@ function ResultCard({
                 <CompareBadgeRow icon="similar" label="Municípios semelhantes" reading={similarReading} />
               ) : null}
               {positionReading ? (
-                <CompareBadgeRow icon="position" label="Posição no RS" reading={positionReading} />
+                <CompareBadgeRow icon="position" label={`Posição entre municípios ${ACTIVE_STATE_CONFIG.stateNameForms.withDe}`} reading={positionReading} />
               ) : null}
             </dl>
           </section>

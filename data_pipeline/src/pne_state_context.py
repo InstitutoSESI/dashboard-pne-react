@@ -9,6 +9,7 @@ from .municipality_registry import MunicipalityRegistry, load_municipality_regis
 from .state_config import (
     DEFAULT_STATE_CODE,
     StateConfig,
+    StateNameForms,
     load_state_config,
     normalize_state_code,
     resolve_pipeline_state_code,
@@ -20,27 +21,6 @@ _METHODOLOGY_VERSIONS = {
     ("AL", "pne_2014_2024"): "pne2014-al-reference-v1",
     ("RS", "pne_2026_2036"): "pne2026-rs-reference-v3",
     ("AL", "pne_2026_2036"): "pne2026-al-reference-v1",
-}
-
-
-@dataclass(frozen=True, slots=True)
-class StateNameForms:
-    with_de: str
-    nominative: str
-    with_com: str
-
-
-_STATE_NAME_FORMS = {
-    "RS": StateNameForms(
-        with_de="do Rio Grande do Sul",
-        nominative="o Rio Grande do Sul",
-        with_com="com o Rio Grande do Sul",
-    ),
-    "AL": StateNameForms(
-        with_de="de Alagoas",
-        nominative="Alagoas",
-        with_com="com Alagoas",
-    ),
 }
 
 
@@ -59,12 +39,7 @@ class PneStateContext:
 
     @property
     def state_name_forms(self) -> StateNameForms:
-        try:
-            return _STATE_NAME_FORMS[self.state_code]
-        except KeyError as exc:
-            raise ValueError(
-                f"Formas gramaticais não configuradas para {self.state_code}."
-            ) from exc
+        return self.config.state_name_forms
 
     @property
     def state_id(self) -> str:

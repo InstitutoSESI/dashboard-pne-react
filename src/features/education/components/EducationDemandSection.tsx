@@ -35,6 +35,7 @@ import type {
 import type { EducationMunicipioData } from '../educationTypes'
 import { EducationCompactHeader } from './EducationCompactHeader'
 import { EducationSectionBar } from './EducationSectionBar'
+import { ACTIVE_STATE_CONFIG } from '../../../config/stateConfig.js'
 
 interface EducationDemandSectionProps {
   municipioData?: EducationMunicipioData | null
@@ -487,8 +488,8 @@ function Methodology() {
       <div className="education-attendance-methodology__content">
         <section>
           <h3>Cobertura escolar</h3>
-          <p>As projeções combinam as matrículas registradas no município com a população estimada para cada faixa etária. Para os anos futuros, consideramos a mudança esperada da população do Rio Grande do Sul até 2036.</p>
-          <p>Nos recortes de 6 a 17 e de 4 a 17 anos, o cenário combina o histórico de matrículas do município e do Rio Grande do Sul. No atendimento de 15 a 17 anos, acompanha a evolução das matrículas no estado. Nos demais indicadores, mantém como referência o número mais recente de matrículas.</p>
+          <p>As projeções combinam as matrículas registradas no município com a população estimada para cada faixa etária. Para os anos futuros, consideramos a mudança esperada da população {ACTIVE_STATE_CONFIG.stateNameForms.withDe} até 2036.</p>
+          <p>Nos recortes de 6 a 17 e de 4 a 17 anos, o cenário combina o histórico de matrículas do município e {ACTIVE_STATE_CONFIG.stateNameForms.withDe}. No atendimento de 15 a 17 anos, acompanha a evolução das matrículas no estado. Nos demais indicadores, mantém como referência o número mais recente de matrículas.</p>
           <p>Os cenários servem como referência para o planejamento municipal e podem mudar conforme novas matrículas e estimativas populacionais forem divulgadas.</p>
         </section>
         <section>

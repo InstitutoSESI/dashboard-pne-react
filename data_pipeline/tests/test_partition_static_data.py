@@ -22,7 +22,7 @@ from src.municipality_registry import (  # noqa: E402
     MunicipalityRegistryError,
     load_municipality_registry,
 )
-from src.state_config import StateConfig  # noqa: E402
+from src.state_config import StateConfig, StateNameForms  # noqa: E402
 
 
 class PartitionStaticDataPublicationTests(unittest.TestCase):
@@ -38,6 +38,11 @@ class PartitionStaticDataPublicationTests(unittest.TestCase):
             schema_version="state-config-v1",
             state_code="RS",
             state_name="Rio Grande do Sul",
+            state_name_forms=StateNameForms(
+                nominative="o Rio Grande do Sul",
+                with_de="do Rio Grande do Sul",
+                with_com="com o Rio Grande do Sul",
+            ),
             municipality_ibge_prefix="43",
             expected_municipality_count=len(records),
             locale="pt-BR",
