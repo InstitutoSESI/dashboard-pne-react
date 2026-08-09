@@ -24,6 +24,27 @@ _METHODOLOGY_VERSIONS = {
 
 
 @dataclass(frozen=True, slots=True)
+class StateNameForms:
+    with_de: str
+    nominative: str
+    with_com: str
+
+
+_STATE_NAME_FORMS = {
+    "RS": StateNameForms(
+        with_de="do Rio Grande do Sul",
+        nominative="o Rio Grande do Sul",
+        with_com="com o Rio Grande do Sul",
+    ),
+    "AL": StateNameForms(
+        with_de="de Alagoas",
+        nominative="Alagoas",
+        with_com="com Alagoas",
+    ),
+}
+
+
+@dataclass(frozen=True, slots=True)
 class PneStateContext:
     config: StateConfig
     registry: MunicipalityRegistry
@@ -35,6 +56,15 @@ class PneStateContext:
     @property
     def state_name(self) -> str:
         return self.config.state_name
+
+    @property
+    def state_name_forms(self) -> StateNameForms:
+        try:
+            return _STATE_NAME_FORMS[self.state_code]
+        except KeyError as exc:
+            raise ValueError(
+                f"Formas gramaticais não configuradas para {self.state_code}."
+            ) from exc
 
     @property
     def state_id(self) -> str:
@@ -95,6 +125,7 @@ def resolve_state_snapshot_dir(
 
 __all__ = [
     "PneStateContext",
+    "StateNameForms",
     "load_pne_state_context",
     "resolve_pne_state_code",
     "resolve_state_snapshot_dir",

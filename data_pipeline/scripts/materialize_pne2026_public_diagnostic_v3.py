@@ -76,7 +76,9 @@ PUBLIC_V3_DIR = PUBLIC_DATA_DIR / "pne2026-diagnostic-v3"
 SPECIAL_EDUCATION_DIR = PUBLIC_DATA_DIR / "educacao" / "educacao-especial"
 HIGHER_EDUCATION_DIR = PUBLIC_DATA_DIR / "educacao" / "superior"
 STATE_CODE = "RS"
-STATE_NAME = "Rio Grande do Sul"
+STATE_NAME_WITH_DE = "do Rio Grande do Sul"
+STATE_NAME_NOMINATIVE = "o Rio Grande do Sul"
+STATE_NAME_WITH_COM = "com o Rio Grande do Sul"
 PUBLIC_DATA_RELATIVE = "public/data"
 SOURCE_DATA_ROOT = DATA_PIPELINE_DIR / "data"
 
@@ -91,12 +93,16 @@ def configure_state(state_code: str = "RS") -> None:
     global PUBLIC_V3_DIR
     global SPECIAL_EDUCATION_DIR
     global STATE_CODE
-    global STATE_NAME
+    global STATE_NAME_NOMINATIVE
+    global STATE_NAME_WITH_COM
+    global STATE_NAME_WITH_DE
 
     state = load_pne_state_context(state_code)
     public_root = resolve_public_data_dir(state.state_code).resolve()
     STATE_CODE = state.state_code
-    STATE_NAME = state.state_name
+    STATE_NAME_WITH_DE = state.state_name_forms.with_de
+    STATE_NAME_NOMINATIVE = state.state_name_forms.nominative
+    STATE_NAME_WITH_COM = state.state_name_forms.with_com
     EXPECTED_MUNICIPALITIES = state.expected_municipality_count
     PUBLIC_DATA_DIR = public_root
     PUBLIC_DATA_RELATIVE = public_root.relative_to(REPO_ROOT).as_posix()
@@ -648,13 +654,13 @@ def _goal_11b_state_comparison(
     difference = municipality_value - state_value
     if abs(difference) < 1e-12:
         state = "equal"
-        reading = f"O resultado do município coincide com {STATE_NAME}."
+        reading = f"O resultado do município coincide {STATE_NAME_WITH_COM}."
     elif difference > 0:
         state = "above"
-        reading = f"O resultado do município está acima de {STATE_NAME}."
+        reading = f"O resultado do município está acima {STATE_NAME_WITH_DE}."
     else:
         state = "below"
-        reading = f"O resultado do município está abaixo de {STATE_NAME}."
+        reading = f"O resultado do município está abaixo {STATE_NAME_WITH_DE}."
     municipal_text = f"{municipality_value:.1f}".replace(".", ",")
     state_text = f"{state_value:.1f}".replace(".", ",")
     return {
@@ -667,7 +673,8 @@ def _goal_11b_state_comparison(
         "favorableDifference": difference,
         "reading": reading,
         "valueReading": (
-            f"O município apresenta {municipal_text}%, enquanto {STATE_NAME} "
+            f"O município apresenta {municipal_text}%, enquanto "
+            f"{STATE_NAME_NOMINATIVE} "
             f"apresenta {state_text}%."
         ),
     }
