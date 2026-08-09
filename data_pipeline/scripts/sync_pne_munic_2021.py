@@ -27,6 +27,10 @@ from src.pne_macro_ingestion import (  # noqa: E402
     raw_file_entry,
     write_source_snapshot,
 )
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
 
 
 SOURCE_ID = "ibge_munic_2021"
@@ -77,8 +81,10 @@ def _dictionary_rows(workbook: openpyxl.Workbook) -> list[list[object]]:
 def parse_munic(
     source_2021: Path,
     source_2024: Path,
+    state_code: str = "RS",
 ) -> tuple[dict, dict]:
-    municipality_names, _ = load_municipality_universe()
+    state = load_pne_state_context(state_code)
+    municipality_names, _ = load_municipality_universe(state.state_code)
     workbook = openpyxl.load_workbook(
         source_2021,
         read_only=True,
@@ -113,11 +119,14 @@ def parse_munic(
             for field in ("Medu15", "Medu16", "Medu18", "Medu20a", "Medu21")
         }
         for row in rows:
-            if str(row[positions["uf"]] or "").strip() != "RS":
+            if str(row[positions["uf"]] or "").strip() != state.state_code:
                 continue
             municipality_id = str(row[positions["codmun"]] or "").split(".")[0]
             if municipality_id not in municipality_names:
-                raise ValueError(f"Código MUNIC fora do universo RS: {municipality_id}")
+                raise ValueError(
+                    f"Código MUNIC fora do universo {state.state_code}: "
+                    f"{municipality_id}"
+                )
             if municipality_id in records:
                 raise ValueError(f"Município duplicado na MUNIC 2021: {municipality_id}")
             values = {
@@ -147,6 +156,7 @@ def parse_munic(
         edition="MUNIC 2021 — Educação",
         records=records,
         municipality_names=municipality_names,
+        state_code=state.state_code,
     )
 
     climate_workbook = openpyxl.load_workbook(
@@ -212,11 +222,20 @@ def parse_munic(
     return normalized, audit
 
 
-def materialize(source_2021: Path, source_2024: Path) -> dict:
-    normalized, audit = parse_munic(source_2021, source_2024)
+def materialize(
+    source_2021: Path,
+    source_2024: Path,
+    state_code: str = "RS",
+) -> dict:
+    state = load_pne_state_context(state_code)
+    normalized, audit = parse_munic(
+        source_2021, source_2024, state.state_code
+    )
     normalized_hash = sha256(canonical_json_bytes(normalized)).hexdigest()
     manifest = {
         "schemaVersion": MANIFEST_SCHEMA,
+        "stateCode": state.state_code,
+        "stateName": state.state_name,
         "sourceId": SOURCE_ID,
         "sourceTitle": "Pesquisa de Informações Básicas Municipais — MUNIC",
         "organization": "Instituto Brasileiro de Geografia e Estatística (IBGE)",
@@ -253,7 +272,7 @@ def materialize(source_2021: Path, source_2024: Path) -> dict:
         "approvedComponents": ["careerPlans2021", "educationForum2021"],
     }
     write_source_snapshot(
-        destination=DESTINATION,
+        destination=resolve_state_snapshot_dir(DESTINATION, state.state_code),
         raw_files={
             "Base_MUNIC_2021_20240425.xlsx": source_2021,
             "Base_MUNIC_2024_20251107.xlsx": source_2024,
@@ -266,6 +285,7 @@ def materialize(source_2021: Path, source_2024: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--state", default="RS")
     parser.add_argument("--source-2021", type=Path)
     parser.add_argument("--source-2024", type=Path)
     args = parser.parse_args()
@@ -280,7 +300,7 @@ def main() -> int:
         source_2024 = args.source_2024 or _download(
             URL_2024, root / "Base_MUNIC_2024_20251107.xlsx"
         )
-        manifest = materialize(source_2021, source_2024)
+        manifest = materialize(source_2021, source_2024, args.state)
     print(canonical_json_bytes(manifest).decode("utf-8"), end="")
     return 0
 

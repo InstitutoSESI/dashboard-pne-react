@@ -16,12 +16,30 @@ from src.pne_state_reference import (  # noqa: E402
     _build_escolas_integral_records,
     _build_medio_tecnico_participacao_records,
     _build_subsequente_records,
+    _finalize_series,
     aggregate_ratio_of_sums,
     build_state_projections,
 )
 
 
 class StateReferenceTests(unittest.TestCase):
+    def test_unavailable_records_do_not_form_a_pseudo_series(self):
+        unavailable = [
+            {"year": 2024, "value": None, "comparison_status": "unavailable"},
+            {"year": 2025, "value": None, "comparison_status": "unavailable"},
+        ]
+        status, series = _finalize_series(unavailable)
+
+        self.assertEqual(status, "unavailable")
+        self.assertEqual(series, [])
+
+        comparable = unavailable + [
+            {"year": 2026, "value": 1.0, "comparison_status": COMPARABLE}
+        ]
+        status, series = _finalize_series(comparable)
+        self.assertEqual(status, COMPARABLE)
+        self.assertEqual(series, comparable)
+
     def test_uses_ratio_of_sums_instead_of_mean_municipal_percentages(self):
         frame = pd.DataFrame(
             [

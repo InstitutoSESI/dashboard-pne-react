@@ -17,6 +17,11 @@ if str(DATA_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(DATA_PIPELINE_DIR))
 
 from src.pne_goal_15b import SNAPSHOT_DIR, build_snapshot, sha256_bytes  # noqa: E402
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+from src.state_config import DEFAULT_STATE_CODE  # noqa: E402
 
 
 def _source_dir(value: str | None) -> Path:
@@ -53,22 +58,31 @@ def _apply(output_dir: Path, files: dict[str, bytes]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--state", default=DEFAULT_STATE_CODE)
     parser.add_argument("--source-dir")
-    parser.add_argument("--output-dir", type=Path, default=SNAPSHOT_DIR)
+    parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--reference-date", required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
+    state = load_pne_state_context(args.state)
+    output_dir = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code).resolve()
+    )
     files = build_snapshot(
         _source_dir(args.source_dir),
         reference_date=args.reference_date,
+        state_code=state.state_code,
     )
     if args.apply:
-        _apply(args.output_dir.resolve(), files)
+        _apply(output_dir, files)
     print(
         json.dumps(
             {
                 "mode": "apply" if args.apply else "check",
-                "output": str(args.output_dir.resolve()),
+                "state": state.state_code,
+                "output": str(output_dir),
                 "written": bool(args.apply),
                 "files": {
                     name: sha256_bytes(content)

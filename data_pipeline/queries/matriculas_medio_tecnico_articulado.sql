@@ -4,6 +4,7 @@ WITH censo_por_municipio AS (
         id_municipio::text AS id_municipio,
         SUM(mat_medio) AS mat_medio
     FROM censo
+    WHERE sigla_uf = :uf
     GROUP BY ano, id_municipio
 ),
 ept_por_municipio AS (
@@ -21,6 +22,7 @@ ept_por_municipio AS (
         SUM(mat_concomitante_municipal) AS mat_concomitante_municipal,
         SUM(mat_concomitante_privada) AS mat_concomitante_privada
     FROM ept_nivel_medio
+    WHERE sigla_uf = :uf
     GROUP BY ano, id_municipio
 )
 SELECT

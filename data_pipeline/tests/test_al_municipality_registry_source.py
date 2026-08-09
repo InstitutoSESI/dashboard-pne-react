@@ -105,24 +105,26 @@ def test_al_official_source_materializes_the_exact_candidate_registry() -> None:
     }
 
 
-def test_al_configs_are_promoted_with_education_as_the_only_analytics_product() -> None:
-    """Fase 1: configuração, registro e Educação ativos de forma fail-closed."""
+def test_al_configs_are_promoted_with_complete_analytics_products() -> None:
+    """Fase 5: configuração, registro e os três produtos estão ativos."""
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     publication = json.loads(ACTIVE_PUBLICATION_PATH.read_text(encoding="utf-8"))
 
-    assert manifest["lifecycle"]["status"] == "product-identity-only"
+    assert manifest["lifecycle"]["status"] == "complete"
     assert manifest["lifecycle"]["productPublicationActive"] is True
-    assert manifest["lifecycle"]["pipelineActive"] is False
+    assert manifest["lifecycle"]["pipelineActive"] is True
+    assert manifest["lifecycle"]["activationBlockedBy"] == []
     assert manifest["lifecycle"]["productPublicationPath"] == (
         "config/publications/al.json"
     )
     assert ACTIVE_STATE_PATH.is_file()
     assert ACTIVE_REGISTRY_PATH.is_file()
-    assert not CANDIDATE_ROOT.exists()
+    assert not (CANDIDATE_ROOT / "states" / "al.json").exists()
+    assert not (CANDIDATE_ROOT / "municipalities" / "al.json").exists()
     assert publication["schemaVersion"] == "state-publication-v3"
     assert publication["stateCode"] == "AL"
-    assert publication["analyticsStatus"] == "partial"
-    assert publication["enabledProducts"] == ["educacao", "financiamento"]
+    assert publication["analyticsStatus"] == "complete"
+    assert publication["enabledProducts"] is None
     assert publication["stateConfigPath"] == "config/states/al.json"
     assert publication["municipalityRegistryPath"] == (
         "config/municipalities/al.json"

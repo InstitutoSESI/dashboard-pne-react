@@ -13,6 +13,7 @@ from src.pne.goal_indicator_contract import (
     get_indicator,
     get_indicator_reference_profile,
 )
+from src.pne_state_context import load_pne_state_context, resolve_state_snapshot_dir
 
 PUBLIC_CONTRACT_VERSION = "planning-scenarios-v1"
 APPROVED_MODEL = "last_components"
@@ -28,13 +29,24 @@ INDICATOR_KEYS = (
 def load_approved_planning_scenarios(
     artifact_root: Path,
     municipalities: Iterable[str],
+    state_code: str = "RS",
 ) -> dict[str, Any]:
     """Build the canonical aggregate payload from the approved shadow run."""
+    state = load_pne_state_context(state_code)
     expected_municipalities = tuple(str(name) for name in municipalities)
-    if len(expected_municipalities) != 497:
+    if len(expected_municipalities) != state.expected_municipality_count:
         raise ValueError(
-            f"Expected 497 municipalities, found {len(expected_municipalities)}"
+            f"Expected {state.expected_municipality_count} municipalities for "
+            f"{state.state_code}, found {len(expected_municipalities)}"
         )
+    if frozenset(expected_municipalities) != frozenset(
+        state.municipality_names.values()
+    ):
+        raise ValueError(
+            f"Municipality universe diverges from the {state.state_code} registry"
+        )
+
+    artifact_root = resolve_state_snapshot_dir(artifact_root, state.state_code)
 
     contracts_by_indicator: dict[str, dict[str, dict[str, Any]]] = {}
     experiment_version: str | None = None

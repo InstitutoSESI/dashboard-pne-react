@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -40,6 +41,15 @@ from src.pne_goal_11b_census import (  # noqa: E402
     state_ratio,
     validate_metadata,
 )
+from src.pne_state_context import (  # noqa: E402
+    PneStateContext,
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    PIPELINE_STATE_ENV_VAR,
+)
 
 
 def download_bytes(url: str, attempts: int = 4, timeout: int = 120) -> bytes:
@@ -67,7 +77,7 @@ def download_bytes(url: str, attempts: int = 4, timeout: int = 120) -> bytes:
     raise RuntimeError(f"Falha no download oficial: {url}") from last_error
 
 
-def _local_components() -> tuple[
+def _local_components(state: PneStateContext) -> tuple[
     list[dict],
     dict[str, int],
     dict[str, int],
@@ -85,11 +95,14 @@ def _local_components() -> tuple[
         for frame in frames
     ]
     for frame in frames:
-        if len(frame) != EXPECTED_MUNICIPALITIES:
+        if len(frame) != state.expected_municipality_count:
             raise ValueError(
-                f"Base local não cobre 497 municípios em {CENSUS_YEAR}."
+                f"Base local não cobre {state.expected_municipality_count} "
+                f"municípios em {CENSUS_YEAR}."
             )
         frame["id_municipio"] = frame["id_municipio"].astype(str)
+        if set(frame["id_municipio"]) != state.municipality_ids:
+            raise ValueError("Base local diverge do registro municipal configurado.")
     fifteen, eighteen_twenty_nine, eighteen_plus = frames
     local_rows = [
         {
@@ -244,17 +257,26 @@ def _apply_tables(rows: list[dict], local_rows: list[dict]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=SNAPSHOT_DIR)
+    parser.add_argument("--state", default=DEFAULT_STATE_CODE)
+    parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--reference-date", default="2026-07-28")
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
 
+    state = load_pne_state_context(args.state)
+    os.environ[PIPELINE_STATE_ENV_VAR] = state.state_code
+    output_dir = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code).resolve()
+    )
+
     metadata_bytes = download_bytes(METADATA_URL)
-    response_bytes = download_bytes(data_url())
+    response_bytes = download_bytes(data_url(state.state_code))
     metadata = json.loads(metadata_bytes)
     response = json.loads(response_bytes)
     source_metadata = validate_metadata(metadata)
-    local_rows, local_18_29, local_18_plus = _local_components()
+    local_rows, local_18_29, local_18_plus = _local_components(state)
     municipality_codes = {
         str(row["municipalityId"]) for row in local_rows
     }
@@ -262,19 +284,26 @@ def main() -> int:
         response,
         municipality_codes=municipality_codes,
     )
-    rows = build_municipal_components(sidra, local_rows)
+    rows = build_municipal_components(
+        sidra,
+        local_rows,
+        expected_municipalities=state.expected_municipality_count,
+    )
     reconciliation = _reconcile(rows, local_18_29, local_18_plus)
 
     local_bytes = stable_json_bytes(local_rows)
     components_bytes = stable_json_bytes(rows)
     files = {
         "metadata_10061.json": metadata_bytes,
-        "response_10061_rs_2022.json": response_bytes,
+        f"response_10061_{state.state_code.lower()}_2022.json": response_bytes,
         "component_15_17_local_2022.json": local_bytes,
         "municipal_components.json": components_bytes,
     }
     manifest = {
         "schemaVersion": "pne-goal-11b-census-snapshot-v1",
+        "stateCode": state.state_code,
+        "stateId": state.state_id,
+        "stateName": state.state_name,
         "referenceYear": CENSUS_YEAR,
         "sourceReferenceDate": args.reference_date,
         "source": {
@@ -282,7 +311,7 @@ def main() -> int:
             "survey": "Censo Demográfico 2022 — Educação",
             "aggregate": "10061",
             "metadataUrl": METADATA_URL,
-            "dataUrl": data_url(),
+            "dataUrl": data_url(state.state_code),
             "localFifteenToSeventeenTable": (
                 "censo_populacao_ensino_medio_15_17"
             ),
@@ -305,9 +334,15 @@ def main() -> int:
         "reconciliation": reconciliation,
         "stateReferences": {
             "fifteenToTwentyNine": state_ratio(
-                rows, "fifteenToTwentyNine"
+                rows,
+                "fifteenToTwentyNine",
+                expected_municipalities=state.expected_municipality_count,
             ),
-            "fifteenPlus": state_ratio(rows, "fifteenPlus"),
+            "fifteenPlus": state_ratio(
+                rows,
+                "fifteenPlus",
+                expected_municipalities=state.expected_municipality_count,
+            ),
         },
         "seriesPolicy": {
             "canonicalSnapshotYear": CENSUS_YEAR,
@@ -318,13 +353,14 @@ def main() -> int:
         },
     }
     files["manifest.json"] = stable_json_bytes(manifest)
-    _atomic_write_directory(args.output_dir, files)
+    _atomic_write_directory(output_dir, files)
     if args.apply:
         _apply_tables(rows, local_rows)
     print(
         json.dumps(
             {
-                "output": str(args.output_dir.resolve()),
+                "state": state.state_code,
+                "output": str(output_dir),
                 "municipalityCount": len(rows),
                 "reconciliation": reconciliation,
                 "stateReferences": manifest["stateReferences"],

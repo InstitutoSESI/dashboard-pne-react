@@ -11,6 +11,7 @@ SELECT
 FROM docentes_pos_graduacao dp
 JOIN municipios m
     ON dp.id_municipio::text = m.id_municipio
+WHERE dp.sigla_uf = :uf
 ORDER BY
     dp.ano,
     m.municipio;

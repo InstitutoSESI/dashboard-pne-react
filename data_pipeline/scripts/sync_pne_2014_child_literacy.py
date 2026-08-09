@@ -21,6 +21,11 @@ from src.pne_2014_child_literacy import (  # noqa: E402
     build_snapshot,
     snapshot_digest,
 )
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+from src.state_config import DEFAULT_STATE_CODE  # noqa: E402
 
 
 def _source_dir(value: str | None) -> Path:
@@ -61,23 +66,32 @@ def _apply(output_dir: Path, files: dict[str, bytes]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--state", default=DEFAULT_STATE_CODE)
     parser.add_argument("--source-dir")
-    parser.add_argument("--output-dir", type=Path, default=SNAPSHOT_DIR)
+    parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--reference-date", required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
 
+    state = load_pne_state_context(args.state)
+    output = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code).resolve()
+    )
+
     files = build_snapshot(
         _source_dir(args.source_dir),
         reference_date=args.reference_date,
+        state_code=state.state_code,
     )
-    output = args.output_dir.resolve()
     if args.apply:
         _apply(output, files)
     report = {
         "cycle": "pne_2014_2024",
         "digest": snapshot_digest(files),
         "mode": "apply" if args.apply else "check",
+        "state": state.state_code,
         "output": str(output),
         "written": bool(args.apply),
     }

@@ -28,6 +28,12 @@ from src.pipeline_profiling import (  # noqa: E402
     profile_operation,
     profiled_main_from_environment,
 )
+from src.state_config import (  # noqa: E402
+    DEFAULT_STATE_CODE,
+    PIPELINE_STATE_ENV_VAR,
+    load_state_config,
+    normalize_state_code,
+)
 
 
 def _generated_at() -> str:
@@ -876,12 +882,13 @@ def _export_projections(
     municipios: list[str],
     municipio_ids: dict[str, str] | None,
     errors: list[dict[str, Any]],
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Any]:
     from src.pne_2026_projections import build_all_projections
 
     print("\nProcessando linhas de base de persistência...")
     try:
-        projections = build_all_projections(municipios)
+        projections = build_all_projections(municipios, state_code=state_code)
     except Exception as exc:
         errors.append({"stage": "projections", "error": str(exc), "traceback": traceback.format_exc(limit=6)})
         return {
@@ -902,12 +909,18 @@ def _export_projections(
     }
 
 
-def _export_planning_scenarios(*, municipios: list[str]) -> dict[str, Any]:
+def _export_planning_scenarios(
+    *,
+    municipios: list[str],
+    state_code: str = DEFAULT_STATE_CODE,
+) -> dict[str, Any]:
     from src.planning_scenarios import load_approved_planning_scenarios
 
     print("\nProcessando cenários de planejamento aprovados...")
     artifact_root = BASE_DIR / "data" / "planning_scenarios"
-    return load_approved_planning_scenarios(artifact_root, municipios)
+    return load_approved_planning_scenarios(
+        artifact_root, municipios, state_code=state_code
+    )
 
 
 def _export_education_attendance(
@@ -929,20 +942,32 @@ def _export_education_attendance(
 def _export_state_reference(
     cycle: str,
     errors: list[dict[str, Any]],
+    *,
+    state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Any]:
-    """Exporta a referência do RS sempre sobre o universo estadual completo."""
+    """Exporta a referência sobre o universo completo da UF configurada."""
+
+    state = load_state_config(state_code)
 
     if cycle == "pne_2014_2024":
         from src.pne_2014_state_reference import build_state_reference
 
-        methodology_version = "pne2014-rs-reference-v1"
+        methodology_version = (
+            "pne2014-rs-reference-v1"
+            if state.state_code == "RS"
+            else "pne2014-al-reference-v1"
+        )
     else:
         from src.pne_state_reference import build_state_reference
 
-        methodology_version = "pne2026-rs-reference-v3"
+        methodology_version = (
+            "pne2026-rs-reference-v3"
+            if state.state_code == "RS"
+            else "pne2026-al-reference-v1"
+        )
 
     try:
-        payload = build_state_reference()
+        payload = build_state_reference(state.state_code)
     except Exception as exc:  # noqa: BLE001 - preserve a valid artifact for diagnosis.
         errors.append(
             {
@@ -953,9 +978,9 @@ def _export_state_reference(
         )
         payload = {
             "cycle": cycle,
-            "state": "RS",
-            "state_name": "Rio Grande do Sul",
-            "municipalities_expected": 497,
+            "state": state.state_code,
+            "state_name": state.state_name,
+            "municipalities_expected": state.expected_municipality_count,
             "methodology_version": methodology_version,
             "registry": {},
             "indicators": {},
@@ -971,6 +996,11 @@ def _export_state_reference(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Exporta os dados calculados da plataforma para JSON estático."
+    )
+    parser.add_argument(
+        "--state",
+        default=DEFAULT_STATE_CODE,
+        help=f"Código estadual configurado (padrão: {DEFAULT_STATE_CODE}).",
     )
     parser.add_argument(
         "--limit",
@@ -1161,6 +1191,9 @@ def main() -> int:
     global EXPORT_DIR
 
     args = _parse_args()
+    state_code = normalize_state_code(args.state)
+    load_state_config(state_code)
+    os.environ[PIPELINE_STATE_ENV_VAR] = state_code
     profile = TimingProfile(args.profile or get_active_profile_session() is not None)
     with profile_operation(
         "orchestration",
@@ -1368,6 +1401,7 @@ def main() -> int:
             state_reference_payload = _export_state_reference(
                 state_reference_cycle,
                 errors,
+                state_code=state_code,
             )
         state_reference_path = (
             EXPORT_DIR / state_reference_cycle / "referencia_estadual.json"
@@ -1381,13 +1415,17 @@ def main() -> int:
             municipios=municipios,
             municipio_ids=None,
             errors=errors,
+            state_code=state_code,
         )
     projections_path = EXPORT_DIR / "pne_2026_2036" / "projecoes_por_municipio.json"
     _write_json(projections_path, projections_payload, profile)
     generated_files.append(projections_path)
 
     with profile.measure("cenários de planejamento"):
-        planning_scenarios_payload = _export_planning_scenarios(municipios=municipios)
+        planning_scenarios_payload = _export_planning_scenarios(
+            municipios=municipios,
+            state_code=state_code,
+        )
     planning_scenarios_path = (
         EXPORT_DIR
         / "pne_2026_2036"

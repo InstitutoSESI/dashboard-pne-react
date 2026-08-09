@@ -70,4 +70,5 @@ SELECT
 FROM eja_integrada_educacao_profissional t1
 JOIN municipios m
   ON m.id_municipio::text = t1.id_municipio::text
-WHERE t1.ano BETWEEN 2014 AND 2025;
+WHERE t1.ano BETWEEN 2014 AND 2025
+  AND t1.sigla_uf = :uf;

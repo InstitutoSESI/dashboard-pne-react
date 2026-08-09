@@ -9,6 +9,11 @@ import re
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from .pne_state_context import (
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+
 
 YEAR = 2022
 EXPECTED_MUNICIPALITIES = 497
@@ -90,7 +95,8 @@ def metadata_url(table_id: str) -> str:
     )
 
 
-def data_url(table_id: str) -> str:
+def data_url(table_id: str, state_code: str = "RS") -> str:
+    state = load_pne_state_context(state_code)
     table = TABLES[table_id]
     classifications = "|".join(
         f"{classification}[{','.join(categories)}]"
@@ -99,7 +105,7 @@ def data_url(table_id: str) -> str:
     return (
         "https://servicodados.ibge.gov.br/api/v3/agregados/"
         f"{table_id}/periodos/{YEAR}/variaveis/{table['variable']}"
-        f"?localidades={TERRITORIAL_LEVEL}[N3[{STATE_ID}]]"
+        f"?localidades={TERRITORIAL_LEVEL}[N3[{state.state_id}]]"
         f"&classificacao={classifications}"
     )
 
@@ -168,7 +174,10 @@ def _count(value: object) -> dict[str, Any]:
 def parse_response(
     table_id: str,
     payload: list[dict[str, Any]],
+    *,
+    state_code: str = "RS",
 ) -> dict[str, dict[tuple[str, str], dict[str, Any]]]:
+    state = load_pne_state_context(state_code)
     table = TABLES[table_id]
     if len(payload) != 1 or str(payload[0].get("id")) != table["variable"]:
         raise ValueError(f"Resposta da SIDRA {table_id} sem variável única.")
@@ -194,8 +203,10 @@ def parse_response(
         for series in result.get("series", []):
             locality = series.get("localidade") or {}
             municipality_id = str(locality.get("id") or "")
-            if not municipality_id.startswith("43"):
-                raise ValueError(f"Município fora do RS: {municipality_id}.")
+            if municipality_id not in state.municipality_ids:
+                raise ValueError(
+                    f"Município fora de {state.state_code}: {municipality_id}."
+                )
             if str((locality.get("nivel") or {}).get("id")) != TERRITORIAL_LEVEL:
                 raise ValueError("Resposta SIDRA fora do nível municipal.")
             key = (municipality_id, age, level)
@@ -209,9 +220,12 @@ def parse_response(
         len(table["classifications"][AGE_CLASSIFICATION])
         * len(table["classifications"][level_classification])
     )
-    if len(output) != EXPECTED_MUNICIPALITIES:
-        raise ValueError(f"SIDRA {table_id} não cobre os 497 municípios.")
-    if len(seen) != EXPECTED_MUNICIPALITIES * expected_per_municipality:
+    if len(output) != state.expected_municipality_count:
+        raise ValueError(
+            f"SIDRA {table_id} não cobre os "
+            f"{state.expected_municipality_count} municípios."
+        )
+    if len(seen) != state.expected_municipality_count * expected_per_municipality:
         raise ValueError(f"SIDRA {table_id} tem cobertura categorial incompleta.")
     return output
 
@@ -269,7 +283,9 @@ def build_results(
     parsed: Mapping[str, Mapping[str, Mapping[tuple[str, str], Mapping[str, Any]]]],
     *,
     municipality_names: Mapping[str, str],
+    state_code: str = "RS",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    state_context = load_pne_state_context(state_code)
     if set(parsed) != set(TABLES):
         raise ValueError("Conjunto de tabelas da Meta 14 incompleto.")
     codes = set(parsed["10058"])
@@ -347,8 +363,8 @@ def build_results(
         state.append(
             {
                 "relationId": relation_id,
-                "territoryId": STATE_ID,
-                "territoryName": "Rio Grande do Sul",
+                "territoryId": state_context.state_id,
+                "territoryName": state_context.state_name,
                 "year": YEAR,
                 "dataStatus": "available",
                 "value": 100.0 * numerator / denominator,
@@ -366,23 +382,36 @@ def build_snapshot(
     source_hashes: Mapping[str, Mapping[str, str]],
     municipality_names: Mapping[str, str],
     reference_date: str,
+    state_code: str = "RS",
 ) -> dict[str, bytes]:
+    state_context = load_pne_state_context(state_code)
     parsed = {}
     for table_id in TABLES:
         validate_metadata(table_id, metadata_payloads[table_id])
-        parsed[table_id] = parse_response(table_id, data_payloads[table_id])
-    municipal, state = build_results(parsed, municipality_names=municipality_names)
+        parsed[table_id] = parse_response(
+            table_id,
+            data_payloads[table_id],
+            state_code=state_context.state_code,
+        )
+    municipal, state = build_results(
+        parsed,
+        municipality_names=municipality_names,
+        state_code=state_context.state_code,
+    )
     municipal_bytes = stable_json_bytes(municipal)
     state_bytes = stable_json_bytes(state)
     manifest = {
         "schemaVersion": "pne-goal-14-census-snapshot-v1",
+        "stateCode": state_context.state_code,
+        "stateId": state_context.state_id,
+        "stateName": state_context.state_name,
         "sourceReferenceDate": reference_date,
         "year": YEAR,
-        "municipalityCount": EXPECTED_MUNICIPALITIES,
+        "municipalityCount": state_context.expected_municipality_count,
         "tables": {
             table_id: {
                 "metadataUrl": metadata_url(table_id),
-                "dataUrl": data_url(table_id),
+                "dataUrl": data_url(table_id, state_context.state_code),
                 "variable": TABLES[table_id]["variable"],
                 "classifications": TABLES[table_id]["classifications"],
                 **source_hashes[table_id],
@@ -408,12 +437,21 @@ def build_snapshot(
 
 
 def load_snapshot(
-    snapshot_dir: Path = SNAPSHOT_DIR,
+    snapshot_dir: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    root = snapshot_dir.resolve()
+    state_context = load_pne_state_context(state_code)
+    root = (
+        Path(snapshot_dir)
+        if snapshot_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state_context.state_code)
+    ).resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != "pne-goal-14-census-snapshot-v1":
         raise ValueError("Schema do snapshot da Meta 14 inválido.")
+    if manifest.get("stateCode", "RS") != state_context.state_code:
+        raise ValueError("UF do snapshot da Meta 14 divergente.")
     for filename, expected in (manifest.get("files") or {}).items():
         if sha256_bytes((root / filename).read_bytes()) != expected:
             raise ValueError(f"Hash divergente no snapshot Meta 14: {filename}.")
@@ -421,6 +459,8 @@ def load_snapshot(
         (root / "municipal_results.json").read_text(encoding="utf-8")
     )
     state = json.loads((root / "state_results.json").read_text(encoding="utf-8"))
-    if len(municipal) != EXPECTED_MUNICIPALITIES:
+    if len(municipal) != state_context.expected_municipality_count:
         raise ValueError("Cobertura municipal da Meta 14 inválida.")
+    if {str(row.get("municipalityId")) for row in municipal} != state_context.municipality_ids:
+        raise ValueError("Universo municipal da Meta 14 divergente.")
     return municipal, state, manifest

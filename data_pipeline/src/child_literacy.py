@@ -11,6 +11,11 @@ import zipfile
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from .pne_state_context import (
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+
 
 YEARS = (2023, 2024, 2025)
 MUNICIPAL_NETWORK_ID = "3"
@@ -19,6 +24,18 @@ RS_STATE_CODE = "RS"
 EXPECTED_MUNICIPALITIES = 497
 EXPECTED_AVAILABLE = {2023: 456, 2024: 441, 2025: 463}
 EXPECTED_RS_VALUES = {2023: 63.55, 2024: 44.23, 2025: 52.13}
+EXPECTED_AVAILABLE_BY_STATE = {
+    "RS": EXPECTED_AVAILABLE,
+    "AL": {2023: 102, 2024: 102, 2025: 102},
+}
+EXPECTED_ELIGIBLE_BY_STATE = {
+    "RS": EXPECTED_AVAILABLE,
+    "AL": {2023: 102, 2024: 102, 2025: 102},
+}
+EXPECTED_STATE_VALUES_BY_STATE = {
+    "RS": EXPECTED_RS_VALUES,
+    "AL": {2023: 44.13, 2024: 49.05, 2025: 64.37},
+}
 MINIMUM_PARTICIPATION = 70.0
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
@@ -75,15 +92,32 @@ def _csv_rows(content: bytes) -> list[dict[str, str]]:
 
 
 def load_municipal_universe(
-    path: Path = MUNICIPAL_UNIVERSE_PATH,
+    path: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> dict[str, str]:
-    rows = json.loads(path.read_text(encoding="utf-8"))
+    state = load_pne_state_context(state_code)
+    if path is None:
+        return dict(state.municipality_names)
+    source_path = (
+        Path(path)
+        if path is not None
+        else resolve_state_snapshot_dir(
+            DATA_DIR / "pne_goal_11b_census_2022",
+            state.state_code,
+        )
+        / "municipal_components.json"
+    )
+    rows = json.loads(source_path.read_text(encoding="utf-8"))
     universe = {
         str(row["municipalityId"]): str(row["municipalityName"])
         for row in rows
     }
-    if len(universe) != EXPECTED_MUNICIPALITIES:
-        raise ValueError("Universo municipal do RS deve conter 497 municípios.")
+    if len(universe) != state.expected_municipality_count or set(universe) != state.municipality_ids:
+        raise ValueError(
+            f"Universo municipal de {state.state_code} deve conter "
+            f"{state.expected_municipality_count} municípios."
+        )
     return universe
 
 
@@ -93,12 +127,14 @@ def parse_municipal_file(
     year: int,
     universe: Mapping[str, str],
     published_ids: set[str],
+    state_code: str = "RS",
 ) -> dict[str, dict[str, Any]]:
+    state = load_pne_state_context(state_code)
     result: dict[str, dict[str, Any]] = {}
     for row in _csv_rows(content):
         if str(row.get("NU_ANO_AVALIACAO") or "") != str(year):
             continue
-        if str(row.get("SG_UF") or "").strip().upper() != RS_STATE_CODE:
+        if str(row.get("SG_UF") or "").strip().upper() != state.state_code:
             continue
         if str(row.get("ID_TIPO_REDE") or "").strip() != MUNICIPAL_NETWORK_ID:
             continue
@@ -129,7 +165,13 @@ def parse_municipal_file(
             "numerator": None,
             "denominator": None,
         }
-    expected = EXPECTED_AVAILABLE[year]
+    state_expectations = EXPECTED_AVAILABLE_BY_STATE.get(state.state_code)
+    if state_expectations is None or year not in state_expectations:
+        raise ValueError(
+            f"Cobertura oficial esperada ainda não contratada para "
+            f"{state.state_code}/{year}."
+        )
+    expected = state_expectations[year]
     if len(result) != expected:
         raise ValueError(
             f"Cobertura municipal de {year} divergente: {len(result)} != {expected}."
@@ -141,6 +183,7 @@ def participation_by_municipality(
     archive: Path,
     *,
     year: int,
+    state_code: str = "RS",
 ) -> dict[str, float]:
     """Reconstrói somente a taxa de participação que condiciona a divulgação."""
     counts: dict[str, list[int]] = {}
@@ -157,7 +200,7 @@ def participation_by_municipality(
             for row in csv.DictReader(text, delimiter=";"):
                 if str(row.get("NU_ANO_AVALIACAO") or "") != str(year):
                     continue
-                if str(row.get("SG_UF") or "") != RS_STATE_CODE:
+                if str(row.get("SG_UF") or "") != state_code:
                     continue
                 if str(row.get("TP_DEPENDENCIA") or "") != MUNICIPAL_NETWORK_ID:
                     continue
@@ -173,7 +216,12 @@ def participation_by_municipality(
         if enrolled > 0
     }
     eligible_count = sum(participation_is_eligible(value) for value in rates.values())
-    if eligible_count != EXPECTED_AVAILABLE[year]:
+    state_expectations = EXPECTED_ELIGIBLE_BY_STATE.get(state_code)
+    if state_expectations is None or year not in state_expectations:
+        raise ValueError(
+            f"Cobertura oficial esperada ainda não contratada para {state_code}/{year}."
+        )
+    if eligible_count != state_expectations[year]:
         raise ValueError(
             f"Elegibilidade por participação de {year} divergente: "
             f"{eligible_count}."
@@ -181,12 +229,18 @@ def participation_by_municipality(
     return rates
 
 
-def parse_state_file(content: bytes, *, year: int) -> dict[str, Any]:
+def parse_state_file(
+    content: bytes,
+    *,
+    year: int,
+    state_code: str = "RS",
+) -> dict[str, Any]:
+    state = load_pne_state_context(state_code)
     matches = []
     for row in _csv_rows(content):
         if str(row.get("NU_ANO_AVALIACAO") or "") != str(year):
             continue
-        if str(row.get("SG_UF") or "").strip().upper() != RS_STATE_CODE:
+        if str(row.get("SG_UF") or "").strip().upper() != state.state_code:
             continue
         if str(row.get("ID_TIPO_REDE") or "").strip() != MUNICIPAL_NETWORK_ID:
             continue
@@ -201,14 +255,20 @@ def parse_state_file(content: bytes, *, year: int) -> dict[str, Any]:
         matches[0].get("PC_ALUNO_ALFABETIZADO"),
         field="PC_ALUNO_ALFABETIZADO",
     )
-    expected = EXPECTED_RS_VALUES[year]
+    state_expectations = EXPECTED_STATE_VALUES_BY_STATE.get(state.state_code)
+    if state_expectations is None or year not in state_expectations:
+        raise ValueError(
+            f"Valor estadual oficial ainda não contratado para "
+            f"{state.state_code}/{year}."
+        )
+    expected = state_expectations[year]
     if abs(value - expected) > 1e-9:
         raise ValueError(
             f"Resultado estadual de {year} divergente: {value} != {expected}."
         )
     return {
-        "territoryId": RS_STATE_ID,
-        "territoryName": "Rio Grande do Sul",
+        "territoryId": state.state_id,
+        "territoryName": state.state_name,
         "year": year,
         "network": "municipal",
         "dataStatus": "available",
@@ -241,10 +301,15 @@ def build_snapshot(
     source_dir: Path,
     *,
     reference_date: str,
-    universe_path: Path = MUNICIPAL_UNIVERSE_PATH,
+    universe_path: Path | None = None,
+    state_code: str = "RS",
 ) -> dict[str, Any]:
+    state = load_pne_state_context(state_code)
     source_root = source_dir.resolve()
-    universe = load_municipal_universe(universe_path)
+    universe = load_municipal_universe(
+        universe_path,
+        state_code=state.state_code,
+    )
     by_year: dict[int, dict[str, dict[str, Any]]] = {}
     participation_by_year: dict[int, dict[str, float]] = {}
     state_rows: list[dict[str, Any]] = []
@@ -254,7 +319,11 @@ def build_snapshot(
         archives = sorted(source_root.glob(f"*{year}.zip"))
         if len(archives) != 1:
             raise FileNotFoundError(f"Esperado um ZIP oficial único de {year}.")
-        participation = participation_by_municipality(archives[0], year=year)
+        participation = participation_by_municipality(
+            archives[0],
+            year=year,
+            state_code=state.state_code,
+        )
         participation_by_year[year] = participation
         published_ids = {
             municipality_id
@@ -268,6 +337,7 @@ def build_snapshot(
             year=year,
             universe=universe,
             published_ids=published_ids,
+            state_code=state.state_code,
         )
         sources.append(
             {
@@ -278,7 +348,13 @@ def build_snapshot(
             }
         )
         state_content, state_path, member = _state_source(source_root, year)
-        state_rows.append(parse_state_file(state_content, year=year))
+        state_rows.append(
+            parse_state_file(
+                state_content,
+                year=year,
+                state_code=state.state_code,
+            )
+        )
         sources.append(
             {
                 "year": year,
@@ -332,18 +408,23 @@ def build_snapshot(
     state_bytes = stable_json_bytes(state_rows)
     manifest = {
         "schemaVersion": "pne-child-literacy-snapshot-v1",
+        "stateCode": state.state_code,
+        "stateId": state.state_id,
+        "stateName": state.state_name,
         "sourceReferenceDate": reference_date,
         "indicator": "alfabetizacao",
         "network": "municipal",
         "territorialBasis": "municipality_of_school",
         "officialValueField": "PC_ALUNO_ALFABETIZADO",
         "minimumParticipation": MINIMUM_PARTICIPATION,
-        "municipalityCount": EXPECTED_MUNICIPALITIES,
+        "municipalityCount": state.expected_municipality_count,
         "availableByYear": {
-            str(year): EXPECTED_AVAILABLE[year] for year in YEARS
+            str(year): EXPECTED_AVAILABLE_BY_STATE[state.state_code][year]
+            for year in YEARS
         },
         "stateValues": {
-            str(year): EXPECTED_RS_VALUES[year] for year in YEARS
+            str(year): EXPECTED_STATE_VALUES_BY_STATE[state.state_code][year]
+            for year in YEARS
         },
         "sources": sources,
         "files": {
@@ -359,22 +440,35 @@ def build_snapshot(
 
 
 def load_snapshot(
-    snapshot_dir: Path = SNAPSHOT_DIR,
+    snapshot_dir: Path | None = None,
+    *,
+    state_code: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    root = snapshot_dir.resolve()
+    state = load_pne_state_context(state_code)
+    root = (
+        Path(snapshot_dir)
+        if snapshot_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code)
+    ).resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != "pne-child-literacy-snapshot-v1":
         raise ValueError("Schema do snapshot Criança Alfabetizada inválido.")
+    if manifest.get("stateCode", "RS") != state.state_code:
+        raise ValueError("UF do snapshot Criança Alfabetizada divergente.")
     for filename, expected_hash in (manifest.get("files") or {}).items():
         if sha256_bytes((root / filename).read_bytes()) != expected_hash:
             raise ValueError(f"Hash divergente no snapshot: {filename}.")
     municipal = json.loads(
         (root / "municipal_results.json").read_text(encoding="utf-8")
     )
-    state = json.loads((root / "state_results.json").read_text(encoding="utf-8"))
-    if len(municipal) != EXPECTED_MUNICIPALITIES:
+    state_results = json.loads(
+        (root / "state_results.json").read_text(encoding="utf-8")
+    )
+    if len(municipal) != state.expected_municipality_count:
         raise ValueError("Cobertura municipal do snapshot inválida.")
-    return municipal, state, manifest
+    if {str(row.get("municipalityId")) for row in municipal} != state.municipality_ids:
+        raise ValueError("Universo municipal do snapshot Criança Alfabetizada divergente.")
+    return municipal, state_results, manifest
 
 
 def current_results(

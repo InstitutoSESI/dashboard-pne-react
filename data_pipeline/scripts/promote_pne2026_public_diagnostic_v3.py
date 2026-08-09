@@ -28,6 +28,8 @@ from src.pne2026_public_diagnostic_v3 import (  # noqa: E402
     PUBLIC_V3_SCHEMA_VERSION,
     validate_pne2026_public_diagnostic_v3,
 )
+from src.pne_state_context import load_pne_state_context  # noqa: E402
+from src.state_publication import resolve_public_data_dir  # noqa: E402
 
 
 SOURCE_MANIFEST_SCHEMA = "pne2026-public-diagnostic-v3-manifest-v3"
@@ -43,6 +45,19 @@ DATA_STATUS_KEYS = frozenset(
     {"available", "unavailable", "not_applicable", "suppressed"}
 )
 SHA256_LENGTH = 64
+
+
+def configure_state(state_code: str = "RS") -> None:
+    """Configura o destino publicado e o universo da UF antes da promoção."""
+
+    global EXPECTED_MUNICIPALITIES
+    global PUBLIC_DATA_DIR
+    global PUBLIC_V3_DIR
+
+    state = load_pne_state_context(state_code)
+    PUBLIC_DATA_DIR = resolve_public_data_dir(state.state_code).resolve()
+    PUBLIC_V3_DIR = (PUBLIC_DATA_DIR / "pne2026-diagnostic-v3").resolve()
+    EXPECTED_MUNICIPALITIES = state.expected_municipality_count
 
 RELEASE_MANIFEST_FIELDS = frozenset(
     {
@@ -856,12 +871,14 @@ def main() -> int:
     action.add_argument("--source-dir", type=Path)
     action.add_argument("--prune-inactive", action="store_true")
     parser.add_argument("--destination-dir", required=True, type=Path)
+    parser.add_argument("--state", default="RS")
     parser.add_argument(
         "--check",
         action="store_true",
         help="Valida sem criar release nem alterar current.json.",
     )
     args = parser.parse_args()
+    configure_state(args.state)
     if args.source_dir:
         report = promote(
             args.source_dir, args.destination_dir, check=args.check

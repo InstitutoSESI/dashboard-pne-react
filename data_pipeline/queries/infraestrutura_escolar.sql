@@ -24,6 +24,7 @@ WITH censo_total AS (
     FROM censo c
     JOIN municipios m
         ON c.id_municipio = m.id_municipio
+    WHERE c.sigla_uf = :uf
     GROUP BY
         c.ano,
         m.municipio
@@ -50,6 +51,7 @@ escolas_publicas AS (
         ON ce.id_municipio = m.id_municipio
     WHERE ce.dependencia IN ('federal', 'estadual', 'municipal')
       AND COALESCE(ce.mat_basico, 0) >= 1
+      AND ce.sigla_uf = :uf
     GROUP BY
         ce.ano,
         m.municipio

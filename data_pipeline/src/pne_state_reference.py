@@ -1,4 +1,4 @@
-"""Referência estadual do RS para o ciclo PNE 2026-2036.
+"""Referência estadual configurável para o ciclo PNE 2026-2036.
 
 Este módulo mantém a regra estadual fora da camada de apresentação. As razões
 percentuais são calculadas somente depois da consolidação dos numeradores e
@@ -12,6 +12,8 @@ import math
 from typing import Any, Callable, Mapping
 
 import pandas as pd
+
+from .pne_state_context import load_pne_state_context
 
 
 STATE_CODE = "RS"
@@ -369,7 +371,22 @@ def _blocked_metadata(indicator_id: str, reason: str) -> dict[str, Any]:
     )
 
 
-def build_registry() -> dict[str, dict[str, Any]]:
+def _set_registry_methodology_version(
+    registry: dict[str, dict[str, Any]],
+    methodology_version: str,
+) -> dict[str, dict[str, Any]]:
+    for metadata in registry.values():
+        metadata["methodology_version"] = methodology_version
+        compatibility = metadata.get("compatibility")
+        if isinstance(compatibility, dict):
+            compatibility["methodologyVersion"] = methodology_version
+    return registry
+
+
+def build_registry(
+    *,
+    methodology_version: str = METHODOLOGY_VERSION,
+) -> dict[str, dict[str, Any]]:
     """Retorna o registro completo, inclusive indicadores bloqueados."""
 
     registry: dict[str, dict[str, Any]] = {}
@@ -486,7 +503,7 @@ def build_registry() -> dict[str, dict[str, Any]]:
     for key, reason in BLOCKED_REASONS.items():
         registry[key] = _blocked_metadata(key, reason)
 
-    return registry
+    return _set_registry_methodology_version(registry, methodology_version)
 
 
 def _is_finite(value: Any) -> bool:
@@ -1202,6 +1219,14 @@ def _status_for_records(records: list[dict[str, Any]], default: str = UNAVAILABL
     return default
 
 
+def _finalize_series(
+    records: list[dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
+    """Não publica uma pseudossérie formada somente por ausências declaradas."""
+    status = _status_for_records(records)
+    return status, records if status == COMPARABLE else []
+
+
 def _build_totals_audit(frames: Mapping[str, pd.DataFrame]) -> list[dict[str, Any]]:
     """Compara totais independentes disponíveis e registra divergências sem forçar igualdade."""
 
@@ -1336,6 +1361,7 @@ def build_state_projections(
     *,
     start_year: int = 2026,
     end_year: int = 2036,
+    methodology_version: str = METHODOLOGY_VERSION,
 ) -> dict[str, dict[str, Any]]:
     """Constrói uma linha de base de persistência para a série estadual.
 
@@ -1357,7 +1383,7 @@ def build_state_projections(
                 "projection_status": "not_applicable",
                 "method": "observed_series_only",
                 "source": "Série observada; indicador aproximado sem trajetória ou projeção",
-                "methodology_version": METHODOLOGY_VERSION,
+                "methodology_version": methodology_version,
                 "series": [],
             }
             continue
@@ -1367,7 +1393,7 @@ def build_state_projections(
                 "projection_status": "not_applicable",
                 "method": "census_snapshots_only",
                 "source": "Série estadual — sem interpolação ou projeção censitária",
-                "methodology_version": METHODOLOGY_VERSION,
+                "methodology_version": methodology_version,
                 "series": [],
             }
             continue
@@ -1384,7 +1410,7 @@ def build_state_projections(
                     "Série estadual agregada; último par observado mantido; "
                     "sem média municipal"
                 ),
-                "methodology_version": METHODOLOGY_VERSION,
+                "methodology_version": methodology_version,
                 "reason": validation_error,
                 "validation": {
                     "minimumComparableObservations": (
@@ -1416,7 +1442,7 @@ def build_state_projections(
                 "Série estadual agregada; último par observado mantido; "
                 "sem média municipal"
             ),
-            "methodology_version": METHODOLOGY_VERSION,
+            "methodology_version": methodology_version,
             "validation": {
                 "minimumComparableObservations": (
                     STATE_PROJECTION_MINIMUM_OBSERVATIONS
@@ -1441,10 +1467,12 @@ def build_state_projections(
     return projections
 
 
-def build_state_reference() -> dict[str, Any]:
+def build_state_reference(state_code: str = STATE_CODE) -> dict[str, Any]:
     """Calcula e retorna o artefato estadual completo do ciclo."""
 
-    registry = build_registry()
+    state = load_pne_state_context(state_code)
+    methodology_version = state.methodology_version("pne_2026_2036")
+    registry = build_registry(methodology_version=methodology_version)
     frames, load_errors = _load_reference_frames()
     indicators: dict[str, dict[str, Any]] = {}
 
@@ -1465,20 +1493,20 @@ def build_state_reference() -> dict[str, Any]:
                 indicator_id=indicator_id,
                 filters=config.get("filters"),
                 denominator_aggregation=config.get("denominator_aggregation", "sum"),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
                 base_notes=config["notes"],
             )
         elif indicator_id == "escolas_integral":
             records = _build_escolas_integral_records(
                 frames.get("infra_school", pd.DataFrame()),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
         elif indicator_id in INFRA_SCHOOL_CONFIGS:
             records = _build_school_ratio_records(
                 frames.get("infra_school", pd.DataFrame()),
                 indicator_id=indicator_id,
                 config=INFRA_SCHOOL_CONFIGS[indicator_id],
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
         elif indicator_id in CENSUS_CONFIGS:
             config = CENSUS_CONFIGS[indicator_id]
@@ -1486,40 +1514,47 @@ def build_state_reference() -> dict[str, Any]:
                 frames.get(config["loader_key"], pd.DataFrame()),
                 indicator_id=indicator_id,
                 config=config,
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
         elif indicator_id == "medio_tecnico_participacao_publica":
             records = _build_medio_tecnico_participacao_records(
                 frames.get("ept", pd.DataFrame()),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
         elif indicator_id == "subsequente_expansao":
             records = _build_subsequente_records(
                 frames.get("ept", pd.DataFrame()),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
 
-        records = _add_common_series_fields(records, metadata)
-        status = _status_for_records(records)
+        records = _add_common_series_fields(
+            records,
+            metadata,
+            methodology_version=methodology_version,
+        )
+        status, records = _finalize_series(records)
         updated_metadata = {**metadata, "comparison_status": status}
         indicators[indicator_id] = {**updated_metadata, "series": records}
         registry[indicator_id] = updated_metadata
 
     return {
         "cycle": "pne_2026_2036",
-        "state": STATE_CODE,
-        "state_name": STATE_NAME,
+        "state": state.state_code,
+        "state_name": state.state_name,
         "generated_at": None,
-        "municipalities_expected": EXPECTED_RS_MUNICIPALITIES,
-        "municipalities_universe": "Todos os municípios do Rio Grande do Sul",
-        "methodology_version": METHODOLOGY_VERSION,
+        "municipalities_expected": state.expected_municipality_count,
+        "municipalities_universe": state.municipality_universe_label,
+        "methodology_version": methodology_version,
         "registry": registry,
         "indicators": indicators,
-        "projections": build_state_projections(indicators),
+        "projections": build_state_projections(
+            indicators,
+            methodology_version=methodology_version,
+        ),
         "totals_audit": _build_totals_audit(frames),
         "source_load_errors": load_errors,
         "notes": (
-            "Referência fixa do RS, independente do município selecionado. "
+            f"Referência fixa de {state.state_name}, independente do município selecionado. "
             "Valores armazenados sem arredondamento; a apresentação arredonda somente "
             "no último passo."
         ),

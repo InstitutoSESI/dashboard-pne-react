@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -62,6 +63,11 @@ from src.pne_macro_round import (  # noqa: E402
     build_macro_round_results,
     load_macro_source_records,
 )
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+from src.state_publication import resolve_public_data_dir  # noqa: E402
 
 
 MANIFEST_SCHEMA_VERSION = "pne2026-public-diagnostic-v3-manifest-v3"
@@ -69,6 +75,52 @@ EXPECTED_MUNICIPALITIES = 497
 PUBLIC_V3_DIR = PUBLIC_DATA_DIR / "pne2026-diagnostic-v3"
 SPECIAL_EDUCATION_DIR = PUBLIC_DATA_DIR / "educacao" / "educacao-especial"
 HIGHER_EDUCATION_DIR = PUBLIC_DATA_DIR / "educacao" / "superior"
+STATE_CODE = "RS"
+STATE_NAME = "Rio Grande do Sul"
+PUBLIC_DATA_RELATIVE = "public/data"
+SOURCE_DATA_ROOT = DATA_PIPELINE_DIR / "data"
+
+
+def configure_state(state_code: str = "RS") -> None:
+    """Resolve todas as raízes e contagens antes de qualquer leitura ou escrita."""
+
+    global EXPECTED_MUNICIPALITIES
+    global HIGHER_EDUCATION_DIR
+    global PUBLIC_DATA_DIR
+    global PUBLIC_DATA_RELATIVE
+    global PUBLIC_V3_DIR
+    global SPECIAL_EDUCATION_DIR
+    global STATE_CODE
+    global STATE_NAME
+
+    state = load_pne_state_context(state_code)
+    public_root = resolve_public_data_dir(state.state_code).resolve()
+    STATE_CODE = state.state_code
+    STATE_NAME = state.state_name
+    EXPECTED_MUNICIPALITIES = state.expected_municipality_count
+    PUBLIC_DATA_DIR = public_root
+    PUBLIC_DATA_RELATIVE = public_root.relative_to(REPO_ROOT).as_posix()
+    PUBLIC_V3_DIR = public_root / "pne2026-diagnostic-v3"
+    SPECIAL_EDUCATION_DIR = public_root / "educacao" / "educacao-especial"
+    HIGHER_EDUCATION_DIR = public_root / "educacao" / "superior"
+    os.environ["PNE_PIPELINE_STATE"] = state.state_code
+
+
+def configure_source_data_root(source_data_root: Path | None = None) -> None:
+    """Configura a raiz somente de leitura dos snapshots da materialização."""
+
+    global SOURCE_DATA_ROOT
+    root = Path(source_data_root or (DATA_PIPELINE_DIR / "data")).resolve()
+    if not root.is_dir():
+        raise FileNotFoundError(root)
+    SOURCE_DATA_ROOT = root
+
+
+def _source_snapshot_dir(snapshot_name: str) -> Path:
+    return resolve_state_snapshot_dir(
+        SOURCE_DATA_ROOT / snapshot_name,
+        STATE_CODE,
+    )
 CONSOLIDATED_ROUND_RELATION_IDS = frozenset(
     {
         "relation.3.a.alfabetizacao",
@@ -208,7 +260,9 @@ def _read_worktree_json(path: Path) -> tuple[dict[str, Any], bytes]:
     return _load_json_bytes(content, str(path)), content
 
 
-def _active_release() -> tuple[dict[str, Any], dict[str, Any], Path]:
+def _active_release() -> tuple[dict[str, Any], dict[str, Any], Path] | None:
+    if not (PUBLIC_V3_DIR / "current.json").is_file():
+        return None
     current, _ = _read_worktree_json(PUBLIC_V3_DIR / "current.json")
     release_id = str(current.get("releaseId") or "")
     if (
@@ -228,7 +282,10 @@ def _active_release() -> tuple[dict[str, Any], dict[str, Any], Path]:
         raise RuntimeError("Release ativa diverge do current.json.")
     files = list((release_root / "municipios").glob("*.json"))
     if len(files) != EXPECTED_MUNICIPALITIES:
-        raise RuntimeError("Release ativa não contém 497 arquivos municipais.")
+        raise RuntimeError(
+            "Release ativa não contém a quantidade estadual de arquivos "
+            f"municipais: {EXPECTED_MUNICIPALITIES}."
+        )
     return current, manifest, release_root
 
 
@@ -269,20 +326,27 @@ def _is_within(path: Path, parent: Path) -> bool:
 def validate_staging_output_path(output_dir: Path) -> Path:
     resolved = output_dir.expanduser().resolve()
     if resolved == PUBLIC_DATA_DIR or _is_within(resolved, PUBLIC_DATA_DIR):
-        raise ValueError("A saída V3 em public/data é bloqueada nesta rodada.")
+        raise ValueError(
+            f"A saída V3 na raiz publicada de {STATE_CODE} é bloqueada no staging."
+        )
     if resolved == REPO_ROOT.resolve():
         raise ValueError("A raiz do repositório não pode ser usada como staging.")
     return resolved
 
 
 def _registry(snapshot: WorktreeSnapshot) -> list[dict[str, Any]]:
-    registry = snapshot.read_json("public/data/municipios_index.json")
+    registry = snapshot.read_json(
+        f"{PUBLIC_DATA_RELATIVE}/municipios_index.json"
+    )
     entries = list(registry.get("municipios") or [])
     if (
         registry.get("total_municipios") != EXPECTED_MUNICIPALITIES
         or len(entries) != EXPECTED_MUNICIPALITIES
     ):
-        raise RuntimeError("O registro versionado não contém 497 municípios.")
+        raise RuntimeError(
+            "O registro versionado não contém a quantidade estadual de "
+            f"municípios: {EXPECTED_MUNICIPALITIES}."
+        )
     entries.sort(key=lambda item: str(item["id_municipio"]))
     identifiers = [str(item["id_municipio"]) for item in entries]
     if len(set(identifiers)) != EXPECTED_MUNICIPALITIES:
@@ -387,7 +451,10 @@ def _build_manifest(
 
 def _assert_manifest_invariants(manifest: Mapping[str, Any]) -> None:
     if manifest.get("generatedMunicipalityCount") != EXPECTED_MUNICIPALITIES:
-        raise RuntimeError("O staging V3 não contém os 497 municípios.")
+        raise RuntimeError(
+            "O staging V3 não contém a quantidade estadual de municípios: "
+            f"{EXPECTED_MUNICIPALITIES}."
+        )
     for field in (
         "invalidFileCount",
         "duplicateRelationCount",
@@ -581,13 +648,13 @@ def _goal_11b_state_comparison(
     difference = municipality_value - state_value
     if abs(difference) < 1e-12:
         state = "equal"
-        reading = "O resultado do município coincide com o Rio Grande do Sul."
+        reading = f"O resultado do município coincide com {STATE_NAME}."
     elif difference > 0:
         state = "above"
-        reading = "O resultado do município está acima do Rio Grande do Sul."
+        reading = f"O resultado do município está acima de {STATE_NAME}."
     else:
         state = "below"
-        reading = "O resultado do município está abaixo do Rio Grande do Sul."
+        reading = f"O resultado do município está abaixo de {STATE_NAME}."
     municipal_text = f"{municipality_value:.1f}".replace(".", ",")
     state_text = f"{state_value:.1f}".replace(".", ",")
     return {
@@ -600,8 +667,8 @@ def _goal_11b_state_comparison(
         "favorableDifference": difference,
         "reading": reading,
         "valueReading": (
-            f"O município apresenta {municipal_text}%, enquanto o Rio Grande "
-            f"do Sul apresenta {state_text}%."
+            f"O município apresenta {municipal_text}%, enquanto {STATE_NAME} "
+            f"apresenta {state_text}%."
         ),
     }
 
@@ -610,7 +677,10 @@ def _goal_11b_results() -> tuple[
     dict[str, dict[str, dict[str, Any]]],
     dict[str, Any],
 ]:
-    rows, manifest = load_goal_11b_snapshot()
+    rows, manifest = load_goal_11b_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_goal_11b_census_2022"),
+        state_code=STATE_CODE,
+    )
     configurations = {
         "relation.11.b.fundamental_concluido_15_29": {
             "component": "fifteenToTwentyNine",
@@ -630,7 +700,11 @@ def _goal_11b_results() -> tuple[
         },
     }
     state_references = {
-        relation_id: goal_11b_state_ratio(rows, config["component"])
+        relation_id: goal_11b_state_ratio(
+            rows,
+            config["component"],
+            expected_municipalities=EXPECTED_MUNICIPALITIES,
+        )
         for relation_id, config in configurations.items()
     }
     by_municipality: dict[str, dict[str, dict[str, Any]]] = {}
@@ -731,10 +805,22 @@ def _consolidated_round_results() -> tuple[
     dict[str, dict[str, dict[str, Any]]],
     dict[str, Any],
 ]:
-    child_rows, child_state_rows, child_manifest = load_child_literacy_snapshot()
-    eja_rows, eja_state_rows, eja_manifest = load_goal_11d_snapshot()
-    goal_14_rows, goal_14_state_rows, goal_14_manifest = load_goal_14_snapshot()
-    goal_15_rows, goal_15_state_rows, goal_15_manifest = load_goal_15b_snapshot()
+    child_rows, child_state_rows, child_manifest = load_child_literacy_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_child_literacy"),
+        state_code=STATE_CODE,
+    )
+    eja_rows, eja_state_rows, eja_manifest = load_goal_11d_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_goal_11d_eja"),
+        state_code=STATE_CODE,
+    )
+    goal_14_rows, goal_14_state_rows, goal_14_manifest = load_goal_14_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_goal_14_census_2022"),
+        state_code=STATE_CODE,
+    )
+    goal_15_rows, goal_15_state_rows, goal_15_manifest = load_goal_15b_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_goal_15b"),
+        state_code=STATE_CODE,
+    )
 
     child_current = child_literacy_current_results(child_rows)
     eja_current = goal_11d_current_results(eja_rows)
@@ -755,7 +841,10 @@ def _consolidated_round_results() -> tuple[
         if set(source) != municipality_ids:
             raise RuntimeError("Coberturas municipais divergentes na rodada.")
     if len(municipality_ids) != EXPECTED_MUNICIPALITIES:
-        raise RuntimeError("Rodada consolidada não cobre os 497 municípios.")
+        raise RuntimeError(
+            "Rodada consolidada não cobre a quantidade estadual de municípios: "
+            f"{EXPECTED_MUNICIPALITIES}."
+        )
 
     child_state = {int(row["year"]): row for row in child_state_rows}[2025]
     eja_state = {int(row["year"]): row for row in eja_state_rows}[2025]
@@ -899,7 +988,13 @@ def prepare_staging() -> dict[str, Any]:
     payloads: list[dict[str, Any]] = []
     municipal_files: dict[str, bytes] = {}
     duplicate_count = 0
-    current, active_manifest, active_release_root = _active_release()
+    active_release = _active_release()
+    if active_release is None:
+        current: dict[str, Any] | None = None
+        active_manifest: dict[str, Any] | None = None
+        active_release_root: Path | None = None
+    else:
+        current, active_manifest, active_release_root = active_release
     (
         special_index,
         special_index_bytes,
@@ -910,7 +1005,10 @@ def prepare_staging() -> dict[str, Any]:
         munic_records,
         capes_records,
         quality_records,
-    ) = load_macro_source_records()
+    ) = load_macro_source_records(
+        STATE_CODE,
+        data_root=SOURCE_DATA_ROOT / "pne_macro_sources",
+    )
     consolidated_results, consolidated_audit = _consolidated_round_results()
     source_digest = hashlib.sha256()
     _update_aggregate_digest(
@@ -924,7 +1022,16 @@ def prepare_staging() -> dict[str, Any]:
         higher_index_bytes,
     )
     macro_source_metadata: dict[str, Any] = {}
-    for source_id, source_path in sorted(MACRO_SOURCE_PATHS.items()):
+    for source_id, default_path in sorted(MACRO_SOURCE_PATHS.items()):
+        source_path = (
+            resolve_state_snapshot_dir(
+                SOURCE_DATA_ROOT
+                / "pne_macro_sources"
+                / default_path.parent.name,
+                STATE_CODE,
+            )
+            / default_path.name
+        )
         source_bytes = source_path.read_bytes()
         _update_aggregate_digest(
             source_digest,
@@ -945,7 +1052,7 @@ def prepare_staging() -> dict[str, Any]:
         "pne_goal_14_census_2022",
         "pne_goal_15b",
     ):
-        snapshot_root = DATA_PIPELINE_DIR / "data" / snapshot_name
+        snapshot_root = _source_snapshot_dir(snapshot_name)
         for source_path in sorted(snapshot_root.glob("*.json")):
             _update_aggregate_digest(
                 source_digest,
@@ -978,7 +1085,8 @@ def prepare_staging() -> dict[str, Any]:
             special, special_bytes = _read_worktree_json(special_path)
             higher, higher_bytes = _read_worktree_json(higher_path)
             education_path = (
-                f"public/data/educacao/municipios/{municipality_id}.json"
+                f"{PUBLIC_DATA_RELATIVE}/educacao/municipios/"
+                f"{municipality_id}.json"
             )
             education_bytes = snapshot.read_bytes(education_path)
             education = _load_json_bytes(education_bytes, education_path)
@@ -1033,9 +1141,20 @@ def prepare_staging() -> dict[str, Any]:
                         f"{result.get('reasonCode', 'unspecified')}"
                     ] += 1
 
-            active_payload, _ = _read_worktree_json(
-                active_release_root / "municipios" / f"{municipality_id}.json"
-            )
+            if active_release_root is None:
+                active_payload = {
+                    "municipality": {
+                        "id": municipality_id,
+                        "name": str(entry["nome"]),
+                    },
+                    "results": [],
+                }
+            else:
+                active_payload, _ = _read_worktree_json(
+                    active_release_root
+                    / "municipios"
+                    / f"{municipality_id}.json"
+                )
             if (
                 str((active_payload.get("municipality") or {}).get("id"))
                 != municipality_id
@@ -1119,18 +1238,25 @@ def prepare_staging() -> dict[str, Any]:
         "manifest": manifest,
         "payloads": payloads,
         "methodologyAudit": {
-            "activeRelease": {
-                "releaseId": current["releaseId"],
-                "aggregateHash": active_manifest["aggregateHash"],
-                "contractVersion": active_manifest["contractVersion"],
-                "contractHash": active_manifest["contractHash"],
-                "presentationPolicyVersion": active_manifest[
-                    "presentationPolicyVersion"
-                ],
-                "presentationPolicyHash": active_manifest[
-                    "presentationPolicyHash"
-                ],
-            },
+            "activeRelease": (
+                {
+                    "releaseId": current["releaseId"],
+                    "aggregateHash": active_manifest["aggregateHash"],
+                    "contractVersion": active_manifest["contractVersion"],
+                    "contractHash": active_manifest["contractHash"],
+                    "presentationPolicyVersion": active_manifest[
+                        "presentationPolicyVersion"
+                    ],
+                    "presentationPolicyHash": active_manifest[
+                        "presentationPolicyHash"
+                    ],
+                }
+                if current is not None and active_manifest is not None
+                else {
+                    "status": "initial_release",
+                    "stateCode": STATE_CODE,
+                }
+            ),
             "sourceMaterializations": {
                 "aggregateInputHash": source_digest.hexdigest(),
                 "specialEducation": {
@@ -1273,7 +1399,18 @@ def main() -> int:
         required=True,
         help="Diretório explícito fora de public/data.",
     )
+    parser.add_argument("--state", default="RS")
+    parser.add_argument(
+        "--snapshot-root",
+        type=Path,
+        help=(
+            "Raiz alternativa, somente de leitura, com o mesmo layout de "
+            "data_pipeline/data."
+        ),
+    )
     args = parser.parse_args()
+    configure_state(args.state)
+    configure_source_data_root(args.snapshot_root)
     prepared = prepare_staging()
     output = write_staging(args.output_dir, prepared)
     report = {

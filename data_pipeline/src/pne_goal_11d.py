@@ -10,6 +10,11 @@ from typing import Any, Mapping
 
 from openpyxl import load_workbook
 
+from .pne_state_context import (
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+
 
 YEARS = (2024, 2025)
 SHEETS = {2024: "1.38", 2025: "1.53"}
@@ -19,6 +24,11 @@ EXPECTED_RS_VALUES = {
     2024: 1.5272312091296365,
     2025: 1.3658147966780407,
 }
+EXPECTED_ZERO_NUMERATORS_BY_STATE = {
+    "RS": EXPECTED_ZERO_NUMERATORS,
+    "AL": {2024: 0, 2025: 0},
+}
+EXPECTED_STATE_VALUES_BY_STATE = {"RS": EXPECTED_RS_VALUES}
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 SNAPSHOT_DIR = DATA_DIR / "pne_goal_11d_eja"
@@ -52,10 +62,18 @@ def _integer(value: object, *, context: str) -> int:
 
 
 def load_denominators(
-    denominator_dir: Path = DENOMINATOR_DIR,
+    denominator_dir: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
-    manifest_path = denominator_dir / "manifest.json"
-    components_path = denominator_dir / "municipal_components.json"
+    state = load_pne_state_context(state_code)
+    resolved_denominator_dir = (
+        Path(denominator_dir)
+        if denominator_dir is not None
+        else resolve_state_snapshot_dir(DENOMINATOR_DIR, state.state_code)
+    )
+    manifest_path = resolved_denominator_dir / "manifest.json"
+    components_path = resolved_denominator_dir / "municipal_components.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     expected_hash = (manifest.get("files") or {}).get("municipal_components.json")
     if expected_hash != sha256_bytes(components_path.read_bytes()):
@@ -75,8 +93,11 @@ def load_denominators(
             "municipalityName": str(row["municipalityName"]),
             "denominator": denominator,
         }
-    if len(result) != EXPECTED_MUNICIPALITIES:
-        raise ValueError("O denominador 11.d não cobre os 497 municípios.")
+    if len(result) != state.expected_municipality_count or set(result) != state.municipality_ids:
+        raise ValueError(
+            f"O denominador 11.d não cobre os "
+            f"{state.expected_municipality_count} municípios de {state.state_code}."
+        )
     return result, manifest
 
 
@@ -89,7 +110,13 @@ def _workbook_for_year(source_dir: Path, year: int) -> Path:
     return matches[0]
 
 
-def parse_eja_workbook(path: Path, *, year: int) -> dict[str, int]:
+def parse_eja_workbook(
+    path: Path,
+    *,
+    year: int,
+    state_code: str = "RS",
+) -> dict[str, int]:
+    state = load_pne_state_context(state_code)
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         sheet_marker = SHEETS[year]
@@ -122,7 +149,7 @@ def parse_eja_workbook(path: Path, *, year: int) -> dict[str, int]:
             worksheet.iter_rows(min_row=10, values_only=True),
             start=10,
         ):
-            if str(row[1] or "").strip() != "Rio Grande do Sul":
+            if str(row[1] or "").strip() != state.state_name:
                 continue
             municipality_name = str(row[2] or "").strip()
             municipality_id = str(row[3] or "").strip().split(".")[0]
@@ -136,15 +163,17 @@ def parse_eja_workbook(path: Path, *, year: int) -> dict[str, int]:
                 _integer(row[column], context=f"{year}/linha {index}/col {column+1}")
                 for column in range(7, 13)
             )
-        if len(rows) != EXPECTED_MUNICIPALITIES:
+        if len(rows) != state.expected_municipality_count or set(rows) != state.municipality_ids:
             raise ValueError(
-                f"Cobertura municipal EJA {year}: {len(rows)} != 497."
+                f"Cobertura municipal EJA {year}: {len(rows)} != "
+                f"{state.expected_municipality_count}."
             )
         zero_count = sum(value == 0 for value in rows.values())
-        if zero_count != EXPECTED_ZERO_NUMERATORS[year]:
+        state_expectations = EXPECTED_ZERO_NUMERATORS_BY_STATE.get(state.state_code)
+        if state_expectations is not None and zero_count != state_expectations[year]:
             raise ValueError(
                 f"Zeros explícitos EJA {year}: {zero_count} "
-                f"!= {EXPECTED_ZERO_NUMERATORS[year]}."
+                f"!= {state_expectations[year]}."
             )
         return rows
     finally:
@@ -175,14 +204,28 @@ def build_snapshot(
     source_dir: Path,
     *,
     reference_date: str,
-    denominator_dir: Path = DENOMINATOR_DIR,
+    denominator_dir: Path | None = None,
+    state_code: str = "RS",
 ) -> dict[str, bytes]:
-    denominators, denominator_manifest = load_denominators(denominator_dir)
+    state_context = load_pne_state_context(state_code)
+    resolved_denominator_dir = (
+        Path(denominator_dir)
+        if denominator_dir is not None
+        else resolve_state_snapshot_dir(DENOMINATOR_DIR, state_context.state_code)
+    )
+    denominators, denominator_manifest = load_denominators(
+        resolved_denominator_dir,
+        state_code=state_context.state_code,
+    )
     by_year: dict[int, dict[str, int]] = {}
     sources = []
     for year in YEARS:
         path = _workbook_for_year(source_dir.resolve(), year)
-        by_year[year] = parse_eja_workbook(path, year=year)
+        by_year[year] = parse_eja_workbook(
+            path,
+            year=year,
+            state_code=state_context.state_code,
+        )
         sources.append(
             {
                 "year": year,
@@ -223,12 +266,15 @@ def build_snapshot(
     for year in YEARS:
         numerator_sum = sum(by_year[year].values())
         value = 100.0 * numerator_sum / denominator_sum
-        if abs(value - EXPECTED_RS_VALUES[year]) > 1e-12:
+        expected_state_values = EXPECTED_STATE_VALUES_BY_STATE.get(
+            state_context.state_code
+        )
+        if expected_state_values is not None and abs(value - expected_state_values[year]) > 1e-12:
             raise ValueError(f"Reconciliação estadual 11.d divergente em {year}.")
         state.append(
             {
-                "territoryId": "43",
-                "territoryName": "Rio Grande do Sul",
+                "territoryId": state_context.state_id,
+                "territoryName": state_context.state_name,
                 "year": year,
                 "dataStatus": "available",
                 "value": value,
@@ -241,25 +287,30 @@ def build_snapshot(
     state_bytes = stable_json_bytes(state)
     manifest = {
         "schemaVersion": "pne-goal-11d-eja-snapshot-v1",
+        "stateCode": state_context.state_code,
+        "stateId": state_context.state_id,
+        "stateName": state_context.state_name,
         "sourceReferenceDate": reference_date,
         "indicator": "eja_atendimento_18_mais",
         "territorialBasis": {
             "numerator": "municipality_of_school",
             "denominator": "municipality_of_residence",
         },
-        "municipalityCount": EXPECTED_MUNICIPALITIES,
+        "municipalityCount": state_context.expected_municipality_count,
         "years": list(YEARS),
         "zeroNumeratorsByYear": {
-            str(year): EXPECTED_ZERO_NUMERATORS[year] for year in YEARS
+            str(year): sum(value == 0 for value in by_year[year].values())
+            for year in YEARS
         },
         "stateValues": {
-            str(year): EXPECTED_RS_VALUES[year] for year in YEARS
+            str(year): next(item["value"] for item in state if item["year"] == year)
+            for year in YEARS
         },
         "sources": sources,
         "denominatorSnapshot": {
             "schemaVersion": denominator_manifest["schemaVersion"],
             "manifestSha256": sha256_bytes(
-                (denominator_dir / "manifest.json").read_bytes()
+                (resolved_denominator_dir / "manifest.json").read_bytes()
             ),
         },
         "files": {
@@ -275,12 +326,21 @@ def build_snapshot(
 
 
 def load_snapshot(
-    snapshot_dir: Path = SNAPSHOT_DIR,
+    snapshot_dir: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    root = snapshot_dir.resolve()
+    state_context = load_pne_state_context(state_code)
+    root = (
+        Path(snapshot_dir)
+        if snapshot_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state_context.state_code)
+    ).resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != "pne-goal-11d-eja-snapshot-v1":
         raise ValueError("Schema do snapshot 11.d inválido.")
+    if manifest.get("stateCode", "RS") != state_context.state_code:
+        raise ValueError("UF do snapshot 11.d divergente.")
     for filename, expected in (manifest.get("files") or {}).items():
         if sha256_bytes((root / filename).read_bytes()) != expected:
             raise ValueError(f"Hash divergente no snapshot 11.d: {filename}.")
@@ -288,8 +348,10 @@ def load_snapshot(
         (root / "municipal_results.json").read_text(encoding="utf-8")
     )
     state = json.loads((root / "state_results.json").read_text(encoding="utf-8"))
-    if len(municipal) != EXPECTED_MUNICIPALITIES:
+    if len(municipal) != state_context.expected_municipality_count:
         raise ValueError("Cobertura municipal do snapshot 11.d inválida.")
+    if {str(row.get("municipalityId")) for row in municipal} != state_context.municipality_ids:
+        raise ValueError("Universo municipal do snapshot 11.d divergente.")
     return municipal, state, manifest
 
 

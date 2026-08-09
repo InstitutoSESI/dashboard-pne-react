@@ -28,6 +28,10 @@ from src.pne_macro_ingestion import (  # noqa: E402
     raw_file_entry,
     write_source_snapshot,
 )
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
 
 
 SOURCE_ID = "inep_quality_offer"
@@ -117,7 +121,11 @@ def _empty_quality_record(municipality_id: str, name: str) -> dict:
     }
 
 
-def _parse_cpc(path: Path, records: dict[str, dict]) -> dict:
+def _parse_cpc(
+    path: Path,
+    records: dict[str, dict],
+    state_code: str = "RS",
+) -> dict:
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
         worksheet = workbook.worksheets[0]
@@ -131,11 +139,14 @@ def _parse_cpc(path: Path, records: dict[str, dict]) -> dict:
         seen_courses: set[str] = set()
         concept_values: Counter[str] = Counter()
         for row in worksheet.iter_rows(min_row=2, values_only=True):
-            if str(row[uf_index] or "").strip() != "RS":
+            if str(row[uf_index] or "").strip() != state_code:
                 continue
             municipality_id = str(row[code_index] or "").split(".")[0]
             if municipality_id not in records:
-                raise ValueError(f"CPC com município RS desconhecido: {municipality_id}")
+                raise ValueError(
+                    f"CPC com município {state_code} desconhecido: "
+                    f"{municipality_id}"
+                )
             course_id = str(row[course_index] or "").strip()
             if not course_id or course_id in seen_courses:
                 raise ValueError(f"CPC com curso ausente ou duplicado: {course_id!r}")
@@ -157,14 +168,18 @@ def _parse_cpc(path: Path, records: dict[str, dict]) -> dict:
         return {
             "sheet": worksheet.title,
             "headers": headers,
-            "rsCourseCount": len(seen_courses),
+            "stateCourseCount": len(seen_courses),
             "conceptValues": dict(sorted(concept_values.items())),
         }
     finally:
         workbook.close()
 
 
-def _parse_enade(path: Path, records: dict[str, dict]) -> dict:
+def _parse_enade(
+    path: Path,
+    records: dict[str, dict],
+    state_code: str = "RS",
+) -> dict:
     workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
         worksheet = workbook.worksheets[0]
@@ -195,12 +210,13 @@ def _parse_enade(path: Path, records: dict[str, dict]) -> dict:
         seen_courses: set[str] = set()
         concept_values: Counter[str] = Counter()
         for row in worksheet.iter_rows(min_row=2, values_only=True):
-            if str(row[uf_index] or "").strip() != "RS":
+            if str(row[uf_index] or "").strip() != state_code:
                 continue
             municipality_id = str(row[code_index] or "").split(".")[0]
             if municipality_id not in records:
                 raise ValueError(
-                    f"Enade com município RS desconhecido: {municipality_id}"
+                    f"Enade com município {state_code} desconhecido: "
+                    f"{municipality_id}"
                 )
             course_id = str(row[course_index] or "").strip()
             if not course_id or course_id in seen_courses:
@@ -230,7 +246,7 @@ def _parse_enade(path: Path, records: dict[str, dict]) -> dict:
         return {
             "sheet": worksheet.title,
             "headers": headers,
-            "rsCourseCount": len(seen_courses),
+            "stateCourseCount": len(seen_courses),
             "conceptValues": dict(sorted(concept_values.items())),
         }
     finally:
@@ -260,14 +276,20 @@ def _audit_igc(path: Path) -> dict:
         workbook.close()
 
 
-def parse_quality(cpc_path: Path, enade_path: Path, igc_path: Path) -> tuple[dict, dict]:
-    municipality_names, _ = load_municipality_universe()
+def parse_quality(
+    cpc_path: Path,
+    enade_path: Path,
+    igc_path: Path,
+    state_code: str = "RS",
+) -> tuple[dict, dict]:
+    state = load_pne_state_context(state_code)
+    municipality_names, _ = load_municipality_universe(state.state_code)
     records = {
         municipality_id: _empty_quality_record(municipality_id, name)
         for municipality_id, name in municipality_names.items()
     }
-    cpc_audit = _parse_cpc(cpc_path, records)
-    enade_audit = _parse_enade(enade_path, records)
+    cpc_audit = _parse_cpc(cpc_path, records, state.state_code)
+    enade_audit = _parse_enade(enade_path, records, state.state_code)
     igc_audit = _audit_igc(igc_path)
     for record in records.values():
         for component_name in ("cpc2023", "enadeLicenciaturas2025"):
@@ -283,6 +305,7 @@ def parse_quality(cpc_path: Path, enade_path: Path, igc_path: Path) -> tuple[dic
         edition="CPC 2023; IGC 2023; Enade Licenciaturas 2025",
         records=records,
         municipality_names=municipality_names,
+        state_code=state.state_code,
     )
     coverage = {
         "municipalityCount": len(records),
@@ -313,8 +336,16 @@ def parse_quality(cpc_path: Path, enade_path: Path, igc_path: Path) -> tuple[dic
     }
 
 
-def materialize(cpc_path: Path, enade_path: Path, igc_path: Path) -> dict:
-    normalized, audit = parse_quality(cpc_path, enade_path, igc_path)
+def materialize(
+    cpc_path: Path,
+    enade_path: Path,
+    igc_path: Path,
+    state_code: str = "RS",
+) -> dict:
+    state = load_pne_state_context(state_code)
+    normalized, audit = parse_quality(
+        cpc_path, enade_path, igc_path, state.state_code
+    )
     specs = [
         ("cpc2023", cpc_path, CPC_URL),
         ("enadeLicenciaturas2025", enade_path, ENADE_URL),
@@ -322,6 +353,8 @@ def materialize(cpc_path: Path, enade_path: Path, igc_path: Path) -> dict:
     ]
     manifest = {
         "schemaVersion": MANIFEST_SCHEMA,
+        "stateCode": state.state_code,
+        "stateName": state.state_name,
         "sourceId": SOURCE_ID,
         "sourceTitle": "Indicadores de Qualidade da Educação Superior",
         "organization": "Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira",
@@ -365,7 +398,7 @@ def materialize(cpc_path: Path, enade_path: Path, igc_path: Path) -> dict:
         "approvedComponents": ["cpc2023", "enadeLicenciaturas2025"],
     }
     write_source_snapshot(
-        destination=DESTINATION,
+        destination=resolve_state_snapshot_dir(DESTINATION, state.state_code),
         raw_files={path.name: path for _, path, _ in specs},
         normalized=normalized,
         manifest=manifest,
@@ -375,6 +408,7 @@ def materialize(cpc_path: Path, enade_path: Path, igc_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--state", default="RS")
     parser.add_argument("--cpc-file", type=Path)
     parser.add_argument("--enade-file", type=Path)
     parser.add_argument("--igc-file", type=Path)
@@ -389,7 +423,7 @@ def main() -> int:
             _download(ENADE_URL, root / "conceito_enade_licenciaturas.xlsx"),
             _download(IGC_URL, root / "IGC_2023.xlsx"),
         )
-        manifest = materialize(*files)
+        manifest = materialize(*files, state_code=args.state)
     print(canonical_json_bytes(manifest).decode("utf-8"), end="")
     return 0
 

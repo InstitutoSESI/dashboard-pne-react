@@ -27,11 +27,15 @@ from src.pne_goal_14_census import (  # noqa: E402
     metadata_url,
     sha256_bytes,
 )
-from src.pne_goal_11b_census import load_snapshot as load_11b_snapshot  # noqa: E402
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+from src.state_config import DEFAULT_STATE_CODE  # noqa: E402
 
 
 def _download(url: str, attempts: int = 4) -> bytes:
-    request = Request(url, headers={"User-Agent": "PNE-RS-source-sync/1.0"})
+    request = Request(url, headers={"User-Agent": "PNE-source-sync/1.0"})
     for attempt in range(1, attempts + 1):
         try:
             with urlopen(request, timeout=120) as response:
@@ -68,42 +72,48 @@ def _apply(output_dir: Path, files: dict[str, bytes]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output-dir", type=Path, default=SNAPSHOT_DIR)
+    parser.add_argument("--state", default=DEFAULT_STATE_CODE)
+    parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--reference-date", required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
+
+    state = load_pne_state_context(args.state)
+    output_dir = (
+        args.output_dir.resolve()
+        if args.output_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code).resolve()
+    )
 
     metadata_payloads = {}
     data_payloads = {}
     source_hashes = {}
     for table_id in TABLES:
         metadata_bytes = _download(metadata_url(table_id))
-        data_bytes = _download(data_url(table_id))
+        data_bytes = _download(data_url(table_id, state.state_code))
         metadata_payloads[table_id] = json.loads(metadata_bytes)
         data_payloads[table_id] = json.loads(data_bytes)
         source_hashes[table_id] = {
             "metadataSha256": sha256_bytes(metadata_bytes),
             "dataSha256": sha256_bytes(data_bytes),
         }
-    universe, _ = load_11b_snapshot()
-    municipality_names = {
-        str(row["municipalityId"]): str(row["municipalityName"])
-        for row in universe
-    }
+    municipality_names = dict(state.municipality_names)
     files = build_snapshot(
         metadata_payloads=metadata_payloads,
         data_payloads=data_payloads,
         source_hashes=source_hashes,
         municipality_names=municipality_names,
         reference_date=args.reference_date,
+        state_code=state.state_code,
     )
     if args.apply:
-        _apply(args.output_dir.resolve(), files)
+        _apply(output_dir, files)
     print(
         json.dumps(
             {
                 "mode": "apply" if args.apply else "check",
-                "output": str(args.output_dir.resolve()),
+                "state": state.state_code,
+                "output": str(output_dir),
                 "written": bool(args.apply),
                 "files": {
                     name: sha256_bytes(content)

@@ -36,24 +36,24 @@ test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   assert.equal(rs.publication.schemaVersion, 'state-publication-v3')
   assert.equal(al.publication.schemaVersion, 'state-publication-v3')
   assert.equal(rs.publication.enabledProducts, null)
-  assert.deepEqual([...al.publication.enabledProducts], ['educacao', 'financiamento'])
+  assert.equal(al.publication.enabledProducts, null)
   assert.equal(rs.publication.analyticsStatus, 'complete')
   assert.equal(rs.municipalityRegistry.municipalityCount, 497)
-  assert.equal(al.publication.analyticsStatus, 'partial')
+  assert.equal(al.publication.analyticsStatus, 'complete')
   assert.equal(al.municipalityRegistry.municipalityCount, 102)
   assert.notEqual(rs.publicDataDirectory, al.publicDataDirectory)
   assert.ok(rs.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('43')))
   assert.ok(al.municipalityRegistry.municipalities.every(({ ibgeCode }) => ibgeCode.startsWith('27')))
 })
 
-test('AL publica Educação e Financiamento enquanto PNE está indisponível', () => {
+test('AL publica PNE, Educação e Financiamento como estado completo', () => {
   const manifest = JSON.parse(
     readFileSync(path.join(repoRoot, 'config/publications/al.json'), 'utf8'),
   )
   assert.equal(manifest.schemaVersion, 'state-publication-v3')
-  assert.equal(manifest.analyticsStatus, 'partial')
-  assert.deepEqual(manifest.enabledProducts, ['educacao', 'financiamento'])
-  assert.match(manifest.analyticsMessage, /Apenas o PNE ainda não foi publicado/)
+  assert.equal(manifest.analyticsStatus, 'complete')
+  assert.equal(manifest.enabledProducts, null)
+  assert.equal(manifest.analyticsMessage, null)
   assert.equal(manifest.stateConfigPath, 'config/states/al.json')
   assert.equal(manifest.municipalityRegistryPath, 'config/municipalities/al.json')
 })
@@ -79,12 +79,11 @@ test('o vocabulário de produtos é idêntico nas três camadas do contrato', ()
   assert.deepEqual(parse(pipelineProducts), [...ANALYTICS_PRODUCTS])
 })
 
-test('raiz AL contém Educação e Financiamento nos subtrees canônicos', () => {
+test('raiz AL contém os três produtos nos subtrees canônicos', () => {
   const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })
   const observed = allFiles(al.publicDataDirectory)
   const identityFiles = [
     'municipios_index.json',
-    'publication.json',
     ...al.municipalityRegistry.municipalities.map(
       ({ ibgeCode }) => `municipios/${ibgeCode}/index.json`,
     ),
@@ -102,8 +101,12 @@ test('raiz AL contém Educação e Financiamento nos subtrees canônicos', () =>
   assert.ok(observed.includes('financeiro/qse-anual-manifest.json'))
   assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/financeiro\.json$/.test(relative)).length, 102)
   assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/qse-anual\.json$/.test(relative)).length, 102)
-  assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/details\.json$/.test(relative)).length, 0)
-  assert.ok(observed.every((relative) => !relative.startsWith('pne/')))
+  assert.equal(observed.filter((relative) => /^municipios\/27\d{5}\/details\.json$/.test(relative)).length, 102)
+  assert.ok(observed.includes('indicadores.json'))
+  assert.ok(observed.includes('pne_2014_2024/referencia_estadual.json'))
+  assert.ok(observed.includes('pne_2026_2036/referencia_estadual.json'))
+  assert.ok(observed.includes('pne2026-diagnostic-v3/current.json'))
+  assert.equal(observed.includes('publication.json'), false)
   assert.ok(observed.every((relative) => !relative.includes('4300034')))
 
   for (const { ibgeCode, name, slug } of al.municipalityRegistry.municipalities) {
@@ -115,10 +118,9 @@ test('raiz AL contém Educação e Financiamento nos subtrees canônicos', () =>
     assert.equal(typeof payload.id_municipio, 'string')
     assert.equal(payload.municipio, name)
     assert.equal(payload.slug, slug)
-    assert.deepEqual(
-      { status: payload.analytics.status, reason: payload.analytics.reason },
-      { status: 'unavailable', reason: 'analytics_not_published' },
-    )
+    assert.equal(payload.analytics, undefined)
+    assert.equal(typeof payload.pne_2014_2024, 'object')
+    assert.equal(typeof payload.pne_2026_2036, 'object')
   }
 })
 
@@ -136,7 +138,7 @@ test('empacotamento AL não copia nenhum arquivo da publicação RS', async () =
     })
     const copiedData = allFiles(path.join(output, 'data'))
     assert.deepEqual(copiedData, allFiles(al.publicDataDirectory))
-    assert.equal(existsSync(path.join(output, 'data', 'indicadores.json')), false)
+    assert.equal(existsSync(path.join(output, 'data', 'indicadores.json')), true)
     assert.equal(existsSync(path.join(output, 'data', 'municipios', '4300034')), false)
   } finally {
     rmSync(output, { recursive: true, force: true })

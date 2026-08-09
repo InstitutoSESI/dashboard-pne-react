@@ -34,4 +34,5 @@ SELECT
     e.mat_integrada_eja_publica,
     e.mat_integrada_eja_privada
 FROM ept_nivel_medio e
-JOIN municipios m ON e.id_municipio::text = m.id_municipio::text;
+JOIN municipios m ON e.id_municipio::text = m.id_municipio::text
+WHERE e.sigla_uf = :uf;

@@ -11,6 +11,11 @@ from typing import Any, Mapping
 
 from openpyxl import load_workbook
 
+from .pne_state_context import (
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+
 
 YEARS = tuple(range(2018, 2025))
 EXPECTED_MUNICIPALITIES = 497
@@ -22,6 +27,10 @@ EXPECTED_ROWS_WITH_IES = {
     2022: 36,
     2023: 36,
     2024: 36,
+}
+EXPECTED_ROWS_WITH_IES_BY_STATE = {
+    "RS": EXPECTED_ROWS_WITH_IES,
+    "AL": {2018: 5, 2019: 5, 2020: 5, 2021: 5, 2022: 6, 2023: 6, 2024: 6},
 }
 RELATION_IDS = (
     "15.b.total",
@@ -99,14 +108,33 @@ def _count(value: object, *, context: str) -> int:
     return int(numeric)
 
 
-def load_universe(path: Path = UNIVERSE_PATH) -> dict[str, str]:
-    rows = json.loads(path.read_text(encoding="utf-8"))
+def load_universe(
+    path: Path | None = None,
+    *,
+    state_code: str = "RS",
+) -> dict[str, str]:
+    state = load_pne_state_context(state_code)
+    if path is None:
+        return dict(state.municipality_names)
+    source_path = (
+        Path(path)
+        if path is not None
+        else resolve_state_snapshot_dir(
+            DATA_DIR / "pne_goal_11b_census_2022",
+            state.state_code,
+        )
+        / "municipal_components.json"
+    )
+    rows = json.loads(source_path.read_text(encoding="utf-8"))
     output = {
         str(row["municipalityId"]): str(row["municipalityName"])
         for row in rows
     }
-    if len(output) != EXPECTED_MUNICIPALITIES:
-        raise ValueError("Universo da Meta 15.b deve conter 497 municípios.")
+    if len(output) != state.expected_municipality_count or set(output) != state.municipality_ids:
+        raise ValueError(
+            f"Universo da Meta 15.b deve conter os "
+            f"{state.expected_municipality_count} municípios de {state.state_code}."
+        )
     return output
 
 
@@ -148,7 +176,13 @@ def _semantic_headers(worksheet) -> None:
             )
 
 
-def parse_workbook(path: Path, *, year: int) -> dict[str, dict[str, list[int]]]:
+def parse_workbook(
+    path: Path,
+    *,
+    year: int,
+    state_code: str = "RS",
+) -> dict[str, dict[str, list[int]]]:
+    state = load_pne_state_context(state_code)
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         matches = [name for name in workbook.sheetnames if name.strip() == "2.2"]
@@ -161,7 +195,7 @@ def parse_workbook(path: Path, *, year: int) -> dict[str, dict[str, list[int]]]:
             worksheet.iter_rows(min_row=14, values_only=True),
             start=14,
         ):
-            if _normal(row[1]) != "rio grande do sul":
+            if _normal(row[1]) != _normal(state.state_name):
                 continue
             municipality_id = str(row[3] or "").strip().split(".")[0]
             municipality_name = str(row[2] or "").strip()
@@ -207,7 +241,13 @@ def parse_workbook(path: Path, *, year: int) -> dict[str, dict[str, list[int]]]:
                 "municipalityName": municipality_name,
                 "indicators": indicators,
             }
-        expected = EXPECTED_ROWS_WITH_IES[year]
+        state_expectations = EXPECTED_ROWS_WITH_IES_BY_STATE.get(state.state_code)
+        if state_expectations is None or year not in state_expectations:
+            raise ValueError(
+                f"Cobertura esperada de IES ainda não contratada para "
+                f"{state.state_code}/{year}; inspecione a fonte nacional antes de publicar."
+            )
+        expected = state_expectations[year]
         if len(output) != expected:
             raise ValueError(
                 f"Linhas municipais com IES em {year}: {len(output)} != {expected}."
@@ -238,14 +278,20 @@ def build_snapshot(
     source_dir: Path,
     *,
     reference_date: str,
-    universe_path: Path = UNIVERSE_PATH,
+    universe_path: Path | None = None,
+    state_code: str = "RS",
 ) -> dict[str, bytes]:
-    universe = load_universe(universe_path)
+    state_context = load_pne_state_context(state_code)
+    universe = load_universe(universe_path, state_code=state_context.state_code)
     parsed: dict[int, dict[str, dict[str, Any]]] = {}
     sources = []
     for year in YEARS:
         path = _workbook_for_year(source_dir.resolve(), year)
-        parsed[year] = parse_workbook(path, year=year)
+        parsed[year] = parse_workbook(
+            path,
+            year=year,
+            state_code=state_context.state_code,
+        )
         sources.append(
             {
                 "year": year,
@@ -289,8 +335,8 @@ def build_snapshot(
             state.append(
                 {
                     "relationId": relation_id,
-                    "territoryId": "43",
-                    "territoryName": "Rio Grande do Sul",
+                    "territoryId": state_context.state_id,
+                    "territoryName": state_context.state_name,
                     "year": year,
                     **ratio(numerator, denominator),
                 }
@@ -300,7 +346,7 @@ def build_snapshot(
         for row in state
         if row["year"] == 2024 and row["relationId"] == "15.b.total"
     )
-    if (
+    if state_context.state_code == "RS" and (
         latest_total["numerator"] != 13755
         or latest_total["denominator"] != 22295
     ):
@@ -310,9 +356,16 @@ def build_snapshot(
     state_bytes = stable_json_bytes(state)
     manifest = {
         "schemaVersion": "pne-goal-15b-snapshot-v1",
+        "stateCode": state_context.state_code,
+        "stateId": state_context.state_id,
+        "stateName": state_context.state_name,
         "sourceReferenceDate": reference_date,
         "years": list(YEARS),
-        "municipalityCount": EXPECTED_MUNICIPALITIES,
+        "municipalityCount": state_context.expected_municipality_count,
+        "rowsWithIesByYear": {
+            str(year): EXPECTED_ROWS_WITH_IES_BY_STATE[state_context.state_code][year]
+            for year in YEARS
+        },
         "table": "2.2",
         "unit": "docentes_em_exercicio_contabilizados_no_recorte",
         "territorialBasis": "municipality_of_institution_headquarters",
@@ -335,12 +388,21 @@ def build_snapshot(
 
 
 def load_snapshot(
-    snapshot_dir: Path = SNAPSHOT_DIR,
+    snapshot_dir: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
-    root = snapshot_dir.resolve()
+    state_context = load_pne_state_context(state_code)
+    root = (
+        Path(snapshot_dir)
+        if snapshot_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state_context.state_code)
+    ).resolve()
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != "pne-goal-15b-snapshot-v1":
         raise ValueError("Schema do snapshot da Meta 15.b inválido.")
+    if manifest.get("stateCode", "RS") != state_context.state_code:
+        raise ValueError("UF do snapshot da Meta 15.b divergente.")
     for filename, expected in (manifest.get("files") or {}).items():
         if sha256_bytes((root / filename).read_bytes()) != expected:
             raise ValueError(f"Hash divergente no snapshot 15.b: {filename}.")
@@ -348,6 +410,8 @@ def load_snapshot(
         (root / "municipal_results.json").read_text(encoding="utf-8")
     )
     state = json.loads((root / "state_results.json").read_text(encoding="utf-8"))
-    if len(municipal) != EXPECTED_MUNICIPALITIES:
+    if len(municipal) != state_context.expected_municipality_count:
         raise ValueError("Cobertura municipal do snapshot 15.b inválida.")
+    if {str(row.get("municipalityId")) for row in municipal} != state_context.municipality_ids:
+        raise ValueError("Universo municipal do snapshot 15.b divergente.")
     return municipal, state, manifest

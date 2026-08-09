@@ -18,6 +18,7 @@ WHERE LOWER(TRIM(dt.dependencia)) IN (
     'estadual',
     'municipal'
 )
+  AND dt.sigla_uf = :uf
 ORDER BY
     dt.ano,
     m.municipio,

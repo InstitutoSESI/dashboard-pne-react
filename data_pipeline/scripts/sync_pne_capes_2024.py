@@ -28,6 +28,10 @@ from src.pne_macro_ingestion import (  # noqa: E402
     raw_file_entry,
     write_source_snapshot,
 )
+from src.pne_state_context import (  # noqa: E402
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
 
 
 SOURCE_ID = "capes_sucupira_2024"
@@ -84,8 +88,12 @@ def _municipality_id(
 def parse_capes(
     programs_path: Path,
     students_path: Path,
+    state_code: str = "RS",
 ) -> tuple[dict, dict]:
-    municipality_names, ids_by_name = load_municipality_universe()
+    state = load_pne_state_context(state_code)
+    municipality_names, ids_by_name = load_municipality_universe(
+        state.state_code
+    )
     headquarter_programs: dict[str, set[str]] = defaultdict(set)
     student_linked_programs: dict[str, set[str]] = defaultdict(set)
     unmatched_programs: Counter[str] = Counter()
@@ -120,7 +128,7 @@ def parse_capes(
             if program_id in programs_by_code:
                 raise ValueError(f"Programa CAPES duplicado: {program_id!r}.")
             programs_by_code[program_id] = dict(row)
-            if row["SG_UF_PROGRAMA"] != "RS":
+            if row["SG_UF_PROGRAMA"] != state.state_code:
                 continue
             status = normalize_name(row["DS_SITUACAO_PROGRAMA"])
             program_statuses[status] += 1
@@ -162,7 +170,10 @@ def parse_capes(
             )
         seen_title_keys: set[tuple[str, str, str, str]] = set()
         for row in reader:
-            if row["SG_UF_PROGRAMA"] != "RS" or str(row["AN_BASE"]) != "2024":
+            if (
+                row["SG_UF_PROGRAMA"] != state.state_code
+                or str(row["AN_BASE"]) != "2024"
+            ):
                 continue
             program_id = str(row["CD_PROGRAMA_IES"] or "").strip()
             program = programs_by_code.get(program_id)
@@ -186,7 +197,7 @@ def parse_capes(
                 normalize_name(program["NM_MUNICIPIO_PROGRAMA_IES"]),
             )
             student_location = (
-                "RS",
+                state.state_code,
                 normalize_name(row["NM_MUNICIPIO_PROGRAMA_IES"]),
             )
             if program_location != student_location:
@@ -214,7 +225,8 @@ def parse_capes(
                             f"{program['SG_UF_PROGRAMA']}"
                         ),
                         "studentLinkedInstitutionMunicipality": (
-                            f"{row['NM_MUNICIPIO_PROGRAMA_IES']}/RS"
+                            f"{row['NM_MUNICIPIO_PROGRAMA_IES']}/"
+                            f"{state.state_code}"
                         ),
                         "programMode": str(program["NM_MODALIDADE_PROGRAMA"]),
                         "programDegree": str(program["NM_GRAU_PROGRAMA"]),
@@ -276,7 +288,7 @@ def parse_capes(
 
     if unmatched_programs or unmatched_students:
         raise ValueError(
-            "Municípios CAPES/RS não conciliados: "
+            f"Municípios CAPES/{state.state_code} não conciliados: "
             f"programas={dict(unmatched_programs)}, "
             f"discentes={dict(unmatched_students)}"
         )
@@ -333,6 +345,7 @@ def parse_capes(
         edition="Coleta CAPES/Sucupira 2024",
         records=records,
         municipality_names=municipality_names,
+        state_code=state.state_code,
     )
     municipal_reconciliation = []
     for municipality_id, record in sorted(records.items()):
@@ -458,8 +471,12 @@ def materialize(
     programs_metadata_path: Path,
     students_path: Path,
     students_metadata_path: Path,
+    state_code: str = "RS",
 ) -> dict:
-    normalized, audit = parse_capes(programs_path, students_path)
+    state = load_pne_state_context(state_code)
+    normalized, audit = parse_capes(
+        programs_path, students_path, state.state_code
+    )
     raw_specs = [
         ("programs2024", programs_path, PROGRAMS_URL),
         ("programsDictionary", programs_metadata_path, PROGRAMS_METADATA_URL),
@@ -468,6 +485,8 @@ def materialize(
     ]
     manifest = {
         "schemaVersion": MANIFEST_SCHEMA,
+        "stateCode": state.state_code,
+        "stateName": state.state_name,
         "sourceId": SOURCE_ID,
         "sourceTitle": "Dados Abertos CAPES — Plataforma Sucupira",
         "organization": "Coordenação de Aperfeiçoamento de Pessoal de Nível Superior",
@@ -536,7 +555,8 @@ def materialize(
         "normalization": {
             "municipalityKey": (
                 "nome oficial do município da sede ou da IES vinculada ao "
-                "discente, conciliado exclusivamente ao código IBGE RS"
+                "discente, conciliado exclusivamente ao código IBGE "
+                f"{state.state_code}"
             ),
             "localProgramEvidence": (
                 "união de programa com sede municipal e programa com discente "
@@ -575,7 +595,7 @@ def materialize(
         "status": "approved_complementary",
     }
     write_source_snapshot(
-        destination=DESTINATION,
+        destination=resolve_state_snapshot_dir(DESTINATION, state.state_code),
         raw_files={path.name: path for _, path, _ in raw_specs},
         normalized=normalized,
         manifest=manifest,
@@ -585,6 +605,7 @@ def materialize(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--state", default="RS")
     parser.add_argument("--programs-file", type=Path)
     parser.add_argument("--programs-metadata-file", type=Path)
     parser.add_argument("--students-file", type=Path)
@@ -609,7 +630,7 @@ def main() -> int:
             _download(STUDENTS_URL, root / "students_2024.csv"),
             _download(STUDENTS_METADATA_URL, root / "students_metadata.pdf"),
         )
-        manifest = materialize(*files)
+        manifest = materialize(*files, state_code=args.state)
     print(canonical_json_bytes(manifest).decode("utf-8"), end="")
     return 0
 

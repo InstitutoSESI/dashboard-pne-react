@@ -14,6 +14,7 @@ from .pne_macro_ingestion import (
     load_municipality_universe,
 )
 from .state_config import DEFAULT_STATE_CODE
+from .pne_state_context import resolve_state_snapshot_dir
 
 
 MUNIC_CAREER_RELATION_ID = "relation.17.c.munic_planos_carreira_declarados"
@@ -67,7 +68,11 @@ def load_normalized_source(
     *,
     state_code: str = DEFAULT_STATE_CODE,
 ) -> dict[str, Mapping[str, Any]]:
-    source_path = path or SOURCE_PATHS[source_id]
+    default_path = SOURCE_PATHS[source_id]
+    source_path = path or (
+        resolve_state_snapshot_dir(default_path.parent, state_code)
+        / default_path.name
+    )
     payload = json.loads(source_path.read_text(encoding="utf-8"))
     if payload.get("schemaVersion") != NORMALIZED_SCHEMA:
         raise ValueError(f"{source_id}: schema normalizado inválido.")
@@ -92,15 +97,39 @@ def load_normalized_source(
     return dict(sorted(records.items()))
 
 
-def load_macro_source_records() -> tuple[
+def load_macro_source_records(
+    state_code: str = DEFAULT_STATE_CODE,
+    *,
+    data_root: Path | None = None,
+) -> tuple[
     dict[str, Mapping[str, Any]],
     dict[str, Mapping[str, Any]],
     dict[str, Mapping[str, Any]],
 ]:
-    return (
-        load_normalized_source("ibge_munic_2021"),
-        load_normalized_source("capes_sucupira_2024"),
-        load_normalized_source("inep_quality_offer"),
+    paths = None
+    if data_root is not None:
+        root = Path(data_root).resolve()
+        paths = {
+            "ibge_munic_2021": root / "munic_2021" / "normalized.json",
+            "capes_sucupira_2024": root / "capes_2024" / "normalized.json",
+            "inep_quality_offer": root / "quality_offer" / "normalized.json",
+        }
+    return tuple(
+        load_normalized_source(
+            source_id,
+            (
+                resolve_state_snapshot_dir(paths[source_id].parent, state_code)
+                / paths[source_id].name
+                if paths is not None
+                else None
+            ),
+            state_code=state_code,
+        )
+        for source_id in (
+            "ibge_munic_2021",
+            "capes_sucupira_2024",
+            "inep_quality_offer",
+        )
     )
 
 

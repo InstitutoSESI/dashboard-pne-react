@@ -811,8 +811,11 @@ def load_dataset(dataset_name: str) -> pd.DataFrame:
     return _load_dataset_frame(dataset_name, _current_cache_bucket())
 
 
-@lru_cache(maxsize=4)
-def _load_municipios_cached(cache_bucket: int) -> tuple[str, ...]:
+@lru_cache(maxsize=8)
+def _load_municipios_cached(
+    cache_bucket: int,
+    state_code: str,
+) -> tuple[str, ...]:
     backend = get_data_backend()
 
     if backend == "supabase":
@@ -825,8 +828,11 @@ def _load_municipios_cached(cache_bucket: int) -> tuple[str, ...]:
             JOIN municipios m
               ON c.id_municipio::text = m.id_municipio::text
             WHERE m.municipio IS NOT NULL
+              AND c.sigla_uf = :uf
+              AND m.sigla_uf = :uf
             ORDER BY m.municipio
             """,
+            params={"uf": state_code},
             query_id="repository.postgres.municipalities",
         )
 
@@ -839,16 +845,17 @@ def _load_municipios_cached(cache_bucket: int) -> tuple[str, ...]:
 
 
 def load_municipios() -> list[str]:
+    state_code = resolve_pipeline_state_code()
     ttl_seconds = get_data_cache_ttl_seconds()
     if ttl_seconds <= 0:
-        return list(_load_municipios_cached.__wrapped__(-1))
+        return list(_load_municipios_cached.__wrapped__(-1, state_code))
     bucket = _current_cache_bucket()
     return list(
         profiled_cache_call(
             "repository.municipalities_cache",
-            lambda: _load_municipios_cached(bucket),
+            lambda: _load_municipios_cached(bucket, state_code),
             _load_municipios_cached.cache_info,
-            metadata={"datasetId": "municipalities"},
+            metadata={"datasetId": "municipalities", "stateCode": state_code},
         )
     )
 

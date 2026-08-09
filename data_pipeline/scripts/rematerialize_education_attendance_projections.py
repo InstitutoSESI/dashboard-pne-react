@@ -42,9 +42,13 @@ from src.pne_2026_projections import (  # noqa: E402
     STATE_DAMPED_HOLT_METHOD,
     build_all_projections,
 )
+from src.pne_state_context import (  # noqa: E402
+    PneStateContext,
+    load_pne_state_context,
+)
+from src.state_publication import resolve_public_data_dir  # noqa: E402
 
 
-EXPECTED_MUNICIPALITIES = 497
 EXPECTED_INDICATORS = tuple(AGE_INDICATORS)
 EXPECTED_METHODS = {
     "creche": PERSISTENCE_METHOD,
@@ -95,13 +99,16 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _municipality_entries(public_data_dir: Path) -> list[dict[str, str]]:
+def _municipality_entries(
+    public_data_dir: Path,
+    state: PneStateContext,
+) -> list[dict[str, str]]:
     index_path = public_data_dir / "municipios_index.json"
     index = _load_json(index_path)
     raw_entries = index.get("municipios")
     if not isinstance(raw_entries, list):
         raise ValueError("Índice público sem lista de municípios.")
-    if len(raw_entries) != EXPECTED_MUNICIPALITIES:
+    if len(raw_entries) != state.expected_municipality_count:
         raise ValueError(
             "Cobertura municipal divergente no índice público: "
             f"{len(raw_entries)}."
@@ -119,10 +126,14 @@ def _municipality_entries(public_data_dir: Path) -> list[dict[str, str]]:
 
     names = [entry["name"] for entry in entries]
     municipality_ids = [entry["id"] for entry in entries]
-    if len(set(names)) != EXPECTED_MUNICIPALITIES:
+    if len(set(names)) != state.expected_municipality_count:
         raise ValueError("Nomes municipais duplicados no índice público.")
-    if len(set(municipality_ids)) != EXPECTED_MUNICIPALITIES:
+    if len(set(municipality_ids)) != state.expected_municipality_count:
         raise ValueError("Códigos municipais duplicados no índice público.")
+    if frozenset(municipality_ids) != state.municipality_ids:
+        raise ValueError(
+            f"Universo municipal diverge do registro de {state.state_code}."
+        )
     return entries
 
 
@@ -395,21 +406,27 @@ def _without_projection_targets(payload: dict[str, Any]) -> dict[str, Any]:
     return comparable
 
 
-def prepare_stage(public_data_dir: Path) -> dict[str, Any]:
+def prepare_stage(
+    public_data_dir: Path,
+    state_code: str = "RS",
+) -> dict[str, Any]:
+    state = load_pne_state_context(state_code)
     public_root = public_data_dir.resolve()
-    entries = _municipality_entries(public_root)
+    entries = _municipality_entries(public_root, state)
     municipality_names = [entry["name"] for entry in entries]
 
     frames = _projection_frames_from_public(entries, public_root)
     projections = build_all_projections(
         municipality_names,
         dataframes=frames,
+        state_code=state.state_code,
     )
     if set(projections) != set(municipality_names):
         raise ValueError("Cobertura municipal divergente nas projeções.")
     planning = load_approved_planning_scenarios(
         PLANNING_SCENARIOS_DIR,
         municipality_names,
+        state_code=state.state_code,
     )
     attendance = build_education_attendance_payload(
         {"municipios": projections},
@@ -496,8 +513,12 @@ def prepare_stage(public_data_dir: Path) -> dict[str, Any]:
         aggregate_hash.update(b"\0")
         aggregate_hash.update(content)
         aggregate_hash.update(b"\0")
-        if municipality_id == "4318705":
-            municipality_summaries["saoLeopoldo"] = {
+        sample_ids = {"RS": ("4318705", "saoLeopoldo"), "AL": ("2704302", "maceio")}
+        sample_id, sample_key = sample_ids.get(
+            state.state_code, (next(iter(sorted(state.municipality_ids))), "sample")
+        )
+        if municipality_id == sample_id:
+            municipality_summaries[sample_key] = {
                 "displayableScenarios": municipal_displayable,
                 "projected2036": {
                     indicator_key: {
@@ -514,7 +535,7 @@ def prepare_stage(public_data_dir: Path) -> dict[str, Any]:
                 },
             }
 
-    if len(staged) != EXPECTED_MUNICIPALITIES:
+    if len(staged) != state.expected_municipality_count:
         raise ValueError("Quantidade de arquivos preparados divergente.")
     return {
         "files": staged,
@@ -597,13 +618,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Recalcula, valida e rematerializa somente as projeções de "
-            "atendimento nos 497 arquivos municipais."
+            "atendimento nos arquivos municipais da UF selecionada."
         )
     )
+    parser.add_argument("--state", default="RS")
     parser.add_argument(
         "--public-data-dir",
         type=Path,
-        default=PUBLIC_DATA_DIR,
+        default=None,
     )
     parser.add_argument(
         "--apply",
@@ -612,11 +634,12 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    prepared = prepare_stage(args.public_data_dir)
+    public_data_dir = args.public_data_dir or resolve_public_data_dir(args.state)
+    prepared = prepare_stage(public_data_dir, state_code=args.state)
     if args.apply:
         promote_transactionally(
             prepared["files"],
-            args.public_data_dir,
+            public_data_dir,
         )
     print(
         json.dumps(

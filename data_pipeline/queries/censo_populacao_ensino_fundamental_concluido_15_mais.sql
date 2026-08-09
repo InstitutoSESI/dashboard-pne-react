@@ -22,6 +22,9 @@ FROM pne2026_goal_11b_15_17_snapshot t15
 JOIN pne2026_censo_10061_municipal_components t18
   ON t18.ano = t15.ano
  AND t18.id_municipio = t15.id_municipio
+JOIN municipios m
+  ON m.id_municipio::text = t15.id_municipio::text
 WHERE t15.ano = 2022
   AND t15.status_valor = 'available'
-  AND t18.status_valor = 'available';
+  AND t18.status_valor = 'available'
+  AND m.sigla_uf = :uf;

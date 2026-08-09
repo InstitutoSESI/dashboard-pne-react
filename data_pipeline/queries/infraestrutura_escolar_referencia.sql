@@ -37,4 +37,5 @@ SELECT
     ce.qt_salas_utilizadas_acessiveis
 FROM censo_escolas ce
 JOIN municipios m
-    ON ce.id_municipio::text = m.id_municipio::text;
+    ON ce.id_municipio::text = m.id_municipio::text
+WHERE ce.sigla_uf = :uf;

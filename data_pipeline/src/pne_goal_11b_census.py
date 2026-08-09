@@ -10,6 +10,11 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from .pne_state_context import (
+    load_pne_state_context,
+    resolve_state_snapshot_dir,
+)
+
 
 AGGREGATE_ID = "10061"
 CENSUS_YEAR = 2022
@@ -53,13 +58,14 @@ METADATA_URL = (
 )
 
 
-def data_url() -> str:
+def data_url(state_code: str = "RS") -> str:
+    state = load_pne_state_context(state_code)
     ages = ",".join(AGE_IDS.values())
     education = ",".join(EDUCATION_IDS.values())
     return (
         "https://servicodados.ibge.gov.br/api/v3/agregados/"
         f"{AGGREGATE_ID}/periodos/{CENSUS_YEAR}/variaveis/{VARIABLE_ID}"
-        f"?localidades={TERRITORIAL_LEVEL}[N3[{RS_STATE_ID}]]"
+        f"?localidades={TERRITORIAL_LEVEL}[N3[{state.state_id}]]"
         f"&classificacao={SEX_CLASSIFICATION_ID}[{SEX_TOTAL_ID}]"
         f"|{AGE_CLASSIFICATION_ID}[{ages}]"
         f"|{RACE_CLASSIFICATION_ID}[{RACE_TOTAL_ID}]"
@@ -355,6 +361,8 @@ def _combine_ranges(*ranges: Mapping[str, Any]) -> dict[str, Any]:
 def build_municipal_components(
     sidra: Mapping[str, Mapping[str, Mapping[str, Any]]],
     fifteen_to_seventeen: Iterable[Mapping[str, Any]],
+    *,
+    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
 ) -> list[dict[str, Any]]:
     local_by_code: dict[str, Mapping[str, Any]] = {}
     for row in fifteen_to_seventeen:
@@ -397,7 +405,7 @@ def build_municipal_components(
                 "fifteenPlus": _combine_ranges(fifteen, eighteen_plus),
             }
         )
-    if len(rows) != EXPECTED_MUNICIPALITIES:
+    if len(rows) != expected_municipalities:
         raise ValueError(
             f"Cobertura municipal inválida: {len(rows)} municípios."
         )
@@ -454,12 +462,14 @@ def ratio_result(component: Mapping[str, Any]) -> dict[str, Any]:
 def state_ratio(
     rows: Iterable[Mapping[str, Any]],
     component_key: str,
+    *,
+    expected_municipalities: int = EXPECTED_MUNICIPALITIES,
 ) -> dict[str, Any]:
     results = [ratio_result(row[component_key]) for row in rows]
     available = [
         result for result in results if result["dataStatus"] == "available"
     ]
-    if len(available) != EXPECTED_MUNICIPALITIES:
+    if len(available) != expected_municipalities:
         return {
             "dataStatus": "unavailable",
             "value": None,
@@ -477,14 +487,23 @@ def state_ratio(
 
 
 def load_snapshot(
-    snapshot_dir: Path = SNAPSHOT_DIR,
+    snapshot_dir: Path | None = None,
+    *,
+    state_code: str = "RS",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    root = snapshot_dir.resolve()
+    state = load_pne_state_context(state_code)
+    root = (
+        Path(snapshot_dir)
+        if snapshot_dir is not None
+        else resolve_state_snapshot_dir(SNAPSHOT_DIR, state.state_code)
+    ).resolve()
     manifest_path = root / "manifest.json"
     components_path = root / "municipal_components.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("schemaVersion") != "pne-goal-11b-census-snapshot-v1":
         raise ValueError("Schema do snapshot censitário 11.b inválido.")
+    if manifest.get("stateCode", "RS") != state.state_code:
+        raise ValueError("UF do snapshot censitário 11.b divergente.")
     files = manifest.get("files") or {}
     for filename, expected_hash in files.items():
         path = root / filename
@@ -493,9 +512,11 @@ def load_snapshot(
     rows = json.loads(components_path.read_text(encoding="utf-8"))
     if (
         not isinstance(rows, list)
-        or len(rows) != EXPECTED_MUNICIPALITIES
+        or len(rows) != state.expected_municipality_count
         or len({str(row.get("municipalityId")) for row in rows})
-        != EXPECTED_MUNICIPALITIES
+        != state.expected_municipality_count
     ):
         raise ValueError("Cobertura municipal do snapshot 11.b inválida.")
+    if {str(row.get("municipalityId")) for row in rows} != state.municipality_ids:
+        raise ValueError("Universo municipal do snapshot 11.b divergente.")
     return rows, manifest

@@ -1,4 +1,4 @@
-"""Referência estadual do RS para os indicadores comparáveis do PNE 2014–2024.
+"""Referência estadual configurável dos indicadores comparáveis do PNE 2014–2024.
 
 O ciclo encerrado tem um artefato próprio. Nenhum valor estadual é derivado da
 média de percentuais municipais: cada série usa os numeradores e denominadores
@@ -27,9 +27,11 @@ from .pne_state_reference import (
     _build_census_records,
     _build_escolas_integral_records,
     _build_medio_tecnico_participacao_records,
+    _finalize_series,
     _load_reference_frames,
     aggregate_ratio_of_sums,
 )
+from .pne_state_context import load_pne_state_context
 
 
 REFERENCE_START_YEAR = 2014
@@ -294,7 +296,10 @@ def _blocked_metadata(indicator_id: str, reason: str, *, unit: str = "percent") 
     )
 
 
-def build_registry() -> dict[str, dict[str, Any]]:
+def build_registry(
+    *,
+    methodology_version: str = METHODOLOGY_VERSION,
+) -> dict[str, dict[str, Any]]:
     registry: dict[str, dict[str, Any]] = {
         key: dict(value) for key, value in RATIO_CONFIGS.items()
     }
@@ -381,6 +386,8 @@ def build_registry() -> dict[str, dict[str, Any]]:
     for key, reason in BLOCKED_REASONS.items():
         registry[key] = _blocked_metadata(key, reason, unit=units.get(key, "percent"))
 
+    for metadata in registry.values():
+        metadata["methodology_version"] = methodology_version
     return registry
 
 
@@ -388,8 +395,14 @@ def _status_for_records(records: list[dict[str, Any]]) -> str:
     return COMPARABLE if any(record.get("comparison_status") == COMPARABLE for record in records) else UNAVAILABLE
 
 
-def _build_alfabetizacao_state_records() -> list[dict[str, Any]]:
-    _municipal, state_rows, _manifest = load_child_literacy_snapshot()
+def _build_alfabetizacao_state_records(
+    *,
+    state_code: str = STATE_CODE,
+    municipalities_expected: int = EXPECTED_RS_MUNICIPALITIES,
+) -> list[dict[str, Any]]:
+    _municipal, state_rows, _manifest = load_child_literacy_snapshot(
+        state_code=state_code
+    )
     records = []
     for row in state_rows:
         year = int(row["ano"])
@@ -405,7 +418,7 @@ def _build_alfabetizacao_state_records() -> list[dict[str, Any]]:
                 "denominator": None,
                 "aggregation_method": "official_state_municipal_network_result",
                 "municipalities_valid": None,
-                "municipalities_expected": EXPECTED_RS_MUNICIPALITIES,
+                "municipalities_expected": municipalities_expected,
                 "municipal_coverage_percent": None,
                 "denominator_coverage_percent": None,
                 "comparison_status": COMPARABLE,
@@ -418,17 +431,24 @@ def _build_alfabetizacao_state_records() -> list[dict[str, Any]]:
     return records
 
 
-def build_alfabetizacao_state_reference_entry() -> tuple[
+def build_alfabetizacao_state_reference_entry(
+    state_code: str = STATE_CODE,
+) -> tuple[
     dict[str, Any],
     dict[str, Any],
 ]:
-    metadata = build_registry()["alfabetizacao"]
+    state = load_pne_state_context(state_code)
+    methodology_version = state.methodology_version("pne_2014_2024")
+    metadata = build_registry(methodology_version=methodology_version)["alfabetizacao"]
     records = _add_common_series_fields(
-        _build_alfabetizacao_state_records(),
+        _build_alfabetizacao_state_records(
+            state_code=state.state_code,
+            municipalities_expected=state.expected_municipality_count,
+        ),
         metadata,
-        methodology_version=METHODOLOGY_VERSION,
+        methodology_version=methodology_version,
     )
-    status = _status_for_records(records)
+    status, records = _finalize_series(records)
     updated_metadata = {**metadata, "comparison_status": status}
     return updated_metadata, {
         **updated_metadata,
@@ -437,16 +457,20 @@ def build_alfabetizacao_state_reference_entry() -> tuple[
     }
 
 
-def build_state_reference() -> dict[str, Any]:
+def build_state_reference(state_code: str = STATE_CODE) -> dict[str, Any]:
     """Calcula o artefato estadual completo do ciclo encerrado."""
 
-    registry = build_registry()
+    state = load_pne_state_context(state_code)
+    methodology_version = state.methodology_version("pne_2014_2024")
+    registry = build_registry(methodology_version=methodology_version)
     frames, load_errors = _load_reference_frames()
     indicators: dict[str, dict[str, Any]] = {}
 
     for indicator_id, metadata in registry.items():
         if indicator_id == "alfabetizacao":
-            metadata, indicator = build_alfabetizacao_state_reference_entry()
+            metadata, indicator = build_alfabetizacao_state_reference_entry(
+                state.state_code
+            )
             registry[indicator_id] = metadata
             indicators[indicator_id] = indicator
             continue
@@ -475,13 +499,13 @@ def build_state_reference() -> dict[str, Any]:
                 indicator_id=indicator_id,
                 filters=config.get("filters"),
                 denominator_aggregation=config.get("denominator_aggregation", "sum"),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
                 base_notes=config["notes"],
             )
         elif indicator_id == "escolas_integral":
             records = _build_escolas_integral_records(
                 frames.get("infra_school", pd.DataFrame()),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
             records = [
                 record
@@ -494,12 +518,12 @@ def build_state_reference() -> dict[str, Any]:
                 frames.get(config["loader_key"], pd.DataFrame()),
                 indicator_id=indicator_id,
                 config=config,
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
             )
         elif indicator_id == "medio_tecnico_participacao_publica":
             records = _build_medio_tecnico_participacao_records(
                 frames.get("ept", pd.DataFrame()),
-                municipalities_expected=EXPECTED_RS_MUNICIPALITIES,
+                municipalities_expected=state.expected_municipality_count,
                 reference_start_year=2013,
                 reference_end_year=REFERENCE_END_YEAR,
             )
@@ -508,9 +532,9 @@ def build_state_reference() -> dict[str, Any]:
         records = _add_common_series_fields(
             records,
             metadata,
-            methodology_version=METHODOLOGY_VERSION,
+            methodology_version=methodology_version,
         )
-        status = _status_for_records(records)
+        status, records = _finalize_series(records)
         updated_metadata = {**metadata, "comparison_status": status}
         if indicator_id in UNAVAILABLE_REASONS and status == UNAVAILABLE:
             updated_metadata["notes"] = (
@@ -536,12 +560,12 @@ def build_state_reference() -> dict[str, Any]:
     )
     return {
         "cycle": "pne_2014_2024",
-        "state": STATE_CODE,
-        "state_name": STATE_NAME,
+        "state": state.state_code,
+        "state_name": state.state_name,
         "generated_at": None,
-        "municipalities_expected": EXPECTED_RS_MUNICIPALITIES,
-        "municipalities_universe": "Todos os municípios do Rio Grande do Sul",
-        "methodology_version": METHODOLOGY_VERSION,
+        "municipalities_expected": state.expected_municipality_count,
+        "municipalities_universe": state.municipality_universe_label,
+        "methodology_version": methodology_version,
         "registry": registry,
         "indicators": indicators,
         "enabled_indicators": enabled,
@@ -549,7 +573,7 @@ def build_state_reference() -> dict[str, Any]:
         "unavailable_indicators": unavailable,
         "source_load_errors": load_errors,
         "notes": (
-            "Referência fixa do RS, independente do município selecionado. "
+            f"Referência fixa de {state.state_name}, independente do município selecionado. "
             "Valores armazenados sem arredondamento; a apresentação arredonda somente "
             "no último passo. Nenhuma taxa municipal foi usada como substituta de "
             "numerador ou denominador estadual."

@@ -19,4 +19,5 @@ FROM censo_populacao_ensino_fundamental_concluido_18_mais t1
 LEFT JOIN totais t2
     ON t2.ano = t1.ano
    AND t2.id_municipio = t1.id_municipio
-WHERE t1.ano IN (2010, 2022);
+WHERE t1.ano IN (2010, 2022)
+  AND t1.sigla_uf = :uf;

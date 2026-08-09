@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from data_pipeline.scripts.materialize_state_identity_publication import (
-    load_identity_publication_inputs,
     materialize_identity_publication,
 )
 from data_pipeline.src.identity_publication import (
@@ -16,6 +16,33 @@ from data_pipeline.src.identity_publication import (
     validate_identity_publication,
     write_staged_publication,
 )
+from data_pipeline.src.municipality_registry import load_municipality_registry
+from data_pipeline.src.state_config import load_state_config
+from data_pipeline.src.state_publication import load_state_publication
+
+
+def _legacy_identity_inputs():
+    """Mantém os testes unitários do publicador legado após AL virar complete."""
+    active = load_state_publication("AL")
+    publication = replace(
+        active,
+        analytics_status="identity-only",
+        analytics_message="Indicadores ainda não publicados.",
+    )
+    state = load_state_config("AL", config_dir=publication.state_config_path.parent)
+    registry = load_municipality_registry(
+        state,
+        registry_path=publication.municipality_registry_path,
+    )
+    source = {
+        "generatedAt": "2026-08-07T16:03:54Z",
+        "sourceManifestPath": (
+            "data_pipeline/data/municipality_registry_sources/al/manifest.json"
+        ),
+        "sourceManifestSha256": "0" * 64,
+        "responseBodySha256": "1" * 64,
+    }
+    return publication, state, registry, source
 
 
 def _publication_validator(publication, state, registry, source):
@@ -31,8 +58,8 @@ def _publication_validator(publication, state, registry, source):
     )
 
 
-def test_real_al_inputs_build_the_exact_identity_only_file_set(tmp_path: Path) -> None:
-    publication, state, registry, source = load_identity_publication_inputs("al")
+def test_legacy_identity_inputs_build_the_exact_file_set(tmp_path: Path) -> None:
+    publication, state, registry, source = _legacy_identity_inputs()
     files = build_identity_publication_files(
         publication=publication,
         state_config=state,
@@ -67,7 +94,7 @@ def test_real_al_inputs_build_the_exact_identity_only_file_set(tmp_path: Path) -
 
     manifest_path = tmp_path / "publication.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["source"]["manifestSha256"] = "0" * 64
+    manifest["source"]["manifestSha256"] = "2" * 64
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -77,7 +104,7 @@ def test_real_al_inputs_build_the_exact_identity_only_file_set(tmp_path: Path) -
 
 
 def test_promotion_preserves_identical_files_and_mtime(tmp_path: Path) -> None:
-    publication, state, registry, source = load_identity_publication_inputs("AL")
+    publication, state, registry, source = _legacy_identity_inputs()
     files = build_identity_publication_files(
         publication=publication,
         state_config=state,
@@ -105,7 +132,7 @@ def test_promotion_preserves_identical_files_and_mtime(tmp_path: Path) -> None:
 
 
 def test_failed_target_validation_rolls_back_every_changed_file(tmp_path: Path) -> None:
-    publication, state, registry, source = load_identity_publication_inputs("AL")
+    publication, state, registry, source = _legacy_identity_inputs()
     files = build_identity_publication_files(
         publication=publication,
         state_config=state,
@@ -132,9 +159,6 @@ def test_failed_target_validation_rolls_back_every_changed_file(tmp_path: Path) 
     assert after == before
 
 
-def test_check_validates_the_materialized_real_al_publication() -> None:
-    result = materialize_identity_publication("AL", check=True)
-
-    assert result["mode"] == "check"
-    assert result["municipalityCount"] == 102
-    assert result["fileCount"] == 104
+def test_real_al_complete_publication_rejects_identity_materialization() -> None:
+    with pytest.raises(ValueError, match="identity-only"):
+        materialize_identity_publication("AL", check=True)

@@ -27,6 +27,7 @@ from src.pne.goal_indicator_contract import (
     get_formula_for_indicator,
     get_indicator_reference_profile,
 )
+from src.pne_state_context import load_pne_state_context
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
@@ -230,7 +231,7 @@ INDICATOR_CONFIGS = {
 }
 
 
-def load_rs_population_projection(path):
+def load_state_population_projection(path, state_code="RS"):
     df = pd.read_excel(
         path,
         sheet_name="1) POP_IDADE SIMPLES",
@@ -243,8 +244,13 @@ def load_rs_population_projection(path):
             f"Encontradas: {list(df.columns[:8])}"
         )
 
-    df = df[df["SIGLA"] == "RS"].copy()
+    state = load_pne_state_context(state_code)
+    df = df[df["SIGLA"] == state.state_code].copy()
     df = df[df["SEXO"] == "Ambos"].copy()
+    if df.empty:
+        raise ValueError(
+            f"Planilha de projeção populacional não contém {state.state_code}."
+        )
 
     year_cols = [col for col in df.columns if isinstance(col, (int, float))]
     df = df[["IDADE"] + year_cols].copy()
@@ -259,7 +265,13 @@ def load_rs_population_projection(path):
     return df
 
 
-def build_rs_population_by_age_group(df, age_groups):
+def load_rs_population_projection(path):
+    """Compatibilidade com os consumidores legados do RS."""
+
+    return load_state_population_projection(path, "RS")
+
+
+def build_state_population_by_age_group(df, age_groups):
     result = {}
     for group_key, ages in age_groups.items():
         subset = df[df["IDADE"].isin(ages)]
@@ -271,8 +283,16 @@ def build_rs_population_by_age_group(df, age_groups):
     return result
 
 
-def get_population_factors_for_base_year(rs_by_group, age_group, base_year, target_years):
-    series = rs_by_group.get(age_group)
+def build_rs_population_by_age_group(df, age_groups):
+    """Compatibilidade com os consumidores legados do RS."""
+
+    return build_state_population_by_age_group(df, age_groups)
+
+
+def get_population_factors_for_base_year(
+    state_by_group, age_group, base_year, target_years
+):
+    series = state_by_group.get(age_group)
     if series is None or series.empty:
         return None
 
@@ -560,6 +580,7 @@ def project_numerator(
     model=PERSISTENCE_NUMERATOR_MODEL,
     state_series=None,
     model_parameters=None,
+    state_name="Rio Grande do Sul",
 ):
     """Project a regular annual numerator with a backtested model.
 
@@ -708,7 +729,7 @@ def project_numerator(
         if trends_diverge:
             warnings_list.append(
                 "As tendências municipais recente e longa divergem; o cenário "
-                "usa a evolução agregada das matrículas no Rio Grande do Sul."
+                f"usa a evolução agregada das matrículas em {state_name}."
             )
     elif model == MUNICIPAL_SHRINK_NUMERATOR_MODEL:
         municipal_state_model = _municipal_state_shrunk_projection(
@@ -800,7 +821,7 @@ def project_numerator(
             **(
                 {
                     "aggregateModel": {
-                        "territory": "Rio Grande do Sul",
+                        "territory": state_name,
                         **aggregate_model["parameters"],
                         "stateBaseValue": round(
                             float(aggregate_model["stateBaseValue"]), 6
@@ -834,7 +855,7 @@ def project_numerator(
                         ],
                         "stateWeight": municipal_state_model["stateWeight"],
                         "fallback": municipal_state_model.get("fallback"),
-                        "territory": "Rio Grande do Sul",
+                        "territory": state_name,
                     }
                 }
                 if municipal_state_model is not None
@@ -876,9 +897,10 @@ def _aggregate_state_numerator_series(dataframe, numerator_column):
 def build_indicator_projection(
     municipio,
     config,
-    rs_by_group,
+    state_by_group,
     dataframe=None,
     state_series=None,
+    state_name="Rio Grande do Sul",
 ):
     indicator_key = config["key"]
     cfg = INDICATOR_CONFIGS[indicator_key]
@@ -950,6 +972,7 @@ def build_indicator_projection(
             if numerator_model == MUNICIPAL_SHRINK_NUMERATOR_MODEL
             else STATE_DAMPED_HOLT_PARAMETERS.get(indicator_key)
         ),
+        state_name=state_name,
     )
     if not num_result["available"]:
         return {"available": False, "reason": num_result["reason"], "warnings": []}
@@ -963,7 +986,7 @@ def build_indicator_projection(
     age_group = cfg["age_group"]
 
     pop_factor_info = get_population_factors_for_base_year(
-        rs_by_group, age_group, pop_base_year, TARGET_YEARS
+        state_by_group, age_group, pop_base_year, TARGET_YEARS
     )
 
     all_warnings = list(num_result.get("warnings", []))
@@ -971,17 +994,20 @@ def build_indicator_projection(
 
     if pop_factor_info is None:
         all_warnings.append(
-            f"Fator populacional do RS indisponivel para faixa {age_group} "
+            f"Fator populacional de {state_name} indisponivel para faixa {age_group} "
             f"com ano-base {pop_base_year}"
         )
         return {
             "available": False,
-            "reason": "Fator populacional do RS indisponivel para o ano-base efetivo",
+            "reason": (
+                f"Fator populacional de {state_name} indisponivel para o "
+                "ano-base efetivo"
+            ),
             "warnings": all_warnings,
         }
 
     factors = pop_factor_info["factors"]
-    rs_base_year = pop_factor_info["base_year_efetivo"]
+    state_base_year = pop_factor_info["base_year_efetivo"]
 
     historical_pop_values = []
     for r in series:
@@ -1083,14 +1109,14 @@ def build_indicator_projection(
         "interpretation": (
             (
                 "O cenário combina o histórico de matrículas do município e "
-                "do Rio Grande do Sul com a evolução projetada da população."
+                f"de {state_name} com a evolução projetada da população."
             )
             if uses_municipal_state_trend
             else (
                 (
                     "O cenário parte do número mais recente de matrículas do "
-                    "município, acompanha a evolução das matrículas no Rio "
-                    "Grande do Sul e considera a evolução projetada da população."
+                    "município, acompanha a evolução das matrículas em "
+                    f"{state_name} e considera a evolução projetada da população."
                 )
                 if uses_state_holt
                 else (
@@ -1115,8 +1141,8 @@ def build_indicator_projection(
         "methodCode": "municipal_base_times_rs_age_factor",
         "formula": (
             "população municipal no ano-base × "
-            "(população projetada do RS na faixa e ano / "
-            "população projetada do RS na faixa e ano-base)"
+            f"(população projetada de {state_name} na faixa e ano / "
+            f"população projetada de {state_name} na faixa e ano-base)"
         ),
         "historicalPopulationSourceId": "municipal_age_population_panel",
         "projectionSourceId": "ibge_population_projection_2024",
@@ -1124,7 +1150,7 @@ def build_indicator_projection(
         "projectionSourceSha256": projection_lineage.get("sourceSha256"),
         "populationAgeGroup": age_group,
         "municipalBaseYear": pop_base_year,
-        "stateProjectionBaseYear": rs_base_year,
+        "stateProjectionBaseYear": state_base_year,
         "territorialBasis": "população residente municipal",
     }
 
@@ -1132,12 +1158,12 @@ def build_indicator_projection(
         method = MUNICIPAL_SHRINK_METHOD
         method_label = (
             "Cenário baseado no histórico de matrículas do município e do "
-            "Rio Grande do Sul, combinado à evolução projetada da população."
+            f"{state_name}, combinado à evolução projetada da população."
         )
     elif uses_state_holt:
         method = STATE_DAMPED_HOLT_METHOD
         method_label = (
-            "Cenário baseado na evolução das matrículas no Rio Grande do Sul "
+            f"Cenário baseado na evolução das matrículas em {state_name} "
             "e na evolução projetada da população do município."
         )
     else:
@@ -1194,21 +1220,35 @@ def build_all_projections(
     municipios,
     population_projection_path: str | Path | None = None,
     dataframes: dict[str, pd.DataFrame] | None = None,
+    state_code: str = "RS",
 ):
-    rs_path = Path(
+    state = load_pne_state_context(state_code)
+    municipality_names = tuple(str(name) for name in municipios)
+    if (
+        len(municipality_names) != state.expected_municipality_count
+        or frozenset(municipality_names)
+        != frozenset(state.municipality_names.values())
+    ):
+        raise ValueError(
+            f"Universo municipal diverge do registro de {state.state_code}."
+        )
+
+    projection_path = Path(
         population_projection_path or POPULATION_PROJECTION_SOURCE_PATH
     ).resolve()
-    if not rs_path.is_file():
+    if not projection_path.is_file():
         raise FileNotFoundError(
             "Arquivo de projeção populacional do IBGE não encontrado. "
             "Configure POPULATION_PROJECTION_SOURCE_PATH com o caminho do "
             "snapshot projecao_pop.xlsx documentado no contrato."
         )
 
-    rs_df = load_rs_population_projection(str(rs_path))
+    state_df = load_state_population_projection(
+        str(projection_path), state.state_code
+    )
 
     age_groups = {cfg["age_group"]: cfg["ages"] for cfg in INDICATOR_CONFIGS.values()}
-    rs_by_group = build_rs_population_by_age_group(rs_df, age_groups)
+    state_by_group = build_state_population_by_age_group(state_df, age_groups)
 
     frames = dict(dataframes or {})
     load_errors = {}
@@ -1237,7 +1277,7 @@ def build_all_projections(
     }
 
     results = {}
-    for municipio in municipios:
+    for municipio in municipality_names:
         municipio_projections = {}
         for indicator_key in INDICATOR_CONFIGS:
             if indicator_key in load_errors:
@@ -1252,9 +1292,10 @@ def build_all_projections(
                 proj = build_indicator_projection(
                     municipio,
                     config,
-                    rs_by_group,
+                    state_by_group,
                     dataframe=frames[indicator_key],
                     state_series=state_series_by_indicator.get(indicator_key),
+                    state_name=state.state_name,
                 )
                 municipio_projections[indicator_key] = proj
             except Exception as exc:

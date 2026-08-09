@@ -74,7 +74,11 @@ const isClosedCycle = payload.cycle === 'pne_2014_2024'
 const expectedMethodologyVersion = isClosedCycle
   ? `pne2014-${stateCode.toLowerCase()}-reference-v1`
   : `pne2026-${stateCode.toLowerCase()}-reference-v1`
-const expectedRegistryCount = isClosedCycle ? 24 : 50
+const expectedRegistryCount = isClosedCycle
+  ? 24
+  : stateCode === 'RS'
+    ? 50
+    : 51
 const requiredRegistryFields = [
   'indicator_id',
   'aggregation_method',
@@ -126,11 +130,17 @@ assert(Object.keys(payload.registry).length === expectedRegistryCount, `O regist
 assert(Object.keys(payload.indicators).length === expectedRegistryCount, `O artefato deve conter ${expectedRegistryCount} indicadores.`)
 if (isClosedCycle) {
   assert(Array.isArray(payload.enabled_indicators), 'Lista de indicadores habilitados ausente.')
+  const expectedUnavailable = stateCode === 'RS'
+    ? [
+        'ensino_fundamental_ou_completo_pop_6_14',
+        'ensino_medio_ou_basica_completa_pop_15_17',
+      ]
+    : Object.entries(payload.indicators)
+        .filter(([, indicator]) => indicator.comparison_status === 'unavailable')
+        .map(([indicatorId]) => indicatorId)
+        .sort()
   assert(
-    JSON.stringify(payload.unavailable_indicators) === JSON.stringify([
-      'ensino_fundamental_ou_completo_pop_6_14',
-      'ensino_medio_ou_basica_completa_pop_15_17',
-    ]),
+    JSON.stringify([...payload.unavailable_indicators].sort()) === JSON.stringify(expectedUnavailable),
     'Indicadores sem referência estadual não estão documentados.',
   )
   assert(!Object.prototype.hasOwnProperty.call(payload.registry, 'medio_tecnico_articulado_percentual'), 'A nova chave não pode aparecer no ciclo encerrado.')
