@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 import {
@@ -30,6 +30,19 @@ const alCurrent = JSON.parse(await readFile(
   new URL('state-publications/al/data/pne2026-diagnostic-v3/current.json', REPO_ROOT),
   'utf8',
 ))
+const alMunicipalityReleaseUrl = new URL(
+  `state-publications/al/data/pne2026-diagnostic-v3/releases/${alCurrent.releaseId}/municipios/`,
+  REPO_ROOT,
+)
+const alMunicipalityFiles = (await readdir(alMunicipalityReleaseUrl))
+  .filter((name) => name.endsWith('.json'))
+  .toSorted()
+const alMunicipalityDiagnostics = await Promise.all(
+  alMunicipalityFiles.map(async (name) => JSON.parse(await readFile(
+    new URL(name, alMunicipalityReleaseUrl),
+    'utf8',
+  ))),
+)
 const alV3 = JSON.parse(await readFile(
   new URL(
     `state-publications/al/data/pne2026-diagnostic-v3/releases/${alCurrent.releaseId}/municipios/2700102.json`,
@@ -265,7 +278,7 @@ test('V3 preserves above-100 values and complementary neutrality in the view mod
   }
 })
 
-test('Alagoas diagnostic publishes compatible state references for the same indicator and year', () => {
+test('Alagoas publishes the complete municipal comparison context used by RS', () => {
   const expectedRelationIds = [
     'relation.1.a.creche',
     'relation.1.c.pre_escola',
@@ -277,27 +290,68 @@ test('Alagoas diagnostic publishes compatible state references for the same indi
     'relation.11.c.medio_concluido_18_29',
     'relation.11.c.medio_concluido_18_mais',
   ]
-  const resultsByRelationId = new Map(
-    alV3.results.map((result) => [result.relationId, result]),
-  )
+  assert.equal(alMunicipalityDiagnostics.length, 102)
+  let stateComparisonCount = 0
+  let statewidePositionCount = 0
+  let similarMunicipalityComparisonCount = 0
 
-  for (const relationId of expectedRelationIds) {
-    const result = resultsByRelationId.get(relationId)
-    assert.ok(result, relationId)
-    assert.ok(result.stateComparison, relationId)
-    const point = alStateReference.indicators[result.indicatorId].series.find(
-      (candidate) => candidate.year === result.year,
+  for (const diagnostic of alMunicipalityDiagnostics) {
+    const resultsByRelationId = new Map(
+      diagnostic.results.map((result) => [result.relationId, result]),
     )
-    assert.equal(point.comparison_status, 'comparable', relationId)
-    assert.equal(result.stateComparison.year, result.year, relationId)
-    assert.equal(result.stateComparison.municipalityValue, result.value, relationId)
-    assert.equal(result.stateComparison.stateValue, point.value, relationId)
-    assert.equal(
-      result.stateComparison.difference,
-      result.value - point.value,
-      relationId,
-    )
+    for (const relationId of expectedRelationIds) {
+      const context = `${diagnostic.municipality.id}:${relationId}`
+      const result = resultsByRelationId.get(relationId)
+      assert.ok(result, context)
+      assert.ok(result.stateComparison, context)
+      assert.ok(result.statewidePosition, context)
+      assert.ok(result.similarMunicipalityComparison, context)
+      const point = alStateReference.indicators[result.indicatorId].series.find(
+        (candidate) => candidate.year === result.year,
+      )
+      assert.equal(point.comparison_status, 'comparable', context)
+      assert.equal(result.stateComparison.year, result.year, context)
+      assert.equal(result.stateComparison.municipalityValue, result.value, context)
+      assert.equal(result.stateComparison.stateValue, point.value, context)
+      assert.equal(
+        result.stateComparison.difference,
+        result.value - point.value,
+        context,
+      )
+      assert.equal(
+        typeof result.statewidePosition.reading,
+        'string',
+        context,
+      )
+      assert.equal(
+        result.similarMunicipalityComparison.title,
+        'Municípios com oferta educacional de tamanho semelhante',
+        context,
+      )
+      assert.equal(
+        result.similarMunicipalityComparison.year,
+        result.year,
+        context,
+      )
+      assert.equal(result.similarMunicipalityComparison.unit, 'percent', context)
+      assert.equal(
+        Number.isFinite(result.similarMunicipalityComparison.median),
+        true,
+        context,
+      )
+      assert.match(
+        result.similarMunicipalityComparison.reading,
+        /(acima|abaixo|próximo) da mediana/,
+        context,
+      )
+      stateComparisonCount += 1
+      statewidePositionCount += 1
+      similarMunicipalityComparisonCount += 1
+    }
   }
+  assert.equal(stateComparisonCount, 918)
+  assert.equal(statewidePositionCount, 918)
+  assert.equal(similarMunicipalityComparisonCount, 918)
 })
 
 test('diagnostic comparison reading guide is always visible', async () => {

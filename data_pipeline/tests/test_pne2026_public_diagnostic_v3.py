@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from data_pipeline.scripts.materialize_pne2026_public_diagnostic_v3 import (
+    _apply_municipal_context_comparisons,
     _apply_published_state_references,
     _bootstrap_cycle_methodology_results,
     compare_staging_directories,
@@ -178,6 +179,178 @@ class PublishedStateReferenceTest(unittest.TestCase):
 
         self.assertEqual(supplemented, [])
         self.assertNotIn("stateComparison", payload["results"][0])
+
+
+class MunicipalContextComparisonTest(unittest.TestCase):
+    @staticmethod
+    def _fixtures():
+        payloads = []
+        sizes = {}
+        registry_order = {}
+        for position in range(21):
+            municipality_id = f"27{position:05d}"
+            payloads.append(
+                {
+                    "municipality": {"id": municipality_id},
+                    "results": [
+                        {
+                            "relationId": "relation.1.a.creche",
+                            "indicatorId": "creche",
+                            "dataStatus": "available",
+                            "year": 2025,
+                            "value": float(position),
+                            "stateComparison": {"comparable": True},
+                        }
+                    ],
+                }
+            )
+            sizes[municipality_id] = {
+                "relation.1.a.creche": {2025: float(position + 1)}
+            }
+            registry_order[municipality_id] = position
+        return payloads, sizes, registry_order
+
+    def test_adds_statewide_position_and_same_size_cohort(self):
+        payloads, sizes, registry_order = self._fixtures()
+
+        audit = _apply_municipal_context_comparisons(
+            payloads,
+            sizes,
+            registry_order,
+            expected_municipalities=21,
+        )
+
+        first = payloads[0]["results"][0]
+        last = payloads[-1]["results"][0]
+        self.assertEqual(
+            first["statewidePosition"]["reading"],
+            "O município está entre os que apresentam maior espaço para "
+            "avançar neste resultado.",
+        )
+        self.assertIn("25%", last["statewidePosition"]["reading"])
+        self.assertEqual(
+            first["similarMunicipalityComparison"]["median"], 10.5
+        )
+        self.assertEqual(
+            first["similarMunicipalityComparison"]["year"], 2025
+        )
+        self.assertEqual(
+            first["similarMunicipalityComparison"]["unit"], "percent"
+        )
+        self.assertIn(
+            "abaixo da mediana",
+            first["similarMunicipalityComparison"]["reading"],
+        )
+        self.assertEqual(audit["positionResultCount"], 21)
+        self.assertEqual(audit["positionSupplementedResultCount"], 21)
+        self.assertEqual(audit["similarResultCount"], 21)
+        self.assertEqual(audit["similarSupplementedResultCount"], 21)
+
+    def test_preserves_exact_output_and_rejects_methodology_divergence(self):
+        payloads, sizes, registry_order = self._fixtures()
+        _apply_municipal_context_comparisons(
+            payloads,
+            sizes,
+            registry_order,
+            expected_municipalities=21,
+        )
+
+        audit = _apply_municipal_context_comparisons(
+            payloads,
+            sizes,
+            registry_order,
+            expected_municipalities=21,
+        )
+        self.assertEqual(audit["positionSupplementedResultCount"], 0)
+        self.assertEqual(audit["similarSupplementedResultCount"], 0)
+
+        payloads[0]["results"][0]["similarMunicipalityComparison"][
+            "median"
+        ] = 999
+        with self.assertRaisesRegex(RuntimeError, "diverge da metodologia"):
+            _apply_municipal_context_comparisons(
+                payloads,
+                sizes,
+                registry_order,
+                expected_municipalities=21,
+            )
+
+    def test_preserves_legacy_eja_comparison_without_recalculating(self):
+        payloads, sizes, registry_order = self._fixtures()
+        legacy_comparison = {
+            "title": "Municípios com oferta educacional de tamanho semelhante",
+            "year": 2022,
+            "median": 2.3866296713777855,
+            "unit": "percent",
+            "reading": (
+                "Entre municípios com oferta educacional de tamanho semelhante, "
+                "o resultado está abaixo da mediana."
+            ),
+        }
+        payloads[0]["results"].append(
+            {
+                "relationId": (
+                    "relation.12.c."
+                    "eja_integrada_educacao_profissional_percentual"
+                ),
+                "indicatorId": "eja_integrada_educacao_profissional_percentual",
+                "dataStatus": "available",
+                "year": 2022,
+                "value": 0.0,
+                "similarMunicipalityComparison": legacy_comparison.copy(),
+            }
+        )
+
+        audit = _apply_municipal_context_comparisons(
+            payloads,
+            sizes,
+            registry_order,
+            expected_municipalities=21,
+        )
+
+        self.assertEqual(
+            payloads[0]["results"][1]["similarMunicipalityComparison"],
+            legacy_comparison,
+        )
+        self.assertEqual(audit["preservedLegacySimilarResultCount"], 1)
+
+    def test_generates_eja_comparison_when_a_same_year_cohort_exists(self):
+        payloads, sizes, registry_order = self._fixtures()
+        relation_id = (
+            "relation.12.c.eja_integrada_educacao_profissional_percentual"
+        )
+        for position, payload in enumerate(payloads):
+            municipality_id = payload["municipality"]["id"]
+            payload["results"].append(
+                {
+                    "relationId": relation_id,
+                    "indicatorId": (
+                        "eja_integrada_educacao_profissional_percentual"
+                    ),
+                    "dataStatus": "available",
+                    "year": 2025,
+                    "value": float(position),
+                }
+            )
+            sizes[municipality_id][relation_id] = {
+                2025: float(position + 1)
+            }
+
+        audit = _apply_municipal_context_comparisons(
+            payloads,
+            sizes,
+            registry_order,
+            expected_municipalities=21,
+        )
+
+        eja_result = payloads[0]["results"][1]
+        self.assertNotIn("statewidePosition", eja_result)
+        self.assertEqual(
+            eja_result["similarMunicipalityComparison"]["median"],
+            10.5,
+        )
+        self.assertEqual(audit["similarByRelation"][relation_id], 21)
+        self.assertEqual(audit["preservedLegacySimilarResultCount"], 0)
 
 
 class Pne2026PublicDiagnosticV3Test(unittest.TestCase):

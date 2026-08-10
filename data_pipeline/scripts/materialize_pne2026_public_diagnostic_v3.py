@@ -85,6 +85,37 @@ PUBLIC_DATA_RELATIVE = "public/data"
 SOURCE_DATA_ROOT = DATA_PIPELINE_DIR / "data"
 STATE_REFERENCE_CYCLE = "pne_2026_2036"
 BOOTSTRAP_PLACEHOLDER_REASON_CODES = frozenset({"no_observation"})
+MUNICIPAL_CONTEXT_COMPARISON_METHODOLOGY_VERSION = (
+    "municipal-context-comparison-parity-v1"
+)
+MINIMUM_MUNICIPAL_DISTRIBUTION_COUNT = 20
+MINIMUM_MUNICIPAL_DISTRIBUTION_COVERAGE = 0.8
+MINIMUM_SIMILAR_MUNICIPALITIES = 20
+TARGET_SIMILAR_MUNICIPALITIES = 20
+MAXIMUM_SIMILAR_MUNICIPALITIES = 50
+MUNICIPAL_CONTEXT_EQUIVALENCE_TOLERANCE = 0.1
+STATEWIDE_POSITION_RELATION_IDS = frozenset(
+    {
+        "relation.1.a.creche",
+        "relation.1.c.pre_escola",
+        "relation.4.a.basico_6_17",
+        "relation.6.a.basico_integral",
+        "relation.6.a.escolas_integral",
+        "relation.8.c.educacao_ambiental",
+        "relation.11.a.alfabetizacao_pop_15_mais",
+        "relation.11.c.medio_concluido_18_29",
+        "relation.11.c.medio_concluido_18_mais",
+    }
+)
+SIMILAR_MUNICIPALITY_RELATION_IDS = (
+    STATEWIDE_POSITION_RELATION_IDS
+    | frozenset(
+        {"relation.12.c.eja_integrada_educacao_profissional_percentual"}
+    )
+)
+PRESERVED_LEGACY_SIMILAR_MUNICIPALITY_RELATION_IDS = frozenset(
+    {"relation.12.c.eja_integrada_educacao_profissional_percentual"}
+)
 
 
 def configure_state(state_code: str = "RS") -> None:
@@ -427,11 +458,29 @@ def _registry(snapshot: WorktreeSnapshot) -> list[dict[str, Any]]:
             "O registro versionado não contém a quantidade estadual de "
             f"municípios: {EXPECTED_MUNICIPALITIES}."
         )
-    entries.sort(key=lambda item: str(item["id_municipio"]))
-    identifiers = [str(item["id_municipio"]) for item in entries]
-    if len(set(identifiers)) != EXPECTED_MUNICIPALITIES:
+    entries_by_id = {
+        str(item["id_municipio"]): item
+        for item in entries
+    }
+    if len(entries_by_id) != EXPECTED_MUNICIPALITIES:
         raise RuntimeError("O registro versionado contém códigos IBGE duplicados.")
-    return entries
+    canonical_registry = load_pne_state_context(STATE_CODE).registry
+    if set(entries_by_id) != canonical_registry.ids:
+        raise RuntimeError(
+            "O índice municipal publicado diverge do registro canônico."
+        )
+    ordered_entries: list[dict[str, Any]] = []
+    for record in canonical_registry.ordered_records:
+        entry = entries_by_id[record.ibge_code]
+        if (
+            str(entry.get("nome")) != record.name
+            or str(entry.get("slug")) != record.slug
+        ):
+            raise RuntimeError(
+                f"{record.ibge_code}: projeção municipal diverge do registro canônico."
+            )
+        ordered_entries.append(entry)
+    return ordered_entries
 
 
 def _is_finite_json_number(value: Any) -> bool:
@@ -440,6 +489,381 @@ def _is_finite_json_number(value: Any) -> bool:
         and not isinstance(value, bool)
         and math.isfinite(float(value))
     )
+
+
+def _detail_size_by_year(detail: Mapping[str, Any]) -> dict[int, float]:
+    by_cycle = detail.get("series_components_by_cycle")
+    if not isinstance(by_cycle, Mapping):
+        by_cycle = {}
+    series = by_cycle.get("pne_2026_2036") or detail.get("series_components") or []
+    if not isinstance(series, list):
+        raise RuntimeError("Detalhe municipal com série de componentes inválida.")
+
+    sizes: dict[int, float] = {}
+    for point in series:
+        if not isinstance(point, Mapping):
+            raise RuntimeError("Detalhe municipal contém componente inválido.")
+        year = point.get("ano", point.get("year"))
+        denominator = point.get("denominador", point.get("denominator"))
+        if (
+            isinstance(year, int)
+            and not isinstance(year, bool)
+            and _is_finite_json_number(denominator)
+            and float(denominator) > 0
+        ):
+            sizes[year] = float(denominator)
+    return sizes
+
+
+def _comparison_sizes_from_details(
+    details: Mapping[str, Any],
+) -> dict[str, dict[int, float]]:
+    sizes: dict[str, dict[int, float]] = {}
+    for relation_id in sorted(SIMILAR_MUNICIPALITY_RELATION_IDS):
+        relation = _RELATION_BY_ID[relation_id]
+        indicator_id = str(relation["indicatorId"])
+        detail = details.get(indicator_id)
+        if isinstance(detail, Mapping):
+            sizes[relation_id] = _detail_size_by_year(detail)
+    return sizes
+
+
+def _quantile(sorted_values: list[float], probability: float) -> float:
+    if not sorted_values:
+        raise RuntimeError("Quantil municipal sem valores.")
+    if len(sorted_values) == 1:
+        return float(sorted_values[0])
+    position = (len(sorted_values) - 1) * probability
+    lower_index = math.floor(position)
+    upper_index = math.ceil(position)
+    lower = float(sorted_values[lower_index])
+    upper = float(sorted_values[upper_index])
+    if lower_index == upper_index:
+        return lower
+    return lower + (upper - lower) * (position - lower_index)
+
+
+def _directional_percentile(
+    values: list[float],
+    municipality_value: float,
+    direction: str,
+) -> float:
+    if not values or direction not in {"at_least", "at_most"}:
+        raise RuntimeError("Distribuição municipal sem direção comparável.")
+    lower = sum(value < municipality_value for value in values)
+    higher = sum(value > municipality_value for value in values)
+    equal = len(values) - lower - higher
+    favorable_below = lower if direction == "at_least" else higher
+    return 100.0 * (favorable_below + 0.5 * equal) / len(values)
+
+
+def _context_comparison_direction(relation_id: str) -> str:
+    relation = _RELATION_BY_ID[relation_id]
+    goal = CONTRACT["goals"][str(relation["goalId"])]
+    direction = str(
+        relation.get("comparisonDirection") or goal.get("direction") or ""
+    )
+    if direction not in {"at_least", "at_most"}:
+        raise RuntimeError(
+            f"Relação sem direção para comparação municipal: {relation_id}."
+        )
+    return direction
+
+
+def _set_context_comparison(
+    result: dict[str, Any],
+    field: str,
+    comparison: Mapping[str, Any],
+) -> bool:
+    existing = result.get(field)
+    if existing is None:
+        result[field] = dict(comparison)
+        return True
+    if existing != comparison:
+        raise RuntimeError(
+            f"{result['relationId']}: {field} diverge da metodologia publicada."
+        )
+    return False
+
+
+def _apply_municipal_context_comparisons(
+    payloads: list[dict[str, Any]],
+    offering_sizes_by_municipality: Mapping[
+        str, Mapping[str, Mapping[int, float]]
+    ],
+    registry_order_by_municipality: Mapping[str, int],
+    *,
+    expected_municipalities: int | None = None,
+) -> dict[str, Any]:
+    expected_count = expected_municipalities or EXPECTED_MUNICIPALITIES
+    if expected_count <= 0 or len(payloads) != expected_count:
+        raise RuntimeError(
+            "Universo municipal inválido para comparações contextuais."
+        )
+
+    records_by_group: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    records: list[dict[str, Any]] = []
+    preserved_legacy_similar_by_relation: Counter[str] = Counter()
+    for payload in payloads:
+        municipality = payload.get("municipality")
+        municipality_id = str((municipality or {}).get("id") or "")
+        if (
+            not municipality_id
+            or municipality_id not in registry_order_by_municipality
+            or municipality_id not in offering_sizes_by_municipality
+        ):
+            raise RuntimeError(
+                "Diagnóstico municipal sem identidade/coorte canônica."
+            )
+        results = payload.get("results")
+        if not isinstance(results, list):
+            raise RuntimeError("Diagnóstico municipal sem resultados contextuais.")
+        for result in results:
+            if not isinstance(result, dict):
+                raise RuntimeError("Resultado contextual municipal inválido.")
+            relation_id = str(result.get("relationId") or "")
+            if (
+                result.get("statewidePosition") is not None
+                and relation_id not in STATEWIDE_POSITION_RELATION_IDS
+            ):
+                raise RuntimeError(
+                    f"Posição estadual fora do universo de paridade: {relation_id}."
+                )
+            if (
+                result.get("similarMunicipalityComparison") is not None
+                and relation_id not in SIMILAR_MUNICIPALITY_RELATION_IDS
+            ):
+                raise RuntimeError(
+                    "Comparação semelhante fora do universo de paridade: "
+                    f"{relation_id}."
+                )
+            if (
+                relation_id not in SIMILAR_MUNICIPALITY_RELATION_IDS
+                or result.get("dataStatus") != "available"
+            ):
+                continue
+            year = result.get("year")
+            value = result.get("value")
+            if (
+                not isinstance(year, int)
+                or isinstance(year, bool)
+                or not _is_finite_json_number(value)
+            ):
+                raise RuntimeError(
+                    f"Resultado contextual sem ano/valor finito: {relation_id}."
+                )
+            size = (
+                offering_sizes_by_municipality[municipality_id]
+                .get(relation_id, {})
+                .get(year)
+            )
+            record = {
+                "municipalityId": municipality_id,
+                "registryOrder": registry_order_by_municipality[municipality_id],
+                "relationId": relation_id,
+                "year": year,
+                "value": float(value),
+                "size": float(size) if _is_finite_json_number(size) else None,
+                "result": result,
+            }
+            records.append(record)
+            records_by_group.setdefault((relation_id, year), []).append(record)
+
+    position_by_relation: Counter[str] = Counter()
+    position_supplemented_by_relation: Counter[str] = Counter()
+    similar_by_relation: Counter[str] = Counter()
+    similar_supplemented_by_relation: Counter[str] = Counter()
+    reproduced_position: set[tuple[str, str, int]] = set()
+    reproduced_similar: set[tuple[str, str, int]] = set()
+
+    for record in records:
+        relation_id = str(record["relationId"])
+        year = int(record["year"])
+        municipality_id = str(record["municipalityId"])
+        result = record["result"]
+        group = records_by_group[(relation_id, year)]
+        direction = _context_comparison_direction(relation_id)
+        unit = str(
+            CONTRACT["indicators"][
+                str(_RELATION_BY_ID[relation_id]["indicatorId"])
+            ]["unit"]
+        )
+        if unit != "percent":
+            raise RuntimeError(
+                f"Unidade contextual não suportada em {relation_id}: {unit}."
+            )
+
+        if (
+            relation_id in STATEWIDE_POSITION_RELATION_IDS
+            and isinstance(result.get("stateComparison"), Mapping)
+            and len(group) >= MINIMUM_MUNICIPAL_DISTRIBUTION_COUNT
+            and len(group) / expected_count
+            >= MINIMUM_MUNICIPAL_DISTRIBUTION_COVERAGE
+        ):
+            values = sorted(float(candidate["value"]) for candidate in group)
+            percentile = _directional_percentile(
+                values,
+                float(record["value"]),
+                direction,
+            )
+            if percentile >= 75:
+                reading = (
+                    "O município está entre os 25% com resultados mais favoráveis "
+                    f"{STATE_NAME_WITH_DE}."
+                )
+            elif percentile >= 25:
+                reading = (
+                    "O resultado está na faixa intermediária entre os municípios "
+                    f"{STATE_NAME_WITH_DE}."
+                )
+            else:
+                reading = (
+                    "O município está entre os que apresentam maior espaço para "
+                    "avançar neste resultado."
+                )
+            supplemented = _set_context_comparison(
+                result,
+                "statewidePosition",
+                {"reading": reading},
+            )
+            position_by_relation[relation_id] += 1
+            if supplemented:
+                position_supplemented_by_relation[relation_id] += 1
+            reproduced_position.add((municipality_id, relation_id, year))
+
+        current_size = record.get("size")
+        if not _is_finite_json_number(current_size) or float(current_size) <= 0:
+            continue
+        candidates = [
+            candidate
+            for candidate in group
+            if candidate["municipalityId"] != municipality_id
+            and _is_finite_json_number(candidate.get("size"))
+            and float(candidate["size"]) > 0
+        ]
+        if len(candidates) < MINIMUM_SIMILAR_MUNICIPALITIES:
+            continue
+        ranked = sorted(
+            candidates,
+            key=lambda candidate: (
+                abs(
+                    math.log1p(float(candidate["size"]))
+                    - math.log1p(float(current_size))
+                ),
+                int(candidate["registryOrder"]),
+            ),
+        )
+        selected = ranked[
+            : min(TARGET_SIMILAR_MUNICIPALITIES, MAXIMUM_SIMILAR_MUNICIPALITIES)
+        ]
+        median = _quantile(
+            sorted(float(candidate["value"]) for candidate in selected),
+            0.5,
+        )
+        favorable_difference = (
+            float(record["value"]) - median
+            if direction == "at_least"
+            else median - float(record["value"])
+        )
+        position = (
+            "próximo"
+            if abs(favorable_difference)
+            <= MUNICIPAL_CONTEXT_EQUIVALENCE_TOLERANCE
+            else "acima"
+            if favorable_difference > 0
+            else "abaixo"
+        )
+        supplemented = _set_context_comparison(
+            result,
+            "similarMunicipalityComparison",
+            {
+                "title": (
+                    "Municípios com oferta educacional de tamanho semelhante"
+                ),
+                "year": year,
+                "median": median,
+                "unit": unit,
+                "reading": (
+                    "Entre municípios com oferta educacional de tamanho semelhante, "
+                    f"o resultado está {position} da mediana."
+                ),
+            },
+        )
+        similar_by_relation[relation_id] += 1
+        if supplemented:
+            similar_supplemented_by_relation[relation_id] += 1
+        reproduced_similar.add((municipality_id, relation_id, year))
+
+    for record in records:
+        key = (
+            str(record["municipalityId"]),
+            str(record["relationId"]),
+            int(record["year"]),
+        )
+        result = record["result"]
+        if result.get("statewidePosition") is not None and key not in reproduced_position:
+            raise RuntimeError(
+                f"{key[0]}:{key[1]} possui posição estadual não reproduzível."
+            )
+        if (
+            result.get("similarMunicipalityComparison") is not None
+            and key not in reproduced_similar
+        ):
+            if (
+                key[1]
+                in PRESERVED_LEGACY_SIMILAR_MUNICIPALITY_RELATION_IDS
+            ):
+                preserved_legacy_similar_by_relation[key[1]] += 1
+                continue
+            raise RuntimeError(
+                f"{key[0]}:{key[1]} possui coorte semelhante não reproduzível."
+            )
+
+    return {
+        "methodologyVersion": MUNICIPAL_CONTEXT_COMPARISON_METHODOLOGY_VERSION,
+        "expectedMunicipalityCount": expected_count,
+        "minimumDistributionCount": MINIMUM_MUNICIPAL_DISTRIBUTION_COUNT,
+        "minimumDistributionCoverage": MINIMUM_MUNICIPAL_DISTRIBUTION_COVERAGE,
+        "minimumSimilarMunicipalities": MINIMUM_SIMILAR_MUNICIPALITIES,
+        "targetSimilarMunicipalities": TARGET_SIMILAR_MUNICIPALITIES,
+        "preservedLegacySimilarResultCount": sum(
+            preserved_legacy_similar_by_relation.values()
+        ),
+        "preservedLegacySimilarByRelation": dict(
+            sorted(preserved_legacy_similar_by_relation.items())
+        ),
+        "positionResultCount": sum(position_by_relation.values()),
+        "positionByRelation": dict(sorted(position_by_relation.items())),
+        "positionSupplementedResultCount": sum(
+            position_supplemented_by_relation.values()
+        ),
+        "positionSupplementedByRelation": dict(
+            sorted(position_supplemented_by_relation.items())
+        ),
+        "similarResultCount": sum(similar_by_relation.values()),
+        "similarByRelation": dict(sorted(similar_by_relation.items())),
+        "similarSupplementedResultCount": sum(
+            similar_supplemented_by_relation.values()
+        ),
+        "similarSupplementedByRelation": dict(
+            sorted(similar_supplemented_by_relation.items())
+        ),
+    }
+
+
+def _municipal_indicator_details(
+    snapshot: WorktreeSnapshot,
+    entry: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], bytes]:
+    municipality_id = str(entry["id_municipio"])
+    path = f"{PUBLIC_DATA_RELATIVE}/municipios/{municipality_id}/details.json"
+    content = snapshot.read_bytes(path)
+    payload = _load_json_bytes(content, path)
+    if not isinstance(payload, Mapping):
+        raise RuntimeError(
+            f"{municipality_id}: detalhes municipais inválidos."
+        )
+    return payload, content
 
 
 def _municipal_cycle_indicators(
@@ -1344,8 +1768,16 @@ def prepare_staging() -> dict[str, Any]:
     bootstrap_municipality_count = 0
     bootstrap_by_relation: Counter[str] = Counter()
     state_reference_by_relation: Counter[str] = Counter()
+    comparison_sizes_by_municipality: dict[
+        str, dict[str, dict[int, float]]
+    ] = {}
+    registry_order_by_municipality: dict[str, int] = {}
     with WorktreeSnapshot() as snapshot:
         entries = _registry(snapshot)
+        registry_order_by_municipality = {
+            str(entry["id_municipio"]): position
+            for position, entry in enumerate(entries)
+        }
         for entry in entries:
             municipality_id = str(entry["id_municipio"])
             special_path = (
@@ -1370,6 +1802,12 @@ def prepare_staging() -> dict[str, Any]:
                 snapshot,
                 entry,
             )
+            municipal_details, municipal_details_bytes = (
+                _municipal_indicator_details(snapshot, entry)
+            )
+            comparison_sizes_by_municipality[municipality_id] = (
+                _comparison_sizes_from_details(municipal_details)
+            )
             _update_aggregate_digest(
                 source_digest,
                 f"educacao-especial/municipios/{municipality_id}.json",
@@ -1389,6 +1827,11 @@ def prepare_staging() -> dict[str, Any]:
                 source_digest,
                 f"pne-cycle/municipios/{municipality_id}/index.json",
                 cycle_bytes,
+            )
+            _update_aggregate_digest(
+                source_digest,
+                f"pne-cycle/municipios/{municipality_id}/details.json",
+                municipal_details_bytes,
             )
 
             if (
@@ -1537,6 +1980,19 @@ def prepare_staging() -> dict[str, Any]:
             municipal_files[relative_path] = _serialized(payload)
             payloads.append(payload)
 
+    municipal_context_audit = _apply_municipal_context_comparisons(
+        payloads,
+        comparison_sizes_by_municipality,
+        registry_order_by_municipality,
+    )
+    for index, payload in enumerate(payloads):
+        validated_payload = validate_pne2026_public_diagnostic_v3(payload)
+        payloads[index] = validated_payload
+        municipality_id = str(validated_payload["municipality"]["id"])
+        municipal_files[f"municipalities/{municipality_id}.json"] = _serialized(
+            validated_payload
+        )
+
     manifest = _build_manifest(
         payloads,
         municipal_files,
@@ -1594,6 +2050,7 @@ def prepare_staging() -> dict[str, Any]:
                         sorted(state_reference_by_relation.items())
                     ),
                 },
+                "municipalContextComparisons": municipal_context_audit,
                 "indigenousEducation": {
                     "populationReferenceYear": 2022,
                     "sourceState": "worktree",
