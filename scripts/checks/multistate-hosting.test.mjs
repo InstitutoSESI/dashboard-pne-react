@@ -33,6 +33,16 @@ function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf8'))
 }
 
+test('a assinatura institucional lateral permanece SESI-RS em todas as publicações', () => {
+  const sidebarSignature = readFileSync(
+    path.join(repoRoot, 'src/components/SidebarInstitutionalSignature.jsx'),
+    'utf8',
+  )
+
+  assert.match(sidebarSignature, />Observatório da Educação — SESI-RS</)
+  assert.doesNotMatch(sidebarSignature, /ACTIVE_STATE_CONFIG/)
+})
+
 test('RS e AL resolvem produtos e raízes de dados independentes', () => {
   const rs = loadStateBuildProfile({ repoRoot, stateCode: 'RS' })
   const al = loadStateBuildProfile({ repoRoot, stateCode: 'AL' })

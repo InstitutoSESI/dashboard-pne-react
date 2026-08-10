@@ -57,6 +57,7 @@ from src.pne2026_public_diagnostic_v3 import (  # noqa: E402
     PRESENTATION_POLICY_VERSION,
     PUBLIC_V3_SCHEMA_VERSION,
     rebase_pne2026_public_diagnostic_v3,
+    validate_pne2026_public_diagnostic_v3,
 )
 from src.pne_macro_round import (  # noqa: E402
     MACRO_RELATION_IDS,
@@ -82,6 +83,7 @@ STATE_NAME_NOMINATIVE = "o Rio Grande do Sul"
 STATE_NAME_WITH_COM = "com o Rio Grande do Sul"
 PUBLIC_DATA_RELATIVE = "public/data"
 SOURCE_DATA_ROOT = DATA_PIPELINE_DIR / "data"
+STATE_REFERENCE_CYCLE = "pne_2026_2036"
 BOOTSTRAP_PLACEHOLDER_REASON_CODES = frozenset({"no_observation"})
 
 
@@ -175,6 +177,9 @@ PROJECTION_MIGRATION_RELATION_IDS = frozenset(
 _POLICY_BY_RELATION_ID = {
     entry["relationId"]: entry for entry in POLICY["relations"]
 }
+_RELATION_BY_ID = {
+    entry["relationId"]: entry for entry in CONTRACT["relations"]
+}
 
 
 class WorktreeSnapshot:
@@ -266,6 +271,73 @@ def _load_json_bytes(content: bytes, label: str) -> dict[str, Any]:
 def _read_worktree_json(path: Path) -> tuple[dict[str, Any], bytes]:
     content = path.read_bytes()
     return _load_json_bytes(content, str(path)), content
+
+
+def _state_reference_materialization() -> tuple[
+    dict[str, Any],
+    bytes,
+    dict[tuple[str, int], dict[str, Any]],
+]:
+    path = PUBLIC_DATA_DIR / STATE_REFERENCE_CYCLE / "referencia_estadual.json"
+    payload, content = _read_worktree_json(path)
+    if (
+        payload.get("cycle") != STATE_REFERENCE_CYCLE
+        or payload.get("state") != STATE_CODE
+        or payload.get("municipalities_expected") != EXPECTED_MUNICIPALITIES
+    ):
+        raise RuntimeError(
+            "Referência estadual do diagnóstico diverge do perfil ativo."
+        )
+    indicators = payload.get("indicators")
+    if not isinstance(indicators, Mapping):
+        raise RuntimeError("Referência estadual sem catálogo de indicadores.")
+
+    points: dict[tuple[str, int], dict[str, Any]] = {}
+    for indicator_id, indicator in indicators.items():
+        if (
+            not isinstance(indicator_id, str)
+            or not isinstance(indicator, Mapping)
+            or indicator.get("indicator_id") != indicator_id
+        ):
+            raise RuntimeError("Referência estadual contém indicador inválido.")
+        unit = indicator.get("unit")
+        series = indicator.get("series")
+        if not isinstance(unit, str) or not unit or not isinstance(series, list):
+            raise RuntimeError(
+                f"Referência estadual inválida para {indicator_id}."
+            )
+        for point in series:
+            if not isinstance(point, Mapping):
+                raise RuntimeError(
+                    f"Série estadual inválida para {indicator_id}."
+                )
+            year = point.get("year")
+            if (
+                point.get("indicator_id") != indicator_id
+                or not isinstance(year, int)
+                or isinstance(year, bool)
+            ):
+                raise RuntimeError(
+                    f"Ponto estadual inválido para {indicator_id}."
+                )
+            key = (indicator_id, year)
+            if key in points:
+                raise RuntimeError(
+                    f"Ponto estadual duplicado para {indicator_id}/{year}."
+                )
+            if point.get("comparison_status") != "comparable":
+                continue
+            value = point.get("value")
+            if (
+                indicator.get("comparison_status") != "comparable"
+                or not _is_finite_json_number(value)
+            ):
+                raise RuntimeError(
+                    f"Ponto estadual comparável sem valor finito: "
+                    f"{indicator_id}/{year}."
+                )
+            points[key] = {"unit": unit, "value": float(value)}
+    return payload, content, points
 
 
 def _active_release() -> tuple[dict[str, Any], dict[str, Any], Path] | None:
@@ -806,6 +878,63 @@ def _goal_11b_state_comparison(
     }
 
 
+def _apply_published_state_references(
+    payload: dict[str, Any],
+    state_reference_points: Mapping[tuple[str, int], Mapping[str, Any]],
+) -> list[str]:
+    results = payload.get("results")
+    if not isinstance(results, list):
+        raise RuntimeError("Diagnóstico municipal sem resultados para comparação.")
+
+    supplemented: list[str] = []
+    for result in results:
+        if not isinstance(result, dict):
+            raise RuntimeError("Diagnóstico municipal contém resultado inválido.")
+        relation_id = str(result.get("relationId") or "")
+        relation = _RELATION_BY_ID.get(relation_id)
+        if relation is None:
+            raise RuntimeError(f"Relação diagnóstica desconhecida: {relation_id}.")
+        if (
+            relation.get("stateReferencePolicy") == "none"
+            or result.get("dataStatus") != "available"
+            or result.get("stateComparison") is not None
+        ):
+            continue
+        indicator_id = str(result.get("indicatorId") or "")
+        year = result.get("year")
+        municipality_value = result.get("value")
+        if (
+            not isinstance(year, int)
+            or isinstance(year, bool)
+            or not _is_finite_json_number(municipality_value)
+        ):
+            raise RuntimeError(
+                f"Resultado disponível sem ano/valor finito: {relation_id}."
+            )
+        state_point = state_reference_points.get((indicator_id, year))
+        if state_point is None:
+            continue
+        unit = CONTRACT["indicators"][indicator_id]["unit"]
+        if state_point.get("unit") != unit:
+            raise RuntimeError(
+                f"Unidade estadual divergente para {indicator_id}/{year}."
+            )
+        if unit != "percent":
+            continue
+        comparison = _goal_11b_state_comparison(
+            float(municipality_value),
+            float(state_point["value"]),
+            year=year,
+        )
+        goal = CONTRACT["goals"][str(relation["goalId"])]
+        direction = relation.get("comparisonDirection") or goal.get("direction")
+        if direction in {"at_most", "decrease"}:
+            comparison["favorableDifference"] = -comparison["difference"]
+        result["stateComparison"] = comparison
+        supplemented.append(relation_id)
+    return supplemented
+
+
 def _goal_11b_results() -> tuple[
     dict[str, dict[str, dict[str, Any]]],
     dict[str, Any],
@@ -1135,6 +1264,11 @@ def prepare_staging() -> dict[str, Any]:
         higher_index_bytes,
     ) = _materialization_indexes()
     (
+        state_reference,
+        state_reference_bytes,
+        state_reference_points,
+    ) = _state_reference_materialization()
+    (
         munic_records,
         capes_records,
         quality_records,
@@ -1153,6 +1287,11 @@ def prepare_staging() -> dict[str, Any]:
         source_digest,
         "educacao-superior/index.json",
         higher_index_bytes,
+    )
+    _update_aggregate_digest(
+        source_digest,
+        f"{STATE_REFERENCE_CYCLE}/referencia_estadual.json",
+        state_reference_bytes,
     )
     macro_source_metadata: dict[str, Any] = {}
     for source_id, default_path in sorted(MACRO_SOURCE_PATHS.items()):
@@ -1204,6 +1343,7 @@ def prepare_staging() -> dict[str, Any]:
     bootstrap_repair_count = 0
     bootstrap_municipality_count = 0
     bootstrap_by_relation: Counter[str] = Counter()
+    state_reference_by_relation: Counter[str] = Counter()
     with WorktreeSnapshot() as snapshot:
         entries = _registry(snapshot)
         for entry in entries:
@@ -1324,6 +1464,13 @@ def prepare_staging() -> dict[str, Any]:
                 active_payload,
                 methodology_results=methodology_results,
             )
+            state_reference_by_relation.update(
+                _apply_published_state_references(
+                    payload,
+                    state_reference_points,
+                )
+            )
+            payload = validate_pne2026_public_diagnostic_v3(payload)
             if payload["municipality"]["id"] != municipality_id:
                 raise RuntimeError(
                     f"{municipality_id}: identidade municipal V3 divergente."
@@ -1434,6 +1581,18 @@ def prepare_staging() -> dict[str, Any]:
                     "dataVersion": higher_index["dataVersion"],
                     "municipalityCount": higher_index["municipalityCount"],
                     "availableYears": higher_index["availableYears"],
+                },
+                "stateReference": {
+                    "cycle": state_reference["cycle"],
+                    "state": state_reference["state"],
+                    "methodologyVersion": state_reference["methodology_version"],
+                    "sha256": hashlib.sha256(state_reference_bytes).hexdigest(),
+                    "supplementedResultCount": sum(
+                        state_reference_by_relation.values()
+                    ),
+                    "supplementedByRelation": dict(
+                        sorted(state_reference_by_relation.items())
+                    ),
                 },
                 "indigenousEducation": {
                     "populationReferenceYear": 2022,

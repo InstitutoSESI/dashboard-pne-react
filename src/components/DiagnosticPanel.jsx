@@ -21,7 +21,6 @@ import {
 import { CategoryTabs } from './CategoryTabs'
 import { ContentState } from './ContentState'
 import { DiagnosticPrintReport } from './DiagnosticPrintReport'
-import { DisclosureChevron } from './DisclosureChevron'
 import { PnePageHeader } from './PnePageHeader'
 import { PNE_2026_GOAL_TEXTS } from '../data/pne2026GoalTexts'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
@@ -359,16 +358,20 @@ function SummaryCards({ summary }) {
 
 function DiagnosticLegend() {
   return (
-    <details className="pne-diagnostic-legend platform-support-disclosure">
-      <summary className="platform-support-disclosure__summary">
-        <span>Como ler os quadros de comparação</span>
-        <DisclosureChevron />
-      </summary>
+    <section className="pne-diagnostic-legend" aria-labelledby="pne-diagnostic-legend-title">
+      <header className="pne-diagnostic-legend__heading">
+        <h2 id="pne-diagnostic-legend-title">Como ler os quadros de comparação</h2>
+      </header>
       <div className="pne-diagnostic-legend__body platform-support-disclosure__body">
         <p className="pne-diagnostic-legend__intro">
-          Em cada indicador, além da meta do PNE, o município aparece ao lado {ACTIVE_STATE_CONFIG.stateNameForms.withDe} — com o valor do estado e a diferença do município para ele — e é comparado a municípios de porte parecido. As etiquetas abaixo resumem essas leituras.
+          Nos indicadores com referência estadual compatível, o município aparece ao lado {ACTIVE_STATE_CONFIG.stateNameForms.withDe}, usando o mesmo indicador e ano. O quadro também pode situar o resultado entre municípios do estado, compará-lo a municípios de porte parecido e mostrar sua evolução recente.
         </p>
         <div className="pne-diagnostic-legend__grid">
+          <LegendCard
+            desc="Mostra o valor estadual do mesmo indicador e ano e a diferença do município em relação a esse valor."
+            icon="comparison"
+            title={`Comparação ${ACTIVE_STATE_CONFIG.stateNameForms.withCom}`}
+          />
           <LegendCard
             desc={`Onde o município está entre todos os municípios ${ACTIVE_STATE_CONFIG.stateNameForms.withDe} neste indicador.`}
             icon="position"
@@ -400,7 +403,7 @@ function DiagnosticLegend() {
           />
         </div>
       </div>
-    </details>
+    </section>
   )
 }
 

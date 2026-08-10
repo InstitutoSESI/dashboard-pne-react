@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from data_pipeline.scripts.materialize_pne2026_public_diagnostic_v3 import (
+    _apply_published_state_references,
     _bootstrap_cycle_methodology_results,
     compare_staging_directories,
     prepare_staging,
@@ -118,6 +119,65 @@ class CycleBootstrapTest(unittest.TestCase):
                     }
                 },
             )
+
+
+class PublishedStateReferenceTest(unittest.TestCase):
+    def test_adds_exact_comparable_point_and_preserves_existing_comparison(self):
+        payload = {
+            "results": [
+                {
+                    "relationId": "relation.1.a.creche",
+                    "indicatorId": "creche",
+                    "dataStatus": "available",
+                    "year": 2025,
+                    "value": 48.5,
+                },
+                {
+                    "relationId": "relation.1.c.pre_escola",
+                    "indicatorId": "pre_escola",
+                    "dataStatus": "available",
+                    "year": 2025,
+                    "value": 95.0,
+                    "stateComparison": {"preserved": True},
+                },
+            ]
+        }
+        supplemented = _apply_published_state_references(
+            payload,
+            {
+                ("creche", 2025): {"unit": "percent", "value": 38.1},
+                ("pre_escola", 2025): {"unit": "percent", "value": 89.7},
+            },
+        )
+
+        self.assertEqual(supplemented, ["relation.1.a.creche"])
+        comparison = payload["results"][0]["stateComparison"]
+        self.assertEqual(comparison["state"], "above")
+        self.assertEqual(comparison["municipalityValue"], 48.5)
+        self.assertEqual(comparison["stateValue"], 38.1)
+        self.assertAlmostEqual(comparison["difference"], 10.4)
+        self.assertEqual(
+            payload["results"][1]["stateComparison"],
+            {"preserved": True},
+        )
+
+    def test_keeps_missing_or_incompatible_reference_explicitly_absent(self):
+        payload = {
+            "results": [
+                {
+                    "relationId": "relation.1.a.creche",
+                    "indicatorId": "creche",
+                    "dataStatus": "available",
+                    "year": 2025,
+                    "value": 48.5,
+                }
+            ]
+        }
+
+        supplemented = _apply_published_state_references(payload, {})
+
+        self.assertEqual(supplemented, [])
+        self.assertNotIn("stateComparison", payload["results"][0])
 
 
 class Pne2026PublicDiagnosticV3Test(unittest.TestCase):

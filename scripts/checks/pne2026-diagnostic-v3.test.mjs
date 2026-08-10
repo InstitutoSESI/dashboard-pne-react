@@ -26,6 +26,21 @@ const v3 = JSON.parse(await readFile(
   ),
   'utf8',
 ))
+const alCurrent = JSON.parse(await readFile(
+  new URL('state-publications/al/data/pne2026-diagnostic-v3/current.json', REPO_ROOT),
+  'utf8',
+))
+const alV3 = JSON.parse(await readFile(
+  new URL(
+    `state-publications/al/data/pne2026-diagnostic-v3/releases/${alCurrent.releaseId}/municipios/2700102.json`,
+    REPO_ROOT,
+  ),
+  'utf8',
+))
+const alStateReference = JSON.parse(await readFile(
+  new URL('state-publications/al/data/pne_2026_2036/referencia_estadual.json', REPO_ROOT),
+  'utf8',
+))
 const relationsById = new Map(
   PNE_2026_GOAL_INDICATOR_CONTRACT.relations.map((relation) => [
     relation.relationId,
@@ -248,6 +263,51 @@ test('V3 preserves above-100 values and complementary neutrality in the view mod
       assert.equal(field in result, false, `${result.relationId}:${field}`)
     }
   }
+})
+
+test('Alagoas diagnostic publishes compatible state references for the same indicator and year', () => {
+  const expectedRelationIds = [
+    'relation.1.a.creche',
+    'relation.1.c.pre_escola',
+    'relation.4.a.basico_6_17',
+    'relation.6.a.basico_integral',
+    'relation.6.a.escolas_integral',
+    'relation.8.c.educacao_ambiental',
+    'relation.11.a.alfabetizacao_pop_15_mais',
+    'relation.11.c.medio_concluido_18_29',
+    'relation.11.c.medio_concluido_18_mais',
+  ]
+  const resultsByRelationId = new Map(
+    alV3.results.map((result) => [result.relationId, result]),
+  )
+
+  for (const relationId of expectedRelationIds) {
+    const result = resultsByRelationId.get(relationId)
+    assert.ok(result, relationId)
+    assert.ok(result.stateComparison, relationId)
+    const point = alStateReference.indicators[result.indicatorId].series.find(
+      (candidate) => candidate.year === result.year,
+    )
+    assert.equal(point.comparison_status, 'comparable', relationId)
+    assert.equal(result.stateComparison.year, result.year, relationId)
+    assert.equal(result.stateComparison.municipalityValue, result.value, relationId)
+    assert.equal(result.stateComparison.stateValue, point.value, relationId)
+    assert.equal(
+      result.stateComparison.difference,
+      result.value - point.value,
+      relationId,
+    )
+  }
+})
+
+test('diagnostic comparison reading guide is always visible', async () => {
+  const panelSource = await readFile(
+    new URL('../../src/components/DiagnosticPanel.jsx', import.meta.url),
+    'utf8',
+  )
+  assert.match(panelSource, /<section className="pne-diagnostic-legend"/)
+  assert.match(panelSource, /mesmo indicador e ano/)
+  assert.doesNotMatch(panelSource, /<details className="pne-diagnostic-legend/)
 })
 
 test('public loader is exclusively V3 while preserving the existing view-model consumers', async () => {
