@@ -30,6 +30,10 @@ export interface MunicipalFinanceSourceCatalogEntry {
   url?: string;
   agency?: string;
   referenceYear?: number;
+  referenceYears?: readonly number[];
+  stateCodes?: readonly string[];
+  methodologyUrl?: string;
+  resultsUrl?: string;
   status: string;
   reasonCode?: string;
 }

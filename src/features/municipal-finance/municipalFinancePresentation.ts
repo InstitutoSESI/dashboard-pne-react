@@ -59,6 +59,14 @@ export function formatPercent(value: number): string {
   return `${decimalFormatter.format(value)}%`
 }
 
+export function formatIcmsSharePercent(value: number): string {
+  return `${decimalFormatter.format(value)}%`
+}
+
+export function formatIndexScore(value: number): string {
+  return decimalFormatter.format(value)
+}
+
 export function formatCount(value: number): string {
   return integerFormatter.format(value)
 }

@@ -20,6 +20,10 @@ from src.municipal_finance_constitutional import (  # noqa: E402
     load_constitutional_snapshot,
     merge_constitutional_snapshot,
 )
+from src.municipal_finance_icms_education import (  # noqa: E402
+    load_icms_education_source,
+    merge_icms_education_source,
+)
 
 
 class MunicipalFinanceTest(unittest.TestCase):
@@ -33,6 +37,15 @@ class MunicipalFinanceTest(unittest.TestCase):
             DATA_PIPELINE_DIR / "data" / "municipal_finance" / "constitutional_source_snapshot.json"
         )
         snapshot = merge_constitutional_snapshot(snapshot, constitutional_snapshot)
+        icms_education_source = load_icms_education_source(
+            DATA_PIPELINE_DIR / "data" / "municipal_finance" / "icms_education" / "rs",
+            REPO_ROOT / "config" / "municipalities" / "rs.json",
+        )
+        snapshot = merge_icms_education_source(
+            snapshot,
+            icms_education_source,
+            municipalities,
+        )
         cls.contracts = {
             municipality["ibgeCode"]: build_contract(municipality, snapshot)
             for municipality in municipalities
@@ -79,6 +92,13 @@ class MunicipalFinanceTest(unittest.TestCase):
             25.71,
         )
         self.assertEqual(contract["constitutionalApplication"]["mdeAppliedRate"]["canonical"]["referenceYear"], 2025)
+        self.assertEqual(contract["icmsEducation"]["latestAssessmentYear"], 2024)
+        self.assertEqual(contract["icmsEducation"]["latestDistributionYear"], 2026)
+        self.assertEqual(contract["icmsEducation"]["latest"]["imers"], 71.00519)
+        self.assertEqual(
+            contract["icmsEducation"]["latest"]["preSharePercent"],
+            0.189147163,
+        )
 
     def test_nova_santa_rita_vaar_is_forecast_included_in_total(self) -> None:
         contract = self.contracts["4313375"]

@@ -372,6 +372,43 @@ uv run --project data_pipeline --frozen python data_pipeline/scripts/promote_pne
   --check
 ```
 
+## Atualização do ICMS Educação do RS
+
+O IMERSVis do DEE/RS entrega o CSV, o dicionário e a nota técnica por uma sessão
+Shiny. Baixe os três arquivos na aplicação oficial e obtenha também a
+apresentação vigente indicada na página do IMERS. A aquisição é manual; o
+pipeline não tenta reproduzir uma URL efêmera de sessão.
+
+Primeiro valide o lote, sem promoção:
+
+```powershell
+uv run --project data_pipeline --frozen python data_pipeline/scripts/sync_icms_education_source.py `
+  --csv "C:\caminho\DadosRS.csv" `
+  --data-dictionary "C:\caminho\Dicionario.pdf" `
+  --methodology-note "C:\caminho\NotaTecnica.pdf" `
+  --results-presentation "C:\caminho\ApresentacaoIMERS.pdf"
+```
+
+Depois de conferir cobertura, hashes e avisos, repita com `--apply`. O comando
+gera em staging, recalcula as fórmulas e a cobertura dos 497 municípios, valida
+os quatro artefatos e promove somente o lote validado, com rollback. O pacote
+preservado fica em
+`data_pipeline/data/municipal_finance/icms_education/rs`. Não edite esses
+arquivos nem `public/data` manualmente.
+
+Para materializar e publicar os contratos financeiros após uma atualização:
+
+```powershell
+uv run --project data_pipeline --frozen python data_pipeline/scripts/generate_municipal_finance.py `
+  --sync-public `
+  --validate `
+  --check-determinism
+```
+
+Esse fluxo usa os snapshots locais e não atualiza as demais fontes financeiras.
+O ICMS Educação é carregado somente na geração do RS; a publicação de Alagoas
+permanece sem esse bloco.
+
 ## Staging por domínio
 
 - estáticos gerais: `data_pipeline/export/static_partitioned`;

@@ -16,12 +16,19 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from .municipal_finance_icms_education import (
+    ICMS_EDUCATION_SOURCE_CATALOG,
+    ICMS_EDUCATION_SOURCE_ID,
+    build_icms_education_contract,
+    validate_icms_education_contract,
+)
+
 
 SCHEMA_VERSION = "municipal-finance-v1"
 METHODOLOGY_VERSION = "municipal-finance-p5b2b1-v1"
-DATA_VERSION = "p5b2b1-education-analysis-v1-2026-07-23"
+DATA_VERSION = "p5b2b1-education-analysis-icms-v1-2026-08-11"
 SNAPSHOT_VERSION = "municipal-finance-sources-p5b1-v1"
-GENERATED_AT = "2026-07-20T00:00:00-03:00"
+GENERATED_AT = "2026-08-11T00:00:00-03:00"
 ACCESSED_AT = "2026-07-20"
 FORECAST_CUTOFF_DATE = "2026-06-22"
 EXPECTED_MUNICIPALITIES = 497
@@ -81,6 +88,7 @@ QSE_ESTIMATE_URL = (
 SICONFI_DCA_URL = "https://apidatalake.tesouro.gov.br/ords/cdwhprd/siconfi/tt/dca"
 
 INTEGRATED_SOURCE_CATALOG = {
+    ICMS_EDUCATION_SOURCE_ID: ICMS_EDUCATION_SOURCE_CATALOG,
     "fnde_fundeb_total_forecast_2026": {
         "name": "Receita total prevista do Fundeb por ente",
         "url": FUND_EB_TOTAL_URL,
@@ -252,6 +260,7 @@ REASON_MESSAGES = {
     "partial_automated_source_coverage": "Uma ou mais fontes automatizadas não cobrem a dimensão integralmente.",
     "dca_required_field_missing": "Ao menos um estágio esperado da DCA não foi publicado.",
     "incompatible_execution_stage_order": "As etapas publicadas não permitem calcular uma pendência não negativa.",
+    "source_published_pre_total_deviation_2024": "A soma do PRE publicada pela fonte em 2024 difere de 100% em 0,002323507 ponto percentual; os valores oficiais foram preservados sem normalização.",
 }
 
 SAMPLE_CODES = {
@@ -1338,6 +1347,7 @@ def build_contract(
     vaar_forecast = source_record(snapshot, "fnde_fundeb_vaar_forecast_2026", code)
     qse_realized = source_record(snapshot, "fnde_qse_realized_2024", code)
     qse_estimate = source_record(snapshot, "fnde_qse_estimate_2026", code)
+    icms_education = build_icms_education_contract(snapshot, code)
     dca_year, dca_source_id, dca = select_latest_annual_record(
         snapshot,
         "siconfi_dca_function_",
@@ -1538,8 +1548,18 @@ def build_contract(
             ),
         ),
     }
+    if icms_education is not None:
+        coverage_by_dimension["icmsEducation"] = dimension(
+            1,
+            "complete",
+            [ICMS_EDUCATION_SOURCE_ID],
+            [],
+            icms_education["qualityReasonCodes"],
+        )
 
     quality_reasons: list[str] = []
+    if icms_education is not None:
+        quality_reasons.extend(icms_education["qualityReasonCodes"])
     if constitutional_status != "reconciled":
         quality_reasons.append(
             "constitutional_divergent_unexplained"
@@ -1670,6 +1690,7 @@ def build_contract(
                 "history": execution_history,
             }
         },
+        **({"icmsEducation": icms_education} if icms_education is not None else {}),
         "constitutionalApplication": {
             "status": constitutional_status,
             "referenceYear": constitutional_reference_year,
@@ -1801,7 +1822,16 @@ DYNAMIC_COVERAGE_FIELDS = [
 def build_coverage_rows(contracts: list[dict[str, Any]], snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     total = len(contracts)
-    for source_id, field, year, path in COVERAGE_FIELDS:
+    icms_education_fields = (
+        [
+            (ICMS_EDUCATION_SOURCE_ID, "icms_education_imers", 2024, "icmsEducation.latest.imers"),
+            (ICMS_EDUCATION_SOURCE_ID, "icms_education_pre_share", 2024, "icmsEducation.latest.preSharePercent"),
+            (ICMS_EDUCATION_SOURCE_ID, "icms_education_components", 2024, "icmsEducation.latest.components"),
+        ]
+        if ICMS_EDUCATION_SOURCE_ID in snapshot.get("sources", {})
+        else []
+    )
+    for source_id, field, year, path in [*COVERAGE_FIELDS, *icms_education_fields]:
         values = [nested_get(contract, path) for contract in contracts]
         with_value = 0
         with_null = 0
@@ -1860,7 +1890,11 @@ def build_coverage_rows(contracts: list[dict[str, Any]], snapshot: dict[str, Any
 
 def source_catalog_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
     integrated = []
+    state_code = snapshot.get("stateCode", "RS")
     for source_id, catalog in INTEGRATED_SOURCE_CATALOG.items():
+        state_codes = catalog.get("stateCodes")
+        if state_codes and state_code not in state_codes:
+            continue
         source_snapshot = snapshot.get("sources", {}).get(source_id)
         integrated.append(
             {
@@ -2076,6 +2110,16 @@ def validate_contract(contract: dict[str, Any]) -> None:
         raise AssertionError(f"{code}: URL longa repetida no contrato")
     if any(source_id in serialized for source_id in BLOCKED_SOURCE_CATALOG):
         raise AssertionError(f"{code}: fonte manual publicada no contrato")
+    icms_education = contract.get("icmsEducation")
+    if contract.get("municipality", {}).get("uf") == "RS":
+        if not isinstance(icms_education, dict):
+            raise AssertionError(f"{code}: ICMS Educação ausente no contrato do RS")
+        validate_icms_education_contract(icms_education, code)
+        coverage = contract.get("dataQuality", {}).get("coverageByDimension", {})
+        if coverage.get("icmsEducation", {}).get("status") != "complete":
+            raise AssertionError(f"{code}: cobertura do ICMS Educação inválida")
+    elif icms_education is not None:
+        raise AssertionError(f"{code}: ICMS Educação do RS publicado em outra UF")
     score_isolation = contract["educationalScoreIsolation"]
     for score in ("needScore", "actionabilityScore", "confidenceScore", "priorityScore"):
         if score_isolation[score] is not None:

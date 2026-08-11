@@ -78,7 +78,9 @@ Municípios semelhantes são contexto analítico, não grupo de controle. A sele
 
 ## Financiamento
 
-As fontes atuais incluem FNDE/SIOPE, Fundeb, PNATE, QSE, Siconfi e demonstrativos RREO. Snapshots e revisões necessários para reproduzir contratos ficam em `data_pipeline/data/municipal_finance` e `data_pipeline/data/qse_annual`.
+As fontes atuais incluem FNDE/SIOPE, Fundeb, PNATE, QSE, Siconfi, demonstrativos RREO e, para o Rio Grande do Sul, IMERS/PRE do DEE/SPGG e da SEDUC/RS. Snapshots, documentos e revisões necessários para reproduzir contratos ficam em `data_pipeline/data/municipal_finance` e `data_pipeline/data/qse_annual`.
+
+No ICMS Educação do RS, `ANO` é o ano da avaliação do SAERS: 2022, 2023 e 2024 correspondem às distribuições de 2024, 2025 e 2026. O IMERS preserva a fórmula oficial `40% × IQA + 35% × IQI + 15% × IQF + 10% × IA`. O PRE é a participação municipal na quota-educação do ICMS e não é publicado como valor recebido, transferência confirmada ou estimativa em reais. A soma dos PRE publicados para 2024 é `100,002323507%`; os valores municipais oficiais são mantidos sem normalização, com aviso de qualidade explícito. A fonte é exclusiva do RS e não é imputada a Alagoas.
 
 Valores financeiros preservam exercício, estágio da despesa, natureza, fonte e condição de cobertura. Empenhado, liquidado e pago não são somados entre si. Retificações substituem a versão anterior segundo a política do pipeline, mantendo a evidência da revisão. Valores nominais não são tratados como corrigidos pela inflação.
 

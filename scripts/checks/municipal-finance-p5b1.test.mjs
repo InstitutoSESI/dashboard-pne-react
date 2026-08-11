@@ -76,7 +76,7 @@ test('3. todos os contratos usam o schema versionado esperado', () => {
   contracts.forEach(({ document }) => {
     assert.equal(document.schemaVersion, 'municipal-finance-v1');
     assert.equal(document.dataVersion, manifest.dataVersion);
-    assert.match(document.dataVersion, /^p5b2b1-education-analysis-v1-/);
+    assert.match(document.dataVersion, /^p5b2b1-education-analysis-icms-v1-/);
     assert.equal(document.methodologyVersion, 'municipal-finance-p5b2b1-v1');
     assert.match(document.municipality.ibgeCode, /^43\d{5}$/);
   });
@@ -334,7 +334,7 @@ test('21. loader lazy mantém cache e estados de loading, ausência, erro e vers
 test('22. geração publicada corresponde ao hash determinístico do manifesto', () => {
   assert.equal(calculateContractsHash(), manifest.contractsSha256);
   assert.match(manifest.sourceSnapshotSha256, /^[a-f0-9]{64}$/);
-  assert.equal(manifest.generatedAt, '2026-07-20T00:00:00-03:00');
+  assert.equal(manifest.generatedAt, '2026-08-11T00:00:00-03:00');
 });
 
 test('23. financeiro não foi incorporado a nenhum index.json municipal', () => {
@@ -342,4 +342,25 @@ test('23. financeiro não foi incorporado a nenhum index.json municipal', () => 
     const codeIndex = JSON.parse(readFileSync(join(publicData, 'municipios', municipality.id_municipio, 'index.json'), 'utf8'));
     assert.equal(Object.hasOwn(codeIndex, 'financeiro'), false, municipality.id_municipio);
   });
+});
+
+test('24. ICMS Educação preserva IMERS, PRE e histórico oficial sem converter em reais', () => {
+  contracts.forEach(({ document }) => {
+    const icmsEducation = document.icmsEducation;
+    assert.equal(icmsEducation.status, 'available');
+    assert.equal(icmsEducation.sourceId, 'rs_dee_imers_pre_2022_2024');
+    assert.equal(icmsEducation.latestAssessmentYear, 2024);
+    assert.equal(icmsEducation.latestDistributionYear, 2026);
+    assert.deepEqual(icmsEducation.history.map((item) => item.assessmentYear), [2022, 2023, 2024]);
+    assert.deepEqual(icmsEducation.history.map((item) => item.distributionYear), [2024, 2025, 2026]);
+    assert.deepEqual(icmsEducation.history.map((item) => item.ipmEducationCriterionWeightPercent), [10, 11.4, 12.8]);
+    assert.ok(icmsEducation.latest.imers >= 0 && icmsEducation.latest.imers <= 100);
+    assert.ok(icmsEducation.latest.preSharePercent >= 0);
+    assert.equal(Object.hasOwn(icmsEducation.latest, 'valueBRL'), false);
+    assert.equal(document.dataQuality.coverageByDimension.icmsEducation.status, 'complete');
+  });
+  const agudo = contractByCode('4300109').icmsEducation;
+  assert.equal(agudo.latest.imers, 71.00519);
+  assert.equal(agudo.latest.preSharePercent, 0.189147163);
+  assert.deepEqual(agudo.qualityReasonCodes, ['source_published_pre_total_deviation_2024']);
 });

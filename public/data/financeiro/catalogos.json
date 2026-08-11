@@ -1,8 +1,79 @@
 {
   "schemaVersion": "municipal-finance-v1",
-  "dataVersion": "p5b2b1-education-analysis-v1-2026-07-23",
-  "generatedAt": "2026-07-20T00:00:00-03:00",
+  "dataVersion": "p5b2b1-education-analysis-icms-v1-2026-08-11",
+  "generatedAt": "2026-08-11T00:00:00-03:00",
   "sources": [
+    {
+      "sourceId": "rs_dee_imers_pre_2022_2024",
+      "name": "IMERS e Percentual de Recursos da Educação (PRE)",
+      "url": "https://dee.rs.gov.br/imers",
+      "agency": "DEE/SPGG e SEDUC/RS",
+      "referenceYear": 2024,
+      "referenceYears": [
+        2022,
+        2023,
+        2024
+      ],
+      "status": "integrated",
+      "municipalKey": "ibge_code",
+      "stateCodes": [
+        "RS"
+      ],
+      "uses": [
+        "icms_education_imers",
+        "icms_education_pre_share",
+        "icms_education_components"
+      ],
+      "methodologyUrl": "https://dee.rs.gov.br/imers",
+      "resultsUrl": "https://dee.rs.gov.br/upload/arquivos/202607/01101721-01101510-vf-ppt-coletiva-imers.pdf",
+      "rawSha256": "de5e7c1c23580d46de78d16ba04a5f2dec4b806128dcd116235d82946c2123ba",
+      "accessedAt": "2026-08-11T10:30:00-03:00",
+      "adapterVersion": "icms-education-rs-v1",
+      "parserVersion": "imersvis-csv-v1",
+      "layoutVersion": "imersvis-csv-77-columns-2024",
+      "quality": {
+        "rows": 1491,
+        "municipalitiesExpected": 497,
+        "municipalitiesFound": 497,
+        "municipalitiesNotFound": 0,
+        "duplicateMunicipalityCodes": [],
+        "duplicateMunicipalityYearKeys": [],
+        "incompatibleMunicipalityKeys": 0,
+        "unknownMunicipalityCodes": [],
+        "nameMismatches": [],
+        "referenceYears": [
+          2022,
+          2023,
+          2024
+        ],
+        "rowsByReferenceYear": {
+          "2022": 497,
+          "2023": 497,
+          "2024": 497
+        },
+        "coreNullValues": 0,
+        "imersFormulaMaxAbsoluteError": "0.00000680",
+        "municipalSizeFormulaMaxAbsoluteError": "0.000000004660",
+        "preShareTotalsPercent": {
+          "2022": "100.000000007",
+          "2023": "100.000000001",
+          "2024": "100.002323507"
+        },
+        "preShareTotalDeviationsPercentagePoints": {
+          "2022": "0.000000007",
+          "2023": "0.000000001",
+          "2024": "0.002323507"
+        },
+        "preFormulaMaxAbsoluteErrorsPercentagePoints": {
+          "2022": "0.000000641581864650230552087",
+          "2023": "0.000000411265644542574108177",
+          "2024": "0.000196469212754206078279027"
+        },
+        "warningCodes": [
+          "source_published_pre_total_deviation_2024"
+        ]
+      }
+    },
     {
       "sourceId": "fnde_fundeb_total_forecast_2026",
       "name": "Receita total prevista do Fundeb por ente",
@@ -429,7 +500,8 @@
     "scores_not_applicable_to_financial_contract": "O contrato financeiro não altera escores educacionais.",
     "partial_automated_source_coverage": "Uma ou mais fontes automatizadas não cobrem a dimensão integralmente.",
     "dca_required_field_missing": "Ao menos um estágio esperado da DCA não foi publicado.",
-    "incompatible_execution_stage_order": "As etapas publicadas não permitem calcular uma pendência não negativa."
+    "incompatible_execution_stage_order": "As etapas publicadas não permitem calcular uma pendência não negativa.",
+    "source_published_pre_total_deviation_2024": "A soma do PRE publicada pela fonte em 2024 difere de 100% em 0,002323507 ponto percentual; os valores oficiais foram preservados sem normalização."
   },
   "summationRules": {
     "same_year_confirmed_transferred_nonoverlapping": "Somente valores confirmados, transferidos, do mesmo exercício, não sobrepostos e autorizados para soma.",

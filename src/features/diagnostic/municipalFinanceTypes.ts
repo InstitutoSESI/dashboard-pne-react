@@ -143,6 +143,37 @@ export interface MunicipalFinanceMdeHistoryEntry {
   marginFromMinimum: CompactDerivedDifference;
 }
 
+export interface MunicipalFinanceIcmsEducationEntry {
+  assessmentYear: number;
+  distributionYear: number;
+  ipmEducationCriterionWeightPercent: number;
+  imers: number;
+  preSharePercent: number;
+  municipalSizeSharePercent: number;
+  components: {
+    iqa: number;
+    iqi: number;
+    iqf: number;
+    approvalRate: number;
+  };
+  context: {
+    population: number;
+    initialYearsEnrollments: number;
+    vulnerableStudents: number;
+  };
+}
+
+export interface MunicipalFinanceIcmsEducation {
+  status: 'available';
+  sourceId: 'rs_dee_imers_pre_2022_2024';
+  methodologyVersion: 'imers-pre-nota-tecnica-100-2024';
+  latestAssessmentYear: number;
+  latestDistributionYear: number;
+  latest: MunicipalFinanceIcmsEducationEntry;
+  history: readonly MunicipalFinanceIcmsEducationEntry[];
+  qualityReasonCodes: readonly string[];
+}
+
 export interface MunicipalFinanceDocumentV1 {
   schemaVersion: MunicipalFinanceSchemaVersion;
   dataVersion: string;
@@ -152,7 +183,7 @@ export interface MunicipalFinanceDocumentV1 {
     ibgeCode: string;
     name: string;
     slug: string;
-    uf: 'RS';
+    uf: 'RS' | 'AL';
   };
   periods: {
     closedFiscalYear: number;
@@ -171,6 +202,7 @@ export interface MunicipalFinanceDocumentV1 {
       constitutionalApplication: MunicipalFinanceCoverageDimension;
       perStudentMetrics: MunicipalFinanceCoverageDimension;
       reconciliation: MunicipalFinanceCoverageDimension;
+      icmsEducation?: MunicipalFinanceCoverageDimension;
     };
   };
   summary: {
@@ -233,6 +265,7 @@ export interface MunicipalFinanceDocumentV1 {
       history: readonly MunicipalFinanceExecutionHistoryEntry[];
     };
   };
+  icmsEducation?: MunicipalFinanceIcmsEducation;
   constitutionalApplication: {
     status: 'reconciled' | 'source_missing' | 'divergent_explained' | 'divergent_unexplained';
     referenceYear: number;

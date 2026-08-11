@@ -23,6 +23,8 @@ import {
   formatCompactCurrency,
   formatCount,
   formatFullCurrency,
+  formatIcmsSharePercent,
+  formatIndexScore,
   formatPercent,
   splitFinanceContextIds,
 } from './municipalFinancePresentation'
@@ -212,6 +214,8 @@ export function MunicipalFinancePanoramaPage({
       </FinancialSection>
       ) : null}
 
+      <IcmsEducationSection document={document} catalog={loadState.catalog} />
+
       <ConstitutionalApplicationSection document={document} catalog={loadState.catalog} />
 
       <BudgetExecutionSection document={document} />
@@ -229,6 +233,167 @@ export function MunicipalFinancePanoramaPage({
       />
 
     </PageFrame>
+  )
+}
+
+function IcmsEducationSection({
+  document,
+  catalog,
+}: {
+  document: MunicipalFinanceDocumentV1
+  catalog: MunicipalFinanceCatalog | null
+}) {
+  const icmsEducation = document.icmsEducation
+  if (!icmsEducation) return null
+
+  const latest = icmsEducation.latest
+  const source = catalog?.sources.find((entry) => entry.sourceId === icmsEducation.sourceId) ?? null
+  const history = [...icmsEducation.history].sort((left, right) => right.assessmentYear - left.assessmentYear)
+
+  return (
+    <FinancialSection
+      className="municipal-finance-section municipal-finance-icms-education"
+      description={`Resultado da avaliação de ${latest.assessmentYear}, aplicado à distribuição de ${latest.distributionYear}.`}
+      eyebrow="ICMS Educação"
+      title="Índice educacional e participação municipal"
+      titleId="municipal-finance-icms-education-title"
+    >
+      <FinancialKpiGrid className="municipal-finance-icms-education__kpis">
+        <FinancialMetricCard
+          icon="allocation"
+          label="Participação na quota-educação (PRE)"
+          meta={`Distribuição de ${latest.distributionYear}`}
+        >
+          <span className="municipal-finance-icms-education__primary-value">
+            {formatIcmsSharePercent(latest.preSharePercent)}
+          </span>
+        </FinancialMetricCard>
+        <FinancialMetricCard
+          icon="trend"
+          label="IMERS"
+          meta={`Avaliação SAERS ${latest.assessmentYear}`}
+        >
+          <span className="municipal-finance-icms-education__primary-value">
+            {formatIndexScore(latest.imers)} <small>/ 100</small>
+          </span>
+        </FinancialMetricCard>
+        <FinancialMetricCard
+          icon="resources"
+          label="Peso da educação no IPM"
+          meta={`Regra de distribuição de ${latest.distributionYear}`}
+        >
+          <span className="municipal-finance-icms-education__primary-value">
+            {formatPercent(latest.ipmEducationCriterionWeightPercent)}
+          </span>
+        </FinancialMetricCard>
+      </FinancialKpiGrid>
+
+      <div className="municipal-finance-icms-education__components">
+        <div className="municipal-finance-icms-education__subheading">
+          <h3>Componentes do IMERS</h3>
+          <span>Avaliação {latest.assessmentYear}</span>
+        </div>
+        <dl>
+          <div>
+            <dt>Alfabetização <span>IQA</span></dt>
+            <dd>
+              <strong>{formatIndexScore(latest.components.iqa)}</strong>
+              <span>2º ano: nível e evolução em Português e Matemática no SAERS.</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Anos iniciais <span>IQI</span></dt>
+            <dd>
+              <strong>{formatIndexScore(latest.components.iqi)}</strong>
+              <span>5º ano: nível e evolução em Português e Matemática no SAERS.</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Anos finais <span>IQF</span></dt>
+            <dd>
+              <strong>{formatIndexScore(latest.components.iqf)}</strong>
+              <span>9º ano: nível e evolução em Português e Matemática no SAERS.</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Aprovação <span>IA</span></dt>
+            <dd>
+              <strong>{formatPercent(latest.components.approvalRate)}</strong>
+              <span>Taxa de aprovação em todos os anos do ensino fundamental municipal.</span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="municipal-finance-icms-education__history">
+        <div className="municipal-finance-icms-education__subheading">
+          <h3>Série oficial disponível</h3>
+          <span>Avaliação → distribuição</span>
+        </div>
+        <div
+          className="municipal-finance-icms-education__table-wrap platform-data-table-region"
+          role="region"
+          aria-label="Histórico municipal do ICMS Educação. Role horizontalmente para consultar todas as colunas quando necessário."
+          tabIndex={0}
+        >
+          <table className="municipal-finance-icms-education__table platform-data-table">
+            <caption className="u-sr-only">Histórico municipal do ICMS Educação</caption>
+            <thead>
+              <tr>
+                <th scope="col">Avaliação</th>
+                <th className="platform-data-cell--numeric" scope="col">Distribuição</th>
+                <th className="platform-data-cell--numeric" scope="col">IMERS</th>
+                <th className="platform-data-cell--numeric" scope="col">PRE</th>
+                <th className="platform-data-cell--numeric" scope="col">Peso no IPM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((entry) => (
+                <tr key={entry.assessmentYear}>
+                  <td>{entry.assessmentYear}</td>
+                  <td className="platform-data-cell--numeric">{entry.distributionYear}</td>
+                  <td className="platform-data-cell--numeric">{formatIndexScore(entry.imers)}</td>
+                  <td className="platform-data-cell--numeric">{formatIcmsSharePercent(entry.preSharePercent)}</td>
+                  <td className="platform-data-cell--numeric">{formatPercent(entry.ipmEducationCriterionWeightPercent)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="municipal-finance-icms-education__notes">
+        <h3>Como interpretar</h3>
+        <dl>
+          <div>
+            <dt>IMERS</dt>
+            <dd>
+              Nota de 0 a 100 que compara a qualidade educacional entre os municípios. Combina IQA (40%),
+              IQI (35%), IQF (15%) e IA (10%).
+            </dd>
+          </div>
+          <div>
+            <dt>PRE</dt>
+            <dd>
+              Percentual do município no rateio da cota-parte da educação do ICMS; não é valor depositado
+              nem estimativa em reais.
+            </dd>
+          </div>
+          <div>
+            <dt>Peso no IPM</dt>
+            <dd>
+              Parcela do Índice de Participação dos Municípios atribuída ao critério educacional no ano da
+              distribuição.
+            </dd>
+          </div>
+        </dl>
+        <p className="municipal-finance-icms-education__method-note">
+          Os resultados oficiais de 2024 são preservados como publicados, inclusive as regras excepcionais
+          adotadas após as enchentes.
+        </p>
+        {source ? <SourceReference source={source} /> : null}
+      </div>
+    </FinancialSection>
   )
 }
 

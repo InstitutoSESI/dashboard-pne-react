@@ -32,6 +32,10 @@ from src.municipal_finance_constitutional import (  # noqa: E402
     refresh_annual_constitutional_snapshot,
     write_constitutional_reports,
 )
+from src.municipal_finance_icms_education import (  # noqa: E402
+    load_icms_education_source,
+    merge_icms_education_source,
+)
 from src.publication_transaction import promote_files_atomically  # noqa: E402
 from src.state_config import (  # noqa: E402
     DEFAULT_STATE_CODE,
@@ -50,6 +54,10 @@ DEFAULT_CONSTITUTIONAL_CROSSWALK = (
 DEFAULT_RREO_REVISIONS = (
     DATA_PIPELINE_DIR / "data" / "municipal_finance" / "rreo_source_revisions.json"
 )
+DEFAULT_ICMS_EDUCATION_SOURCE = (
+    DATA_PIPELINE_DIR / "data" / "municipal_finance" / "icms_education" / "rs"
+)
+DEFAULT_RS_MUNICIPALITY_REGISTRY = REPO_ROOT / "config" / "municipalities" / "rs.json"
 DEFAULT_CHECKPOINT = DATA_PIPELINE_DIR / "export" / "debug" / "municipal_finance_dca_checkpoint.json"
 DEFAULT_EXPORT_ROOT = MUNICIPAL_FINANCE_EXPORT_DIR
 DEFAULT_COVERAGE_CSV = REPO_ROOT / "docs" / "data" / "diagnostico_financeiro_cobertura_497.csv"
@@ -108,6 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--municipality-index", type=Path)
     parser.add_argument("--source-snapshot", type=Path)
     parser.add_argument("--constitutional-snapshot", type=Path)
+    parser.add_argument("--icms-education-source", type=Path)
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--refresh-sources", action="store_true")
     parser.add_argument("--refresh-constitutional", action="store_true")
@@ -212,6 +221,20 @@ def main() -> None:
         constitutional_snapshot,
         constitutional_state,
     )
+    if state_config.state_code == "RS":
+        icms_education_source = load_icms_education_source(
+            args.icms_education_source or DEFAULT_ICMS_EDUCATION_SOURCE,
+            DEFAULT_RS_MUNICIPALITY_REGISTRY,
+        )
+        snapshot = merge_icms_education_source(
+            snapshot,
+            icms_education_source,
+            municipalities,
+        )
+    elif args.icms_education_source is not None:
+        raise RuntimeError(
+            "A fonte configurada de ICMS Educação é exclusiva do Rio Grande do Sul."
+        )
 
     output_roots = [output_root]
     if args.sync_public and output_root.resolve() != public_root.resolve():
