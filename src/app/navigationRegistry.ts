@@ -120,7 +120,7 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     route: 'diagnostico',
     aliases: [],
     glyph: 'diagnostico',
-    crumb: 'Metas do PNE / Ciclo vigente / Diagnóstico municipal',
+    crumb: 'Relatórios / Diagnóstico Municipal',
   }),
   page({
     key: 'matriz-prioridades',
@@ -128,7 +128,7 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     route: 'matriz-prioridades',
     aliases: [],
     glyph: 'matriz-prioridades',
-    crumb: 'Metas do PNE / Planejamento municipal / Matriz de Prioridades',
+    crumb: 'Relatórios / Matriz de Prioridades',
   }),
   page({
     key: 'cenarios-educacao',
@@ -151,8 +151,8 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     label: 'Relatório Técnico Municipal',
     route: 'relatorio-tecnico-municipal',
     aliases: [],
-    glyph: null,
-    crumb: 'Indicadores de Educação / Relatório Técnico Municipal',
+    glyph: 'relatorio-tecnico-municipal',
+    crumb: 'Relatórios / Relatório Técnico Municipal',
   }),
   page({
     key: FINANCIAL_PAGE_KEYS.overview,
@@ -260,7 +260,44 @@ const itemFromPage = (
   })
 }
 
+/*
+ * Um item que aponta para uma seção de outra página. O grupo dono do acordeão
+ * continua sendo o da página alvo (regra de fallback), mas o atalho vive onde
+ * o leitor o procura.
+ */
+const sectionItem = (item: NavItem): NavItem => Object.freeze(item)
+
 export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
+  /*
+   * Relatórios reúne as leituras fechadas sobre o município — o que se lê de
+   * ponta a ponta, não o que se consulta indicador a indicador. Por isso mistura
+   * páginas de produtos diferentes (PNE e educação): o grupo é uma decisão
+   * editorial, e a visibilidade continua sendo decidida item a item.
+   */
+  Object.freeze({
+    id: 'relatorios',
+    label: 'Relatórios',
+    icon: 'FileText',
+    items: Object.freeze([
+      itemFromPage('diagnostico', { label: 'Diagnóstico Municipal' }),
+      itemFromPage('matriz-prioridades'),
+      sectionItem({
+        key: 'panorama-educacional',
+        label: 'Panorama Educacional',
+        target: 'educacao?secao=panorama',
+        page: 'educacao',
+        glyph: 'panorama',
+        condition: null,
+      }),
+      itemFromPage('relatorio-tecnico-municipal'),
+    ]),
+    dynamicItems: null,
+    ownedPages: Object.freeze([
+      'diagnostico',
+      'matriz-prioridades',
+      'relatorio-tecnico-municipal',
+    ]),
+  } satisfies NavGroup),
   Object.freeze({
     id: 'pne',
     label: 'PNE',
@@ -270,8 +307,6 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       itemFromPage('pne-legal-goals'),
       itemFromPage('pne2014'),
       itemFromPage('pne2026'),
-      itemFromPage('diagnostico'),
-      itemFromPage('matriz-prioridades'),
       itemFromPage('cenarios-educacao', { condition: 'foresight' }),
     ]),
     dynamicItems: null,
@@ -280,8 +315,6 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       'pne-legal-goals',
       'pne2014',
       'pne2026',
-      'diagnostico',
-      'matriz-prioridades',
       'cenarios-educacao',
     ]),
   } satisfies NavGroup),
@@ -310,10 +343,12 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
   } satisfies NavGroup),
 ])
 
-/** Itens raiz da barra lateral: fora de qualquer grupo, sempre visiveis. */
-export const NAV_ROOT_ITEMS: readonly NavItem[] = Object.freeze([
-  itemFromPage('relatorio-tecnico-municipal'),
-])
+/*
+ * Itens raiz da barra lateral: fora de qualquer grupo, logo abaixo da Home. O
+ * Relatório Técnico Municipal vivia aqui até a Fase 4 da reorganização, quando
+ * entrou no grupo Relatórios.
+ */
+export const NAV_ROOT_ITEMS: readonly NavItem[] = Object.freeze([])
 
 export function getOwnerGroupId(activePage: AppPageKey): NavGroupId | null {
   for (const group of NAV_GROUPS) {

@@ -86,6 +86,9 @@ const NAV_BLOCKS = NAV_GROUPS
 
 const ROOT_NAV_ITEMS = NAV_ROOT_ITEMS.map(toRenderableItem).filter(isItemVisible)
 
+// O botão de menu no mobile controla os painéis de todos os grupos visíveis.
+const SIDEBAR_PANEL_IDS = NAV_BLOCKS.map((block) => `sidebar-${block.id}-items`).join(' ')
+
 /*
  * Os Cenários da educação existem para os municípios que o manifesto público
  * declara publicados. A entrada aparece só nesse caso — sem item desabilitado,
@@ -283,7 +286,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
         <button
           ref={menuButtonRef}
           aria-expanded={isDrawerOpen}
-          aria-controls="sidebar-pne-items sidebar-educacao-items sidebar-financeiros-items"
+          aria-controls={SIDEBAR_PANEL_IDS}
           className="sidebar-menu-button"
           type="button"
           onClick={openDrawer}

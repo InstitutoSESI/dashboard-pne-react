@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Coins,
   Compass,
+  FileChartColumn,
   Waypoints,
   Flag,
   GitFork,
@@ -38,6 +39,7 @@ export type NavGlyphName =
   | 'pne2026'
   | 'diagnostico'
   | 'matriz-prioridades'
+  | 'relatorio-tecnico-municipal'
   | 'cenarios-educacao'
   | 'financeiros'
   | 'financeiros-panorama'
@@ -66,6 +68,8 @@ const GLYPH_ICONS: Record<NavGlyphName, LucideIcon> = {
   diagnostico: ScanSearch,
   // Lista de verificacao -- a organizacao dos problemas que exigem prioridade.
   'matriz-prioridades': ListChecks,
+  // Documento com barras -- o relatorio tecnico, a leitura longa em numeros.
+  'relatorio-tecnico-municipal': FileChartColumn,
   // Caminhos que se abrem a partir de um mesmo no -- as quatro leituras possiveis.
   'cenarios-educacao': Waypoints,
   // Grade -- a visao geral, o quadro de todas as areas.
