@@ -172,6 +172,20 @@ matrícula informada em mais de uma etapa. Por isso o painel regional diz, na
 própria tela e na metodologia do artefato, que somar os recortes dá mais do que
 o total.
 
+A verificação de integridade nos carregadores públicos (foresight, regional e
+Vocações da Região) tem dois níveis, decididos na arbitragem da Rodada 0 do
+plano Vocações da Região (2026-08-24). Onde `crypto.subtle` existe — contexto
+seguro: `https://` ou localhost — o hash é recalculado sobre os bytes recebidos
+e o resultado carrega `integrity='verified'`. Onde não existe, a carga não é
+recusada: o carregador confere o que é verificável sem criptografia — no
+regional, `byteSize` contra os bytes reais, além do conjunto fechado de campos
+em todos — e o resultado carrega `integrity='declared'`. A recusa estrita não
+compraria segurança: em `http://` simples, quem pode alterar o artefato pode
+alterar o manifesto e o próprio bundle; o recálculo de hash protege contra
+deploy inconsistente ou parcial, não contra adversário, e essa proteção
+permanece integral onde a hospedagem oferece contexto seguro. O estado de
+integridade segue exposto no resultado do carregador.
+
 A objeção que motivou a remoção — regionalização é um pressuposto de RS que
 trava outras UFs — é respondida pela ausência: uma UF sem `config/regions` não
 tem mapa, não tem artefato e não tem menu, e nenhum caminho de código produz
