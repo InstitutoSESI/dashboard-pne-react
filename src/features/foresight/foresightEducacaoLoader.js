@@ -80,14 +80,19 @@ const MANIFEST_ENTRY_FIELDS = new Set([
 ])
 const SOURCE_ARTIFACT_FIELDS = new Set(['name', 'sha256'])
 
-const DOCUMENT_FIELDS = new Set([
+/*
+ * Campos do pacote sem a identidade do território. A identidade é o único
+ * ponto em que um pacote regional difere de um municipal, então ela entra por
+ * parâmetro (`identityKey`) e todo o resto do contrato — linguagem pública,
+ * horizonte, cenários, proveniência — vale igual para os dois.
+ */
+const DOCUMENT_BASE_FIELDS = [
   'schemaVersion',
   'contentVersion',
   'sourceVersion',
   'sourceMethodologyStatus',
   'generatedAt',
   'publicationScope',
-  'municipality',
   'page',
   'horizon',
   'howToRead',
@@ -99,7 +104,7 @@ const DOCUMENT_FIELDS = new Set([
   'sources',
   'limitations',
   'provenance',
-])
+]
 const MUNICIPALITY_FIELDS = new Set(['ibgeCode', 'name', 'uf', 'slug'])
 const PAGE_FIELDS = new Set(['eyebrow', 'title', 'description', 'neutralityNote'])
 const HORIZON_FIELDS = new Set(['stateYear', 'scanThroughYear', 'stateLabel', 'scanLabel'])
@@ -319,11 +324,35 @@ function parseScenario(candidate, label) {
 }
 
 /** Valida o pacote municipal público e devolve uma cópia congelada. */
-export function parseForesightDocument(candidate) {
-  validateExactFields(candidate, DOCUMENT_FIELDS, 'pacote')
-  invariant(candidate.schemaVersion === FORESIGHT_DOCUMENT_SCHEMA, 'esquema do pacote desconhecido.')
-  invariant(candidate.sourceVersion === FORESIGHT_SOURCE_VERSION, 'versão de origem inesperada.')
-  invariant(candidate.publicationScope === FORESIGHT_PUBLICATION_SCOPE, 'escopo de publicação inesperado.')
+/*
+ * Fábrica do validador de pacote. O contrato inteiro — campos exatos, guarda de
+ * linguagem pública, horizonte, quatro cenários sem ordem, proveniência com
+ * resumo — vale para qualquer escopo territorial; o que varia é a identidade e
+ * a versão de origem que o manifesto declarou. Um pacote regional reusa esta
+ * mesma fábrica em vez de reimplementar a validação.
+ *
+ * @param {{
+ *   documentSchema: string,
+ *   sourceVersion: string,
+ *   publicationScope: string,
+ *   identityKey: string,
+ *   validateIdentity: (value: unknown, label: string) => unknown,
+ * }} contract
+ */
+export function createDocumentParser({
+  documentSchema,
+  sourceVersion,
+  publicationScope,
+  identityKey,
+  validateIdentity,
+}) {
+  const documentFields = new Set([...DOCUMENT_BASE_FIELDS, identityKey])
+
+  return function parseDocument(candidate) {
+  validateExactFields(candidate, documentFields, 'pacote')
+  invariant(candidate.schemaVersion === documentSchema, 'esquema do pacote desconhecido.')
+  invariant(candidate.sourceVersion === sourceVersion, 'versão de origem inesperada.')
+  invariant(candidate.publicationScope === publicationScope, 'escopo de publicação inesperado.')
   invariant(
     typeof candidate.sourceMethodologyStatus === 'string' && candidate.sourceMethodologyStatus.length > 0,
     'pacote.sourceMethodologyStatus ausente.',
@@ -333,7 +362,7 @@ export function parseForesightDocument(candidate) {
     'pacote.generatedAt deve ser uma data ISO.',
   )
   validateSha256(candidate.contentVersion, 'pacote.contentVersion')
-  validateMunicipality(candidate.municipality, 'pacote.municipality')
+  validateIdentity(candidate[identityKey], `pacote.${identityKey}`)
 
   validateExactFields(candidate.page, PAGE_FIELDS, 'pacote.page')
   validateText(candidate.page.eyebrow, 'pacote.page.eyebrow', { kind: 'framing' })
@@ -431,11 +460,11 @@ export function parseForesightDocument(candidate) {
   validateTextList(candidate.limitations.items, 'pacote.limitations.items', { kind: 'framing' })
 
   validateExactFields(candidate.provenance, PROVENANCE_FIELDS, 'pacote.provenance')
-  invariant(candidate.provenance.methodologySource === FORESIGHT_SOURCE_VERSION,
+  invariant(candidate.provenance.methodologySource === sourceVersion,
     'pacote.provenance.methodologySource diverge da versão de origem.')
   invariant(typeof candidate.provenance.methodologyStatus === 'string'
     && candidate.provenance.methodologyStatus.length > 0, 'pacote.provenance.methodologyStatus ausente.')
-  invariant(candidate.provenance.publicationScope === FORESIGHT_PUBLICATION_SCOPE,
+  invariant(candidate.provenance.publicationScope === publicationScope,
     'pacote.provenance.publicationScope inesperado.')
   invariant(Array.isArray(candidate.provenance.artifacts) && candidate.provenance.artifacts.length > 0,
     'pacote.provenance.artifacts deve listar os documentos de origem.')
@@ -447,7 +476,17 @@ export function parseForesightDocument(candidate) {
   })
 
   return structuredClone(candidate)
+  }
 }
+
+/** Validador do pacote municipal — a instância municipal da fábrica acima. */
+export const parseForesightDocument = createDocumentParser({
+  documentSchema: FORESIGHT_DOCUMENT_SCHEMA,
+  sourceVersion: FORESIGHT_SOURCE_VERSION,
+  publicationScope: FORESIGHT_PUBLICATION_SCOPE,
+  identityKey: 'municipality',
+  validateIdentity: validateMunicipality,
+})
 
 /*
  * Versão de conteúdo: resumo determinístico do corpo do pacote, calculado sem

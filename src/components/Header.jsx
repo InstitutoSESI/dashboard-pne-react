@@ -7,12 +7,13 @@ import {
 } from '../app/navigationRegistry'
 import { resolvePageProduct } from '../config/analyticsProducts'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
-import { REGIONAL_ANALYSIS_AVAILABLE } from '../config/regionsConfig'
+import { REGIONAL_ANALYSIS_AVAILABLE, resolveRegionForMunicipality } from '../config/regionsConfig'
 import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
 import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
+import { isVocacoesPublished, useVocacoesPublication } from '../hooks/useVocacoesRegiao'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
 import { NavGlyphIcon, isNavGlyphName } from './icons/NavGlyphIcon'
 import { SidebarAccordionGroup } from './SidebarAccordionGroup'
@@ -101,6 +102,16 @@ function withForesightItem(block, isVisible) {
   return { ...block, items: block.items.filter((item) => item.condition !== 'foresight') }
 }
 
+/*
+ * O Vocações da Região segue a mesma regra dos Cenários municipais: existe
+ * quando o manifesto declara a região publicada. Enquanto o manifesto estiver
+ * vazio — o estado de hoje —, o item não aparece.
+ */
+function withVocacoesItem(block, isVisible) {
+  if (isVisible || !block.items.some((item) => item.condition === 'vocacoes')) return block
+  return { ...block, items: block.items.filter((item) => item.condition !== 'vocacoes') }
+}
+
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
 const SIDEBAR_NAVIGATION_ID = 'app-sidebar-navigation'
@@ -116,6 +127,9 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
   const { selectedMunicipalityId } = useMunicipality()
   const foresightPublication = useForesightPublication()
   const foresightVisible = isForesightPublished(foresightPublication, selectedMunicipalityId)
+  const vocacoesPublication = useVocacoesPublication()
+  const selectedRegion = resolveRegionForMunicipality(selectedMunicipalityId)
+  const vocacoesVisible = isVocacoesPublished(vocacoesPublication, selectedRegion?.slug ?? null)
 
   const ownerGroup = getOwnerGroup(activePage)
 
@@ -242,6 +256,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
             <>
               {NAV_BLOCKS
                 .map((block) => withForesightItem(block, foresightVisible))
+                .map((block) => withVocacoesItem(block, vocacoesVisible))
                 .filter((block) => block.items.length > 0)
                 .map((item) => (
                 <SidebarAccordionGroup

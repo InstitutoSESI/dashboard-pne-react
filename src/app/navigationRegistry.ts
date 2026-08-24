@@ -32,7 +32,7 @@ export type NavGroupIconName = 'Target' | 'GraduationCap' | 'Landmark' | 'FileTe
 
 export type NavDynamicItemSource = 'education-sections' | 'financial-modules'
 
-export type NavItemCondition = 'foresight' | 'regional'
+export type NavItemCondition = 'foresight' | 'regional' | 'vocacoes'
 
 export interface NavPage {
   /** Chave canonica da pagina, a mesma do roteador. */
@@ -145,6 +145,14 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     aliases: ['regiao'],
     glyph: 'analise-regional',
     crumb: 'Análise Regional / Panorama da Região',
+  }),
+  page({
+    key: 'vocacoes-regiao',
+    label: 'Vocações da Região',
+    route: 'vocacoes-da-regiao',
+    aliases: [],
+    glyph: 'cenarios-educacao',
+    crumb: 'Análise Regional / Vocações da Região',
   }),
   page({
     key: 'educacao',
@@ -305,9 +313,10 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
     items: Object.freeze([
       itemFromPage('analise-regional', { condition: 'regional' }),
       itemFromPage('cenarios-educacao', { condition: 'foresight' }),
+      itemFromPage('vocacoes-regiao', { condition: 'vocacoes' }),
     ]),
     dynamicItems: null,
-    ownedPages: Object.freeze(['analise-regional', 'cenarios-educacao']),
+    ownedPages: Object.freeze(['analise-regional', 'cenarios-educacao', 'vocacoes-regiao']),
   } satisfies NavGroup),
   Object.freeze({
     id: 'pne',

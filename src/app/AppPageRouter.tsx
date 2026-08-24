@@ -20,6 +20,8 @@ import {
 } from '../domain/municipalityRouting'
 import { useMunicipioData } from '../hooks/useMunicipioData'
 import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
+import { isVocacoesPublished, useVocacoesPublication } from '../hooks/useVocacoesRegiao'
+import { resolveRegionForMunicipality } from '../config/regionsConfig'
 import { Home } from '../pages/Home'
 import { ProductUnavailablePage } from '../pages/ProductUnavailablePage'
 import type { AppPageKey } from '../types/app'
@@ -32,6 +34,7 @@ import { PageLoadBoundary } from './PageLoadBoundary'
 
 const LazyForesightEducacaoPage = lazy(() => import('../features/foresight/ForesightEducacaoPage').then((module) => ({ default: module.ForesightEducacaoPage })))
 const LazyAnaliseRegionalPage = lazy(() => import('../features/regional/AnaliseRegionalPage').then((module) => ({ default: module.AnaliseRegionalPage })))
+const LazyVocacoesRegiaoPage = lazy(() => import('../features/vocacoes-regiao/VocacoesRegiaoPage').then((module) => ({ default: module.VocacoesRegiaoPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
 const LazyEducationPage = lazy(() => import('../features/education/EducationPage').then((module) => ({ default: module.EducationPage })))
@@ -149,6 +152,28 @@ export function AppPageRouter({
     })
   }, [isLegacyTechnicalReportRoute])
 
+  /*
+   * Vocações da Região: o slot existe antes do conteúdo. Enquanto o manifesto
+   * público não declarar a região publicada — o estado de hoje —, a rota volta
+   * para o Panorama da Região preservando o município pedido. Nenhuma página
+   * vazia é montada e nenhum cenário municipal é reaproveitado como regional.
+   */
+  const isVocacoesRoute = activePage === 'vocacoes-regiao'
+  const vocacoesPublication = useVocacoesPublication()
+  const activeRegion = resolveRegionForMunicipality(effectiveMunicipalityId)
+  const vocacoesAvailable = isVocacoesPublished(vocacoesPublication, activeRegion?.slug ?? null)
+  const vocacoesBlocked = isVocacoesRoute
+    && selectionReady
+    && vocacoesPublication.ready
+    && !vocacoesAvailable
+
+  useEffect(() => {
+    if (!vocacoesBlocked) return
+    replaceHashContext('analise-regional', {
+      municipio: effectiveMunicipality?.slug ?? null,
+    })
+  }, [effectiveMunicipality?.slug, vocacoesBlocked])
+
   useEffect(() => {
     if (!foresightBlocked) return
     replaceHashContext('diagnostico', {
@@ -260,6 +285,20 @@ export function AppPageRouter({
           key={effectiveMunicipalityId}
           municipalityId={effectiveMunicipalityId}
           selectedMunicipio={selectedMunicipio}
+        />
+      </LazyPageBoundary>
+    )
+  }
+
+  if (isVocacoesRoute) {
+    if (!vocacoesPublication.ready || vocacoesBlocked) {
+      return <LoadingState message="Preparando a leitura regional..." />
+    }
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyVocacoesRegiaoPage
+          key={activeRegion?.slug ?? effectiveMunicipalityId}
+          municipalityId={effectiveMunicipalityId}
         />
       </LazyPageBoundary>
     )

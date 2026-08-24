@@ -228,9 +228,15 @@ test('a página declara os limites do horizonte e a ausência de projeção demo
   }
 })
 
+/*
+ * Fase 6 da reorganização: o corpo da leitura saiu da página municipal para o
+ * relatório compartilhado, que o Vocações da Região reusa com a identidade
+ * regional. A ordem das seções é a mesma e continua vigiada — só mudou o
+ * arquivo que é dono do JSX.
+ */
 test('a seção de fontes é a última do componente da página', async () => {
   const source = await readFile(
-    new URL('../../src/features/foresight/ForesightEducacaoPage.tsx', import.meta.url),
+    new URL('../../src/features/foresight/ForesightScenarioReport.tsx', import.meta.url),
     'utf8',
   )
   const labels = [...source.matchAll(/aria-labelledby="(cenarios-[a-z-]+)"/g)].map((match) => match[1])

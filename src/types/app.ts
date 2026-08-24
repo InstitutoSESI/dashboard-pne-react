@@ -9,6 +9,7 @@ export type AppPageKey =
   | 'matriz-prioridades'
   | 'cenarios-educacao'
   | 'analise-regional'
+  | 'vocacoes-regiao'
   | 'pne2014'
   | 'pne2026'
   | 'diagnostico'

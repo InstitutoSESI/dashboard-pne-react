@@ -119,6 +119,8 @@ const ROUTE_CASES = [
   ['#analise-regional', 'analise-regional'],
   ['#analise-regional?municipio=nova-santa-rita', 'analise-regional'],
   ['#regiao', 'analise-regional'],
+  ['#vocacoes-da-regiao', 'vocacoes-regiao'],
+  ['#vocacoes-da-regiao?municipio=nova-santa-rita', 'vocacoes-regiao'],
   ['#/Analise-Regional', 'analise-regional'],
   ['#financeiros', FINANCIAL_PAGE_KEYS.overview],
   ['#financeiros-panorama', FINANCIAL_PAGE_KEYS.panorama],
@@ -188,6 +190,8 @@ test('o registro preserva o mapa de hashes anterior e declara cada acréscimo', 
     // Fase 5 da reorganização: Análise Regional.
     analiseregional: 'analise-regional',
     regiao: 'analise-regional',
+    // Fase 6: slot do Vocações da Região, fechado até a pesquisa publicar.
+    vocacoesdaregiao: 'vocacoes-regiao',
   }
 
   const actual = buildHashPageMap()
@@ -231,6 +235,7 @@ test('o grupo Análise Regional reúne o panorama e os cenários, cada um com se
     [
       ['analise-regional', 'analise-regional', 'regional'],
       ['cenarios-educacao', 'cenarios-da-educacao', 'foresight'],
+      ['vocacoes-regiao', 'vocacoes-da-regiao', 'vocacoes'],
     ],
   )
   assert.equal(getOwnerGroupId('analise-regional'), 'analise-regional')
@@ -242,6 +247,7 @@ test('o grupo Análise Regional reúne o panorama e os cenários, cada um com se
   const header = readFileSync(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
   assert.match(header, /item\.condition === 'regional' && !REGIONAL_ANALYSIS_AVAILABLE/)
   assert.match(header, /\.filter\(\(block\) => block\.items\.length > 0\)/)
+  assert.match(header, /withVocacoesItem\(block, vocacoesVisible\)/)
 })
 
 test('preserva acesso direto ao detalhe de alfabetizacao no ciclo encerrado', () => {
@@ -406,6 +412,7 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('educacao'), 'educacao')
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
   assert.equal(resolvePageProduct('analise-regional'), 'educacao')
+  assert.equal(resolvePageProduct('vocacoes-regiao'), 'educacao')
   for (const pageKey of Object.values(FINANCIAL_PAGE_KEYS)) {
     assert.equal(resolvePageProduct(pageKey), 'financiamento')
   }
