@@ -1,4 +1,4 @@
-import { resolveSignalReading } from '../caderno/cadernoSignalLanguage.js'
+import { resolveSignalReading } from './matrizSignalLanguage.js'
 import { formatPublicValue } from '../diagnostic/diagnosticPresentation.js'
 import type { MatrizPlanStatus } from '../../domain/matrizFrontsStorage.js'
 import type { MatrizMeasureContext } from './matrizInsights.js'
