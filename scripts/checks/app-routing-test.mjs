@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -116,6 +116,10 @@ const ROUTE_CASES = [
   ['#diagnostico', 'diagnostico'],
   ['#educacao', 'educacao'],
   ['#relatorio-tecnico-municipal', 'relatorio-tecnico-municipal'],
+  ['#analise-regional', 'analise-regional'],
+  ['#analise-regional?municipio=nova-santa-rita', 'analise-regional'],
+  ['#regiao', 'analise-regional'],
+  ['#/Analise-Regional', 'analise-regional'],
   ['#financeiros', FINANCIAL_PAGE_KEYS.overview],
   ['#financeiros-panorama', FINANCIAL_PAGE_KEYS.panorama],
   ['#panorama-financeiro', FINANCIAL_PAGE_KEYS.panorama],
@@ -142,8 +146,14 @@ test('resolve todas as rotas e aliases vigentes', () => {
   }
 })
 
-test('o registro reproduz exatamente o mapa de hashes anterior à reorganização', () => {
-  const expectedMap = {
+/*
+ * A reorganização pode acrescentar rota, nunca aposentar uma sem decisão
+ * registrada. O mapa abaixo é o de antes da reorganização; ele precisa
+ * continuar inteiro dentro do mapa atual, e cada rota nova aparece nomeada na
+ * lista de acréscimos — quem adicionar uma sem declarar aqui quebra o teste.
+ */
+test('o registro preserva o mapa de hashes anterior e declara cada acréscimo', () => {
+  const FROZEN_MAP = {
     home: 'home',
     pneoverview: 'pne-overview',
     pnelegalgoals: 'pne-legal-goals',
@@ -173,10 +183,24 @@ test('o registro reproduz exatamente o mapa de hashes anterior à reorganizaçã
     escolassistemas: 'educacao',
   }
 
+  // Acréscimos deliberados, na ordem em que entraram.
+  const ADDED_ROUTES = {
+    // Fase 5 da reorganização: Análise Regional.
+    analiseregional: 'analise-regional',
+    regiao: 'analise-regional',
+  }
+
+  const actual = buildHashPageMap()
+  for (const [route, page] of Object.entries(FROZEN_MAP)) {
+    assert.equal(actual[route], page, `a rota ${route} deixou de resolver`)
+  }
   assert.deepEqual(
-    Object.entries(buildHashPageMap()).sort(),
-    Object.entries(expectedMap).sort(),
+    Object.keys(actual).filter((route) => !(route in FROZEN_MAP)).sort(),
+    Object.keys(ADDED_ROUTES).sort(),
   )
+  for (const [route, page] of Object.entries(ADDED_ROUTES)) {
+    assert.equal(actual[route], page)
+  }
 })
 
 test('Panorama educacional permanece apenas no grupo canônico de indicadores', () => {
@@ -191,6 +215,33 @@ test('Panorama educacional permanece apenas no grupo canônico de indicadores', 
   )
   assert.equal(educationGroup.dynamicItems, 'education-sections')
   assert.equal(getOwnerGroupId('educacao'), 'educacao')
+})
+
+/*
+ * Análise Regional é o primeiro grupo cuja existência depende de configuração
+ * de UF, e não de publicação de produto. O gate vive no cabeçalho, marcado no
+ * registro como condição do item: uma UF sem mapa regional não vê o item, e o
+ * grupo desaparece junto quando sobra vazio.
+ */
+test('o grupo Análise Regional reúne o panorama e os cenários, cada um com seu gate', () => {
+  const group = NAV_GROUPS.find((candidate) => candidate.id === 'analise-regional')
+  assert.ok(group)
+  assert.deepEqual(
+    group.items.map((item) => [item.key, item.target, item.condition]),
+    [
+      ['analise-regional', 'analise-regional', 'regional'],
+      ['cenarios-educacao', 'cenarios-da-educacao', 'foresight'],
+    ],
+  )
+  assert.equal(getOwnerGroupId('analise-regional'), 'analise-regional')
+  assert.equal(getOwnerGroupId('cenarios-educacao'), 'analise-regional')
+
+  const pneGroup = NAV_GROUPS.find((candidate) => candidate.id === 'pne')
+  assert.equal(pneGroup.items.some((item) => item.key === 'cenarios-educacao'), false)
+
+  const header = readFileSync(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
+  assert.match(header, /item\.condition === 'regional' && !REGIONAL_ANALYSIS_AVAILABLE/)
+  assert.match(header, /\.filter\(\(block\) => block\.items\.length > 0\)/)
 })
 
 test('preserva acesso direto ao detalhe de alfabetizacao no ciclo encerrado', () => {
@@ -354,6 +405,7 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('cenarios-educacao'), 'pne')
   assert.equal(resolvePageProduct('educacao'), 'educacao')
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
+  assert.equal(resolvePageProduct('analise-regional'), 'educacao')
   for (const pageKey of Object.values(FINANCIAL_PAGE_KEYS)) {
     assert.equal(resolvePageProduct(pageKey), 'financiamento')
   }

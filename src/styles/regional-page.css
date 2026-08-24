@@ -1,0 +1,163 @@
+/*
+ * Panorama da Região.
+ *
+ * A página é tabular, não narrativa: o leitor compara linhas, e a leitura pede
+ * alinhamento estável mais do que hierarquia visual. Os painéis repetem a
+ * superfície de cartão já usada nas demais páginas — mesma borda, mesmo raio,
+ * mesma sombra — para que a região não pareça outro produto.
+ *
+ * Nenhuma cor marca valor bom ou ruim. A única ênfase é o município
+ * selecionado na lista, que responde à pergunta "onde eu estou".
+ */
+
+.regional-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.regional-panel__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.regional-panel__title {
+  color: var(--text-strong);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line-height);
+  margin: 0;
+}
+
+.regional-panel__text {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 68ch;
+}
+
+.regional-subtitle {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.regional-highlights {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin: 0;
+}
+
+.regional-highlights dt {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.regional-highlights dd {
+  color: var(--text-strong);
+  font-size: var(--type-display-size, 1.75rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  margin: var(--space-1) 0 0;
+}
+
+/* A tabela larga rola dentro do painel; a página nunca rola na horizontal. */
+.regional-table-scroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.regional-table {
+  border-collapse: collapse;
+  font-size: var(--type-support-size);
+  min-width: 34rem;
+  width: 100%;
+}
+
+.regional-table caption {
+  text-align: left;
+}
+
+.regional-table th,
+.regional-table td {
+  border-bottom: 1px solid var(--border-card);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.regional-table thead th {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.regional-table tbody th {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.regional-table td {
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.regional-table__section th {
+  background: var(--surface-muted, transparent);
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.regional-table__label {
+  display: block;
+}
+
+.regional-table__hint {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-regular, 400);
+}
+
+.regional-municipalities {
+  display: grid;
+  gap: var(--space-1) var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.regional-municipalities__item {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+}
+
+.regional-municipalities__item.is-selected {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+.regional-list {
+  color: var(--text-body);
+  display: grid;
+  font-size: var(--type-support-size);
+  gap: var(--space-2);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 68ch;
+  padding-left: var(--space-4);
+}

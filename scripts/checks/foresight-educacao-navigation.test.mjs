@@ -125,13 +125,19 @@ test('acesso direto com município não publicado sai da rota em vez de abrir p�
   assert.match(router, /key=\{effectiveMunicipalityId\}/)
 })
 
-test('a migalha da página nomeia o planejamento municipal', async () => {
+/*
+ * Fase 5 da reorganização: o item saiu do grupo PNE para Análise Regional, e a
+ * migalha acompanhou o menu — a página segue municipal, com o mesmo conteúdo e
+ * o mesmo gate de manifesto. Quando o artefato regional existir, a decisão D6
+ * do plano reabre a questão do destino deste item.
+ */
+test('a migalha da página anuncia o grupo em que o item vive', async () => {
   const registry = await readFile(new URL('../../src/app/navigationRegistry.ts', import.meta.url), 'utf8')
-  assert.match(registry, /crumb: 'Metas do PNE \/ Planejamento municipal \/ Cenários da educação'/)
+  assert.match(registry, /crumb: 'Análise Regional \/ Cenários da educação'/)
 
-  const { buildPageCrumbs } = await import(compiledModule('src/app/navigationRegistry.js'))
-  assert.equal(
-    buildPageCrumbs()['cenarios-educacao'],
-    'Metas do PNE / Planejamento municipal / Cenários da educação',
-  )
+  const { NAV_GROUPS, buildPageCrumbs } = await import(compiledModule('src/app/navigationRegistry.js'))
+  assert.equal(buildPageCrumbs()['cenarios-educacao'], 'Análise Regional / Cenários da educação')
+
+  const owner = NAV_GROUPS.find((group) => group.items.some((item) => item.key === 'cenarios-educacao'))
+  assert.equal(owner?.id, 'analise-regional')
 })

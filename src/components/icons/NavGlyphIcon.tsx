@@ -15,6 +15,7 @@ import {
   Landmark,
   LayoutGrid,
   ListChecks,
+  MapPinned,
   Rows3,
   Scale,
   ScanSearch,
@@ -41,6 +42,7 @@ export type NavGlyphName =
   | 'matriz-prioridades'
   | 'relatorio-tecnico-municipal'
   | 'cenarios-educacao'
+  | 'analise-regional'
   | 'financeiros'
   | 'financeiros-panorama'
   | 'financeiros-aplicacao-recursos'
@@ -72,6 +74,8 @@ const GLYPH_ICONS: Record<NavGlyphName, LucideIcon> = {
   'relatorio-tecnico-municipal': FileChartColumn,
   // Caminhos que se abrem a partir de um mesmo no -- as quatro leituras possiveis.
   'cenarios-educacao': Waypoints,
+  // Mapa com marcadores -- os municipios vizinhos que formam a regiao.
+  'analise-regional': MapPinned,
   // Grade -- a visao geral, o quadro de todas as areas.
   financeiros: LayoutGrid,
   // Area sob a curva -- o panorama, a sintese ampla.

@@ -32,7 +32,7 @@ export type NavGroupIconName = 'Target' | 'GraduationCap' | 'Landmark' | 'FileTe
 
 export type NavDynamicItemSource = 'education-sections' | 'financial-modules'
 
-export type NavItemCondition = 'foresight'
+export type NavItemCondition = 'foresight' | 'regional'
 
 export interface NavPage {
   /** Chave canonica da pagina, a mesma do roteador. */
@@ -136,7 +136,15 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     route: 'cenarios-da-educacao',
     aliases: ['cenarios-da-educacao-municipal', 'cenarios-educacao'],
     glyph: 'cenarios-educacao',
-    crumb: 'Metas do PNE / Planejamento municipal / Cenários da educação',
+    crumb: 'Análise Regional / Cenários da educação',
+  }),
+  page({
+    key: 'analise-regional',
+    label: 'Panorama da Região',
+    route: 'analise-regional',
+    aliases: ['regiao'],
+    glyph: 'analise-regional',
+    crumb: 'Análise Regional / Panorama da Região',
   }),
   page({
     key: 'educacao',
@@ -283,6 +291,24 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       'relatorio-tecnico-municipal',
     ]),
   } satisfies NavGroup),
+  /*
+   * Análise Regional lê o município pelo território a que ele pertence. O
+   * Panorama da Região depende do mapa regional da UF ativa, e os Cenários da
+   * educação — ainda municipais — dependem do manifesto do foresight. Cada
+   * item carrega o próprio gate, e o grupo desaparece quando nenhum deles se
+   * sustenta: numa UF sem mapa e sem cenários publicados, não há menu.
+   */
+  Object.freeze({
+    id: 'analise-regional',
+    label: 'Análise Regional',
+    icon: 'Compass',
+    items: Object.freeze([
+      itemFromPage('analise-regional', { condition: 'regional' }),
+      itemFromPage('cenarios-educacao', { condition: 'foresight' }),
+    ]),
+    dynamicItems: null,
+    ownedPages: Object.freeze(['analise-regional', 'cenarios-educacao']),
+  } satisfies NavGroup),
   Object.freeze({
     id: 'pne',
     label: 'PNE',
@@ -292,7 +318,6 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       itemFromPage('pne-legal-goals'),
       itemFromPage('pne2014'),
       itemFromPage('pne2026'),
-      itemFromPage('cenarios-educacao', { condition: 'foresight' }),
     ]),
     dynamicItems: null,
     ownedPages: Object.freeze([
@@ -300,7 +325,6 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       'pne-legal-goals',
       'pne2014',
       'pne2026',
-      'cenarios-educacao',
     ]),
   } satisfies NavGroup),
   Object.freeze({

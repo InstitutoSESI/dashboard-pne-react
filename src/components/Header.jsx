@@ -7,6 +7,7 @@ import {
 } from '../app/navigationRegistry'
 import { resolvePageProduct } from '../config/analyticsProducts'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
+import { REGIONAL_ANALYSIS_AVAILABLE } from '../config/regionsConfig'
 import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
@@ -68,6 +69,9 @@ const toRenderableItem = (item) => ({
  * renderizado.
  */
 function isItemVisible(item) {
+  // A análise regional depende do mapa da UF ativa, decidido no build: sem
+  // mapa, o item não existe — e o grupo inteiro some junto, logo abaixo.
+  if (item.condition === 'regional' && !REGIONAL_ANALYSIS_AVAILABLE) return false
   const product = resolvePageProduct(item.page)
   return product === null || isProductEnabled(product)
 }
@@ -236,7 +240,10 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
 
           {ANALYTICS_AVAILABLE ? (
             <>
-              {NAV_BLOCKS.map((block) => withForesightItem(block, foresightVisible)).map((item) => (
+              {NAV_BLOCKS
+                .map((block) => withForesightItem(block, foresightVisible))
+                .filter((block) => block.items.length > 0)
+                .map((item) => (
                 <SidebarAccordionGroup
                   activeItemKey={getActiveItemKey(item.id, activePage, activeEducationSection)}
                   icon={item.icon}
@@ -248,7 +255,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
                   onNavigate={navigate}
                   onToggle={(groupId) => setOpenGroup((current) => current === groupId ? null : groupId)}
                 />
-              ))}
+                ))}
 
               {ROOT_NAV_ITEMS.map((item) => {
                 const ItemIcon = item.icon ?? FileText

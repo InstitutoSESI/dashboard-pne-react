@@ -31,6 +31,7 @@ import { EmptyMunicipioState } from './EmptyMunicipioState'
 import { PageLoadBoundary } from './PageLoadBoundary'
 
 const LazyForesightEducacaoPage = lazy(() => import('../features/foresight/ForesightEducacaoPage').then((module) => ({ default: module.ForesightEducacaoPage })))
+const LazyAnaliseRegionalPage = lazy(() => import('../features/regional/AnaliseRegionalPage').then((module) => ({ default: module.AnaliseRegionalPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
 const LazyEducationPage = lazy(() => import('../features/education/EducationPage').then((module) => ({ default: module.EducationPage })))
@@ -256,6 +257,18 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyForesightEducacaoPage
+          key={effectiveMunicipalityId}
+          municipalityId={effectiveMunicipalityId}
+          selectedMunicipio={selectedMunicipio}
+        />
+      </LazyPageBoundary>
+    )
+  }
+
+  if (activePage === 'analise-regional') {
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyAnaliseRegionalPage
           key={effectiveMunicipalityId}
           municipalityId={effectiveMunicipalityId}
           selectedMunicipio={selectedMunicipio}
