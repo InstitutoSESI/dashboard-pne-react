@@ -131,4 +131,6 @@ O check de linguagem da matriz é reescrito para o novo contrato:
 - Demais municípios: o desenho é validado primeiro no piloto.
 - Artefato e camada de pesquisa (`SESI\PNE`): intocados.
 - Caderno de hipóteses: segue o plano de deleção já registrado, sem mudanças
-  aqui.
+  aqui. **Estado em 2026-08-24:** a deleção foi executada — o caderno não existe
+  mais na plataforma e o conteúdo permanece recuperável no git
+  (`git show 91f061e61:docs/CADERNO_HIPOTESES.md`).

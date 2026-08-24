@@ -206,9 +206,16 @@ continua caindo no comportamento já existente do aplicativo.
 
 ## 8. Navegação
 
-A entrada **Cenários da educação** entra no bloco PNE da barra lateral, depois do Caderno de
-hipóteses (removido em 2026-08-24; o item passa a vir depois da Matriz de Prioridades), com glifo próprio (caminhos que se abrem a partir de um mesmo nó). A migalha da barra
-de contexto é `Metas do PNE / Planejamento municipal / Cenários da educação`.
+A entrada **Cenários da educação** nasceu no bloco PNE da barra lateral, depois do Caderno de
+hipóteses, com glifo próprio (caminhos que se abrem a partir de um mesmo nó), e a migalha era
+`Metas do PNE / Planejamento municipal / Cenários da educação`.
+
+> **Estado em 2026-08-24 (reorganização da plataforma):** o Caderno de hipóteses foi removido e
+> o item mudou de lugar. **Cenários da educação** vive hoje no grupo **Análise Regional**, depois
+> de **Panorama da Região**, e a migalha é `Análise Regional / Cenários da educação`. A rota
+> (`#cenarios-da-educacao`), o glifo, o produto e o comportamento da página não mudaram — só a
+> posição no menu. A fonte única de rota, rótulo, glifo e migalha passou a ser
+> `src/app/navigationRegistry.ts`.
 
 A página pertence ao produto `pne`: numa publicação parcial sem PNE ela não é navegável, como as
 demais páginas do bloco.
