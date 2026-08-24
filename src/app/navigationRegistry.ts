@@ -260,13 +260,6 @@ const itemFromPage = (
   })
 }
 
-/*
- * Um item que aponta para uma seção de outra página. O grupo dono do acordeão
- * continua sendo o da página alvo (regra de fallback), mas o atalho vive onde
- * o leitor o procura.
- */
-const sectionItem = (item: NavItem): NavItem => Object.freeze(item)
-
 export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
   /*
    * Relatórios reúne as leituras fechadas sobre o município — o que se lê de
@@ -281,14 +274,6 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
     items: Object.freeze([
       itemFromPage('diagnostico', { label: 'Diagnóstico Municipal' }),
       itemFromPage('matriz-prioridades'),
-      sectionItem({
-        key: 'panorama-educacional',
-        label: 'Panorama Educacional',
-        target: 'educacao?secao=panorama',
-        page: 'educacao',
-        glyph: 'panorama',
-        condition: null,
-      }),
       itemFromPage('relatorio-tecnico-municipal'),
     ]),
     dynamicItems: null,

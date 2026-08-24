@@ -92,6 +92,25 @@ test('a entrada de navegação só existe quando o município selecionado está 
   assert.match(registry, /label: 'Cenários da educação'/)
   assert.match(registry, /itemFromPage\('cenarios-educacao', \{ condition: 'foresight' \}\)/)
 
+  const { NAV_GROUPS } = await import(compiledModule('src/app/navigationRegistry.js'))
+  const conditionalItem = NAV_GROUPS
+    .flatMap((group) => group.items)
+    .find((item) => item.key === 'cenarios-educacao')
+  assert.deepEqual(
+    {
+      condition: conditionalItem?.condition,
+      label: conditionalItem?.label,
+      page: conditionalItem?.page,
+      target: conditionalItem?.target,
+    },
+    {
+      condition: 'foresight',
+      label: 'Cenários da educação',
+      page: 'cenarios-educacao',
+      target: 'cenarios-da-educacao',
+    },
+  )
+
   const header = await readFile(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
   assert.match(header, /const foresightVisible = isForesightPublished\(foresightPublication, selectedMunicipalityId\)/)
   assert.match(header, /withForesightItem\(block, foresightVisible\)/)

@@ -38,6 +38,11 @@ const {
   resolveActivePage,
   resolveActivePageFromHash,
 } = await import(compiledModule('src/app/appRoutes.js'))
+const {
+  NAV_GROUPS,
+  buildHashPageMap,
+  getOwnerGroupId,
+} = await import(compiledModule('src/app/navigationRegistry.js'))
 const { resolveEducationNavigation } = await import(compiledModule('src/data/educationIndicatorCatalog.js'))
 const {
   ANALYTICS_PRODUCTS,
@@ -135,6 +140,57 @@ test('resolve todas as rotas e aliases vigentes', () => {
   for (const [hash, expectedPage] of ROUTE_CASES) {
     assert.equal(resolveActivePageFromHash(hash), expectedPage, hash || '(hash vazio)')
   }
+})
+
+test('o registro reproduz exatamente o mapa de hashes anterior à reorganização', () => {
+  const expectedMap = {
+    home: 'home',
+    pneoverview: 'pne-overview',
+    pnelegalgoals: 'pne-legal-goals',
+    metaslegais: 'pne-legal-goals',
+    matrizprioridades: 'matriz-prioridades',
+    cenariosdaeducacao: 'cenarios-educacao',
+    cenariosdaeducacaomunicipal: 'cenarios-educacao',
+    cenarioseducacao: 'cenarios-educacao',
+    pne2014: 'pne2014',
+    pne2024: 'pne2014',
+    pne2026: 'pne2026',
+    diagnostico: 'diagnostico',
+    educacao: 'educacao',
+    relatoriotecnicomunicipal: 'relatorio-tecnico-municipal',
+    financeiros: FINANCIAL_PAGE_KEYS.overview,
+    financeirospanorama: FINANCIAL_PAGE_KEYS.panorama,
+    panoramafinanceiro: FINANCIAL_PAGE_KEYS.panorama,
+    financeirosaplicacaorecursos: FINANCIAL_PAGE_KEYS.application,
+    financeirosfundeb: FINANCIAL_PAGE_KEYS.fundeb,
+    financeirospnate: FINANCIAL_PAGE_KEYS.pnate,
+    financeirosvaar: FINANCIAL_PAGE_KEYS.vaar,
+    fundeb: FINANCIAL_PAGE_KEYS.fundeb,
+    pnate: FINANCIAL_PAGE_KEYS.pnate,
+    siope: FINANCIAL_PAGE_KEYS.application,
+    vaar: FINANCIAL_PAGE_KEYS.vaar,
+    sistemas: 'educacao',
+    escolassistemas: 'educacao',
+  }
+
+  assert.deepEqual(
+    Object.entries(buildHashPageMap()).sort(),
+    Object.entries(expectedMap).sort(),
+  )
+})
+
+test('Panorama educacional permanece apenas no grupo canônico de indicadores', () => {
+  const reportsGroup = NAV_GROUPS.find((group) => group.id === 'relatorios')
+  const educationGroup = NAV_GROUPS.find((group) => group.id === 'educacao')
+
+  assert.ok(reportsGroup)
+  assert.ok(educationGroup)
+  assert.equal(
+    reportsGroup.items.some((item) => item.target === 'educacao?secao=panorama'),
+    false,
+  )
+  assert.equal(educationGroup.dynamicItems, 'education-sections')
+  assert.equal(getOwnerGroupId('educacao'), 'educacao')
 })
 
 test('preserva acesso direto ao detalhe de alfabetizacao no ciclo encerrado', () => {

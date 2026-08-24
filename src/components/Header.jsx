@@ -86,9 +86,6 @@ const NAV_BLOCKS = NAV_GROUPS
 
 const ROOT_NAV_ITEMS = NAV_ROOT_ITEMS.map(toRenderableItem).filter(isItemVisible)
 
-// O botão de menu no mobile controla os painéis de todos os grupos visíveis.
-const SIDEBAR_PANEL_IDS = NAV_BLOCKS.map((block) => `sidebar-${block.id}-items`).join(' ')
-
 /*
  * Os Cenários da educação existem para os municípios que o manifesto público
  * declara publicados. A entrada aparece só nesse caso — sem item desabilitado,
@@ -102,6 +99,7 @@ function withForesightItem(block, isVisible) {
 
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
+const SIDEBAR_NAVIGATION_ID = 'app-sidebar-navigation'
 
 export function Header({ activeEducationSection, activePage, onNavigate }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -184,7 +182,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
 
   function navigate(target) {
     onNavigate(target)
-    if (isDrawerOpen) closeDrawer(false)
+    if (isDrawerOpen) closeDrawer(true)
   }
 
   function openDrawer() {
@@ -200,6 +198,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
         ref={drawerRef}
         aria-hidden={isMobile && !isDrawerOpen ? 'true' : undefined}
         className={`app-header${isDrawerOpen ? ' is-drawer-open' : ''}`}
+        id={SIDEBAR_NAVIGATION_ID}
         inert={isMobile && !isDrawerOpen ? true : undefined}
         aria-label={`Navegação principal do ${PANEL_LABEL}`}
       >
@@ -286,7 +285,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
         <button
           ref={menuButtonRef}
           aria-expanded={isDrawerOpen}
-          aria-controls={SIDEBAR_PANEL_IDS}
+          aria-controls={SIDEBAR_NAVIGATION_ID}
           className="sidebar-menu-button"
           type="button"
           onClick={openDrawer}

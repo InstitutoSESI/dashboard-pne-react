@@ -7,15 +7,12 @@ import { InstitutionalTopBarSignature } from './InstitutionalTopBarSignature'
 import { MunicipalitySelector } from './MunicipalitySelector'
 
 /*
- * As migalhas vêm do registro único de navegação, para que mover uma página de
- * grupo mude a localização anunciada no mesmo lugar em que muda o menu. A
- * exceção é a visão geral de Financiamento, cuja migalha é o rótulo canônico do
- * próprio domínio financeiro.
+ * As migalhas não financeiras vêm do registro único de navegação, para que
+ * mover uma página de grupo mude a localização anunciada no mesmo lugar em que
+ * muda o menu. O catálogo financeiro resolve todas as páginas financeiras
+ * antes desta tabela.
  */
-const PAGE_CRUMBS = Object.freeze({
-  ...buildPageCrumbs(),
-  financeiros: FINANCIAL_PAGE_COPY.parentLabel,
-})
+const PAGE_CRUMBS = buildPageCrumbs()
 
 export function ContextBar({
   activePage,
