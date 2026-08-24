@@ -45,6 +45,11 @@ const ENROLLMENT_BREAKDOWNS = Object.freeze([
   { key: 'por_localizacao', dimension: 'localizacao' },
 ])
 
+/** O município publica este recorte? Dimensão declarada e não retirada. */
+const dimensionAvailable = (dimension) => (block) =>
+  (block.dimensoes_disponiveis ?? []).includes(dimension)
+  && !(block.campos_indisponiveis ?? []).includes(dimension)
+
 const AGE_COVERAGE_KEYS = Object.freeze([
   'creche',
   'pre_escola',
@@ -111,15 +116,18 @@ function sumAnnualSeries(perMunicipality, municipalityCount, readValue) {
  * Recorte de um total já conhecido. Aqui a ausência de uma categoria em um ano
  * significa zero, não dado faltante: o município que não tem escola rural
  * simplesmente não publica a série rural, e o total daquele ano continua
- * inteiro. O que de fato invalidaria o ano é o município não declarar a
- * dimensão — e aí ele não contribui, deixando o ano regional nulo.
+ * inteiro. O que de fato invalidaria o ano é o município não publicar o
+ * recorte — e aí ele não contribui, deixando o ano regional nulo.
+ *
+ * `isAvailable` é quem decide isso, e decide de forma diferente conforme o
+ * recorte: os recortes por dimensão declarada consultam
+ * `dimensoes_disponiveis`; a série de tempo integral não pertence a dimensão
+ * alguma do contrato municipal, então o que a habilita é ela própria existir.
  */
-function sumBreakdownSeries(blocks, municipalityCount, dimension, selectSeries) {
+function sumBreakdownSeries(blocks, municipalityCount, isAvailable, selectSeries) {
   const totals = new Map()
   for (const block of blocks) {
-    const available = (block.dimensoes_disponiveis ?? []).includes(dimension)
-      && !(block.campos_indisponiveis ?? []).includes(dimension)
-    if (!available) continue
+    if (!isAvailable(block)) continue
     const observed = new Map(
       (selectSeries(block) ?? [])
         .filter((entry) => isFiniteNumber(entry.valor))
@@ -225,7 +233,7 @@ function buildEnrollmentBlock(sources, municipalityCount) {
   const integralCounts = sumBreakdownSeries(
     blocks,
     municipalityCount,
-    'etapa_ensino',
+    (block) => Array.isArray(block.series?.integral),
     (block) => block.series?.integral,
   )
   const totalByYear = new Map(total.map((entry) => [entry.ano, entry.valor]))
@@ -252,7 +260,7 @@ function buildEnrollmentBlock(sources, municipalityCount) {
       aggregated[category] = sumBreakdownSeries(
         blocks,
         municipalityCount,
-        dimension,
+        dimensionAvailable(dimension),
         (block) => block.series?.[key]?.[category],
       )
     }
@@ -355,6 +363,7 @@ export function buildRegionDocument(region, sources) {
       'Contagens são somadas município a município.',
       'Percentuais são recalculados a partir dos totais somados, nunca por média de percentuais.',
       'Um ano só recebe valor regional quando todos os municípios da região informaram o dado; caso contrário o valor é nulo e a contagem de municípios com dado fica declarada.',
+      'As etapas de ensino não formam uma divisão do total: o ensino fundamental aparece também nos anos iniciais e finais, e uma parte das matrículas é informada em mais de uma etapa. Somar as etapas dá mais do que o total.',
       'Indicadores sem denominador publicado — fluxo escolar, IDEB, SAEB e INSE — não entram nesta versão do painel regional.',
       'null significa dado ausente, não zero.',
     ],

@@ -248,8 +248,10 @@ function RegionalPanel({
           <p className="regional-panel__text">{matriculas.descricao}</p>
         </div>
         <p className="regional-panel__text">
-          As redes pública e privada dividem o total; a federal, a estadual e a municipal são
-          partes da rede pública e por isso somam mais do que ela.
+          Os recortes não são divisões do total. As redes pública e privada dividem, mas a
+          federal, a estadual e a municipal são partes da rede pública; e uma parte das
+          matrículas é informada em mais de uma etapa de ensino. Somar as linhas dá mais do
+          que o total.
         </p>
         <div className="regional-table-scroll">
           <table className="regional-table">

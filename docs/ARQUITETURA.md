@@ -161,9 +161,16 @@ manifesto, `contentHash`, `contentVersion` e escrita atômica, o que o legado n�
 tinha. As regras de agregação foram endurecidas: contagens somam, percentuais
 nascem da divisão dos totais somados e um ano só recebe valor quando todos os
 municípios da região informaram o dado. Fluxo escolar, IDEB, SAEB e INSE ficam
-fora desta versão porque o legado os resolvia por média simples. O total legado
-de matrículas também estava inflado: ele somava todas as linhas de etapa,
-contando o ensino fundamental três vezes.
+fora desta versão porque o legado os resolvia por média simples.
+
+O total legado de matrículas também estava inflado: ele somava todas as linhas
+de etapa de ensino. Em Serra, 2025, isso dava 326.024 contra 203.983 do total
+correto. A maior parte da diferença — 117.488 — é o ensino fundamental contado
+três vezes, na linha agregada e nos dois ciclos; os 4.553 restantes vêm de as
+etapas não formarem uma divisão do total, porque em 13 municípios da região há
+matrícula informada em mais de uma etapa. Por isso o painel regional diz, na
+própria tela e na metodologia do artefato, que somar os recortes dá mais do que
+o total.
 
 A objeção que motivou a remoção — regionalização é um pressuposto de RS que
 trava outras UFs — é respondida pela ausência: uma UF sem `config/regions` não
