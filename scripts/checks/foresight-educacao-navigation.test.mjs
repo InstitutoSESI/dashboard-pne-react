@@ -80,13 +80,22 @@ test('enquanto o manifesto não chega, nenhum município é considerado publicad
   assert.equal(isForesightPublished(empty, NOVA_SANTA_RITA), false)
 })
 
+/*
+ * A identidade do item (rota canônica, rótulo, marca de condicionalidade) mudou
+ * de casa na Fase 3 da reorganização: vive no registro único de navegação, e o
+ * cabeçalho apenas aplica o gate. As asserções seguem as mesmas, cada uma no
+ * arquivo que hoje é dono do literal.
+ */
 test('a entrada de navegação só existe quando o município selecionado está publicado', async () => {
+  const registry = await readFile(new URL('../../src/app/navigationRegistry.ts', import.meta.url), 'utf8')
+  assert.match(registry, /route: 'cenarios-da-educacao'/)
+  assert.match(registry, /label: 'Cenários da educação'/)
+  assert.match(registry, /itemFromPage\('cenarios-educacao', \{ condition: 'foresight' \}\)/)
+
   const header = await readFile(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
   assert.match(header, /const foresightVisible = isForesightPublished\(foresightPublication, selectedMunicipalityId\)/)
   assert.match(header, /withForesightItem\(block, foresightVisible\)/)
-  assert.match(header, /target: 'cenarios-da-educacao'/)
-  assert.match(header, /label: 'Cenários da educação'/)
-  assert.equal(/disabled/.test(header.split('FORESIGHT_NAV_ITEM')[1]?.slice(0, 400) ?? ''), false)
+  assert.equal(/disabled/.test(header.split('function withForesightItem')[1]?.slice(0, 400) ?? ''), false)
 })
 
 test('acesso direto com município não publicado sai da rota em vez de abrir página vazia', async () => {
@@ -98,6 +107,12 @@ test('acesso direto com município não publicado sai da rota em vez de abrir p�
 })
 
 test('a migalha da página nomeia o planejamento municipal', async () => {
-  const contextBar = await readFile(new URL('../../src/components/ContextBar.jsx', import.meta.url), 'utf8')
-  assert.match(contextBar, /'cenarios-educacao': 'Metas do PNE \/ Planejamento municipal \/ Cenários da educação'/)
+  const registry = await readFile(new URL('../../src/app/navigationRegistry.ts', import.meta.url), 'utf8')
+  assert.match(registry, /crumb: 'Metas do PNE \/ Planejamento municipal \/ Cenários da educação'/)
+
+  const { buildPageCrumbs } = await import(compiledModule('src/app/navigationRegistry.js'))
+  assert.equal(
+    buildPageCrumbs()['cenarios-educacao'],
+    'Metas do PNE / Planejamento municipal / Cenários da educação',
+  )
 })

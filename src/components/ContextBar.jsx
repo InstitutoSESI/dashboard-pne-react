@@ -1,3 +1,4 @@
+import { buildPageCrumbs } from '../app/navigationRegistry'
 import { resolvePageProduct } from '../config/analyticsProducts'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG } from '../config/stateConfig'
@@ -5,17 +6,16 @@ import { FINANCIAL_PAGE_COPY, getFinancialPageByKey } from '../data/financialMod
 import { InstitutionalTopBarSignature } from './InstitutionalTopBarSignature'
 import { MunicipalitySelector } from './MunicipalitySelector'
 
-const PAGE_CRUMBS = {
-  'cenarios-educacao': 'Metas do PNE / Planejamento municipal / Cenários da educação',
-  diagnostico: 'Metas do PNE / Ciclo vigente / Diagnóstico municipal',
-  educacao: 'Indicadores de Educação',
+/*
+ * As migalhas vêm do registro único de navegação, para que mover uma página de
+ * grupo mude a localização anunciada no mesmo lugar em que muda o menu. A
+ * exceção é a visão geral de Financiamento, cuja migalha é o rótulo canônico do
+ * próprio domínio financeiro.
+ */
+const PAGE_CRUMBS = Object.freeze({
+  ...buildPageCrumbs(),
   financeiros: FINANCIAL_PAGE_COPY.parentLabel,
-  home: 'Home',
-  'matriz-prioridades': 'Metas do PNE / Planejamento municipal / Matriz de Prioridades',
-  'pne-legal-goals': 'Metas legais do PNE 2026-2036 / Ciclo vigente',
-  pne2014: 'Metas do PNE / Ciclo encerrado / Resultado consolidado',
-  pne2026: 'Metas do PNE / Ciclo vigente / Acompanhamento atual',
-}
+})
 
 export function ContextBar({
   activePage,

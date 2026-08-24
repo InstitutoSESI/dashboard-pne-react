@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
+import { Compass, FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
+import {
+  NAV_GROUPS,
+  NAV_ROOT_ITEMS,
+  getOwnerGroupId,
+} from '../app/navigationRegistry'
+import { resolvePageProduct } from '../config/analyticsProducts'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
@@ -17,6 +23,7 @@ const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG
     key: section.key,
     label: section.label,
     target: `educacao?secao=${section.key}`,
+    page: 'educacao',
     icon: isEducationDomain(section.key)
       ? () => <EducationDomainIcon domain={section.key} size="sm" />
       : isNavGlyphName(section.key)
@@ -26,66 +33,70 @@ const EDUCATION_NAV_ITEMS = EDUCATION_SECTION_CATALOG
 
 const navGlyph = (name) => () => <NavGlyphIcon name={name} size="sm" />
 
-const ALL_NAV_BLOCKS = [
-  {
-    icon: Target,
-    id: 'pne',
-    product: 'pne',
-    label: 'PNE',
-    items: [
-      { key: 'pne-overview', label: 'O que é o PNE', target: 'pne-overview', icon: navGlyph('pne-overview') },
-      { key: 'pne-legal-goals', label: 'Metas legais', target: 'pne-legal-goals', icon: navGlyph('pne-legal-goals') },
-      { key: 'pne2014', label: 'PNE 2014–2024', target: 'pne2014', icon: navGlyph('pne2014') },
-      { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026', icon: navGlyph('pne2026') },
-      { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico', icon: navGlyph('diagnostico') },
-      { key: 'matriz-prioridades', label: 'Matriz de Prioridades', target: 'matriz-prioridades', icon: navGlyph('matriz-prioridades') },
-    ],
-  },
-  {
-    icon: GraduationCap,
-    id: 'educacao',
-    product: 'educacao',
-    label: 'Indicadores educacionais',
-    items: EDUCATION_NAV_ITEMS,
-  },
-  {
-    icon: Landmark,
-    id: 'financeiros',
-    product: 'financiamento',
-    label: 'Financiamento',
-    items: FINANCIAL_NAV_ITEMS.map((item) => ({
-      key: item.pageKey,
-      label: item.label,
-      target: item.pageKey,
-      icon: navGlyph(item.pageKey),
-    })),
-  },
-]
+const GROUP_ICONS = { Target, GraduationCap, Landmark, FileText, Compass }
 
-// Numa publicação parcial a navegação expõe apenas os produtos publicados; os
-// demais continuam alcançáveis por URL e caem no aviso de indisponibilidade.
-const NAV_BLOCKS = ALL_NAV_BLOCKS.filter((block) => isProductEnabled(block.product))
-const EDUCATION_PRODUCT_AVAILABLE = isProductEnabled('educacao')
+/*
+ * Os grupos que já tinham catálogo próprio continuam se alimentando dele: o
+ * registro de navegação declara a fonte, o cabeçalho a resolve. Assim nenhum
+ * rótulo de seção educacional ou de módulo financeiro é duplicado.
+ */
+const DYNAMIC_GROUP_ITEMS = {
+  'education-sections': EDUCATION_NAV_ITEMS,
+  'financial-modules': FINANCIAL_NAV_ITEMS.map((item) => ({
+    key: item.pageKey,
+    label: item.label,
+    target: item.pageKey,
+    page: item.pageKey,
+    icon: navGlyph(item.pageKey),
+  })),
+}
+
+const toRenderableItem = (item) => ({
+  key: item.key,
+  label: item.label,
+  target: item.target,
+  page: item.page,
+  condition: item.condition,
+  icon: item.glyph ? navGlyph(item.glyph) : null,
+})
+
+/*
+ * Visibilidade é decidida item a item, pelo produto da página que ele abre — um
+ * grupo pode reunir páginas de produtos diferentes, e numa publicação parcial
+ * só some o que não foi publicado. As páginas ocultas continuam alcançáveis por
+ * URL e caem no aviso de indisponibilidade. Um grupo sem item algum não é
+ * renderizado.
+ */
+function isItemVisible(item) {
+  const product = resolvePageProduct(item.page)
+  return product === null || isProductEnabled(product)
+}
+
+const NAV_BLOCKS = NAV_GROUPS
+  .map((group) => ({
+    icon: GROUP_ICONS[group.icon],
+    id: group.id,
+    label: group.label,
+    items: (group.dynamicItems
+      ? DYNAMIC_GROUP_ITEMS[group.dynamicItems]
+      : group.items.map(toRenderableItem)
+    ).filter(isItemVisible),
+  }))
+  .filter((block) => block.items.length > 0)
+
+const ROOT_NAV_ITEMS = NAV_ROOT_ITEMS.map(toRenderableItem).filter(isItemVisible)
 
 /*
  * Os Cenários da educação existem para os municípios que o manifesto público
  * declara publicados. A entrada aparece só nesse caso — sem item desabilitado,
- * sem aviso de indisponibilidade e sem código IBGE escrito na interface.
+ * sem aviso de indisponibilidade e sem código IBGE escrito na interface. O
+ * registro marca o item como condicional; o gate é aplicado aqui.
  */
-const FORESIGHT_NAV_ITEM = Object.freeze({
-  key: 'cenarios-educacao',
-  label: 'Cenários da educação',
-  target: 'cenarios-da-educacao',
-  icon: navGlyph('cenarios-educacao'),
-})
-
 function withForesightItem(block, isVisible) {
-  if (block.id !== 'pne' || !isVisible) return block
-  return { ...block, items: [...block.items, FORESIGHT_NAV_ITEM] }
+  if (isVisible || !block.items.some((item) => item.condition === 'foresight')) return block
+  return { ...block, items: block.items.filter((item) => item.condition !== 'foresight') }
 }
 
-const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades', 'cenarios-educacao'])
-const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
 
@@ -237,20 +248,25 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
                 />
               ))}
 
-              {EDUCATION_PRODUCT_AVAILABLE ? (
-              <a
-                aria-current={activePage === 'relatorio-tecnico-municipal' ? 'page' : undefined}
-                className={activePage === 'relatorio-tecnico-municipal' ? 'nav-item is-active' : 'nav-item'}
-                href="#relatorio-tecnico-municipal"
-                onClick={(event) => {
-                  event.preventDefault()
-                  navigate('relatorio-tecnico-municipal')
-                }}
-              >
-                <span className="nav-item__icon" aria-hidden="true"><FileText /></span>
-                <span className="nav-item__label">Relatório Técnico Municipal</span>
-              </a>
-              ) : null}
+              {ROOT_NAV_ITEMS.map((item) => {
+                const ItemIcon = item.icon ?? FileText
+
+                return (
+                  <a
+                    aria-current={activePage === item.page ? 'page' : undefined}
+                    className={activePage === item.page ? 'nav-item is-active' : 'nav-item'}
+                    href={`#${item.target}`}
+                    key={item.key}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      navigate(item.target)
+                    }}
+                  >
+                    <span className="nav-item__icon" aria-hidden="true"><ItemIcon /></span>
+                    <span className="nav-item__label">{item.label}</span>
+                  </a>
+                )
+              })}
             </>
           ) : (
             <div className="sidebar-publication-note" role="status">
@@ -294,10 +310,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
 }
 
 function getOwnerGroup(activePage) {
-  if (PNE_PAGES.has(activePage)) return 'pne'
-  if (activePage === 'educacao') return 'educacao'
-  if (activePage === 'financeiros' || FINANCIAL_PAGES.has(activePage)) return 'financeiros'
-  return null
+  return getOwnerGroupId(activePage)
 }
 
 function getActiveItemKey(groupId, activePage, activeEducationSection) {
