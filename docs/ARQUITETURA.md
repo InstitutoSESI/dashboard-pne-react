@@ -152,9 +152,25 @@ e calcular o lote integral, materializa nesse staging a allowlist ativa:
 - `educacao/municipios/<IBGE>.json`, exatamente um para cada código textual do
   `MunicipalityRegistry`.
 
-A regionalização foi removida da plataforma: o exportador não possui mais
-agregação regional e os artefatos legados `educacao/regioes/*.json` foram
-excluídos do repositório. As subárvores
+A regionalização voltou em 2026-08-24, por fora do exportador Python. Ela é
+outra coisa que a de 2026-06: o recorte vive em `config/regions/<uf>.json` como
+configuração versionada, não em coluna de banco; a agregação é um gerador
+determinístico em Node (`scripts/generate-regioes.mjs`) que soma o que a
+plataforma já publicou por município, sem tocar no banco; e o artefato sai com
+manifesto, `contentHash`, `contentVersion` e escrita atômica, o que o legado não
+tinha. As regras de agregação foram endurecidas: contagens somam, percentuais
+nascem da divisão dos totais somados e um ano só recebe valor quando todos os
+municípios da região informaram o dado. Fluxo escolar, IDEB, SAEB e INSE ficam
+fora desta versão porque o legado os resolvia por média simples. O total legado
+de matrículas também estava inflado: ele somava todas as linhas de etapa,
+contando o ensino fundamental três vezes.
+
+A objeção que motivou a remoção — regionalização é um pressuposto de RS que
+trava outras UFs — é respondida pela ausência: uma UF sem `config/regions` não
+tem mapa, não tem artefato e não tem menu, e nenhum caminho de código produz
+região para ela. O exportador `educacao/regioes/*.json` continua fora do
+repositório e não voltará; o novo artefato vive em `regioes/` na raiz dos dados
+publicados. As subárvores
 `educacao-especial`, `superior`, `visao-geral-municipal` e `siope` pertencem a
 outros domínios e ficam fora da allowlist. Os 182 slugs históricos não são
 aliases físicos: continuam campos do índice derivados da configuração de
