@@ -100,9 +100,6 @@ const ROUTE_CASES = [
   ['#metas-legais', 'pne-legal-goals'],
   ['#matriz-prioridades', 'matriz-prioridades'],
   ['#matrizprioridades', 'matriz-prioridades'],
-  ['#caderno', 'caderno'],
-  ['#caderno?municipio=nova-santa-rita', 'caderno'],
-  ['#caderno-de-hipoteses', 'caderno'],
   ['#cenarios-da-educacao', 'cenarios-educacao'],
   ['#cenarios-da-educacao?municipio=nova-santa-rita', 'cenarios-educacao'],
   ['#cenarios-educacao', 'cenarios-educacao'],
@@ -128,6 +125,10 @@ const ROUTE_CASES = [
   ['#sistemas', 'educacao'],
   ['#escolas-sistemas', 'educacao'],
   ['#rota-inexistente', 'home'],
+  // Caderno de hipoteses removido em 2026-08-24 (plano de reorganizacao, D7):
+  // as rotas aposentadas caem no fallback da pagina inicial, nao ressuscitam.
+  ['#caderno', 'home'],
+  ['#caderno-de-hipoteses', 'home'],
 ]
 
 test('resolve todas as rotas e aliases vigentes', () => {
@@ -294,7 +295,6 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('pne2026'), 'pne')
   assert.equal(resolvePageProduct('diagnostico'), 'pne')
   assert.equal(resolvePageProduct('matriz-prioridades'), 'pne')
-  assert.equal(resolvePageProduct('caderno'), 'pne')
   assert.equal(resolvePageProduct('cenarios-educacao'), 'pne')
   assert.equal(resolvePageProduct('educacao'), 'educacao')
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
@@ -329,7 +329,6 @@ test('publicação parcial navega o produto declarado e barra os demais', () => 
   assert.equal(isPageNavigable('relatorio-tecnico-municipal', 'partial', enabled), true)
   assert.equal(isPageNavigable('pne2026', 'partial', enabled), false)
   assert.equal(isPageNavigable('diagnostico', 'partial', enabled), false)
-  assert.equal(isPageNavigable('caderno', 'partial', enabled), false)
   assert.equal(isPageNavigable('cenarios-educacao', 'partial', enabled), false)
   assert.equal(isPageNavigable(FINANCIAL_PAGE_KEYS.panorama, 'partial', enabled), false)
 

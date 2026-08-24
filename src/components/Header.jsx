@@ -39,7 +39,6 @@ const ALL_NAV_BLOCKS = [
       { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026', icon: navGlyph('pne2026') },
       { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico', icon: navGlyph('diagnostico') },
       { key: 'matriz-prioridades', label: 'Matriz de Prioridades', target: 'matriz-prioridades', icon: navGlyph('matriz-prioridades') },
-      { key: 'caderno', label: 'Caderno de hipóteses', target: 'caderno', icon: navGlyph('caderno') },
     ],
   },
   {
@@ -85,7 +84,7 @@ function withForesightItem(block, isVisible) {
   return { ...block, items: [...block.items, FORESIGHT_NAV_ITEM] }
 }
 
-const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades', 'caderno', 'cenarios-educacao'])
+const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades', 'cenarios-educacao'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`

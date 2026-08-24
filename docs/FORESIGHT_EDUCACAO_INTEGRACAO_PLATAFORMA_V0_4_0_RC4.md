@@ -207,7 +207,7 @@ continua caindo no comportamento já existente do aplicativo.
 ## 8. Navegação
 
 A entrada **Cenários da educação** entra no bloco PNE da barra lateral, depois do Caderno de
-hipóteses, com glifo próprio (caminhos que se abrem a partir de um mesmo nó). A migalha da barra
+hipóteses (removido em 2026-08-24; o item passa a vir depois da Matriz de Prioridades), com glifo próprio (caminhos que se abrem a partir de um mesmo nó). A migalha da barra
 de contexto é `Metas do PNE / Planejamento municipal / Cenários da educação`.
 
 A página pertence ao produto `pne`: numa publicação parcial sem PNE ela não é navegável, como as
@@ -394,7 +394,7 @@ continua sendo aceito.
 | `npm run test:app-routing` | 17/17 |
 | `npm run test:ui-architecture` | passa |
 | `npm run test:matriz` | 42/42 |
-| `npm run test:caderno` | 27/27 |
+| `npm run test:caderno` | 27/27 (check removido em 2026-08-24 junto com o caderno) |
 | `npm run test:diagnostic` | 27/27 |
 | `npm run test:unit` | 127 passam, 1 falha preexistente (abaixo) |
 | `npm run build` | passa; `dist/data/foresight-educacao/` materializado |

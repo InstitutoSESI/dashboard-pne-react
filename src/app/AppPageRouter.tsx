@@ -30,7 +30,6 @@ import { isFinancialPage } from './appRoutes'
 import { EmptyMunicipioState } from './EmptyMunicipioState'
 import { PageLoadBoundary } from './PageLoadBoundary'
 
-const LazyCadernoPage = lazy(() => import('../features/caderno/CadernoPage').then((module) => ({ default: module.CadernoPage })))
 const LazyForesightEducacaoPage = lazy(() => import('../features/foresight/ForesightEducacaoPage').then((module) => ({ default: module.ForesightEducacaoPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
@@ -380,17 +379,6 @@ export function AppPageRouter({
           onMunicipalityChange={setSelectedMunicipalityId}
           onNavigate={onNavigate}
           selectedMunicipalityId={effectiveMunicipalityId}
-          selectedMunicipio={selectedMunicipio}
-        />
-      </LazyPageBoundary>
-    )
-  }
-
-  if (activePage === 'caderno') {
-    return (
-      <LazyPageBoundary page={activePage}>
-        <LazyCadernoPage
-          municipalityId={effectiveMunicipalityId}
           selectedMunicipio={selectedMunicipio}
         />
       </LazyPageBoundary>

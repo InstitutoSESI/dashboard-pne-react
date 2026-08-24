@@ -6,7 +6,6 @@ import { InstitutionalTopBarSignature } from './InstitutionalTopBarSignature'
 import { MunicipalitySelector } from './MunicipalitySelector'
 
 const PAGE_CRUMBS = {
-  caderno: 'Metas do PNE / Planejamento municipal / Caderno de hipóteses',
   'cenarios-educacao': 'Metas do PNE / Planejamento municipal / Cenários da educação',
   diagnostico: 'Metas do PNE / Ciclo vigente / Diagnóstico municipal',
   educacao: 'Indicadores de Educação',

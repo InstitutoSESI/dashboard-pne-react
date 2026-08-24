@@ -13,6 +13,11 @@ própria da plataforma de educação, adaptada ao recorte municipal e ao tema ed
 
 Data: 2026-08-22.
 
+> **Nota de 2026-08-24.** Este briefing é um documento congelado na data acima. O
+> **caderno de hipóteses** que ele descreve no presente foi removido da plataforma em
+> 2026-08-24 e substituído pela **matriz de prioridades**; onde o texto diz "o caderno
+> sugere *por que*", leia "a matriz sugere em que frentes agir".
+
 ---
 
 ## 1. Contexto: a plataforma de educação municipal (PNE 2026–2036)

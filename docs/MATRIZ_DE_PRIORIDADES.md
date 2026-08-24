@@ -7,6 +7,10 @@
 > **Atualização de 2026-08-19:** o contrato `matriz-3.0.0` acrescentou a mediana
 > anônima dos pares por indicador, sem alterar a classificação de severidade.
 
+> **Estado em 2026-08-24:** a deleção descrita aqui foi executada. O caderno não existe
+> mais na plataforma. As menções abaixo descrevem o estado anterior à substituição e são
+> mantidas como registro histórico da decisão.
+
 Documento de decisão e de orientação. Registra a substituição do **caderno de hipóteses**
 pela **matriz de prioridades** como camada de apoio à decisão municipal do PNE 2026–2036,
 e descreve como construí-la: eixos, regras de entrada, artefato, interface, exportação e
@@ -16,6 +20,8 @@ plano de deleção do caderno.
 - Antecedentes: `docs/CADERNO_HIPOTESES.md` (estado vigente do caderno),
   `docs/CADERNO_BALANCO_E_ROTA.md` (balanço da revisão de seletividade),
   `docs/CADERNO_VALIDACAO_AMOSTRA.md` (validação em 14 municípios do RS).
+  **Os três arquivos foram deletados em 2026-08-24 junto com o caderno; o conteúdo
+  permanece recuperável no git (`git show 91f061e61:docs/CADERNO_HIPOTESES.md`).**
 - Camada de pesquisa: `SESI\PNE` (repositório separado). A plataforma só recebe artefato
   publicado, como hoje.
 
@@ -266,7 +272,9 @@ Fases pequenas, cada uma com a suíte verde antes da seguinte:
 3. **Página nova** — `#matriz` atrás de rota, com exportação e orientação federal já
    portadas. Caderno continua no ar; validar a matriz com os mesmos 14 municípios da
    amostra de 2026-08-17.
-4. **Troca e deleção** — navegação aponta para `#matriz`; deletar `src/features/caderno/`,
+4. **Troca e deleção** — *(concluída em 2026-08-24: o caderno foi removido da plataforma;
+   `resolveSignalReading` foi portado para `src/features/matriz/matrizSignalLanguage.ts`.)*
+   navegação aponta para `#matriz`; deletar `src/features/caderno/`,
    `src/hooks/useMunicipioCaderno.ts`, `src/styles/caderno-page.css`,
    `public/data/pne2026-caderno/`, `scripts/generate-pne-caderno.mjs` e os checks
    `caderno-*.test.mjs` / `pne2026-caderno-loader.test.mjs` (substituídos pelos da
