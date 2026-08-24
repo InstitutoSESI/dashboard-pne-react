@@ -7,6 +7,8 @@ export type AppPageKey =
   | 'pne-overview'
   | 'pne-legal-goals'
   | 'matriz-prioridades'
+  | 'caderno'
+  | 'cenarios-educacao'
   | 'pne2014'
   | 'pne2026'
   | 'diagnostico'

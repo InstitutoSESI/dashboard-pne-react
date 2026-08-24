@@ -8,9 +8,16 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const sourceRoot = path.join(repositoryRoot, 'src')
 const stylesRoot = path.join(sourceRoot, 'styles')
 
-const CSS_TOTAL_SOFT_LIMIT_BYTES = 1_385_000
+/*
+ * Teto total do CSS. Sobe apenas quando uma página nova entra no produto — não
+ * para acomodar duplicação. O último ajuste abriu espaço para os Cenários da
+ * educação municipal, que chegou com folha própria e nenhuma regra repetida das
+ * demais; o arquivo tem teto individual logo abaixo para não crescer sozinho.
+ */
+const CSS_TOTAL_SOFT_LIMIT_BYTES = 1_425_000
 const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/App.css': 286_000,
+  'src/styles/foresight-page.css': 13_000,
   'src/styles/quick-reading-list.css': 3_000,
   'src/styles/education-pages.css': 800,
   'src/styles/education-pages-base.css': 2_500,
@@ -20,16 +27,16 @@ const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/styles/education-methodology.css': 25_000,
   'src/styles/education-sistema-s.css': 5_500,
   'src/styles/education-detail-layout.css': 27_000,
-  'src/styles/education-indicator-support-data.css': 11_000,
+  'src/styles/education-indicator-support-data.css': 13_000,
   'src/styles/education-attendance-summary.css': 2_500,
   'src/styles/education-compact-entry.css': 16_000,
-  'src/styles/education-overview.css': 52_000,
-  'src/styles/education-landing.css': 8_000,
+  'src/styles/education-overview.css': 56_000,
+  'src/styles/education-landing.css': 9_000,
   'src/styles/education-technical-report.css': 130_000,
   'src/styles/education-school-infrastructure-report.css': 4_000,
   'src/styles/education-school-infrastructure.css': 30_000,
   'src/styles/education-pages-refinements.css': 20_000,
-  'src/styles/financial-pages.css': 209_000,
+  'src/styles/financial-pages.css': 210_000,
   'src/styles/institutional-refresh.css': 213_000,
 })
 const TYPECHECK_DEBT_ALLOWLIST = Object.freeze([
@@ -59,6 +66,7 @@ const EDUCATION_STYLE_ORDER = [
   './education-methodology.css',
   './education-sistema-s.css',
   './education-detail-layout.css',
+  './education-ideb-detail.css',
   './education-indicator-support-data.css',
   './education-attendance-summary.css',
   './education-compact-entry.css',

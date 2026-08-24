@@ -19,6 +19,7 @@ import {
   resolveMunicipalityRouteRequest,
 } from '../domain/municipalityRouting'
 import { useMunicipioData } from '../hooks/useMunicipioData'
+import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
 import { Home } from '../pages/Home'
 import { ProductUnavailablePage } from '../pages/ProductUnavailablePage'
 import type { AppPageKey } from '../types/app'
@@ -29,6 +30,8 @@ import { isFinancialPage } from './appRoutes'
 import { EmptyMunicipioState } from './EmptyMunicipioState'
 import { PageLoadBoundary } from './PageLoadBoundary'
 
+const LazyCadernoPage = lazy(() => import('../features/caderno/CadernoPage').then((module) => ({ default: module.CadernoPage })))
+const LazyForesightEducacaoPage = lazy(() => import('../features/foresight/ForesightEducacaoPage').then((module) => ({ default: module.ForesightEducacaoPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
 const LazyEducationPage = lazy(() => import('../features/education/EducationPage').then((module) => ({ default: module.EducationPage })))
@@ -120,6 +123,22 @@ export function AppPageRouter({
     && loadedMunicipalityId !== effectiveMunicipalityId,
   )
 
+  /*
+   * Cenários da educação: a disponibilidade vem do manifesto público, nunca de
+   * uma lista fixa aqui. Enquanto o manifesto não chega, a rota espera; quando
+   * chega e o município não está publicado, a navegação volta para o
+   * Diagnóstico municipal — a página municipal anterior — preservando o
+   * município pedido. Nenhuma página vazia é montada e nenhum dado de outro
+   * município é reaproveitado.
+   */
+  const isForesightRoute = activePage === 'cenarios-educacao'
+  const foresightPublication = useForesightPublication()
+  const foresightAvailable = isForesightPublished(foresightPublication, effectiveMunicipalityId)
+  const foresightBlocked = isForesightRoute
+    && selectionReady
+    && foresightPublication.ready
+    && !foresightAvailable
+
   useEffect(() => {
     if (!isLegacyTechnicalReportRoute) return
     replaceHashContext('relatorio-tecnico-municipal', {
@@ -129,6 +148,13 @@ export function AppPageRouter({
       theme: null,
     })
   }, [isLegacyTechnicalReportRoute])
+
+  useEffect(() => {
+    if (!foresightBlocked) return
+    replaceHashContext('diagnostico', {
+      municipio: effectiveMunicipality?.slug ?? null,
+    })
+  }, [effectiveMunicipality?.slug, foresightBlocked])
 
   useLayoutEffect(() => {
     if (!selectionReady || !shouldSyncMunicipalityUrl || isLegacyTechnicalReportRoute) {
@@ -224,10 +250,28 @@ export function AppPageRouter({
     )
   }
 
+  if (isForesightRoute) {
+    if (!foresightPublication.ready || foresightBlocked) {
+      return <LoadingState message="Preparando a leitura municipal..." />
+    }
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyForesightEducacaoPage
+          key={effectiveMunicipalityId}
+          municipalityId={effectiveMunicipalityId}
+          selectedMunicipio={selectedMunicipio}
+        />
+      </LazyPageBoundary>
+    )
+  }
+
   if (activePage === 'matriz-prioridades') {
     return (
       <LazyPageBoundary page={activePage}>
-        <LazyPriorityMatrixPage onNavigate={onNavigate} />
+        <LazyPriorityMatrixPage
+          municipalityId={effectiveMunicipalityId}
+          selectedMunicipio={selectedMunicipio}
+        />
       </LazyPageBoundary>
     )
   }
@@ -336,6 +380,17 @@ export function AppPageRouter({
           onMunicipalityChange={setSelectedMunicipalityId}
           onNavigate={onNavigate}
           selectedMunicipalityId={effectiveMunicipalityId}
+          selectedMunicipio={selectedMunicipio}
+        />
+      </LazyPageBoundary>
+    )
+  }
+
+  if (activePage === 'caderno') {
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyCadernoPage
+          municipalityId={effectiveMunicipalityId}
           selectedMunicipio={selectedMunicipio}
         />
       </LazyPageBoundary>

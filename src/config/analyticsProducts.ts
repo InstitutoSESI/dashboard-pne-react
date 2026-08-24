@@ -28,6 +28,8 @@ const PAGE_PRODUCTS: Readonly<Record<string, AnalyticsProduct>> = Object.freeze(
   'pne-overview': 'pne',
   'pne-legal-goals': 'pne',
   'matriz-prioridades': 'pne',
+  caderno: 'pne',
+  'cenarios-educacao': 'pne',
   pne2014: 'pne',
   pne2026: 'pne',
   diagnostico: 'pne',

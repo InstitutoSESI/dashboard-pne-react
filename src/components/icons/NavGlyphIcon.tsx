@@ -8,11 +8,13 @@ import {
   ClipboardList,
   Coins,
   Compass,
+  Waypoints,
   Flag,
   GitFork,
   Landmark,
   LayoutGrid,
   ListChecks,
+  NotebookPen,
   Rows3,
   Scale,
   ScanSearch,
@@ -37,6 +39,8 @@ export type NavGlyphName =
   | 'pne2026'
   | 'diagnostico'
   | 'matriz-prioridades'
+  | 'caderno'
+  | 'cenarios-educacao'
   | 'financeiros'
   | 'financeiros-panorama'
   | 'financeiros-aplicacao-recursos'
@@ -64,6 +68,10 @@ const GLYPH_ICONS: Record<NavGlyphName, LucideIcon> = {
   diagnostico: ScanSearch,
   // Lista de verificacao -- a organizacao dos problemas que exigem prioridade.
   'matriz-prioridades': ListChecks,
+  // Caderno com caneta -- as hipoteses anotadas meta a meta para a oficina.
+  caderno: NotebookPen,
+  // Caminhos que se abrem a partir de um mesmo no -- as quatro leituras possiveis.
+  'cenarios-educacao': Waypoints,
   // Grade -- a visao geral, o quadro de todas as areas.
   financeiros: LayoutGrid,
   // Area sob a curva -- o panorama, a sintese ampla.

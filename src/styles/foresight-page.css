@@ -1,0 +1,560 @@
+/*
+ * Cenários da educação municipal.
+ *
+ * A página é narrativa: superfícies calmas, colunas de leitura estreitas e
+ * nenhuma sinalização de valor. Os quatro cartões compartilham a mesma
+ * superfície, a mesma borda e a mesma altura — a única diferença visual
+ * admitida é o contraste de foco/seleção, que indica onde o leitor está, não
+ * qual cenário é melhor.
+ */
+
+.foresight-page {
+  --foresight-reading-width: 68ch;
+}
+
+.foresight-lede {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.foresight-neutrality {
+  border-left: 3px solid var(--border-strong-line);
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: var(--foresight-reading-width);
+  padding-left: var(--space-3);
+}
+
+.foresight-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+}
+
+.foresight-summary a {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.foresight-summary a:hover {
+  color: var(--text-strong);
+  text-decoration: underline;
+}
+
+.foresight-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.foresight-panel__head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.foresight-panel__title {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-section-title-size);
+  line-height: var(--type-heading-line-height);
+  margin: 0;
+}
+
+.foresight-panel__text {
+  color: var(--text-muted);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: var(--foresight-reading-width);
+}
+
+.foresight-subtitle {
+  color: var(--text-strong);
+  font-size: var(--type-card-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-card-title-line-height);
+  margin: 0 0 var(--space-2);
+}
+
+.foresight-list {
+  color: var(--text-body);
+  display: grid;
+  font-size: var(--type-body-size);
+  gap: var(--space-2);
+  line-height: var(--type-body-line-height);
+  list-style: none;
+  margin: 0;
+  max-width: var(--foresight-reading-width);
+  padding: 0;
+}
+
+.foresight-list > li {
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.foresight-list > li::before {
+  background: var(--border-strong-line);
+  border-radius: 50%;
+  content: '';
+  height: 5px;
+  left: 0;
+  position: absolute;
+  top: 0.6em;
+  width: 5px;
+}
+
+.foresight-panel--reading {
+  background: var(--surface-raised);
+}
+
+.foresight-horizon {
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+}
+
+.foresight-starting-point {
+  border-top: 1px solid var(--border-faint);
+  display: grid;
+  gap: var(--space-5);
+  padding-top: var(--space-4);
+}
+
+/* Séries observadas: valor de partida, valor recente e a direção declarada. */
+.foresight-series {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.foresight-serie {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.foresight-serie__head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  justify-content: space-between;
+}
+
+.foresight-serie__label {
+  color: var(--text-strong);
+  font-size: var(--type-card-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-card-title-line-height);
+  margin: 0;
+}
+
+.foresight-serie__unit {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.foresight-window {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.foresight-window--recent {
+  border-top: 1px dashed var(--border-faint);
+  padding-top: var(--space-3);
+}
+
+.foresight-window__period {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.foresight-window__values {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.foresight-window__value {
+  color: var(--text-strong);
+  font-size: var(--type-data-compact-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.1;
+}
+
+.foresight-window__link {
+  background: var(--border-line);
+  block-size: 1px;
+  inline-size: var(--space-6);
+  position: relative;
+  top: -0.35em;
+}
+
+.foresight-window__direction {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+}
+
+/*
+ * Escala de 0 a 100 para percentuais. As duas marcas são iguais: a leitura é
+ * de onde o valor saiu e onde chegou, não de progresso ou retrocesso.
+ */
+.foresight-window__scale {
+  background: var(--surface-muted);
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+  position: relative;
+}
+
+.foresight-window__scale-span {
+  background: var(--border-strong-line);
+  block-size: 4px;
+  border-radius: var(--radius-pill);
+  inset-block-start: 0;
+  position: absolute;
+}
+
+.foresight-window__scale-mark {
+  background: var(--text-strong);
+  block-size: 10px;
+  border-radius: var(--radius-pill);
+  inline-size: 2px;
+  inset-block-start: -3px;
+  position: absolute;
+}
+
+.foresight-window__caveat {
+  color: var(--text-muted);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: var(--foresight-reading-width);
+}
+
+.foresight-card__facets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+}
+
+.foresight-card__facets dt {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.foresight-card__facets dd {
+  color: var(--text-body);
+  font-size: var(--type-micro-size);
+  margin: 0;
+}
+
+/* Comparação: colunas iguais, sem destaque de mérito. */
+.foresight-comparison__wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.foresight-comparison {
+  border-collapse: collapse;
+  min-width: 52rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.foresight-comparison th,
+.foresight-comparison td {
+  border: 1px solid var(--border-faint);
+  padding: var(--space-3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.foresight-comparison__corner,
+.foresight-comparison__row-label {
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  inline-size: 12rem;
+}
+
+.foresight-comparison__scenario {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  inline-size: auto;
+}
+
+.foresight-comparison__scenario.is-active,
+.foresight-comparison__cell.is-active {
+  background: var(--surface-muted);
+}
+
+.foresight-comparison__cell {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+}
+
+.foresight-comparison__cell p {
+  margin: 0 0 var(--space-2);
+}
+
+.foresight-comparison__cell p:last-child {
+  margin-bottom: 0;
+}
+
+.foresight-panel--signals {
+  background: var(--surface-raised);
+}
+
+.foresight-panel--shared {
+  background: var(--surface-raised);
+}
+
+/* Grade dos quatro cenários: 2x2 no desktop, coluna única no mobile. */
+.foresight-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.foresight-card {
+  display: flex;
+  min-width: 0;
+}
+
+.foresight-card > article {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  width: 100%;
+}
+
+.foresight-card__title {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-card-title-size);
+  line-height: var(--type-card-title-line-height);
+  margin: 0;
+}
+
+.foresight-card__summary {
+  color: var(--text-body);
+  flex: 1 1 auto;
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+}
+
+.foresight-card__action {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-4);
+}
+
+.foresight-card__action:hover {
+  background: var(--surface-muted);
+}
+
+.foresight-card__action[aria-current='true'] {
+  background: var(--surface-muted);
+  border-color: var(--border-strong-line);
+}
+
+.foresight-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.foresight-tab {
+  background: transparent;
+  border: 1px solid var(--border-line);
+  border-radius: var(--radius-pill);
+  color: var(--text-body);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-4);
+  text-align: left;
+}
+
+.foresight-tab:hover {
+  background: var(--surface-muted);
+}
+
+.foresight-tab.is-active {
+  background: var(--surface-muted);
+  border-color: var(--border-strong-line);
+  color: var(--text-strong);
+}
+
+.foresight-detail {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.foresight-detail:focus-visible {
+  outline: 2px solid var(--border-strong-line);
+  outline-offset: 4px;
+}
+
+.foresight-detail__title {
+  color: var(--text-strong);
+  font-family: var(--font-serif);
+  font-size: var(--type-subsection-title-size);
+  line-height: var(--type-heading-line-height);
+  margin: 0;
+}
+
+.foresight-detail__section {
+  border-top: 1px solid var(--border-faint);
+  padding-top: var(--space-4);
+}
+
+.foresight-sources__table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.foresight-sources__table {
+  border-collapse: collapse;
+  font-size: var(--type-support-size);
+  min-width: 34rem;
+  width: 100%;
+}
+
+.foresight-sources__table th,
+.foresight-sources__table td {
+  border-bottom: 1px solid var(--border-faint);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: top;
+}
+
+.foresight-sources__table th {
+  color: var(--text-strong);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.foresight-sources__table td {
+  color: var(--text-body);
+}
+
+.foresight-limitations {
+  border-top: 1px solid var(--border-faint);
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+@media (max-width: 899px) {
+  .foresight-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .foresight-panel {
+    padding: var(--space-4);
+  }
+
+  .foresight-tabs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .foresight-tab {
+    border-radius: var(--radius-sm);
+  }
+}
+
+@media print {
+  .foresight-page .foresight-card__action,
+  .foresight-page .foresight-summary,
+  .foresight-page .foresight-tabs {
+    display: none !important;
+  }
+
+  .foresight-page .foresight-comparison__wrapper,
+  .foresight-page .foresight-serie {
+    break-inside: avoid;
+    overflow: visible;
+    page-break-inside: avoid;
+  }
+
+  .foresight-page .foresight-comparison {
+    font-size: var(--type-micro-size);
+    min-width: 0;
+  }
+
+  .foresight-page .foresight-panel {
+    border: 1px solid #d5dad7;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .foresight-page .foresight-panel--reading,
+  .foresight-page .foresight-panel--shared {
+    background: transparent;
+  }
+
+  .foresight-page .foresight-detail {
+    break-before: auto;
+  }
+
+  .foresight-page .foresight-sources__table-wrapper {
+    overflow: visible;
+  }
+
+  .foresight-page .foresight-sources__table {
+    min-width: 0;
+  }
+}

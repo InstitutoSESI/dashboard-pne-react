@@ -100,6 +100,12 @@ const ROUTE_CASES = [
   ['#metas-legais', 'pne-legal-goals'],
   ['#matriz-prioridades', 'matriz-prioridades'],
   ['#matrizprioridades', 'matriz-prioridades'],
+  ['#caderno', 'caderno'],
+  ['#caderno?municipio=nova-santa-rita', 'caderno'],
+  ['#caderno-de-hipoteses', 'caderno'],
+  ['#cenarios-da-educacao', 'cenarios-educacao'],
+  ['#cenarios-da-educacao?municipio=nova-santa-rita', 'cenarios-educacao'],
+  ['#cenarios-educacao', 'cenarios-educacao'],
   ['#pne2014', 'pne2014'],
   ['#pne2014?detalhe=alfabetizacao', 'pne2014'],
   ['#pne2024', 'pne2014'],
@@ -288,6 +294,8 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('pne2026'), 'pne')
   assert.equal(resolvePageProduct('diagnostico'), 'pne')
   assert.equal(resolvePageProduct('matriz-prioridades'), 'pne')
+  assert.equal(resolvePageProduct('caderno'), 'pne')
+  assert.equal(resolvePageProduct('cenarios-educacao'), 'pne')
   assert.equal(resolvePageProduct('educacao'), 'educacao')
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
   for (const pageKey of Object.values(FINANCIAL_PAGE_KEYS)) {
@@ -321,6 +329,8 @@ test('publicação parcial navega o produto declarado e barra os demais', () => 
   assert.equal(isPageNavigable('relatorio-tecnico-municipal', 'partial', enabled), true)
   assert.equal(isPageNavigable('pne2026', 'partial', enabled), false)
   assert.equal(isPageNavigable('diagnostico', 'partial', enabled), false)
+  assert.equal(isPageNavigable('caderno', 'partial', enabled), false)
+  assert.equal(isPageNavigable('cenarios-educacao', 'partial', enabled), false)
   assert.equal(isPageNavigable(FINANCIAL_PAGE_KEYS.panorama, 'partial', enabled), false)
 
   // Uma rota barrada continua resolvendo para a mesma página: o aviso de

@@ -15,8 +15,12 @@ export default defineConfig([
     '**/.pytest_cache/**',
     '**/__pycache__/**',
     'public/data/**',
+    'data_pipeline/data/**',
     'data_pipeline/export/**',
     'tmp/**',
+    '.tmp/**',
+    'staging/**',
+    '.staging/**',
     '*.log',
   ]),
   {

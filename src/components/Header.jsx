@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { FileText, GraduationCap, House, Landmark, Menu, Target, X } from 'lucide-react'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
+import { useMunicipality } from '../context/MunicipalityContext'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
+import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
 import { NavGlyphIcon, isNavGlyphName } from './icons/NavGlyphIcon'
 import { SidebarAccordionGroup } from './SidebarAccordionGroup'
@@ -37,6 +39,7 @@ const ALL_NAV_BLOCKS = [
       { key: 'pne2026', label: 'PNE 2026–2036', target: 'pne2026', icon: navGlyph('pne2026') },
       { key: 'diagnostico', label: 'Diagnóstico municipal', target: 'diagnostico', icon: navGlyph('diagnostico') },
       { key: 'matriz-prioridades', label: 'Matriz de Prioridades', target: 'matriz-prioridades', icon: navGlyph('matriz-prioridades') },
+      { key: 'caderno', label: 'Caderno de hipóteses', target: 'caderno', icon: navGlyph('caderno') },
     ],
   },
   {
@@ -65,7 +68,24 @@ const ALL_NAV_BLOCKS = [
 const NAV_BLOCKS = ALL_NAV_BLOCKS.filter((block) => isProductEnabled(block.product))
 const EDUCATION_PRODUCT_AVAILABLE = isProductEnabled('educacao')
 
-const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades'])
+/*
+ * Os Cenários da educação existem para os municípios que o manifesto público
+ * declara publicados. A entrada aparece só nesse caso — sem item desabilitado,
+ * sem aviso de indisponibilidade e sem código IBGE escrito na interface.
+ */
+const FORESIGHT_NAV_ITEM = Object.freeze({
+  key: 'cenarios-educacao',
+  label: 'Cenários da educação',
+  target: 'cenarios-da-educacao',
+  icon: navGlyph('cenarios-educacao'),
+})
+
+function withForesightItem(block, isVisible) {
+  if (block.id !== 'pne' || !isVisible) return block
+  return { ...block, items: [...block.items, FORESIGHT_NAV_ITEM] }
+}
+
+const PNE_PAGES = new Set(['pne-overview', 'pne2014', 'pne2026', 'pne-legal-goals', 'diagnostico', 'matriz-prioridades', 'caderno', 'cenarios-educacao'])
 const FINANCIAL_PAGES = new Set(Object.values(FINANCIAL_PAGE_KEYS))
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
@@ -78,6 +98,9 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
   const drawerRef = useRef(null)
   const menuButtonRef = useRef(null)
   const restoreFocusRef = useRef(null)
+  const { selectedMunicipalityId } = useMunicipality()
+  const foresightPublication = useForesightPublication()
+  const foresightVisible = isForesightPublished(foresightPublication, selectedMunicipalityId)
 
   const ownerGroup = getOwnerGroup(activePage)
 
@@ -201,7 +224,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
 
           {ANALYTICS_AVAILABLE ? (
             <>
-              {NAV_BLOCKS.map((item) => (
+              {NAV_BLOCKS.map((block) => withForesightItem(block, foresightVisible)).map((item) => (
                 <SidebarAccordionGroup
                   activeItemKey={getActiveItemKey(item.id, activePage, activeEducationSection)}
                   icon={item.icon}
