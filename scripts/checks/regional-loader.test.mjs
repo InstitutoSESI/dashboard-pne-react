@@ -245,6 +245,52 @@ test('o leitor recusa resumo, identidade, versão e esquema divergentes', async 
   assert.throws(() => parseRegiaoDocument(extraField), /campos divergentes/)
 })
 
+/*
+ * As duas conferências que o manifesto declarava sem verificar. Um par
+ * (arquivo, manifesto) internamente coerente é a forma mais barata de burlar
+ * um leitor que só compara valores declarados entre si: o resumo bate, o
+ * tamanho bate, e a versão de conteúdo é o que o falsificador quiser. A defesa
+ * é recompor — e recompor é o que este teste guarda.
+ */
+test('o leitor recompõe versão de conteúdo e confere o tamanho declarado', async () => {
+  const regionPath = REGIOES_REGION_PATH.replace('{regionSlug}', SERRA)
+  const raw = regionRawBySlug.get(SERRA)
+
+  const inflatedSize = JSON.parse(manifestRaw)
+  inflatedSize.regions.find((entry) => entry.slug === SERRA).byteSize += 7
+  const withBadSize = createFixtureLoader(
+    new Map([[REGIOES_MANIFEST_PATH, `${JSON.stringify(inflatedSize, null, 2)}\n`]]),
+  )
+  await assert.rejects(withBadSize.loadRegion(SERRA), /tamanho do arquivo diverge/)
+
+  // Falsificação coerente: contentVersion trocado no arquivo E no manifesto,
+  // com resumo e tamanho recalculados para casar. Só a recomposição pega.
+  const forgedDocument = JSON.parse(raw)
+  forgedDocument.contentVersion = 'f'.repeat(64)
+  const forgedRaw = `${JSON.stringify(forgedDocument, null, 2)}\n`
+  const forgedManifest = JSON.parse(manifestRaw)
+  const forgedEntry = forgedManifest.regions.find((entry) => entry.slug === SERRA)
+  forgedEntry.contentVersion = 'f'.repeat(64)
+  forgedEntry.contentHash = createHash('sha256').update(forgedRaw, 'utf8').digest('hex')
+  forgedEntry.byteSize = Buffer.byteLength(forgedRaw, 'utf8')
+  const withForgedVersion = createFixtureLoader(
+    new Map([
+      [REGIOES_MANIFEST_PATH, `${JSON.stringify(forgedManifest, null, 2)}\n`],
+      [regionPath, forgedRaw],
+    ]),
+  )
+  await assert.rejects(withForgedVersion.loadRegion(SERRA), /versão de conteúdo não confere/)
+
+  // E o publicado de verdade continua passando pelas duas conferências.
+  const honest = await createFixtureLoader().loadRegion(SERRA)
+  assert.equal(honest.integrity, 'verified')
+  const { contentVersion, ...documentWithoutVersion } = JSON.parse(raw)
+  assert.equal(
+    createHash('sha256').update(serializeForContentVersion(documentWithoutVersion), 'utf8').digest('hex'),
+    contentVersion,
+  )
+})
+
 test('o leitor recusa manifesto quebrado e região não publicada', async () => {
   const brokenManifest = JSON.parse(manifestRaw)
   brokenManifest.municipalityCount += 1

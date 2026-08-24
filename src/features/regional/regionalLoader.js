@@ -581,12 +581,36 @@ export function createRegionalLoader({ fetchText = defaultFetchText, logger = co
 
       let integrity = 'declared'
       try {
+        /*
+         * O tamanho não depende de WebCrypto: é a única conferência de
+         * integridade que vale em qualquer ambiente, e por isso vem primeiro.
+         * Um arquivo com byteSize divergente do manifesto já é outro arquivo.
+         */
+        invariant(
+          new TextEncoder().encode(raw).byteLength === entry.byteSize,
+          `tamanho do arquivo diverge do manifesto em ${regionSlug}.`,
+        )
         const digest = await digestText(raw)
         if (digest !== null) {
           invariant(digest === entry.contentHash, `resumo do arquivo diverge do manifesto em ${regionSlug}.`)
           integrity = 'verified'
         }
-        const document = parseRegiaoDocument(JSON.parse(raw))
+        const payload = JSON.parse(raw)
+        /*
+         * `contentVersion` só significa alguma coisa se for recomposto: comparar
+         * o valor declarado no arquivo com o valor declarado no manifesto aceita
+         * qualquer par forjado. Aqui ele é recalculado da mesma forma canônica
+         * que o gerador usa — o resumo do documento sem o próprio campo.
+         */
+        if (digest !== null) {
+          const { contentVersion: declaredContentVersion, ...documentWithoutVersion } = payload
+          const recomputed = await digestText(serializeForContentVersion(documentWithoutVersion))
+          invariant(
+            recomputed === entry.contentVersion && declaredContentVersion === entry.contentVersion,
+            `versão de conteúdo não confere com o documento em ${regionSlug}.`,
+          )
+        }
+        const document = parseRegiaoDocument(payload)
         invariant(
           document.regiao.slug === regionSlug,
           `o arquivo carregado pertence a outra região: ${document.regiao.slug}.`,
