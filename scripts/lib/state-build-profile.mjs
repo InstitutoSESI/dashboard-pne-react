@@ -442,8 +442,17 @@ export function loadStateBuildProfile({
     municipalityRegistry: null,
     publication,
     publicDataDirectory: null,
+    regionsConfig: null,
   }
-  if (!requirePublication) return Object.freeze(baseProfile)
+  if (!requirePublication) {
+    return Object.freeze({
+      ...baseProfile,
+      regionsConfig: loadRegionsConfig({
+        repoRoot: resolvedRepoRoot,
+        stateCode: normalizedStateCode,
+      }),
+    })
+  }
 
   const municipalityRegistry = parseMunicipalityRegistry(
     readJson(
@@ -472,5 +481,164 @@ export function loadStateBuildProfile({
     municipalityRegistry,
     publication,
     publicDataDirectory: publication.resolvedPublicDataDirectory,
+    regionsConfig: loadRegionsConfig({
+      repoRoot: resolvedRepoRoot,
+      stateCode: normalizedStateCode,
+      municipalityRegistry,
+    }),
   })
+}
+
+export const REGIONS_CONFIG_SCHEMA_VERSION = 'regions-config-v1'
+
+const REGIONS_CONFIG_FIELDS = [
+  'schemaVersion',
+  'stateCode',
+  'provenance',
+  'regionCount',
+  'municipalityCount',
+  'regions',
+]
+const REGION_FIELDS = ['slug', 'name', 'municipalityCount', 'municipalityIbgeCodes']
+
+/*
+ * O recorte regional é institucional e a plataforma o publica sem o nome da
+ * entidade que o mantém: nem o rótulo público, nem o slug, nem a proveniência
+ * podem carregar essa marca. A guarda vive aqui — no mesmo lugar em que o mapa
+ * entra no build — para que nenhuma UF futura contorne a regra por descuido.
+ */
+const FORBIDDEN_REGION_TOKENS = ['fiergs', 'senai', 'sesi']
+
+function assertPublicRegionText(value, label) {
+  const normalized = value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('pt-BR')
+  for (const token of FORBIDDEN_REGION_TOKENS) {
+    if (normalized.includes(token)) {
+      throw new Error(`${label}: o recorte regional não pode expor o nome institucional "${token}".`)
+    }
+  }
+  return value
+}
+
+export function parseRegionsConfig(payload, requestedStateCode, municipalityRegistry = null) {
+  const label = `Mapa regional de ${requestedStateCode} inválido`
+  const config = assertRecord(payload, label)
+  assertExactFields(config, REGIONS_CONFIG_FIELDS, label)
+  if (config.schemaVersion !== REGIONS_CONFIG_SCHEMA_VERSION) {
+    throw new Error(`${label}: schemaVersion deve ser ${REGIONS_CONFIG_SCHEMA_VERSION}.`)
+  }
+  if (config.stateCode !== requestedStateCode) {
+    throw new Error(`${label}: stateCode diverge de ${requestedStateCode}.`)
+  }
+  assertPublicRegionText(requireNonEmptyString(config, 'provenance', label), `${label}: provenance`)
+  if (!Number.isInteger(config.regionCount) || config.regionCount <= 0) {
+    throw new Error(`${label}: regionCount deve ser inteiro positivo.`)
+  }
+  if (!Number.isInteger(config.municipalityCount) || config.municipalityCount <= 0) {
+    throw new Error(`${label}: municipalityCount deve ser inteiro positivo.`)
+  }
+  if (!Array.isArray(config.regions) || config.regions.length !== config.regionCount) {
+    throw new Error(`${label}: regions deve cobrir exatamente regionCount.`)
+  }
+
+  const slugs = new Set()
+  const names = new Set()
+  const seenCodes = new Map()
+  const regions = config.regions.map((rawRegion, index) => {
+    const regionLabel = `${label}: região na posição ${index + 1}`
+    const region = assertRecord(rawRegion, regionLabel)
+    assertExactFields(region, REGION_FIELDS, regionLabel)
+    const slug = assertPublicRegionText(
+      requireNonEmptyString(region, 'slug', regionLabel),
+      `${regionLabel}: slug`,
+    )
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      throw new Error(`${regionLabel}: slug deve usar somente minúsculas, dígitos e hífens.`)
+    }
+    const name = assertPublicRegionText(
+      requireNonEmptyString(region, 'name', regionLabel),
+      `${regionLabel}: name`,
+    )
+    if (slugs.has(slug)) throw new Error(`${regionLabel}: slug duplicado ${slug}.`)
+    if (names.has(name)) throw new Error(`${regionLabel}: nome duplicado ${name}.`)
+    slugs.add(slug)
+    names.add(name)
+
+    const codes = region.municipalityIbgeCodes
+    if (!Array.isArray(codes) || codes.length === 0) {
+      throw new Error(`${regionLabel}: municipalityIbgeCodes deve ser lista não vazia.`)
+    }
+    if (region.municipalityCount !== codes.length) {
+      throw new Error(`${regionLabel}: municipalityCount diverge da lista de municípios.`)
+    }
+    codes.forEach((code) => {
+      if (typeof code !== 'string' || !/^\d{7}$/.test(code)) {
+        throw new Error(`${regionLabel}: código IBGE inválido ${JSON.stringify(code)}.`)
+      }
+      const owner = seenCodes.get(code)
+      if (owner !== undefined) {
+        throw new Error(`${label}: município ${code} aparece em ${owner} e em ${slug}.`)
+      }
+      seenCodes.set(code, slug)
+    })
+
+    return Object.freeze({
+      slug,
+      name,
+      municipalityCount: codes.length,
+      municipalityIbgeCodes: Object.freeze([...codes]),
+    })
+  })
+
+  if (seenCodes.size !== config.municipalityCount) {
+    throw new Error(
+      `${label}: municipalityCount declara ${config.municipalityCount}, mas o mapa cobre ${seenCodes.size}.`,
+    )
+  }
+  if (municipalityRegistry !== null) {
+    const registryCodes = new Set(municipalityRegistry.municipalities.map(({ ibgeCode }) => ibgeCode))
+    const missing = [...registryCodes].filter((code) => !seenCodes.has(code)).toSorted()
+    const unknown = [...seenCodes.keys()].filter((code) => !registryCodes.has(code)).toSorted()
+    if (missing.length > 0) {
+      throw new Error(`${label}: municípios sem região: ${missing.join(', ')}.`)
+    }
+    if (unknown.length > 0) {
+      throw new Error(`${label}: municípios fora do registro estadual: ${unknown.join(', ')}.`)
+    }
+  }
+
+  return Object.freeze({
+    schemaVersion: REGIONS_CONFIG_SCHEMA_VERSION,
+    stateCode: requestedStateCode,
+    provenance: config.provenance,
+    regionCount: regions.length,
+    municipalityCount: seenCodes.size,
+    regions: Object.freeze(regions),
+  })
+}
+
+export function regionsConfigPath(repoRoot, stateCode) {
+  return path.join(
+    path.resolve(repoRoot),
+    'config',
+    'regions',
+    `${stateCode.toLocaleLowerCase('en-US')}.json`,
+  )
+}
+
+/*
+ * Fail-closed por ausência: uma UF sem mapa regional simplesmente não tem
+ * análise regional. Nenhum caminho de código inventa recorte, e a hospedagem
+ * das demais UFs segue idêntica ao que era antes de a regionalização voltar.
+ */
+export function loadRegionsConfig({ repoRoot, stateCode, municipalityRegistry = null }) {
+  const filePath = regionsConfigPath(repoRoot, stateCode)
+  if (!existsSync(filePath)) return null
+  return parseRegionsConfig(
+    readJson(filePath, `Mapa regional de ${stateCode}`),
+    stateCode,
+    municipalityRegistry,
+  )
 }

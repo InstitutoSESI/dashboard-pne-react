@@ -29,6 +29,8 @@ export default defineConfig(({ command, mode }) => {
         analyticsMessage: profile.publication.analyticsMessage,
         enabledProducts: profile.publication.enabledProducts,
       }),
+      // null quando a UF ativa não tem mapa regional: sem mapa, sem análise regional.
+      __ACTIVE_REGIONS_CONFIG__: JSON.stringify(profile.regionsConfig),
     },
     build: {
       copyPublicDir: false,
