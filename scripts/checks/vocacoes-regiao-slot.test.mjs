@@ -257,10 +257,30 @@ test('o leitor confere resumo e identidade antes de aceitar um pacote regional',
   })
 })
 
-test('o gerador recusa publicar antes de a origem ter contrato definido', () => {
-  assert.equal(resolveSource(undefined).available, false)
-  assert.throws(
-    () => resolveSource('scripts'),
-    /o contrato público "vocacoes-regiao v0.1" ainda não foi definido/,
-  )
+test('origem sem contrato público aprovado: manifesto vazio com recusa registrada', () => {
+  const semOrigem = resolveSource('caminho/que/nao/existe')
+  assert.equal(semOrigem.available, false)
+  assert.equal(semOrigem.refusal, null)
+
+  const semAprovacao = resolveSource('scripts')
+  assert.equal(semAprovacao.available, false)
+  assert.match(semAprovacao.refusal, /ainda não foi aprovado/)
+
+  const publication = buildPublication({ sourceRoot: 'scripts' })
+  assert.deepEqual(publication.manifest.regions, [])
+  assert.deepEqual(publication.files, [])
+  assert.match(publication.refusal, /não transpõe\s+nada por conta própria/)
+})
+
+test('aprovação declarada sem transposição implementada é erro alto, não publicação', async () => {
+  const { mkdtemp, writeFile: writeTempFile, rm } = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = await mkdtemp(join(tmpdir(), 'vocacoes-regiao-aprovacao-'))
+  try {
+    await writeTempFile(join(dir, 'CONTRATO_PUBLICO_APROVADO.json'), '{}\n', 'utf8')
+    assert.throws(() => resolveSource(dir), /transposição ainda não está\s+implementada/)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })

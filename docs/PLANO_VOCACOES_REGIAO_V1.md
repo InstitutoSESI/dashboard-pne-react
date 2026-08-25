@@ -130,6 +130,13 @@ Um documento por região em `public/data/vocacoes-regiao/regioes/<slug>.json`, c
    novo ciclo. A ata registra o encerramento como "por arbitragem" — nunca como dupla
    concordância — com os vereditos literais e o item residual. (Cláusula adicionada na
    arbitragem da Rodada 0, 2026-08-24.)
+9. **Ciclo delta por arbitragem**: quando os 3 ciclos se esgotarem com não conformidades de
+   **entregável** corrigidas depois do último parecer (portanto não revisadas), o árbitro
+   pode autorizar **um** ciclo adicional de escopo limitado: o revisor examina apenas as
+   correções aplicadas e o que o árbitro explicitamente incluir — nada é reaberto além
+   disso. CONFORME encerra a rodada por dupla concordância; achado substantivo novo sobe ao
+   árbitro sem quinto ciclo. A ata registra o ciclo como "delta autorizado por arbitragem".
+   (Cláusula adicionada na arbitragem da Rodada 1, 2026-08-24.)
 
 ### 5.3 Regras transversais de qualidade (valem em toda rodada)
 
@@ -141,6 +148,16 @@ Um documento por região em `public/data/vocacoes-regiao/regioes/<slug>.json`, c
   institucionais do recorte, enums de processo), sem número atribuído a ano futuro,
   prévia nunca como observado, CadÚnico sempre com universo declarado.
 - Promoções ao canônico: manifesto com hash origem+destino, pré-voo sem colisão, aditivo.
+- **Guardas de linguagem natural — critério de aceite por corpus, não por completude**
+  (arbitragem da Rodada 1): o aceite de uma guarda é (a) **corpus de regressão bilateral
+  versionado** — todo ataque encontrado em qualquer ciclo vira fixture permanente, e todo
+  texto honesto barrado indevidamente vira fixture também; a guarda deve recusar 100% do
+  corpus de ataques e aceitar 100% do corpus honesto; e (b) **furos conhecidos ainda não
+  fechados declarados** junto à guarda. "Nenhum furo desconhecido" **não** é critério de
+  aceite: furo novo achado depois é item de trabalho novo, não reprovação retroativa da
+  rodada. A guarda é uma camada de defesa — o revisor e as revisões humanas (GA-3)
+  continuam sendo a rede semântica; falso positivo sobre limitação honesta é defeito tão
+  grave quanto falso negativo.
 
 ## 6. Rodadas
 
