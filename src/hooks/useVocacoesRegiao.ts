@@ -6,7 +6,7 @@ import {
   type VocacoesPublication,
 } from '../domain/vocacoesRegiaoPublication'
 import { createVocacoesRegiaoLoader } from '../features/vocacoes-regiao/vocacoesRegiaoLoader'
-import type { ForesightDocument } from '../features/foresight/foresightTypes'
+import type { VocacoesDocument } from '../features/vocacoes-regiao/vocacoesRegiaoTypes'
 import type { AsyncDataState } from '../types/async'
 import { useAsyncData } from '../utils/useAsyncData'
 
@@ -20,19 +20,13 @@ export type { VocacoesPublication }
 const vocacoesLoader = createVocacoesRegiaoLoader()
 
 /*
- * O pacote regional tem a mesma forma do municipal, com a identidade da região
- * no lugar do município — é a transposição que a metodologia-mãe já previa. Os
- * componentes declarativos dos Cenários leem `document.*` e por isso servem aos
- * dois escopos sem alteração.
+ * A forma do pacote é a do contrato público `vocacoes-regiao-2.0.0`: três
+ * blocos e nenhum cenário. Até a versão `1.0.0` este arquivo derivava o tipo do
+ * pacote municipal, porque o pacote regional projetado era a transposição
+ * literal dele. A Fase A não é isso — os cenários são da Fase B —, e o tipo
+ * agora vem do contrato próprio.
  */
-export type VocacoesDocument = Omit<ForesightDocument, 'municipality'> & {
-  readonly region: {
-    readonly slug: string
-    readonly name: string
-    readonly uf: string
-    readonly municipalityCount: number
-  }
-}
+export type { VocacoesDocument }
 
 export interface VocacoesResult {
   readonly document: VocacoesDocument
@@ -67,18 +61,28 @@ export function useVocacoesPublication(): VocacoesPublication {
 
   useEffect(() => {
     let cancelled = false
-    vocacoesLoader
-      .listPublishedRegionSlugs()
-      .then((slugs: string[]) => {
-        if (cancelled) return
-        setPublication({ publishedSlugs: new Set(slugs), ready: true })
-      })
-      .catch(() => {
-        if (cancelled) return
-        setPublication({ publishedSlugs: new Set<string>(), ready: true })
-      })
+    function refresh() {
+      vocacoesLoader
+        .listPublishedRegionSlugs()
+        .then((slugs: string[]) => {
+          if (cancelled) return
+          setPublication({ publishedSlugs: new Set(slugs), ready: true })
+        })
+        .catch(() => {
+          if (cancelled) return
+          setPublication({ publishedSlugs: new Set<string>(), ready: true })
+        })
+    }
+    refresh()
+    /*
+     * O manifesto e uma promessa; o pacote e a prova. Quando um pacote nao
+     * sustenta a promessa, o leitor retrata a regiao e avisa aqui — o item de
+     * menu some e a rota fecha, em vez de levar a uma pagina em branco.
+     */
+    const unsubscribe = vocacoesLoader.subscribe(refresh)
     return () => {
       cancelled = true
+      unsubscribe()
     }
   }, [])
 

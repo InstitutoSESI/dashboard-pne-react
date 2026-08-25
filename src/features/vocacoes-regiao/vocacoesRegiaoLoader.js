@@ -1,28 +1,33 @@
 /*
  * Leitura do Vocações da Região publicado em `public/data/vocacoes-regiao/`.
  *
- * O slot existe antes do conteúdo. O manifesto vazio é publicado desde já e é
- * válido: enquanto nenhuma região constar dele, não há item de menu, não há
- * rota alcançável e não há pacote a ler — fail-closed por ausência, sem página
- * vazia e sem erro no console.
+ * O slot existiu antes do conteúdo, e o manifesto vazio continua sendo um
+ * estado válido: enquanto nenhuma região constar dele, não há item de menu,
+ * não há rota alcançável e não há pacote a ler — fail-closed por ausência, sem
+ * página vazia e sem erro no console. Nada disso mudou com a publicação da
+ * Fase A; o que mudou é que agora há regiões no manifesto.
  *
- * O contrato do pacote é o mesmo dos Cenários da educação municipal, com uma
- * única diferença: a identidade é a região, não o município. Por isso este
- * módulo não reimplementa validação alguma — ele instancia a fábrica de
- * validador do foresight com a identidade regional e a versão de origem que o
- * próprio manifesto declara. Quando a camada de pesquisa publicar o contrato
- * "vocacoes-regiao v0.1", nada aqui precisa mudar além do manifesto.
+ * A validação do pacote vive em `vocacoesRegiaoContract.js`, que é o contrato
+ * público `vocacoes-regiao-2.0.0`. Este módulo cuida do que é leitura: buscar,
+ * conferir o resumo do arquivo contra o manifesto, casar identidade e versão de
+ * conteúdo, e memorizar. A separação importa — o contrato precisa rodar também
+ * no gerador, em Node, sem nada de rede.
  */
 
-import { createDocumentParser } from '../foresight/foresightEducacaoLoader.js'
+import {
+  VOCACOES_DOCUMENT_SCHEMA,
+  createVocacoesDocumentParser as createContractParser,
+  validateRegionIdentity,
+} from './vocacoesRegiaoContract.js'
 
 export const VOCACOES_MANIFEST_PATH = '/data/vocacoes-regiao/manifest.json'
 export const VOCACOES_REGION_PATH = '/data/vocacoes-regiao/regioes/{regionSlug}.json'
 export const VOCACOES_REGION_FILE_PATTERN = 'regioes/{regionSlug}.json'
 
 export const VOCACOES_MANIFEST_SCHEMA = 'vocacoes-regiao-manifest-v1'
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-1.0.0'
 export const VOCACOES_SCOPE_TYPE = 'region'
+
+export { VOCACOES_DOCUMENT_SCHEMA, validateRegionIdentity }
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -38,10 +43,18 @@ const MANIFEST_FIELDS = new Set([
   'sourceVersion',
   'sourceMethodologyStatus',
   'publicationScope',
+  'referenceYear',
+  'referenceMonth',
   'regionFilePattern',
   'stateCode',
   'regions',
 ])
+/*
+ * A contagem por bloco substitui a contagem de cenários da versão `1.0.0`. Ela
+ * não é enfeite de manifesto: é o que permite ao leitor recusar um pacote que
+ * perdeu um bloco pelo caminho sem precisar abrir o arquivo inteiro — e é a
+ * razão de o manifesto declarar três números em vez de um.
+ */
 const MANIFEST_ENTRY_FIELDS = new Set([
   'slug',
   'name',
@@ -52,9 +65,10 @@ const MANIFEST_ENTRY_FIELDS = new Set([
   'contentVersion',
   'byteSize',
   'publicationStatus',
-  'scenarioCount',
+  'seriesCount',
+  'associationCount',
+  'temporalPairCount',
 ])
-const REGION_IDENTITY_FIELDS = new Set(['slug', 'name', 'uf', 'municipalityCount'])
 
 /** Erro de carga do Vocações da Região, sempre com estágio e código. */
 export class VocacoesLoadError extends Error {
@@ -90,25 +104,6 @@ function validateText(value, label) {
   return value
 }
 
-/** Identidade regional: o que substitui o município no pacote transposto. */
-export function validateRegionIdentity(value, label) {
-  validateExactFields(value, REGION_IDENTITY_FIELDS, label)
-  invariant(
-    typeof value.slug === 'string' && SLUG_PATTERN.test(value.slug),
-    `${label}.slug deve ser um slug de rota.`,
-  )
-  validateText(value.name, `${label}.name`)
-  invariant(
-    typeof value.uf === 'string' && UF_PATTERN.test(value.uf),
-    `${label}.uf deve ter duas letras maiúsculas.`,
-  )
-  invariant(
-    Number.isInteger(value.municipalityCount) && value.municipalityCount > 0,
-    `${label}.municipalityCount deve ser inteiro positivo.`,
-  )
-  return value
-}
-
 /** Valida o manifesto público e devolve uma cópia congelada. */
 export function parseVocacoesManifest(candidate) {
   validateExactFields(candidate, MANIFEST_FIELDS, 'manifesto')
@@ -134,6 +129,20 @@ export function parseVocacoesManifest(candidate) {
   validateText(candidate.sourceVersion, 'manifesto.sourceVersion')
   validateText(candidate.sourceMethodologyStatus, 'manifesto.sourceMethodologyStatus')
   validateText(candidate.publicationScope, 'manifesto.publicationScope')
+  invariant(
+    Number.isInteger(candidate.referenceYear) && candidate.referenceYear >= 2000,
+    'manifesto.referenceYear deve ser um ano.',
+  )
+  /*
+   * O mês de referência não é enfeite: sem ele, um ponto de dezembro do ano de
+   * referência — mês que ainda não aconteceu — passaria pela regra do período
+   * futuro, porque o ano não é futuro.
+   */
+  invariant(
+    Number.isInteger(candidate.referenceMonth)
+      && candidate.referenceMonth >= 1 && candidate.referenceMonth <= 12,
+    'manifesto.referenceMonth deve estar entre 1 e 12.',
+  )
 
   /*
    * Lista vazia é o estado normal enquanto o contrato de origem não existe.
@@ -175,10 +184,12 @@ export function parseVocacoesManifest(candidate) {
       `${label}.byteSize deve ser inteiro positivo.`,
     )
     invariant(entry.publicationStatus === 'published', `${label}.publicationStatus deve ser "published".`)
-    invariant(
-      Number.isInteger(entry.scenarioCount) && entry.scenarioCount > 0,
-      `${label}.scenarioCount deve ser inteiro positivo.`,
-    )
+    for (const field of ['seriesCount', 'associationCount', 'temporalPairCount']) {
+      invariant(
+        Number.isInteger(entry[field]) && entry[field] > 0,
+        `${label}.${field} deve ser inteiro positivo.`,
+      )
+    }
     return Object.freeze({ ...entry })
   })
 
@@ -187,17 +198,17 @@ export function parseVocacoesManifest(candidate) {
 
 /*
  * O validador de pacote nasce do manifesto: é ele que declara a versão de
- * origem e o escopo de publicação que o pacote precisa repetir. Assim o slot
- * aceita o contrato v0.1 no dia em que a pesquisa o publicar, sem que este
- * arquivo precise saber qual será o número.
+ * origem, o escopo de publicação e o ano de referência que o pacote precisa
+ * repetir. Assim o leitor aceita a próxima versão da origem sem que este
+ * arquivo precise saber qual será o número dela.
  */
 export function createVocacoesDocumentParser(manifest) {
-  return createDocumentParser({
+  return createContractParser({
     documentSchema: manifest.documentSchemaVersion,
     sourceVersion: manifest.sourceVersion,
     publicationScope: manifest.publicationScope,
-    identityKey: 'region',
-    validateIdentity: validateRegionIdentity,
+    referenceYear: manifest.referenceYear,
+    referenceMonth: manifest.referenceMonth,
   })
 }
 
@@ -245,8 +256,27 @@ export function createVocacoesRegiaoLoader({
 } = {}) {
   const documentCache = new Map()
   const reportedErrors = new Set()
+  /*
+   * Regiões retratadas. O manifesto é uma promessa barata — ele declara o que
+   * *deveria* estar publicado, e é o que decide o menu sem baixar dez pacotes.
+   * Quando o pacote de uma região não sustenta a promessa (resumo divergente,
+   * identidade trocada, campo fora do contrato), o manifesto sozinho deixaria a
+   * região no menu e a página em branco. A retratação fecha esse vão: a região
+   * sai do conjunto publicado, o item some e a rota volta para o Panorama.
+   *
+   * É deliberadamente irreversível dentro da sessão. Um pacote que falhou a
+   * validação uma vez não passa a valer porque uma segunda leitura deu certo.
+   */
+  const retracted = new Set()
+  const listeners = new Set()
   let manifestPending = null
   let manifestResolved = null
+
+  function retract(regionSlug) {
+    if (retracted.has(regionSlug)) return
+    retracted.add(regionSlug)
+    for (const listener of listeners) listener()
+  }
 
   function reportOnce(error) {
     const key = [error.code, error.stage, error.regionSlug, error.path, error.message].join(':')
@@ -294,16 +324,26 @@ export function createVocacoesRegiaoLoader({
    */
   function listPublishedRegionSlugs() {
     return loadManifest()
-      .then((manifest) => manifest.regions.map((entry) => entry.slug))
+      .then((manifest) => manifest.regions
+        .map((entry) => entry.slug)
+        .filter((slug) => !retracted.has(slug)))
       .catch((error) => {
         reportOnce(structuredError(error, { code: 'manifest_unavailable', stage: 'manifest' }))
         return []
       })
   }
 
+  /** Avisa quando o conjunto publicado encolhe, para a navegação reagir. */
+  function subscribe(listener) {
+    listeners.add(listener)
+    return () => listeners.delete(listener)
+  }
+
   async function loadRegion(regionSlug) {
     const manifest = await loadManifest()
-    const entry = manifest.regions.find((candidate) => candidate.slug === regionSlug) ?? null
+    const entry = retracted.has(regionSlug)
+      ? null
+      : manifest.regions.find((candidate) => candidate.slug === regionSlug) ?? null
     if (entry === null) {
       throw new VocacoesLoadError(
         `O Vocações da Região não está publicado para ${regionSlug}.`,
@@ -317,6 +357,7 @@ export function createVocacoesRegiaoLoader({
       try {
         raw = await fetchText(path)
       } catch (error) {
+        retract(regionSlug)
         throw structuredError(error, { code: 'region_unavailable', regionSlug, path, stage: 'region' })
       }
 
@@ -347,16 +388,35 @@ export function createVocacoesRegiaoLoader({
             && document.generatedAt === manifest.generatedAt,
           `origem ou data divergentes do manifesto em ${regionSlug}.`,
         )
+        /*
+         * Os três blocos conferidos contra o manifesto. Um pacote que perdeu
+         * um bloco pelo caminho ainda seria um documento válido — o contrato
+         * exige "ao menos um" de cada — e passaria sem esta conferência. O
+         * manifesto é quem sabe quantos deveriam estar lá.
+         */
         invariant(
-          document.scenarios.length === entry.scenarioCount,
-          `quantidade de cenários divergente do manifesto em ${regionSlug}.`,
+          document.territoryPortrait.series.length === entry.seriesCount,
+          `quantidade de séries divergente do manifesto em ${regionSlug}.`,
+        )
+        invariant(
+          document.associations.items.length === entry.associationCount,
+          `quantidade de associações divergente do manifesto em ${regionSlug}.`,
+        )
+        invariant(
+          document.temporalPairs.items.length === entry.temporalPairCount,
+          `quantidade de pares temporais divergente do manifesto em ${regionSlug}.`,
         )
         return { document, entry, integrity }
       } catch (error) {
+        /*
+         * Retratar antes de propagar: quem esperar o erro para decidir chega
+         * tarde, porque a navegacao ja se decidiu pelo manifesto.
+         */
+        retract(regionSlug)
         throw structuredError(error, { code: 'invalid_payload', regionSlug, path, stage: 'region' })
       }
     })
   }
 
-  return { listPublishedRegionSlugs, loadManifest, loadRegion }
+  return { listPublishedRegionSlugs, loadManifest, loadRegion, subscribe }
 }

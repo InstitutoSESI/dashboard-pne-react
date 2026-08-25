@@ -190,8 +190,11 @@ test('o registro preserva o mapa de hashes anterior e declara cada acréscimo', 
     // Fase 5 da reorganização: Análise Regional.
     analiseregional: 'analise-regional',
     regiao: 'analise-regional',
-    // Fase 6: slot do Vocações da Região, fechado até a pesquisa publicar.
+    // Fase 6: slot do Vocações da Região, aberto na Rodada 5 do plano Vocações.
     vocacoesdaregiao: 'vocacoes-regiao',
+    // Rodada 5: os dois apelidos curtos que a divulgação da Fase A usa.
+    vocacoes: 'vocacoes-regiao',
+    vocacoesregiao: 'vocacoes-regiao',
   }
 
   const actual = buildHashPageMap()

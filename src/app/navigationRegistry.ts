@@ -150,7 +150,7 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     key: 'vocacoes-regiao',
     label: 'Vocações da Região',
     route: 'vocacoes-da-regiao',
-    aliases: [],
+    aliases: ['vocacoes', 'vocacoes-regiao'],
     glyph: 'cenarios-educacao',
     crumb: 'Análise Regional / Vocações da Região',
   }),

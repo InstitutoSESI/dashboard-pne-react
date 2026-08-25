@@ -1,0 +1,454 @@
+/*
+ * Vocações da Região — Fase A.
+ *
+ * A página tem duas naturezas e a folha respeita as duas. O Bloco 1 é um
+ * catálogo: setenta e uma séries que o leitor varre com o olho, em cartões
+ * pequenos e regulares. Os Blocos 2 e 3 são leitura: poucos cartões largos, com
+ * prosa, os dados que sustentam a leitura e as duas caixas de interpretação.
+ *
+ * A superfície é a mesma das outras páginas — mesma borda, mesmo raio, mesma
+ * sombra — porque a região não é outro produto.
+ *
+ * Nenhuma cor marca valor bom ou ruim. As únicas cores com significado são as
+ * das duas caixas de interpretação (o que se pode ler, o que não se conclui) e
+ * a da etiqueta de prévia — e elas marcam **estatuto do dado**, nunca
+ * desempenho do território.
+ */
+
+.vocacoes-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.vocacoes-panel__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vocacoes-panel__title {
+  color: var(--text-strong);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line-height);
+  margin: 0;
+}
+
+.vocacoes-panel__text {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 68ch;
+}
+
+.vocacoes-subtitle {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+/*
+ * A nota de neutralidade não é rodapé. Ela muda o que todos os números abaixo
+ * querem dizer, e por isso fica no topo, com peso de leitura.
+ */
+.vocacoes-neutrality {
+  background: var(--surface-muted, transparent);
+  border-left: 3px solid var(--border-strong, var(--border-card));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 72ch;
+  padding: var(--space-3) var(--space-4);
+}
+
+.vocacoes-list {
+  color: var(--text-body);
+  display: grid;
+  font-size: var(--type-support-size);
+  gap: var(--space-2);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 68ch;
+  padding-left: var(--space-4);
+}
+
+/* ---------------------------------------------------------------- *
+ * Bloco 1 — catálogo de séries
+ * ---------------------------------------------------------------- */
+
+.vocacoes-filter {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 26rem;
+}
+
+.vocacoes-filter__label {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.vocacoes-filter__input {
+  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: var(--type-support-size);
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.vocacoes-filter__count {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  margin: 0;
+}
+
+.vocacoes-series-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  min-width: 0;
+}
+
+.vocacoes-series {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.vocacoes-series__head {
+  align-items: start;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+
+.vocacoes-series__title {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.vocacoes-series__period,
+.vocacoes-series__reading,
+.vocacoes-series__preliminary {
+  color: var(--text-body);
+  font-size: var(--type-micro-size);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.vocacoes-series__period {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vocacoes-series__reading {
+  font-variant-numeric: tabular-nums;
+}
+
+.vocacoes-series__preliminary {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------- *
+ * Etiquetas de classe de evidência
+ * ---------------------------------------------------------------- */
+
+.vocacoes-badge {
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  color: var(--text-muted);
+  flex: none;
+  font-size: var(--type-micro-size);
+  letter-spacing: 0.02em;
+  padding: 0.1rem var(--space-2);
+  white-space: nowrap;
+}
+
+/*
+ * Só a prévia recebe ênfase, e recebe porque é o único estatuto que muda o que
+ * o leitor pode fazer com o número: ele ainda vai mudar. Observado, calculado e
+ * estimativa indireta ficam com a etiqueta neutra — a diferença entre eles está
+ * escrita por extenso no detalhe, e uma cor não a explicaria.
+ */
+.vocacoes-badge--preliminary {
+  border-color: var(--border-strong, var(--border-card));
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ---------------------------------------------------------------- *
+ * Linha do tempo decorativa
+ * ---------------------------------------------------------------- */
+
+.vocacoes-spark {
+  display: block;
+  min-width: 0;
+}
+
+.vocacoes-spark svg {
+  display: block;
+  height: 3rem;
+  width: 100%;
+}
+
+.vocacoes-spark__area {
+  fill: var(--surface-muted, rgb(0 0 0 / 6%));
+  stroke: none;
+}
+
+.vocacoes-spark__line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.vocacoes-spark__end {
+  fill: var(--text-strong);
+}
+
+.vocacoes-spark--empty {
+  color: var(--text-muted);
+  display: block;
+  font-size: var(--type-micro-size);
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------- *
+ * Detalhe da série
+ * ---------------------------------------------------------------- */
+
+.vocacoes-series__detail {
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.vocacoes-series__detail > summary {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.vocacoes-meta {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.vocacoes-meta dt {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+}
+
+.vocacoes-meta dd {
+  color: var(--text-body);
+  font-size: var(--type-micro-size);
+  line-height: 1.45;
+  margin: var(--space-1) 0 0;
+}
+
+/* A tabela larga rola dentro do painel; a página nunca rola na horizontal. */
+.vocacoes-table-scroll {
+  max-height: 22rem;
+  min-width: 0;
+  overflow: auto;
+}
+
+.vocacoes-table {
+  border-collapse: collapse;
+  font-size: var(--type-micro-size);
+  min-width: 18rem;
+  width: 100%;
+}
+
+.vocacoes-table caption {
+  text-align: left;
+}
+
+.vocacoes-table th,
+.vocacoes-table td {
+  border-bottom: 1px solid var(--border-card);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.vocacoes-table thead th {
+  background: var(--surface-card);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+}
+
+.vocacoes-table tbody th {
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-regular, 400);
+  white-space: nowrap;
+}
+
+.vocacoes-table td {
+  color: var(--text-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- *
+ * Blocos 2 e 3 — leitura
+ * ---------------------------------------------------------------- */
+
+.vocacoes-card-stack {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.vocacoes-card {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.vocacoes-card__head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.vocacoes-card__title {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.vocacoes-card__context,
+.vocacoes-card__period {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  margin: 0;
+}
+
+.vocacoes-card__period {
+  font-variant-numeric: tabular-nums;
+}
+
+.vocacoes-card__statement {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 72ch;
+}
+
+.vocacoes-supports {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.vocacoes-support {
+  border-left: 2px solid var(--border-card);
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding-left: var(--space-3);
+}
+
+.vocacoes-support__role {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.vocacoes-support__label {
+  color: var(--text-strong);
+  font-size: var(--type-micro-size);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.vocacoes-support__value {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.vocacoes-support__meta {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  margin: 0;
+}
+
+/*
+ * As duas caixas de interpretação são a espinha do produto: a leitura permitida
+ * e a proibição andam juntas, e a folha não deixa uma parecer mais importante
+ * que a outra — mesma caixa, mesmo peso, marcadores diferentes.
+ */
+.vocacoes-allowed,
+.vocacoes-prohibited {
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-body);
+  display: grid;
+  font-size: var(--type-support-size);
+  gap: var(--space-1);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 72ch;
+  padding: var(--space-3);
+}
+
+.vocacoes-allowed {
+  background: var(--surface-muted, transparent);
+  border: 1px solid var(--border-card);
+}
+
+.vocacoes-prohibited {
+  background: transparent;
+  border: 1px dashed var(--border-strong, var(--border-card));
+}
+
+.vocacoes-allowed__mark,
+.vocacoes-prohibited__mark {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.vocacoes-prohibited__mark {
+  color: var(--text-strong);
+}

@@ -5,8 +5,11 @@
  * precisa ser exercitado com fixtures, sem React e sem rede. A interface nunca
  * conhece nomes de região — ela pergunta ao conjunto que veio do manifesto.
  *
- * Hoje esse conjunto é vazio por construção, e é assim que o slot fica fechado
- * sem nenhum caso especial na navegação.
+ * A regra não mudou com a publicação da Fase A, e não devia mudar: ela fechava
+ * o slot quando o conjunto era vazio e agora abre as regiões que o manifesto
+ * declara — sem nenhum caso especial na navegação, nos dois estados. Região
+ * retratada pelo leitor (pacote que não sustentou a promessa do manifesto)
+ * simplesmente não entra no conjunto.
  */
 
 export interface VocacoesPublication {
