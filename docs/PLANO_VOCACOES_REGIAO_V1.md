@@ -137,6 +137,17 @@ Um documento por região em `public/data/vocacoes-regiao/regioes/<slug>.json`, c
    disso. CONFORME encerra a rodada por dupla concordância; achado substantivo novo sobe ao
    árbitro sem quinto ciclo. A ata registra o ciclo como "delta autorizado por arbitragem".
    (Cláusula adicionada na arbitragem da Rodada 1, 2026-08-24.)
+10. **Encerramento com verificação transferida (carry-over)**: quando o ciclo delta do §5.2.9
+   devolver achado substantivo e as correções forem aplicadas depois do parecer, o árbitro
+   pode encerrar a rodada **por arbitragem** transferindo a verificação dessas correções ao
+   **dossiê da rodada seguinte**, como item nomeado e de escopo fechado. O dossiê da rodada
+   seguinte submete o item herdado junto com o seu próprio material, e o parecer deve
+   responder aos dois separadamente; item herdado NÃO CONFORME é não conformidade da rodada
+   seguinte, não reabertura da anterior. A ata da rodada encerrada registra o desfecho como
+   "por arbitragem, com verificação transferida" — nunca como dupla concordância — e nomeia
+   o item transferido. A transferência é **de uma rodada só**: o item não pode ser
+   repassado adiante uma segunda vez. (Cláusula adicionada na arbitragem da Rodada 1,
+   2026-08-24.)
 
 ### 5.3 Regras transversais de qualidade (valem em toda rodada)
 
@@ -233,6 +244,14 @@ municipal adquiriu para 3 pilotos — na mesma disciplina, em escala estadual.
 v0.5.1. A aquisição é **independente da promoção canônica da 5C** (pendente): reusa método
 e scripts como referência, não os artefatos municipais em staging.
 
+**Item herdado da Rodada 1 (§5.2.10):** a Rodada 1 foi encerrada por arbitragem **com
+verificação transferida**. O dossiê desta rodada deve submeter, como bloco separado do
+material próprio, as **três correções do ciclo delta da R1** ainda não revisadas — guarda de
+unicidade da tabela de grafia; reclassificação H-18→A-23 com `seriesKind` no corpus; ataques
+A-24…A-30 — com os probes que as provam. O parecer responde aos dois blocos separadamente.
+Item herdado NÃO CONFORME é não conformidade **desta** rodada. Detalhes e caminhos:
+`.tmp/vocacoes-regiao/rodada-01/ATA_ENCERRAMENTO_RODADA_01.md`.
+
 **Tarefas:**
 1. **SINASC** (TABNET/DATASUS, `nvrs.def` RS): nascidos vivos por residência da mãe, por
    município, desde 1994. Finais vs prévias conforme a regra da 5C (prévia nunca vira
@@ -247,15 +266,24 @@ e scripts como referência, não os artefatos municipais em staging.
 
 **Aceite:** manifesto de aquisição completo e reproduzível; séries regionais das 10 regiões
 para as três fontes validadas pelo validador da Rodada 1; lacunas de fonte documentadas sem
-proxy inventado (CECAD/IVCAD permanecem fora — classe não reproduzível, como na 5C).
+proxy inventado (CECAD/IVCAD permanecem fora — classe não reproduzível, como na 5C). Acresce
+ao aceite o **item herdado da R1**: parecer explícito sobre as três correções do ciclo delta.
+
+**Instrumentos de prova (lição da R1):** o dossiê declara, para cada artefato de verificação
+que a rodada produzir (corpus, tabela, fixture, probe), **quais garantias ele mesmo oferece e
+quais não oferece**. Na R1, dois dos três achados substantivos do delta estavam dentro dos
+próprios instrumentos de prova.
 
 **Prompt de abertura:**
 ```text
 Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 2 do §6) e a ata da Rodada 1 em
-.tmp/vocacoes-regiao/rodada-01/. Execute a Rodada 2 conforme o protocolo do §5: aquisição
+.tmp/vocacoes-regiao/rodada-01/ATA_ENCERRAMENTO_RODADA_01.md — a R1 foi encerrada por
+arbitragem com verificação transferida (§5.2.10), e o item herdado entra no dossiê desta
+rodada como bloco separado. Execute a Rodada 2 conforme o protocolo do §5: aquisição
 estadual SINASC/SIM/CadÚnico com manifesto, relate em .tmp/vocacoes-regiao/rodada-02/,
-submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere até dupla concordância (máx. 3
-ciclos) e escreva a ata. Não inicie a rodada seguinte.
+submeta ao revisor GPT 5.6 xhigh via codex-rescue (material próprio + item herdado, com
+parecer separado para cada), itere até dupla concordância (máx. 3 ciclos) e escreva a ata.
+Não inicie a rodada seguinte.
 ```
 
 ---
