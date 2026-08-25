@@ -1,6 +1,9 @@
 # Plano — Vocações da Região na Plataforma PNE (V1)
 
 Data: 2026-08-24 (reestruturado em rodadas na mesma data)
+Revisão: 2026-08-25 — protocolo de execução v2 (D9), adotado pelo mantenedor após as
+Rodadas 0–2 esgotarem os ciclos do v1 sem dupla concordância; v2.1 (D10) na mesma data —
+Codex sai do caminho crítico da construção.
 Status: aprovado em conversa (sequência, metodologia, cobertura e protocolo de execução
 decididos pelo mantenedor)
 Antecessores: `docs/PLANO_REORGANIZACAO_PLATAFORMA_V1.md` (Fases 0–6 fechadas; §6 reservou este
@@ -39,7 +42,9 @@ Essa assimetria define o faseamento (Fase A = camadas 1 e 3 nas 10 regiões; Fas
 | D5 | **Unidade territorial: as mesmas 10 regiões** já ativas na plataforma (`config/regions/rs.json`), idênticas ao recorte do Vocações (partição exata dos 497 municípios). Nenhum crosswalk novo. Guarda de linguagem vigente (`FORBIDDEN_REGION_TOKENS`) vale para todo texto público novo. | herdada |
 | D6 | A relação entre os **Cenários da educação (municipais)** e os regionais é o debate D6 já armado no plano da reorganização — disparado ao fim da Fase B, não antes. | herdada |
 | D7 | **Fluxo arquitetural inalterado**: pesquisa produz artefato canônico com manifesto + hash; gerador `.mjs` determinístico transpõe; plataforma valida fail-closed. A plataforma nunca lê a camada de pesquisa em runtime. | invariante |
-| D8 | **Protocolo de execução em rodadas com dupla concordância** (§5): Opus 5 high executa cada rodada a partir de contexto limpo; GPT 5.6 xhigh revisa o feito contra o planejado; a rodada só encerra quando os dois concordarem que está conforme este plano. | decidido 2026-08-24 |
+| D8 | **Protocolo de execução em rodadas com dupla concordância** (§5, v1): Opus 5 high executa cada rodada a partir de contexto limpo; GPT 5.6 xhigh revisa o feito contra o planejado; a rodada só encerra quando os dois concordarem que está conforme este plano. Vigorou nas Rodadas 0–2. | decidido 2026-08-24 |
+| D9 | **Protocolo v2 (a partir da R3), substitui o ciclo do D8.** Papéis invertidos: **GPT 5.6 sol xhigh constrói** (via codex-rescue, sempre xhigh); **Opus 5 high orquestra** — escreve specs fechadas, monitora e destrava a execução, verifica por **checklist fechado derivado do Aceite** e julga por instrumento. Sem dupla concordância: encerramento = checklist verde; julgamento vincula só entregáveis; garantia declarada só com prova; achado fora do aceite vira backlog, não bloqueio. Motivo: nas Rodadas 0–2 nenhum encerramento veio por dupla concordância e as maiores fontes de reprovação foram prosa (sobreafirmação de garantia, contradição de documentação), não defeito de entregável. | decidido 2026-08-25 |
+| D10 | **Protocolo v2.1 — Codex fora do caminho crítico.** O orquestrador Opus 5 high passa a ser também o **executor**: constrói diretamente, sem esperar job de delegação. O GPT 5.6 sol xhigh vira **consultor adversarial**: consultas pontuais e de escopo fechado (ataque a guardas, revisão de contrato, posição independente), disparadas **em background e em paralelo** ao trabalho do executor, com saída em arquivo; consulta que morrer é reexecutada uma vez ou descartada com registro — nunca bloqueia a rodada. Motivo: sob D9, toda construção esperava um job xhigh lento e sujeito a morrer; a independência entre modelos rende no adversarial, não na construção. | decidido 2026-08-25 |
 
 ## 3. Arquitetura do fluxo
 
@@ -86,73 +91,105 @@ Um documento por região em `public/data/vocacoes-regiao/regioes/<slug>.json`, c
    C1–C4 da metodologia Vocações v1.6 com foco educacional, estatuto declarado por cenário
    (D3), implicações para a agenda educacional.
 
-## 5. Protocolo de execução por rodadas (D8)
+## 5. Protocolo de execução por rodadas (D8, revisto por D9)
 
-### 5.1 Papéis
+**Protocolo v2 — vigente a partir da Rodada 3.** As Rodadas 0–2 correram sob o protocolo
+v1 (dupla concordância executor↔revisor, máx. 3 ciclos, cláusulas de arbitragem
+adicionadas rodada a rodada); as atas delas são o registro válido daquele regime e devem
+ser lidas com as regras da época. O v1 não fechou nenhuma rodada por dupla concordância e
+exigiu arbitragem do mantenedor nas três — o v2 transfere a fricção do consenso entre
+modelos para instrumentos verificáveis.
 
-- **Executor — Opus 5 high** (Claude Opus, reasoning high): executa a rodada inteira, escreve
-  o relatório, prepara o dossiê de revisão, aplica correções.
-- **Revisor — GPT 5.6 xhigh**: consultado via plugin Codex (agente `codex-rescue`, reasoning
-  xhigh). **Uma chamada por consulta**; instruir o agente a **escrever o parecer em arquivo**
-  no diretório da rodada (flag de escrita obrigatória). O job pode morrer sem saída — se o
-  arquivo de parecer não aparecer, reexecutar a chamada, nunca inventar o parecer.
-- **Árbitro — o mantenedor**: decide impasses e aprova desvios que alterem este plano.
+**Encerramento da Rodada 2:** suspensa sob o v1 com correções aplicadas e não revisadas
+(`NC-C3-1`, `NC-C3-2` e os dois ajustes posteriores autorizados), a R2 encerra-se com a
+adoção deste protocolo. A verificação dessas correções entra no checklist da Rodada 3
+como **bloco herdado de escopo fechado** — mesma mecânica do carry-over do v1, válida por
+uma rodada só.
+
+### 5.1 Papéis (v2.1, D10)
+
+- **Executor-orquestrador — Opus 5 high (Claude)**: conduz e **constrói** a rodada.
+  Deriva o checklist de aceite, executa as tarefas diretamente, verifica cada entrega
+  contra o checklist com probes e testes, escreve o relatório e encerra a rodada. O
+  julgamento é por instrumento, não por opinião — e vale igualmente sobre o que ele
+  mesmo construiu.
+- **Consultor adversarial — GPT 5.6 sol xhigh** (via plugin Codex, agente `codex-rescue`,
+  reasoning xhigh): recebe **consultas pontuais de escopo fechado**, nunca tarefas de
+  construção — atacar uma guarda, revisar um contrato/validador, produzir posição
+  independente. Consultas rodam **em background, em paralelo** ao trabalho do executor
+  (§5.3). Toda saída em arquivo — o job pode morrer sem stdout, e o arquivo é a única
+  prova de conclusão.
+- **Árbitro — o mantenedor**: gates humanos previstos (GA-3, ratificações), mudanças de
+  plano e impasses reais. Não é acionado para fechar rodada normal.
 
 ### 5.2 Ciclo da rodada
 
-1. O mantenedor abre a rodada colando o **prompt de abertura** (fim de cada rodada em §6) numa
-   sessão nova do Opus 5 high — **contexto limpo, sem memória de rodadas anteriores**. Todo o
-   contexto necessário vem deste plano + do relatório da rodada anterior.
-2. O executor lê: este plano inteiro (§1–§5 + a sua rodada em §6), o relatório e a ata da
-   rodada anterior, e os arquivos de entrada listados na rodada. Depois executa as tarefas.
-3. O executor escreve `RELATORIO_RODADA_<NN>.md` no diretório da rodada
-   (`.tmp/vocacoes-regiao/rodada-<NN>/` em PNE-REACT, gitignored): o que foi feito, caminhos e
-   hashes dos entregáveis, **todo desvio do plano declarado com justificativa** — desvio
-   omitido é falha da rodada; desvio declarado é material legítimo de revisão.
-4. O executor submete ao revisor o **dossiê de revisão**: (a) o texto integral da rodada neste
-   plano, (b) o relatório da rodada, (c) os entregáveis (ou trechos/hashes quando grandes).
-   Pergunta fechada ao revisor: *"O que foi feito está conforme o planejado para esta rodada?
-   Liste cada não conformidade e cada desvio não declarado. Responda CONFORME ou NÃO CONFORME
-   com a lista."*
-5. Se o parecer for NÃO CONFORME: o executor corrige (ou justifica item a item), atualiza o
-   relatório e submete novamente. **Máximo 3 ciclos executor↔revisor por rodada**; sem
-   convergência, a rodada é suspensa com o impasse documentado e a decisão sobe ao mantenedor.
-6. **Encerramento — dupla concordância obrigatória**: a rodada só fecha quando (a) o executor
-   afirma conformidade no relatório final **e** (b) o último parecer do revisor é CONFORME.
-   O executor registra `ATA_ENCERRAMENTO_RODADA_<NN>.md`: veredito de cada modelo, número de
-   ciclos, desvios aceitos, pendências transferidas (se houver) e a rodada seguinte.
-7. Desvio aceito que **altera o plano** exige edição deste documento na própria rodada
-   (seção afetada + linha na tabela de decisões, se for decisão nova). Mudança silenciosa de
-   plano é não conformidade automática.
-8. **Encerramento por arbitragem**: quando os 3 ciclos se esgotarem e toda não conformidade
-   remanescente for correção textual da documentação da rodada (não de entregável), já
-   aplicada na direção apontada pelo próprio revisor, o árbitro pode encerrar a rodada sem
-   novo ciclo. A ata registra o encerramento como "por arbitragem" — nunca como dupla
-   concordância — com os vereditos literais e o item residual. (Cláusula adicionada na
-   arbitragem da Rodada 0, 2026-08-24.)
-9. **Ciclo delta por arbitragem**: quando os 3 ciclos se esgotarem com não conformidades de
-   **entregável** corrigidas depois do último parecer (portanto não revisadas), o árbitro
-   pode autorizar **um** ciclo adicional de escopo limitado: o revisor examina apenas as
-   correções aplicadas e o que o árbitro explicitamente incluir — nada é reaberto além
-   disso. CONFORME encerra a rodada por dupla concordância; achado substantivo novo sobe ao
-   árbitro sem quinto ciclo. A ata registra o ciclo como "delta autorizado por arbitragem".
-   (Cláusula adicionada na arbitragem da Rodada 1, 2026-08-24.)
-10. **Encerramento com verificação transferida (carry-over)**: quando o ciclo delta do §5.2.9
-   devolver achado substantivo e as correções forem aplicadas depois do parecer, o árbitro
-   pode encerrar a rodada **por arbitragem** transferindo a verificação dessas correções ao
-   **dossiê da rodada seguinte**, como item nomeado e de escopo fechado. O dossiê da rodada
-   seguinte submete o item herdado junto com o seu próprio material, e o parecer deve
-   responder aos dois separadamente; item herdado NÃO CONFORME é não conformidade da rodada
-   seguinte, não reabertura da anterior. A ata da rodada encerrada registra o desfecho como
-   "por arbitragem, com verificação transferida" — nunca como dupla concordância — e nomeia
-   o item transferido. A transferência é **de uma rodada só**: o item não pode ser
-   repassado adiante uma segunda vez. (Cláusula adicionada na arbitragem da Rodada 1,
-   2026-08-24.)
+1. O mantenedor abre a rodada colando o **prompt de abertura** (fim de cada rodada em §6)
+   numa sessão nova do orquestrador — **contexto limpo, sem memória de rodadas
+   anteriores**. Todo o contexto vem deste plano, do relatório da rodada anterior e dos
+   artefatos em disco.
+2. O orquestrador deriva da seção **Aceite** da rodada um **checklist fechado**: um item
+   por critério, cada um com o instrumento que o prova (probe, teste, hash, comando ou
+   inspeção nomeada). O checklist entra no relatório antes da primeira construção e é o
+   único juiz do encerramento.
+3. Construção **direta pelo executor**, em tarefas delimitadas na ordem que o checklist
+   pedir. Nos artefatos de maior risco da rodada (guardas de linguagem, contrato,
+   validador), o executor dispara **em background** a consulta adversarial ao consultor
+   (§5.3) e segue construindo — o resultado da consulta é incorporado quando chegar.
+4. Verificação contínua: a cada entrega, o executor roda os instrumentos do checklist
+   que ela cobre. Item FAIL vira correção e re-verificação. **Não há número máximo de
+   iterações**: sem consenso a negociar, o critério de parada é o checklist verde.
+5. Encerramento: `RELATORIO_RODADA_<NN>.md` no diretório da rodada
+   (`.tmp/vocacoes-regiao/rodada-<NN>/` em PNE-REACT, gitignored) com o checklist inteiro
+   PASS e a evidência de cada item, caminhos e hashes dos entregáveis, **todo desvio do
+   plano declarado com justificativa** (desvio omitido é falha da rodada) e a seção
+   **Encerramento** — que substitui a ata separada do v1. Achado fora do checklist vira
+   item nomeado de **backlog** no relatório: insumo da rodada seguinte, nunca bloqueio
+   desta.
+6. Desvio aceito que **altera o plano** exige edição deste documento na própria rodada
+   (seção afetada + linha na tabela de decisões, se for decisão nova). Mudança silenciosa
+   de plano segue sendo falha automática.
+7. Sobem ao mantenedor apenas: os gates humanos previstos na rodada, desvio que altere
+   este plano, e impasse real — um item de aceite impossível de cumprir como escrito.
 
-### 5.3 Regras transversais de qualidade (valem em toda rodada)
+### 5.3 Consultas adversariais (fora do caminho crítico)
 
-- Reprovação do revisor não é fracasso — é o mecanismo funcionando. Relatórios reportam
-  falhas e limitações com o output real (testes que falharam, fontes indisponíveis).
+- **Uma consulta por chamada; saída sempre em arquivo.** Sem arquivo, a consulta não
+  aconteceu — parecer nunca é inventado a partir de stdout parcial.
+- **Sempre em background, sempre em paralelo.** O executor dispara a consulta e continua
+  construindo; nenhuma tarefa da rodada espera o consultor. Consultas independentes
+  podem rodar simultaneamente.
+- **Trava não suspende nada.** Consulta morta ou sem saída no tempo esperado: reexecutar
+  **uma vez**, com escopo igual ou reduzido. Na segunda falha, a consulta é **descartada
+  com registro no relatório** — o item que ela cobriria é verificado pelos instrumentos
+  do executor, e a ausência da segunda opinião fica declarada, não escondida.
+- **Consulta é insumo, não veredito.** O achado do consultor entra no checklist (se
+  refutar uma garantia) ou no backlog (se for melhoria fora do aceite). Não existe ciclo
+  de concordância.
+- **Quando consultar:** recomendada uma consulta adversarial por rodada sobre o artefato
+  de maior risco (guarda de linguagem nova, contrato novo, validador alterado); rodadas
+  sem artefato dessa classe podem fechar sem consulta, com a dispensa registrada.
+
+### 5.4 Regras de convergência (o que o v2 muda do v1)
+
+1. **O julgamento vincula entregáveis, não prosa.** Defeito em relatório ou documentação
+   da rodada é corrigido e registrado — nunca reabre a rodada nem gera ciclo.
+2. **Checklist fechado, derivado literalmente do Aceite.** Nada fora dele bloqueia o
+   encerramento; achado novo vira backlog nomeado.
+3. **Garantia declarada só com prova.** O relatório afirma apenas o que um probe/teste
+   prova, com referência ao instrumento; sem prova, escreve "não provado". As duas
+   maiores fontes de reprovação das Rodadas 1–2 foram sobreafirmação de garantia e
+   contradição interna de documentação — a conferência mecânica de números do relatório
+   (padrão `probe-coerencia-docs.py` da R2) roda antes do encerramento de toda rodada.
+4. **Correção textual é self-service.** Aplicada, registrada, seguida em frente.
+5. **Instrumento novo verifica-se por injeção.** Probe que nunca reprovou nada não provou
+   nada: todo probe novo demonstra que acusa o defeito que diz pegar (lição da R2).
+
+### 5.5 Regras transversais de qualidade (valem em toda rodada)
+
+- Reprovação de um item do checklist não é fracasso — é o instrumento funcionando.
+  Relatórios reportam falhas e limitações com o output real (testes que falharam, fontes
+  indisponíveis).
 - Builders e geradores: determinísticos, sem rede/relógio/modelo no caminho de geração,
   escrita atômica, `--check` comparando disco × gerado, reexecução com hash estável.
 - Linguagem pública: sem causalidade, sem token interno (ids E/F/H/N/S/C, nomes
@@ -166,13 +203,18 @@ Um documento por região em `public/data/vocacoes-regiao/regioes/<slug>.json`, c
   corpus de ataques e aceitar 100% do corpus honesto; e (b) **furos conhecidos ainda não
   fechados declarados** junto à guarda. "Nenhum furo desconhecido" **não** é critério de
   aceite: furo novo achado depois é item de trabalho novo, não reprovação retroativa da
-  rodada. A guarda é uma camada de defesa — o revisor e as revisões humanas (GA-3)
+  rodada. A guarda é uma camada de defesa — o orquestrador e as revisões humanas (GA-3)
   continuam sendo a rede semântica; falso positivo sobre limitação honesta é defeito tão
   grave quanto falso negativo.
 
 ## 6. Rodadas
 
 Mapa geral: R0 pré-requisito · R1–R5 = Fase A · R6–R9 = Fase B · R10 = Fase C.
+
+**Estado (2026-08-25):** R0–R2 executadas e encerradas sob o protocolo v1 — os textos e
+prompts delas abaixo são registro histórico e não devem ser reexecutados; as referências a
+"revisor", "dupla concordância" e §5.2.8–10 nessas três rodadas remetem ao §5 da versão
+anterior deste documento, preservado nas atas. A partir da R3 vale o protocolo v2.1 (§5).
 
 ---
 
@@ -299,6 +341,14 @@ Não inicie a rodada seguinte.
 `public/data/regioes/<slug>.json` (educação regional já publicada — pesquisa pode ler o
 publicado; o inverso é proibido); séries da Rodada 2.
 
+**Bloco herdado da Rodada 2 (§5, encerramento):** verificar as correções aplicadas após o
+último parecer da R2 — proibição de layout por classe Unicode (`NC-C3-1`,
+`probe-layout-unicode.py`), coerência da documentação (`NC-C3-2`,
+`probe-coerencia-docs.py`), e os dois ajustes posteriores (probe de coerência como gate;
+quinta porta do builder, matriz × séries, verificada por injeção). Itens de escopo fechado
+no checklist desta rodada; herança de uma rodada só. Detalhes:
+`.tmp/vocacoes-regiao/rodada-02/ATA_ENCERRAMENTO_RODADA_02.md`.
+
 **Tarefas:**
 1. Seleção inicial de séries por bloco em **arquivo de configuração versionado** (não em
    código), com fonte, período e regra de agregação por série.
@@ -316,10 +366,12 @@ configuração.
 **Prompt de abertura:**
 ```text
 Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 3 do §6) e a ata da Rodada 2 em
-.tmp/vocacoes-regiao/rodada-02/. Execute a Rodada 3 conforme o protocolo do §5: builder
-do Bloco 1 das 10 regiões na camada de pesquisa, relate em .tmp/vocacoes-regiao/rodada-03/,
-submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere até dupla concordância (máx. 3
-ciclos) e escreva a ata. Não inicie a rodada seguinte.
+.tmp/vocacoes-regiao/rodada-02/ATA_ENCERRAMENTO_RODADA_02.md. Execute a Rodada 3 conforme
+o protocolo v2.1 (§5): derive o checklist de aceite (incluindo o bloco herdado da R2),
+construa o builder do Bloco 1 diretamente, dispare em background a consulta adversarial
+ao GPT 5.6 sol xhigh via codex-rescue sobre o artefato de maior risco (§5.3), verifique
+cada item com os instrumentos do checklist, relate em .tmp/vocacoes-regiao/rodada-03/ e
+encerre com o checklist verde. Não inicie a rodada seguinte.
 ```
 
 ---
@@ -362,12 +414,12 @@ GA-3 realizado.
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 4 do §6) e a ata da Rodada 3 em
-.tmp/vocacoes-regiao/rodada-03/. Execute a Rodada 4 conforme o protocolo do §5: Blocos 2
-e 3 das 10 regiões + estimativa de migração de coortes + promoção canônica, relate em
-.tmp/vocacoes-regiao/rodada-04/, submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere
-até dupla concordância (máx. 3 ciclos), acione o mantenedor para a revisão amostral GA-3
-e escreva a ata. Não inicie a rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 4 do §6) e o relatório da Rodada 3
+em .tmp/vocacoes-regiao/rodada-03/. Execute a Rodada 4 conforme o protocolo v2.1 (§5):
+Blocos 2 e 3 das 10 regiões + estimativa de migração de coortes + promoção canônica,
+construção direta com verificação por checklist e consulta adversarial em background
+(§5.3); acione o mantenedor para a revisão amostral GA-3 antes do encerramento e relate
+em .tmp/vocacoes-regiao/rodada-04/. Não inicie a rodada seguinte.
 ```
 
 ---
@@ -401,11 +453,12 @@ prévia SINASC nunca `observed`; CadÚnico com universo; migração com classe `
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 5 do §6) e a ata da Rodada 4 em
-.tmp/vocacoes-regiao/rodada-04/. Execute a Rodada 5 conforme o protocolo do §5: contrato
-2.0.0 + gerador + página + testes + publicação das 10 regiões, relate em
-.tmp/vocacoes-regiao/rodada-05/, submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere
-até dupla concordância (máx. 3 ciclos) e escreva a ata. Não inicie a rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 5 do §6) e o relatório da Rodada 4
+em .tmp/vocacoes-regiao/rodada-04/. Execute a Rodada 5 conforme o protocolo v2.1 (§5):
+contrato 2.0.0 + gerador + página + testes + publicação das 10 regiões, construção direta
+com verificação por checklist e consulta adversarial em background sobre o contrato
+2.0.0 (§5.3), relate em .tmp/vocacoes-regiao/rodada-05/ e encerre com o checklist verde.
+Não inicie a rodada seguinte.
 ```
 
 ---
@@ -436,12 +489,13 @@ a região de contraste.
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 6 do §6) e a ata da Rodada 5 em
-.tmp/vocacoes-regiao/rodada-05/. Execute a Rodada 6 conforme o protocolo do §5: instanciar
-a metodologia Vocações v1.6 com foco educacional e propor a região de contraste, relate em
-.tmp/vocacoes-regiao/rodada-06/, submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere
-até dupla concordância (máx. 3 ciclos), obtenha a ratificação do mantenedor para o
-contraste e escreva a ata. Não inicie a rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 6 do §6) e o relatório da Rodada 5
+em .tmp/vocacoes-regiao/rodada-05/. Execute a Rodada 6 conforme o protocolo v2.1 (§5):
+instancie a metodologia Vocações v1.6 com foco educacional e proponha a região de
+contraste, construção direta com verificação por checklist e consulta adversarial em
+background quando couber (§5.3); obtenha a ratificação do mantenedor para o contraste
+antes do encerramento e relate em .tmp/vocacoes-regiao/rodada-06/. Não inicie a rodada
+seguinte.
 ```
 
 ---
@@ -467,12 +521,13 @@ conferidas contra as séries; linguagem pública limpa.
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 7 do §6) e a ata da Rodada 6 em
-.tmp/vocacoes-regiao/rodada-06/. Execute a Rodada 7 conforme o protocolo do §5: reorientar
-os cenários do Vale do Rio Pardo para o domínio educacional no formato do contrato
-regional, relate em .tmp/vocacoes-regiao/rodada-07/, submeta ao revisor GPT 5.6 xhigh via
-codex-rescue, itere até dupla concordância (máx. 3 ciclos) e escreva a ata. Não inicie a
-rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 7 do §6) e o relatório da Rodada 6
+em .tmp/vocacoes-regiao/rodada-06/. Execute a Rodada 7 conforme o protocolo v2.1 (§5):
+reoriente os cenários do Vale do Rio Pardo para o domínio educacional no formato do
+contrato regional, construção direta com verificação por checklist e consulta adversarial
+em background sobre a linguagem pública dos cenários (§5.3), relate em
+.tmp/vocacoes-regiao/rodada-07/ e encerre com o checklist verde. Não inicie a rodada
+seguinte.
 ```
 
 ---
@@ -497,12 +552,13 @@ hipóteses, sinais com ids internos — que nunca chegam ao público).
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 8 do §6) e a ata da Rodada 7 em
-.tmp/vocacoes-regiao/rodada-07/. Execute a Rodada 8 conforme o protocolo do §5: construir
-os 4 cenários da região de contraste pelas 8 etapas do guia v1.6, com teste de
-intercambialidade contra o VRP, relate em .tmp/vocacoes-regiao/rodada-08/, submeta ao
-revisor GPT 5.6 xhigh via codex-rescue, itere até dupla concordância (máx. 3 ciclos) e
-escreva a ata. Não inicie a rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 8 do §6) e o relatório da Rodada 7
+em .tmp/vocacoes-regiao/rodada-07/. Execute a Rodada 8 conforme o protocolo v2.1 (§5):
+construa os 4 cenários da região de contraste pelas 8 etapas do guia v1.6, com teste de
+intercambialidade contra o VRP; o teste cego de identificação pode usar o GPT 5.6 sol
+xhigh como juiz independente (consulta em background, §5.3). Verificação por checklist,
+relatório em .tmp/vocacoes-regiao/rodada-08/, encerramento com o checklist verde. Não
+inicie a rodada seguinte.
 ```
 
 ---
@@ -528,11 +584,12 @@ continuam válidas no contrato.
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 9 do §6) e a ata da Rodada 8 em
-.tmp/vocacoes-regiao/rodada-08/. Execute a Rodada 9 conforme o protocolo do §5: contrato
-2.1.0 + promoção + publicação dos cenários de VRP e contraste, relate em
-.tmp/vocacoes-regiao/rodada-09/, submeta ao revisor GPT 5.6 xhigh via codex-rescue, itere
-até dupla concordância (máx. 3 ciclos) e escreva a ata. Não inicie a rodada seguinte.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 9 do §6) e o relatório da Rodada 8
+em .tmp/vocacoes-regiao/rodada-08/. Execute a Rodada 9 conforme o protocolo v2.1 (§5):
+contrato 2.1.0 + promoção + publicação dos cenários de VRP e contraste, construção direta
+com verificação por checklist e consulta adversarial em background sobre o contrato
+2.1.0 (§5.3), relate em .tmp/vocacoes-regiao/rodada-09/ e encerre com o checklist verde.
+Não inicie a rodada seguinte.
 ```
 
 ---
@@ -543,18 +600,21 @@ até dupla concordância (máx. 3 ciclos) e escreva a ata. Não inicie a rodada 
 regionais (coexistência, aposentadoria ou reposicionamento) e (b) se/como expandir os
 cenários às 8 regiões restantes.
 
-**Formato:** debate estruturado — o executor prepara o dossiê (estado publicado, tensões D3,
-custo de expansão), o revisor produz posição independente, o executor confronta as duas e
-entrega ao mantenedor uma recomendação com as divergências explícitas. **A decisão é do
-mantenedor**; a rodada encerra com a decisão registrada neste plano (tabela de decisões).
+**Formato:** debate estruturado — o orquestrador prepara o dossiê (estado publicado,
+tensões D3, custo de expansão), o construtor (GPT 5.6 sol xhigh) produz posição
+independente em arquivo, o orquestrador confronta as duas e entrega ao mantenedor uma
+recomendação com as divergências explícitas. **A decisão é do mantenedor**; a rodada
+encerra com a decisão registrada neste plano (tabela de decisões).
 
 **Prompt de abertura:**
 ```text
-Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 10 do §6) e a ata da Rodada 9 em
-.tmp/vocacoes-regiao/rodada-09/. Execute a Rodada 10 conforme o protocolo do §5: prepare o
-dossiê do debate D6 + expansão, obtenha a posição independente do revisor GPT 5.6 xhigh
-via codex-rescue, confronte as posições e entregue a recomendação ao mantenedor com as
-divergências explícitas. A rodada encerra com a decisão do mantenedor registrada no plano.
+Leia docs/PLANO_VOCACOES_REGIAO_V1.md (§1–§5 e Rodada 10 do §6) e o relatório da Rodada 9
+em .tmp/vocacoes-regiao/rodada-09/. Execute a Rodada 10 conforme o protocolo v2.1 (§5):
+prepare o dossiê do debate D6 + expansão, obtenha a posição independente do GPT 5.6 sol
+xhigh via codex-rescue (consulta em background, saída em arquivo, §5.3 — prepare o
+dossiê enquanto ela roda), confronte as posições e entregue a
+recomendação ao mantenedor com as divergências explícitas. A rodada encerra com a decisão
+do mantenedor registrada no plano.
 ```
 
 ---
@@ -606,9 +666,14 @@ plataforma já publica (fora da v1, como no Panorama).
 9. **Prévia SINASC lida como dado final** — anos recentes são prévias sujeitas a revisão.
    Mitigação: regra da 5C (prévia nunca vira `observed`; valor de prévia em campo próprio,
    rotulado na página).
-10. **Risco do próprio protocolo (D8)** — convergência forçada entre executor e revisor
-    ("concordar para fechar"). Mitigação: máximo de 3 ciclos com suspensão obrigatória e
-    decisão do mantenedor; ata registra os vereditos literais de cada modelo.
+10. **Risco do próprio protocolo (D9/D10)** — no v2.1, quem constrói também escreve o
+    checklist e julga: risco de autoverificação complacente. Mitigação: o checklist
+    deriva literalmente da seção Aceite escrita neste plano, que o executor não altera
+    sozinho (§5.2.6); garantia só com prova e probes verificados por injeção (§5.4);
+    consulta adversarial do GPT 5.6 sol xhigh sobre o artefato de maior risco de cada
+    rodada (§5.3); revisão humana GA-3 mantida como rede semântica. Risco simétrico:
+    consulta que trava — coberta pelo §5.3 (retry único, depois descarte registrado;
+    nunca vira impasse).
 
 ## 9. Sequência e dependências
 
@@ -618,9 +683,10 @@ R0 (merge reorg) → R1 → R2 → R3 → R4 → R5  [Fase A publicada: 10 regi�
                                                   → R10 [D6 + expansão]
 ```
 
-- Cada rodada começa em sessão nova do Opus 5 high (contexto limpo), com o prompt de
-  abertura da rodada. Nenhuma rodada depende de memória de conversa — só deste plano,
-  das atas e dos artefatos em disco.
+- Cada rodada começa em sessão nova do orquestrador Opus 5 high (contexto limpo), com o
+  prompt de abertura da rodada. Nenhuma rodada depende de memória de conversa — só deste
+  plano, dos relatórios/atas anteriores e dos artefatos em disco.
 - R6 pode, a critério do mantenedor, abrir em paralelo a R4–R5 (trabalho de pesquisa que
   não toca a plataforma); R7+ dependem de R6; R9 depende de R5 (contrato 2.0.0 publicado).
-- Alterações neste plano só dentro de rodadas, como desvio declarado e aceito (§5.2.7).
+- Alterações neste plano só dentro de rodadas, como desvio declarado e aceito (§5.2.6),
+  ou por decisão direta do mantenedor registrada na tabela de decisões.
