@@ -483,9 +483,10 @@ function buildFraming(regionName) {
       eyebrow: 'Análise regional',
       title: `Vocações da Região — ${regionName}`,
       description:
-        `O que o território da região ${regionName} mostra sobre a educação dela: séries longas `
-        + 'do território, leituras que colocam um resultado educacional e os fatores territoriais '
-        + 'lado a lado, e pares de séries que mudaram ao mesmo tempo.',
+        'Duas perguntas organizam esta página: quais características do território podem estar '
+        + 'relacionadas ao cenário educacional da região — e o que o futuro do território exige '
+        + 'da educação dela. As respostas vêm em séries longas, leituras quantificadas entre '
+        + 'educação e território e, onde já publicados, cenários para o horizonte declarado.',
       neutralityNote:
         'Esta página não afirma causa. Duas séries que se movem juntas são duas séries que se '
         + 'movem juntas: cada leitura mostra os números que a sustentam e diz, ela mesma, o que '
@@ -494,8 +495,9 @@ function buildFraming(regionName) {
     howToRead: {
       label: 'Como ler esta página',
       description:
-        'Cinco avisos que valem para tudo o que vem abaixo, e que mudam o que os números querem '
-        + 'dizer.',
+        'Esta página responde a duas perguntas: quais características do território podem estar '
+        + 'relacionadas ao cenário educacional — e o que o futuro do território exige da educação. '
+        + 'Seis avisos valem para tudo o que vem abaixo.',
       items: [
         'Os números somam os municípios da região. A soma não descreve nenhum município em '
         + 'particular, e uma região pode reunir realidades muito diferentes.',
@@ -506,6 +508,9 @@ function buildFraming(regionName) {
         + 'método que diz o que aquele número reúne.',
         'Cada leitura traz junto a interpretação que ela permite e a que ela proíbe. As duas fazem '
         + 'parte da leitura.',
+        'Correlação não é causa: as leituras quantificadas descrevem co-movimento entre séries — '
+        + 'em quantos anos andaram juntas, quanto variaram na mesma janela e com que força — e '
+        + 'cada leitura diz, ela mesma, o que não se pode concluir dela.',
       ],
     },
     territoryPortrait: {
@@ -515,17 +520,19 @@ function buildFraming(regionName) {
         + 'social, comércio exterior e eventos climáticos. Todas vêm da soma dos municípios.',
     },
     associations: {
-      label: 'Educação e território, lado a lado',
+      label: 'Quais características do território podem estar relacionadas ao cenário educacional?',
       description:
-        'Cada leitura parte de um resultado educacional observado na região e mostra os fatores '
-        + 'territoriais observados junto dele, com os números que sustentam a leitura. Nenhuma '
-        + 'delas afirma que um moveu o outro.',
+        'Cada leitura parte de um resultado educacional observado na região e mostra, em '
+        + 'números, como os fatores territoriais se moveram junto dele: anos de movimento '
+        + 'conjunto, variação na mesma janela, correlação com força declarada e a posição da '
+        + 'região entre as dez. Nenhuma delas afirma que um moveu o outro.',
     },
     temporalPairs: {
       label: 'Transformações simultâneas',
       description:
-        'Pares de séries que mudaram ao mesmo tempo na região, cada par na sua janela. Andar '
-        + 'junto não é mover.',
+        'Pares de séries que mudaram ao mesmo tempo na região, cada par na sua janela, com o '
+        + 'movimento conjunto medido — a camada temporal da primeira pergunta. Andar junto não é '
+        + 'mover.',
     },
     sources: {
       label: 'Fontes',
