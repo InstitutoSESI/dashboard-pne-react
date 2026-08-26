@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { MouseEvent as ReactMouseEvent } from 'react'
 import { LoadingState } from '../../components/LoadingState'
 import { PnePageHeader } from '../../components/PnePageHeader'
 import { ACTIVE_STATE_CONFIG } from '../../config/stateConfig'
@@ -6,10 +7,14 @@ import { useVocacoesRegiao } from '../../hooks/useVocacoesRegiao'
 import type {
   VocacoesAssociation,
   VocacoesDocument,
+  VocacoesMunicipalLayer,
   VocacoesScenario,
+  VocacoesScenarioBlock,
   VocacoesScenarios,
   VocacoesSeries,
   VocacoesSeriesReference,
+  VocacoesSynthesis,
+  VocacoesSynthesisItem,
   VocacoesTemporalPair,
   VocacoesWindow,
 } from './vocacoesRegiaoTypes'
@@ -80,7 +85,7 @@ function pointsInWindow(serie: VocacoesSeries, window: VocacoesWindow) {
 
 /*
  * Rótulo curto da classe de evidência, para a etiqueta. A frase inteira fica no
- * detalhe da série: a etiqueta avisa, a frase explica.
+ * detalhe da série: a etiqueta avisa, a frase descreve.
  */
 const EVIDENCE_BADGES: Readonly<Record<VocacoesSeries['evidenceClass'], string>> = Object.freeze({
   observed: 'observado',
@@ -106,14 +111,22 @@ function EvidenceBadge({ evidenceClass }: { evidenceClass: VocacoesSeries['evide
  * com menos de três pontos não desenham nada — e dizem que não desenham, em vez
  * de mostrar uma linha reta que sugere estabilidade inexistente.
  */
-function SeriesSparkline({ serie }: { serie: VocacoesSeries }) {
+function SeriesSparkline({
+  serie,
+  points = serie.points,
+  compact = false,
+}: {
+  serie: VocacoesSeries
+  points?: VocacoesSeries['points']
+  compact?: boolean
+}) {
   const model = useMemo(
-    () => buildSparklineModel(serie.points.map((point) => ({ ano: point.period, valor: point.value }))),
-    [serie.points],
+    () => buildSparklineModel(points.map((point) => ({ ano: point.period, valor: point.value }))),
+    [points],
   )
   if (!model) return <span className="vocacoes-spark vocacoes-spark--empty">série curta demais para uma linha</span>
   return (
-    <span aria-hidden="true" className="vocacoes-spark">
+    <span aria-hidden="true" className={`vocacoes-spark${compact ? ' vocacoes-spark--compact' : ''}`}>
       <svg viewBox="0 0 320 56">
         <path className="vocacoes-spark__area" d={model.areaPath} />
         <path className="vocacoes-spark__line" d={model.linePath} />
@@ -138,14 +151,6 @@ function seriesEdges(serie: VocacoesSeries) {
 function SeriesCard({ serie }: { serie: VocacoesSeries }) {
   const edges = seriesEdges(serie)
   const preliminary = serie.points.filter((point) => point.evidenceClass === 'preliminary')
-  /*
-   * O detalhe so e montado quando aberto. `<details>` fechado esconde o
-   * conteudo do olho, mas nao do DOM: com setenta e uma series na pagina, a
-   * tabela de pontos de todas elas somava dezenas de milhares de linhas e
-   * travava o renderizador. Montar sob demanda e o que torna o Bloco 1
-   * navegavel — e nada se perde, porque `<details>` fechado ja era invisivel.
-   */
-  const [detailOpen, setDetailOpen] = useState(false)
 
   return (
     <article className="vocacoes-series">
@@ -177,12 +182,8 @@ function SeriesCard({ serie }: { serie: VocacoesSeries }) {
         </p>
       )}
 
-      <details
-        className="vocacoes-series__detail"
-        onToggle={(event) => setDetailOpen(event.currentTarget.open)}
-      >
+      <details className="vocacoes-series__detail">
         <summary>Como esta série foi construída</summary>
-        {detailOpen && (
         <>
         <dl className="vocacoes-meta">
           <div>
@@ -248,7 +249,6 @@ function SeriesCard({ serie }: { serie: VocacoesSeries }) {
           </table>
         </div>
         </>
-        )}
       </details>
     </article>
   )
@@ -282,10 +282,11 @@ function SupportingSeries({
     <div className="vocacoes-support">
       <p className="vocacoes-support__role">{role}</p>
       <p className="vocacoes-support__label">{serie.label}</p>
+      <SeriesSparkline compact points={inWindow} serie={serie} />
       {first === undefined || last === undefined ? (
-        <p className="vocacoes-support__value">Sem valor fechado dentro da janela.</p>
+        <p className="vocacoes-chip vocacoes-chip--value">Sem valor fechado dentro da janela.</p>
       ) : (
-        <p className="vocacoes-support__value">
+        <p className="vocacoes-chip vocacoes-chip--value">
           {`${formatValue(first.value)} (${formatPeriod(first.period, serie.periodGranularity)})`}
           {' → '}
           {`${formatValue(last.value)} (${formatPeriod(last.period, serie.periodGranularity)})`}
@@ -302,18 +303,105 @@ function SupportingSeries({
 
 function ProhibitedClaim({ claim }: { claim: string }) {
   return (
-    <p className="vocacoes-prohibited">
-      <span className="vocacoes-prohibited__mark">O que não se conclui</span>
-      {claim}
+    <details className="vocacoes-prohibited">
+      <summary className="vocacoes-prohibited__mark">O que não se conclui</summary>
+      <p>{claim}</p>
+    </details>
+  )
+}
+
+const OBSERVED_SYNTHESIS_LABEL = 'Do observado'
+const CROSS_SCENARIO_SYNTHESIS_LABELS = new Set([
+  'Sustentado nos quatro cenários',
+  'Frentes da agenda mobilizadas',
+])
+
+function associationSynthesisBasisLabel(association: VocacoesAssociation): string {
+  return [
+    association.educationOutcome.label,
+    ...association.territorialFactors.map((factor) => factor.label),
+  ].join(' · ')
+}
+
+function ConclusionVerdict({ item }: { item: VocacoesSynthesisItem }) {
+  return (
+    <p className="vocacoes-allowed vocacoes-conclusion-verdict">
+      <span className="vocacoes-allowed__mark vocacoes-conclusion-verdict__label">
+        Conclusão observada
+      </span>
+      {item.statement}
     </p>
   )
 }
 
+function SynthesisPanel({ synthesis }: { synthesis: VocacoesSynthesis }) {
+  const groups = synthesis.items.reduce<Map<string, VocacoesSynthesisItem[]>>((result, item) => {
+    const entries = result.get(item.kindLabel) ?? []
+    entries.push(item)
+    result.set(item.kindLabel, entries)
+    return result
+  }, new Map())
+
+  return (
+    <section aria-labelledby="vocacoes-conclusoes" className="vocacoes-panel vocacoes-synthesis">
+      <div className="vocacoes-panel__head">
+        <h2 className="vocacoes-panel__title" id="vocacoes-conclusoes">{synthesis.label}</h2>
+        <p className="vocacoes-panel__text">{synthesis.description}</p>
+      </div>
+
+      <div className="vocacoes-card-stack">
+        {[...groups].map(([kindLabel, items]) => (
+          <section key={kindLabel}>
+            <h3 className="vocacoes-subtitle">{kindLabel}</h3>
+            <ul className="vocacoes-list vocacoes-synthesis__items">
+              {items.map((item) => (
+                <li key={`${item.kindLabel}:${item.basisLabel ?? item.statement}`}>
+                  <p>{item.statement}</p>
+                  {item.basisLabel === undefined ? null : (
+                    <span className="vocacoes-synthesis__basis">{item.basisLabel}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+
+      {synthesis.absentKinds.length === 0 ? null : (
+        <div className="vocacoes-neutrality vocacoes-synthesis__absences">
+          {synthesis.absentKinds.map((absence) => (
+            <p key={absence.kindLabel}>
+              <span>{absence.kindLabel}</span>
+              {absence.statement}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <details className="vocacoes-reading-detail vocacoes-synthesis__method">
+        <summary>Como estas conclusões foram compostas</summary>
+        <p>{synthesis.methodNote}</p>
+      </details>
+    </section>
+  )
+}
+
+function scrollToPageSection(
+  event: ReactMouseEvent<HTMLAnchorElement>,
+  targetId: string,
+) {
+  event.preventDefault()
+  if (typeof document === 'undefined') return
+  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function AssociationCard({
   association,
+  conclusion,
   series,
 }: {
   association: VocacoesAssociation
+  conclusion: VocacoesSynthesisItem
   series: ReadonlyMap<string, VocacoesSeries>
 }) {
   return (
@@ -326,7 +414,7 @@ function AssociationCard({
         <p className="vocacoes-card__period">{association.periodLabel}</p>
       </header>
 
-      <p className="vocacoes-card__statement">{association.observedStatement}</p>
+      <ConclusionVerdict item={conclusion} />
 
       <div className="vocacoes-supports">
         <SupportingSeries
@@ -346,26 +434,35 @@ function AssociationCard({
         ))}
       </div>
 
+      <details className="vocacoes-reading-detail">
+        <summary>Leitura por extenso</summary>
+        <p className="vocacoes-card__statement">{association.observedStatement}</p>
+      </details>
+
       <p className="vocacoes-allowed">
         <span className="vocacoes-allowed__mark">O que se pode ler</span>
         {association.allowedInterpretation}
       </p>
       <ProhibitedClaim claim={association.prohibitedClaim} />
 
-      <p className="vocacoes-subtitle">Hipóteses a verificar com dado local</p>
-      <ul className="vocacoes-list">
-        {association.hypotheses.map((hypothesis) => (
-          <li key={hypothesis}>{hypothesis}</li>
-        ))}
-      </ul>
+      <details className="vocacoes-reading-detail">
+        <summary>Hipóteses a verificar com dado local</summary>
+        <ul className="vocacoes-list">
+          {association.hypotheses.map((hypothesis) => (
+            <li key={hypothesis}>{hypothesis}</li>
+          ))}
+        </ul>
+      </details>
     </article>
   )
 }
 
 function TemporalPairCard({
+  conclusion,
   pair,
   series,
 }: {
+  conclusion: VocacoesSynthesisItem
   pair: VocacoesTemporalPair
   series: ReadonlyMap<string, VocacoesSeries>
 }) {
@@ -376,12 +473,17 @@ function TemporalPairCard({
         <p className="vocacoes-card__period">{pair.periodLabel}</p>
       </header>
 
-      <p className="vocacoes-card__statement">{pair.observedStatement}</p>
+      <ConclusionVerdict item={conclusion} />
 
       <div className="vocacoes-supports">
         <SupportingSeries reference={pair.seriesA} role="Primeira série" series={series} window={pair.window} />
         <SupportingSeries reference={pair.seriesB} role="Segunda série" series={series} window={pair.window} />
       </div>
+
+      <details className="vocacoes-reading-detail">
+        <summary>Leitura por extenso</summary>
+        <p className="vocacoes-card__statement">{pair.observedStatement}</p>
+      </details>
 
       <ProhibitedClaim claim={pair.prohibitedClaim} />
     </article>
@@ -442,79 +544,305 @@ function ScenarioAnchors({
   )
 }
 
+function ScenarioComparison({ scenarios }: { scenarios: readonly VocacoesScenario[] }) {
+  return (
+    <div aria-label="Comparação dos cenários" className="vocacoes-scenario-ruler">
+      {scenarios.map((scenario) => (
+        <a
+          className="vocacoes-scenario-ruler__item"
+          href={`#vocacoes-cenario-${scenario.scenarioId}`}
+          key={scenario.scenarioId}
+          onClick={(event) => scrollToPageSection(event, `vocacoes-cenario-${scenario.scenarioId}`)}
+        >
+          <span className="vocacoes-scenario__profile">{scenario.profileLabel}</span>
+          <strong className="vocacoes-scenario-ruler__title">{scenario.title}</strong>
+          <span className={`vocacoes-statute vocacoes-statute--${scenario.statute}`}>
+            {scenario.statuteLabel}
+          </span>
+          <span className="vocacoes-scenario-ruler__directions">
+            {scenario.anchors.map((anchor) => (
+              <span className="vocacoes-direction-chip" key={anchor.seriesId}>
+                <span>{anchor.label}</span>
+                <strong>{anchor.directionLabel}</strong>
+              </span>
+            ))}
+          </span>
+        </a>
+      ))}
+    </div>
+  )
+}
+
 function ScenarioCard({
+  defaultOpen,
   scenario,
   series,
 }: {
+  defaultOpen: boolean
   scenario: VocacoesScenario
   series: Map<string, VocacoesSeries>
 }) {
   return (
-    <article className="vocacoes-card vocacoes-scenario">
-      <header className="vocacoes-card__head">
-        <p className="vocacoes-scenario__profile">{scenario.profileLabel}</p>
-        <h3 className="vocacoes-card__title">{scenario.title}</h3>
-        {/*
-          * O estatuto vem antes do texto do cenário, e não depois: quem lê a
-          * narrativa primeiro já a leu como previsão quando chega à ressalva.
-          */}
-        <p className={`vocacoes-statute vocacoes-statute--${scenario.statute}`}>
+    <details
+      className="vocacoes-card vocacoes-scenario"
+      id={`vocacoes-cenario-${scenario.scenarioId}`}
+      open={defaultOpen}
+    >
+      <summary className="vocacoes-scenario__summary">
+        <span className="vocacoes-scenario__profile">{scenario.profileLabel}</span>
+        <span className="vocacoes-card__title">{scenario.title}</span>
+        <span className={`vocacoes-statute vocacoes-statute--${scenario.statute}`}>
           {scenario.statuteLabel}
+        </span>
+      </summary>
+
+      <div className="vocacoes-scenario__body">
+        <p className="vocacoes-card__statement vocacoes-scenario__mechanism">
+          {scenario.centralMechanism}
         </p>
-      </header>
 
-      <p className="vocacoes-card__statement">{scenario.centralMechanism}</p>
+        <ScenarioAnchors scenario={scenario} series={series} />
 
-      <ScenarioAnchors scenario={scenario} series={series} />
+        <dl className="vocacoes-meta vocacoes-scenario__horizon">
+          <div>
+            <dt>Como fica no horizonte</dt>
+            <dd>{scenario.stateAtHorizonStatement}</dd>
+          </div>
+        </dl>
 
-      <dl className="vocacoes-meta vocacoes-scenario__arc">
-        <div>
-          <dt>De onde parte</dt>
-          <dd>{scenario.startingPointStatement}</dd>
+        <details className="vocacoes-reading-detail">
+          <summary>Leitura por extenso</summary>
+          <dl className="vocacoes-meta vocacoes-scenario__arc">
+            <div>
+              <dt>De onde parte</dt>
+              <dd>{scenario.startingPointStatement}</dd>
+            </div>
+            <div>
+              <dt>O que acontece com as séries</dt>
+              <dd>{scenario.trajectoryStatement}</dd>
+            </div>
+          </dl>
+        </details>
+
+        <div className="vocacoes-agenda__head">
+          <p className="vocacoes-subtitle">O que isso pede da educação da região</p>
+          <p className="vocacoes-agenda__label">Temas da agenda do PNE</p>
         </div>
-        <div>
-          <dt>O que acontece com as séries</dt>
-          <dd>{scenario.trajectoryStatement}</dd>
+        <ul className="vocacoes-list vocacoes-agenda">
+          {scenario.educationImplications.map((implication) => {
+            const themes = scenario.agendaThemes.filter(
+              (theme) => theme.statement === implication.statement,
+            )
+            return (
+              <li key={implication.stageLabel}>
+                <strong>{implication.stageLabel}.</strong> {implication.statement}
+                {themes.length > 0 ? (
+                  <span className="vocacoes-chip-row">
+                    {themes.map((theme) => (
+                      <span className="vocacoes-chip vocacoes-chip--theme" key={theme.theme}>
+                        {theme.themeLabel}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+
+        <div className="vocacoes-scenario__secondary">
+          <details className="vocacoes-reading-detail">
+            <summary>O que enfraqueceria este cenário</summary>
+            <ul className="vocacoes-list">
+              {scenario.contraryEvidence.map((evidence) => (
+                <li key={evidence}>{evidence}</li>
+              ))}
+            </ul>
+          </details>
+
+          <details className="vocacoes-reading-detail">
+            <summary>O que este cenário não alcança</summary>
+            <ul className="vocacoes-list">
+              {scenario.limits.map((limit) => (
+                <li key={limit}>{limit}</li>
+              ))}
+            </ul>
+          </details>
         </div>
-        <div>
-          <dt>Como fica no horizonte</dt>
-          <dd>{scenario.stateAtHorizonStatement}</dd>
+
+        <ProhibitedClaim claim={scenario.prohibitedClaim} />
+      </div>
+    </details>
+  )
+}
+
+/*
+ * Camada municipal (sucessora da D11): a leitura de cada município dentro do
+ * cenário regional. A página não calcula nada aqui também — a composição e a
+ * exposição já vêm compostas e conferidas. O que ela faz é deixar o leitor
+ * escolher um município e ler a posição observada dele, ao lado da declaração do
+ * que **não** se decompõe ao município nesta fonte. Nenhum ranking: os
+ * municípios aparecem em ordem alfabética, e a leitura de cada um é ante a
+ * mediana da região, nunca ante os outros.
+ */
+function MunicipalLayerPanel({
+  layer,
+  block,
+}: {
+  layer: VocacoesMunicipalLayer
+  block: VocacoesScenarioBlock
+}) {
+  const municipalities = useMemo(
+    () => [...layer.municipalities].sort((left, right) => left.name.localeCompare(right.name, 'pt-BR')),
+    [layer.municipalities],
+  )
+  const titleByOrder = useMemo(
+    () => new Map(block.items.map((scenario) => [scenario.order, scenario.title])),
+    [block.items],
+  )
+  const dimensionByLabel = useMemo(
+    () => new Map(layer.dimensions.map((dimension) => [dimension.label, dimension])),
+    [layer.dimensions],
+  )
+  const [selectedId, setSelectedId] = useState(municipalities[0]?.municipalityId ?? '')
+  const selected = municipalities.find((item) => item.municipalityId === selectedId)
+    ?? municipalities[0]
+  const methodologicalFrame = municipalities[0]?.scenarioExposure[0]?.allowedInterpretation
+
+  return (
+    <section
+      aria-labelledby="vocacoes-municipal-heading"
+      className="vocacoes-municipal"
+      id="vocacoes-municipios"
+    >
+      <h3 className="vocacoes-subtitle" id="vocacoes-municipal-heading">{layer.label}</h3>
+      <p className="vocacoes-panel__text">{layer.description}</p>
+      <p className="vocacoes-neutrality">{layer.methodNote}</p>
+      {methodologicalFrame === undefined ? null : (
+        <p className="vocacoes-neutrality vocacoes-municipal__frame">{methodologicalFrame}</p>
+      )}
+
+      <details className="vocacoes-municipal__method">
+        <summary>Quais séries a camada usa, e quais não se decompõem ao município</summary>
+        <div className="vocacoes-table-scroll">
+          <table className="vocacoes-table">
+            <caption className="u-sr-only">Séries municipais desta camada</caption>
+            <thead>
+              <tr>
+                <th scope="col">Série</th>
+                <th scope="col">Natureza</th>
+                <th scope="col">Fonte</th>
+                <th scope="col">Período</th>
+              </tr>
+            </thead>
+            <tbody>
+              {layer.dimensions.map((dimension) => (
+                <tr key={dimension.label}>
+                  <th scope="row">{dimension.label}</th>
+                  <td>
+                    {dimension.kindLabel}
+                    {dimension.universeLabel !== null ? (
+                      <span className="vocacoes-municipal__universe">
+                        {dimension.universeLabel}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td>{dimension.sourceLabel}</td>
+                  <td>{dimension.periodLabel}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </dl>
+        <p className="vocacoes-subtitle">O que não se decompõe ao município nesta fonte</p>
+        <ul className="vocacoes-list">
+          {layer.undecomposableDomains.map((domain) => (
+            <li key={domain.label}>
+              <strong>{domain.label}.</strong> {domain.reason} Fonte consultada: {domain.consultedSource}.
+            </li>
+          ))}
+        </ul>
+      </details>
 
-      <p className="vocacoes-subtitle">O que isso pede da educação da região</p>
-      <ul className="vocacoes-list">
-        {scenario.educationImplications.map((implication) => (
-          <li key={implication.stageLabel}>
-            <strong>{implication.stageLabel}.</strong> {implication.statement}
-          </li>
-        ))}
-      </ul>
+      <div className="vocacoes-municipal__picker">
+        <label htmlFor="vocacoes-municipal-select">Escolha um município da região</label>
+        <select
+          className="vocacoes-municipal__select"
+          id="vocacoes-municipal-select"
+          onChange={(event) => setSelectedId(event.target.value)}
+          value={selected?.municipalityId ?? ''}
+        >
+          {municipalities.map((municipality) => (
+            <option key={municipality.municipalityId} value={municipality.municipalityId}>
+              {municipality.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <p className="vocacoes-subtitle">O que enfraqueceria este cenário</p>
-      <ul className="vocacoes-list">
-        {scenario.contraryEvidence.map((evidence) => (
-          <li key={evidence}>{evidence}</li>
-        ))}
-      </ul>
+      {selected !== undefined ? (
+        <article className="vocacoes-card vocacoes-municipal__card">
+          <header className="vocacoes-card__head">
+            <h4 className="vocacoes-card__title">{selected.name}</h4>
+          </header>
 
-      <p className="vocacoes-subtitle">O que este cenário não alcança</p>
-      <ul className="vocacoes-list">
-        {scenario.limits.map((limit) => (
-          <li key={limit}>{limit}</li>
-        ))}
-      </ul>
+          <div className="vocacoes-table-scroll vocacoes-municipal__composition">
+            <table className="vocacoes-table">
+              <caption>Composição observada na região</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Dimensão</th>
+                  <th scope="col">Composição</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selected.composition.map((line) => {
+                  const dimension = dimensionByLabel.get(line.dimensionLabel)
+                  return (
+                    <tr key={line.dimensionLabel}>
+                      <th scope="row">
+                        {line.dimensionLabel}
+                        {dimension?.universeLabel === null || dimension?.universeLabel === undefined
+                          ? null
+                          : (
+                            <span className="vocacoes-municipal__universe">
+                              {dimension.universeLabel}
+                            </span>
+                          )}
+                      </th>
+                      <td>{line.statement}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
-      <ProhibitedClaim claim={scenario.prohibitedClaim} />
-    </article>
+          <p className="vocacoes-subtitle">Como o município se liga a cada cenário</p>
+          <div className="vocacoes-municipal__exposures">
+            {selected.scenarioExposure.map((exposure) => (
+              <details className="vocacoes-municipal__exposure" key={exposure.order}>
+                <summary>
+                  {titleByOrder.get(exposure.order) ?? `Cenário ${exposure.order}`}
+                </summary>
+                <p className="vocacoes-panel__text">{exposure.exposureStatement}</p>
+                <ProhibitedClaim claim={exposure.prohibitedClaim} />
+              </details>
+            ))}
+          </div>
+        </article>
+      ) : null}
+    </section>
   )
 }
 
 function ScenariosPanel({
+  conclusions,
   scenarios,
   series,
   regionName,
 }: {
+  conclusions: readonly VocacoesSynthesisItem[]
   scenarios: VocacoesScenarios
   series: Map<string, VocacoesSeries>
   regionName: string
@@ -541,6 +869,27 @@ function ScenariosPanel({
           <p className="vocacoes-neutrality vocacoes-scenarios__statute-note">
             {scenarios.statuteReadingNote}
           </p>
+
+          <p className="vocacoes-panel__text">{block.statuteNote}</p>
+
+          <section
+            aria-labelledby="vocacoes-cenarios-conclusoes"
+            className="vocacoes-scenarios__conclusions"
+          >
+            <h3 className="vocacoes-subtitle" id="vocacoes-cenarios-conclusoes">
+              O que vale em qualquer cenário
+            </h3>
+            <ul className="vocacoes-list vocacoes-synthesis__items">
+              {conclusions.map((item) => (
+                <li key={`${item.kindLabel}:${item.statement}`}>
+                  <span className="vocacoes-synthesis__basis">{item.kindLabel}</span>
+                  <p>{item.statement}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <ScenarioComparison scenarios={block.items} />
 
           <dl className="vocacoes-meta">
             <div>
@@ -569,15 +918,20 @@ function ScenariosPanel({
             </div>
           </dl>
 
-          <p className="vocacoes-panel__text">{block.statuteNote}</p>
-
           <div className="vocacoes-card-stack">
-            {block.items.map((scenario) => (
-              <ScenarioCard key={scenario.scenarioId} scenario={scenario} series={series} />
+            {block.items.map((scenario, index) => (
+              <ScenarioCard
+                defaultOpen={index === 0}
+                key={scenario.scenarioId}
+                scenario={scenario}
+                series={series}
+              />
             ))}
           </div>
 
-          <div className="vocacoes-scenarios__closing">
+          <details className="vocacoes-scenarios__closing">
+            <summary>Critérios e condições do cenário normativo</summary>
+            <div className="vocacoes-scenarios__closing-body">
             <p className="vocacoes-subtitle">O que vale em qualquer um dos quatro</p>
             <ul className="vocacoes-list">
               {block.robustImplications.map((implication) => (
@@ -627,7 +981,10 @@ function ScenariosPanel({
 
             <p className="vocacoes-panel__text">{block.conditionalImplication}</p>
             <ProhibitedClaim claim={block.prohibitedClaim} />
-          </div>
+            </div>
+          </details>
+
+          <MunicipalLayerPanel layer={block.municipalLayer} block={block} />
         </>
       )}
     </section>
@@ -637,8 +994,39 @@ function ScenariosPanel({
 function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
   const [query, setQuery] = useState('')
   const normalized = query.trim().toLocaleLowerCase('pt-BR')
-  const visible = normalized === ''
-    ? document.territoryPortrait.series
+  const seriesInUseIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const association of document.associations.items) {
+      ids.add(association.educationOutcome.seriesId)
+      for (const factor of association.territorialFactors) ids.add(factor.seriesId)
+    }
+    for (const pair of document.temporalPairs.items) {
+      ids.add(pair.seriesA.seriesId)
+      ids.add(pair.seriesB.seriesId)
+    }
+    if (document.scenarios.block !== null) {
+      for (const scenario of document.scenarios.block.items) {
+        for (const anchor of scenario.anchors) ids.add(anchor.seriesId)
+      }
+    }
+    return ids
+  }, [document.associations.items, document.scenarios.block, document.temporalPairs.items])
+  const seriesInUse = useMemo(
+    () => document.territoryPortrait.series.filter((serie) => seriesInUseIds.has(serie.seriesId)),
+    [document.territoryPortrait.series, seriesInUseIds],
+  )
+  const remainingBySource = useMemo(() => {
+    const groups = new Map<string, VocacoesSeries[]>()
+    for (const serie of document.territoryPortrait.series) {
+      if (seriesInUseIds.has(serie.seriesId)) continue
+      const group = groups.get(serie.sourceLabel)
+      if (group === undefined) groups.set(serie.sourceLabel, [serie])
+      else group.push(serie)
+    }
+    return [...groups.entries()]
+  }, [document.territoryPortrait.series, seriesInUseIds])
+  const filtered = normalized === ''
+    ? []
     : document.territoryPortrait.series.filter((serie) =>
       `${serie.label} ${serie.sourceLabel} ${serie.unitLabel}`
         .toLocaleLowerCase('pt-BR')
@@ -664,21 +1052,83 @@ function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
         />
       </label>
       <p className="vocacoes-filter__count">
-        {visible.length === document.territoryPortrait.series.length
-          ? `${document.territoryPortrait.series.length} séries`
-          : `${visible.length} de ${document.territoryPortrait.series.length} séries`}
+        {normalized === ''
+          ? `${seriesInUse.length} séries em uso · ${document.territoryPortrait.series.length} séries no território`
+          : `${filtered.length} de ${document.territoryPortrait.series.length} séries`}
       </p>
 
-      {visible.length === 0 ? (
+      {normalized !== '' && filtered.length === 0 ? (
         <p className="vocacoes-panel__text">Nenhuma série corresponde ao filtro.</p>
-      ) : (
+      ) : normalized !== '' ? (
         <div className="vocacoes-series-grid">
-          {visible.map((serie) => (
+          {filtered.map((serie) => (
             <SeriesCard key={serie.seriesId} serie={serie} />
           ))}
         </div>
+      ) : (
+        <>
+          <div className="vocacoes-series-view__head">
+            <h3 className="vocacoes-subtitle">Séries em uso nas leituras desta página</h3>
+            <span className="vocacoes-chip">{seriesInUse.length}</span>
+          </div>
+          <div className="vocacoes-series-grid">
+            {seriesInUse.map((serie) => (
+              <SeriesCard key={serie.seriesId} serie={serie} />
+            ))}
+          </div>
+
+          <details className="vocacoes-all-series">
+            <summary>
+              <span>{`Todas as séries do território (${document.territoryPortrait.series.length})`}</span>
+              <span className="vocacoes-chip">{`+${document.territoryPortrait.series.length - seriesInUse.length}`}</span>
+            </summary>
+            <div className="vocacoes-series-sources">
+              {remainingBySource.map(([sourceLabel, series]) => (
+                <section className="vocacoes-series-source" key={sourceLabel}>
+                  <div className="vocacoes-series-source__head">
+                    <h3>{sourceLabel}</h3>
+                    <span className="vocacoes-chip">{series.length}</span>
+                  </div>
+                  <div className="vocacoes-series-grid">
+                    {series.map((serie) => (
+                      <SeriesCard key={serie.seriesId} serie={serie} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </details>
+        </>
       )}
     </section>
+  )
+}
+
+function PageSectionNav({ hasMunicipalLayer }: { hasMunicipalLayer: boolean }) {
+  const items = [
+    { id: 'vocacoes-conclusoes', label: 'Conclusões' },
+    { id: 'vocacoes-retrato', label: 'Retrato' },
+    { id: 'vocacoes-associacoes', label: 'Lado a lado' },
+    { id: 'vocacoes-pares', label: 'Simultâneas' },
+    { id: 'vocacoes-cenarios', label: 'Cenários' },
+    ...(hasMunicipalLayer ? [{ id: 'vocacoes-municipios', label: 'Municípios' }] : []),
+    { id: 'vocacoes-fontes', label: 'Fontes' },
+  ]
+
+  return (
+    <nav aria-label="Seções de Vocações da Região" className="vocacoes-section-nav">
+      <div className="vocacoes-section-nav__track">
+        {items.map((item) => (
+          <a
+            href={`#${item.id}`}
+            key={item.id}
+            onClick={(event) => scrollToPageSection(event, item.id)}
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </nav>
   )
 }
 
@@ -691,6 +1141,19 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
   const seriesById = useMemo(
     () => new Map(document.territoryPortrait.series.map((serie) => [serie.seriesId, serie])),
     [document.territoryPortrait.series],
+  )
+  const observedConclusionByBasis = useMemo(
+    () => new Map(
+      document.synthesis.items
+        .filter((item) => item.kindLabel === OBSERVED_SYNTHESIS_LABEL)
+        .map((item) => [item.basisLabel, item]),
+    ),
+    [document.synthesis.items],
+  )
+  const crossScenarioConclusions = useMemo(
+    () => document.synthesis.items.filter((item) =>
+      CROSS_SCENARIO_SYNTHESIS_LABELS.has(item.kindLabel)),
+    [document.synthesis.items],
   )
 
   return (
@@ -706,6 +1169,8 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
         variant="editorial"
       />
 
+      <PageSectionNav hasMunicipalLayer={document.scenarios.block !== null} />
+
       <p className="vocacoes-neutrality">{document.page.neutralityNote}</p>
 
       <section aria-labelledby="vocacoes-como-ler" className="vocacoes-panel">
@@ -720,6 +1185,8 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
         </ul>
       </section>
 
+      <SynthesisPanel synthesis={document.synthesis} />
+
       <TerritoryPortrait document={document} />
 
       <section aria-labelledby="vocacoes-associacoes" className="vocacoes-panel">
@@ -731,6 +1198,9 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
           {document.associations.items.map((association) => (
             <AssociationCard
               association={association}
+              conclusion={observedConclusionByBasis.get(
+                associationSynthesisBasisLabel(association),
+              )!}
               key={association.associationId}
               series={seriesById}
             />
@@ -745,12 +1215,18 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
         </div>
         <div className="vocacoes-card-stack">
           {document.temporalPairs.items.map((pair) => (
-            <TemporalPairCard key={pair.pairId} pair={pair} series={seriesById} />
+            <TemporalPairCard
+              conclusion={observedConclusionByBasis.get(pair.label)!}
+              key={pair.pairId}
+              pair={pair}
+              series={seriesById}
+            />
           ))}
         </div>
       </section>
 
       <ScenariosPanel
+        conclusions={crossScenarioConclusions}
         regionName={document.region.name}
         scenarios={document.scenarios}
         series={seriesById}

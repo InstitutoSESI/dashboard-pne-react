@@ -1,10 +1,10 @@
 /*
- * Vocações da Região — Fase A.
+ * Vocações da Região — leitura curada e comparativa.
  *
  * A página tem duas naturezas e a folha respeita as duas. O Bloco 1 é um
- * catálogo: setenta e uma séries que o leitor varre com o olho, em cartões
- * pequenos e regulares. Os Blocos 2 e 3 são leitura: poucos cartões largos, com
- * prosa, os dados que sustentam a leitura e as duas caixas de interpretação.
+ * catálogo curado: as séries usadas nas leituras aparecem primeiro e o acervo
+ * completo permanece no documento, agrupado por fonte. Os demais blocos usam
+ * gráficos compactos e detalhes progressivos para reduzir a rolagem.
  *
  * A superfície é a mesma das outras páginas — mesma borda, mesmo raio, mesma
  * sombra — porque a região não é outro produto.
@@ -21,14 +21,14 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-5);
+  padding: var(--space-4);
 }
 
 .vocacoes-panel__head {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .vocacoes-panel__title {
@@ -78,6 +78,40 @@
   margin: 0;
   max-width: 68ch;
   padding-left: var(--space-4);
+}
+
+/* Camada de conclusões: o texto do veredito pesa mais que a moldura. */
+.vocacoes-synthesis__items {
+  list-style: none;
+  max-width: none;
+  padding-left: 0;
+}
+
+.vocacoes-synthesis__items li {
+  background: var(--surface-muted, transparent);
+  border-left: 2px solid var(--border-strong, var(--border-card));
+  padding: var(--space-2) var(--space-3);
+}
+
+.vocacoes-synthesis__items p {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+.vocacoes-synthesis__basis {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+}
+
+.vocacoes-synthesis__absences p {
+  font-size: var(--type-micro-size);
+  margin: 0;
+}
+
+.vocacoes-synthesis__absences span {
+  font-weight: var(--font-weight-semibold);
+  margin-right: var(--space-2);
 }
 
 /* ---------------------------------------------------------------- *
@@ -516,4 +550,683 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Temas da agenda do PNE (Rodada 4 do V2) — a ponte Vocações → PNE no cartão do
+ * cenário. Herda o estilo da lista; o marcador realça que são temas de meta. */
+.vocacoes-agenda li strong {
+  color: var(--text-strong);
+}
+
+/* Camada municipal (Rodada 5 do V2, sucessora da D11) — a leitura de cada
+ * município dentro do cenário regional, aberta por um seletor. Herda o cartão e
+ * a lista do resto do painel; o que é próprio é o seletor e o espaçamento das
+ * exposições por cenário. */
+.vocacoes-municipal {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-card);
+}
+
+.vocacoes-municipal__method {
+  margin: var(--space-4) 0;
+}
+
+.vocacoes-municipal__method summary {
+  cursor: pointer;
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.vocacoes-municipal__universe {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.vocacoes-municipal__picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-4) 0;
+}
+
+.vocacoes-municipal__picker label {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium);
+}
+
+.vocacoes-municipal__select {
+  max-width: 32rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--text-body);
+}
+
+.vocacoes-municipal__card {
+  margin-top: var(--space-3);
+}
+
+.vocacoes-municipal__exposure {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-card);
+}
+
+.vocacoes-municipal__exposure:first-child {
+  border-top: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Redesign de apresentação — navegação, densidade e leitura progressiva.
+ * ------------------------------------------------------------------ */
+
+.vocacoes-page {
+  --vocacoes-sticky-height: 3.25rem;
+}
+
+.vocacoes-section-nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.vocacoes-section-nav__track {
+  align-items: center;
+  display: flex;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow-x: auto;
+  padding: var(--space-1) var(--space-2);
+  scrollbar-width: thin;
+}
+
+.vocacoes-section-nav a {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted);
+  flex: none;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2);
+  text-decoration: none;
+}
+
+.vocacoes-section-nav a:hover {
+  background: var(--surface-muted, transparent);
+  color: var(--text-strong);
+}
+
+.vocacoes-section-nav a:focus-visible {
+  border-color: var(--border-strong, var(--border-card));
+  color: var(--text-strong);
+  outline: 2px solid transparent;
+}
+
+#vocacoes-conclusoes,
+#vocacoes-retrato,
+#vocacoes-associacoes,
+#vocacoes-pares,
+#vocacoes-cenarios,
+#vocacoes-municipios,
+#vocacoes-fontes,
+.vocacoes-scenario {
+  scroll-margin-top: calc(var(--vocacoes-sticky-height) + var(--space-3));
+}
+
+.vocacoes-panel {
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.vocacoes-panel__head,
+.vocacoes-card__head {
+  gap: var(--space-1);
+}
+
+.vocacoes-list {
+  gap: var(--space-1);
+}
+
+.vocacoes-neutrality {
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Retrato curado e acervo completo agrupado por fonte. */
+.vocacoes-series-grid {
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+}
+
+.vocacoes-series {
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.vocacoes-spark svg {
+  height: 2.25rem;
+}
+
+.vocacoes-spark--compact svg {
+  height: 2rem;
+}
+
+.vocacoes-series__detail {
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+
+.vocacoes-series-view__head,
+.vocacoes-series-source__head {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: space-between;
+}
+
+.vocacoes-all-series {
+  border-top: 1px solid var(--border-card);
+  padding-top: var(--space-2);
+}
+
+.vocacoes-all-series > summary {
+  align-items: center;
+  color: var(--text-strong);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2);
+  justify-content: space-between;
+  list-style: none;
+  padding: var(--space-2) 0;
+}
+
+.vocacoes-all-series > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vocacoes-all-series > summary::after {
+  content: "+";
+  margin-left: auto;
+}
+
+.vocacoes-all-series[open] > summary::after {
+  content: "−";
+}
+
+.vocacoes-series-sources {
+  display: grid;
+  gap: var(--space-5);
+  padding-top: var(--space-3);
+}
+
+.vocacoes-series-source {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.vocacoes-series-source__head {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: var(--space-1);
+}
+
+.vocacoes-series-source__head h3 {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Sparklines e valores compactos nos blocos lado a lado. */
+.vocacoes-card-stack {
+  gap: var(--space-3);
+}
+
+.vocacoes-card {
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.vocacoes-conclusion-verdict {
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  max-width: 78ch;
+}
+
+.vocacoes-supports {
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+}
+
+.vocacoes-support {
+  background: var(--surface-muted, transparent);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  gap: var(--space-1);
+  padding: var(--space-2);
+}
+
+.vocacoes-support__value {
+  font-size: var(--type-micro-size);
+}
+
+.vocacoes-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.vocacoes-chip {
+  background: var(--surface-muted, transparent);
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: var(--type-micro-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  padding: 0.1rem var(--space-2);
+  width: fit-content;
+}
+
+.vocacoes-chip--value {
+  color: var(--text-strong);
+}
+
+.vocacoes-chip--theme {
+  white-space: normal;
+}
+
+/* Um único padrão de expansão para prosa longa e proibições. */
+.vocacoes-reading-detail,
+.vocacoes-prohibited {
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+  max-width: 72ch;
+  padding: 0;
+}
+
+.vocacoes-reading-detail {
+  border: 1px solid var(--border-card);
+}
+
+.vocacoes-prohibited {
+  background: transparent;
+  border: 1px dashed var(--border-strong, var(--border-card));
+  display: block;
+}
+
+.vocacoes-reading-detail > summary,
+.vocacoes-prohibited > summary {
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  gap: var(--space-2);
+  justify-content: space-between;
+  letter-spacing: 0.02em;
+  list-style: none;
+  padding: var(--space-2) var(--space-3);
+}
+
+.vocacoes-reading-detail > summary::-webkit-details-marker,
+.vocacoes-prohibited > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vocacoes-reading-detail > summary::after,
+.vocacoes-prohibited > summary::after {
+  content: "+";
+  flex: none;
+}
+
+.vocacoes-reading-detail[open] > summary::after,
+.vocacoes-prohibited[open] > summary::after {
+  content: "−";
+}
+
+.vocacoes-reading-detail > :not(summary),
+.vocacoes-prohibited > :not(summary) {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.vocacoes-prohibited__mark {
+  color: var(--text-strong);
+  text-transform: uppercase;
+}
+
+.vocacoes-allowed {
+  font-size: var(--type-support-size);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Régua comparativa e cenários colapsáveis. */
+.vocacoes-scenario-ruler {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(4, minmax(13rem, 1fr));
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.vocacoes-scenario-ruler__item {
+  background: var(--surface-muted, transparent);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  color: inherit;
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  text-decoration: none;
+}
+
+.vocacoes-scenario-ruler__item:hover,
+.vocacoes-scenario-ruler__item:focus-visible {
+  border-color: var(--border-strong, var(--border-card));
+}
+
+.vocacoes-scenario-ruler__item:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.vocacoes-scenario-ruler__title {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  line-height: 1.3;
+}
+
+.vocacoes-scenario-ruler__item .vocacoes-statute {
+  font-size: var(--type-micro-size);
+  line-height: 1.35;
+  padding-left: var(--space-2);
+}
+
+.vocacoes-scenario-ruler__directions {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.vocacoes-direction-chip {
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  gap: 0.1rem;
+  padding-top: var(--space-1);
+}
+
+.vocacoes-direction-chip > span {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  line-height: 1.25;
+}
+
+.vocacoes-direction-chip > strong {
+  color: var(--text-strong);
+  font-size: var(--type-micro-size);
+  line-height: 1.25;
+}
+
+.vocacoes-scenario {
+  display: block;
+  padding: 0;
+}
+
+.vocacoes-scenario__summary {
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-1) var(--space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  list-style: none;
+  padding: var(--space-3);
+}
+
+.vocacoes-scenario__summary::-webkit-details-marker {
+  display: none;
+}
+
+.vocacoes-scenario__summary::after {
+  align-self: center;
+  color: var(--text-muted);
+  content: "+";
+  font-size: var(--type-support-size);
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.vocacoes-scenario[open] > .vocacoes-scenario__summary::after {
+  content: "−";
+}
+
+.vocacoes-scenario__summary .vocacoes-scenario__profile,
+.vocacoes-scenario__summary .vocacoes-card__title {
+  grid-column: 1;
+}
+
+.vocacoes-scenario__summary .vocacoes-statute {
+  grid-column: 1 / -1;
+  margin-top: var(--space-1);
+}
+
+.vocacoes-scenario__body {
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.vocacoes-scenario__mechanism {
+  color: var(--text-strong);
+}
+
+.vocacoes-scenario__horizon {
+  background: var(--surface-muted, transparent);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--space-2) var(--space-3);
+}
+
+.vocacoes-scenario__arc {
+  margin: 0;
+}
+
+.vocacoes-scenario__secondary {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.vocacoes-agenda__head {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  justify-content: space-between;
+}
+
+.vocacoes-agenda__label {
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.vocacoes-agenda li strong {
+  color: var(--text-strong);
+}
+
+.vocacoes-scenarios__conclusions {
+  border-bottom: 1px solid var(--border-card);
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+
+.vocacoes-scenarios__closing {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  display: block;
+  padding: 0;
+}
+
+.vocacoes-scenarios__closing > summary {
+  color: var(--text-strong);
+  cursor: pointer;
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3);
+}
+
+.vocacoes-scenarios__closing-body {
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+/* Camada municipal compacta. */
+.vocacoes-municipal {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+.vocacoes-municipal__method {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+}
+
+.vocacoes-municipal__method summary {
+  font-size: var(--type-support-size);
+}
+
+.vocacoes-municipal__picker {
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.vocacoes-municipal__select:hover,
+.vocacoes-municipal__select:focus-visible {
+  border-color: var(--border-strong, var(--border-card));
+}
+
+.vocacoes-municipal__select:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.vocacoes-municipal__card {
+  margin-top: 0;
+}
+
+.vocacoes-municipal__frame {
+  max-width: none;
+}
+
+.vocacoes-municipal__composition {
+  max-height: none;
+}
+
+.vocacoes-municipal__composition caption {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  padding-bottom: var(--space-2);
+}
+
+.vocacoes-municipal__composition tbody th {
+  min-width: 13rem;
+  white-space: normal;
+}
+
+.vocacoes-municipal__universe {
+  font-size: var(--type-micro-size);
+  font-weight: var(--font-weight-regular, 400);
+  line-height: 1.35;
+}
+
+.vocacoes-municipal__exposures {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vocacoes-municipal__exposure {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  padding: 0;
+}
+
+.vocacoes-municipal__exposure > summary {
+  color: var(--text-strong);
+  cursor: pointer;
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-3);
+}
+
+.vocacoes-municipal__exposure > :not(summary) {
+  margin: 0 var(--space-3) var(--space-3);
+}
+
+.vocacoes-municipal__exposure .vocacoes-prohibited {
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 760px) {
+  .vocacoes-panel {
+    padding: var(--space-3);
+  }
+
+  .vocacoes-scenario-ruler {
+    grid-template-columns: repeat(4, minmax(12rem, 1fr));
+  }
+
+  .vocacoes-scenario__secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .vocacoes-municipal__composition tbody th {
+    min-width: 10rem;
+  }
+}
+
+@media print {
+  .vocacoes-section-nav {
+    display: none;
+  }
+
+  .vocacoes-page details > :not(summary) {
+    display: block !important;
+  }
+
+  .vocacoes-page details > summary::after {
+    display: none;
+  }
+
+  .vocacoes-scenario-ruler {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
 }
