@@ -1,9 +1,9 @@
 {
-  "schemaVersion": "vocacoes-regiao-2.5.0",
+  "schemaVersion": "vocacoes-regiao-2.6.0",
   "generatedAt": "2026-08-26",
-  "generatorVersion": "vocacoes-regiao-generator-v4",
-  "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.2",
-  "sourceMethodologyStatus": "fase_b_com_cenarios",
+  "generatorVersion": "vocacoes-regiao-generator-v5",
+  "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.4",
+  "sourceMethodologyStatus": "fase_b_com_leitura_associativa",
   "publicationScope": "estadual",
   "region": {
     "slug": "central",
@@ -14526,7 +14526,42 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: regiões com resíduo negativo nas coortes jovens tendem a apresentar rede de ensino médio menor no mesmo período.",
           "Hipótese a verificar com dado local: parte do resíduo vem de diferença de cobertura entre os dois censos, e não de deslocamento de pessoas."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-medio",
+              "factorSeriesId": "saldo-migratorio-aparente-da-coorte-de-10-a-14-anos-no-censo-de-2010",
+              "directionConcordance": {
+                "reasonCode": "sem_intervalos_comparaveis"
+              },
+              "comovement": {
+                "reasonCode": "sem_intervalos_comparaveis"
+              },
+              "correlation": {
+                "reasonCode": "janela_curta"
+              }
+            },
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-medio",
+              "factorSeriesId": "saldo-migratorio-aparente-da-coorte-de-15-a-19-anos-no-censo-de-2010",
+              "directionConcordance": {
+                "reasonCode": "sem_intervalos_comparaveis"
+              },
+              "comovement": {
+                "reasonCode": "sem_intervalos_comparaveis"
+              },
+              "correlation": {
+                "reasonCode": "janela_curta"
+              }
+            }
+          ],
+          "stateContrast": {
+            "reasonCode": "contraste_sem_regioes_comparaveis"
+          }
+        }
       },
       {
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
@@ -14556,7 +14591,107 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: a procura por conclusão da educação básica acompanha o grau de instrução exigido nos vínculos formais da região.",
           "Hipótese a verificar com dado local: a oferta de turmas de jovens e adultos depende de decisões de rede, e a matrícula segue a oferta disponível."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "factorSeriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 6,
+                "opposite": 5,
+                "ties": 0,
+                "statement": "Em 6 dos 11 intervalos anuais entre 2014 e 2025, Matrículas na educação de jovens e adultos e Vínculos formais de pessoas com ensino médio completo por cem vínculos formais variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 20797,
+                  "valueEnd": 7032,
+                  "delta": -13765,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 46.25534514355528,
+                  "valueEnd": 48.978589511176416,
+                  "delta": 2.7232443676211346,
+                  "deltaKind": "pontos"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas na educação de jovens e adultos, de 20 797 em 2014 para 7 032 em 2025 (queda de 66,2%); Vínculos formais de pessoas com ensino médio completo por cem vínculos formais, de 46,3 em 2014 para 49,0 em 2025 (alta de 2,7 pontos)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": 0.29,
+                "spearmanDelta": 0.5,
+                "strength": "fraca",
+                "direction": "positiva",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,29 — fraca e positiva."
+              }
+            },
+            {
+              "outcomeSeriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "factorSeriesId": "vinculos-formais-ativos",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 5,
+                "opposite": 6,
+                "ties": 0,
+                "statement": "Em 5 dos 11 intervalos anuais entre 2014 e 2025, Matrículas na educação de jovens e adultos e Vínculos formais ativos variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 20797,
+                  "valueEnd": 7032,
+                  "delta": -13765,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "vinculos-formais-ativos",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 220995,
+                  "valueEnd": 250438,
+                  "delta": 29443,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas na educação de jovens e adultos, de 20 797 em 2014 para 7 032 em 2025 (queda de 66,2%); Vínculos formais ativos, de 220 995 em 2014 para 250 438 em 2025 (alta de 13,3%)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": 0.48,
+                "spearmanDelta": 0.32,
+                "strength": "moderada",
+                "direction": "positiva",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,48 — moderada e positiva."
+              }
+            }
+          ],
+          "stateContrast": {
+            "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+            "statistic": "variacao_percentual",
+            "value": -66.2,
+            "rank": 5,
+            "totalComparable": 10,
+            "sameDirectionCount": 9,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 5ª maior queda acumulada de Matrículas na educação de jovens e adultos nessa janela; 9 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "associationId": "matriculas-no-ensino-fundamental-e-populacao-de-0-a-14-anos",
@@ -14586,7 +14721,107 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: a matrícula do ensino fundamental acompanha o tamanho das coortes em idade escolar.",
           "Hipótese a verificar com dado local: mudanças na rede de oferta e no fluxo escolar movem a matrícula em direção própria ao tamanho da coorte."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-fundamental",
+              "factorSeriesId": "populacao-de-0-a-14-anos",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 10,
+                "opposite": 1,
+                "ties": 0,
+                "statement": "Em 10 dos 11 intervalos anuais entre 2014 e 2025, Matrículas no ensino fundamental e População de 0 a 14 anos variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-no-ensino-fundamental",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 149914,
+                  "valueEnd": 124264,
+                  "delta": -25650,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "populacao-de-0-a-14-anos",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 242089,
+                  "valueEnd": 206237,
+                  "delta": -35852,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas no ensino fundamental, de 149 914 em 2014 para 124 264 em 2025 (queda de 17,1%); População de 0 a 14 anos, de 242 089 em 2014 para 206 237 em 2025 (queda de 14,8%)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": 0.3,
+                "spearmanDelta": 0.27,
+                "strength": "fraca",
+                "direction": "positiva",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,30 — fraca e positiva."
+              }
+            },
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-fundamental",
+              "factorSeriesId": "populacao-estimada",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 10,
+                "opposite": 1,
+                "ties": 0,
+                "statement": "Em 10 dos 11 intervalos anuais entre 2014 e 2025, Matrículas no ensino fundamental e População estimada variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-no-ensino-fundamental",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 149914,
+                  "valueEnd": 124264,
+                  "delta": -25650,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "populacao-estimada",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 1205378,
+                  "valueEnd": 1180644,
+                  "delta": -24734,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas no ensino fundamental, de 149 914 em 2014 para 124 264 em 2025 (queda de 17,1%); População estimada, de 1 205 378 em 2014 para 1 180 644 em 2025 (queda de 2,1%)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": -0.24,
+                "spearmanDelta": -0.06,
+                "strength": "fraca",
+                "direction": "negativa",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,24 — fraca e negativa."
+              }
+            }
+          ],
+          "stateContrast": {
+            "seriesId": "matriculas-no-ensino-fundamental",
+            "statistic": "variacao_percentual",
+            "value": -17.1,
+            "rank": 1,
+            "totalComparable": 10,
+            "sameDirectionCount": 8,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a maior queda acumulada de Matrículas no ensino fundamental nessa janela; 8 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "associationId": "matriculas-no-ensino-fundamental-e-pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
@@ -14616,7 +14851,107 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: a presença de famílias inscritas no cadastro social acompanha a procura pela rede pública de ensino fundamental.",
           "Hipótese a verificar com dado local: mudanças de regra e de campanha de cadastramento movem o número de inscritos sem mudança equivalente no território."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-fundamental",
+              "factorSeriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+              "directionConcordance": {
+                "windowStart": 2015,
+                "windowEnd": 2025,
+                "intervals": 10,
+                "concordant": 5,
+                "opposite": 5,
+                "ties": 0,
+                "statement": "Em 5 dos 10 intervalos anuais entre 2015 e 2025, Matrículas no ensino fundamental e Pessoas inscritas no perfil de baixa renda, posição de dezembro variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-no-ensino-fundamental",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 144421,
+                  "valueEnd": 124264,
+                  "delta": -20157,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 134278,
+                  "valueEnd": 107581,
+                  "delta": -26697,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas no ensino fundamental, de 144 421 em 2015 para 124 264 em 2025 (queda de 14,0%); Pessoas inscritas no perfil de baixa renda, posição de dezembro, de 134 278 em 2015 para 107 581 em 2025 (queda de 19,9%)."
+              },
+              "correlation": {
+                "intervals": 10,
+                "pearsonDelta": 0.15,
+                "spearmanDelta": 0.18,
+                "strength": "fraca",
+                "direction": "positiva",
+                "statement": "Na janela de 2015 a 2025, a correlação entre as variações anuais das duas séries é de 0,15 — fraca e positiva."
+              }
+            },
+            {
+              "outcomeSeriesId": "matriculas-no-ensino-fundamental",
+              "factorSeriesId": "familias-inscritas-no-cadastro-social-posicao-de-dezembro",
+              "directionConcordance": {
+                "windowStart": 2015,
+                "windowEnd": 2025,
+                "intervals": 10,
+                "concordant": 3,
+                "opposite": 7,
+                "ties": 0,
+                "statement": "Em 3 dos 10 intervalos anuais entre 2015 e 2025, Matrículas no ensino fundamental e Famílias inscritas no cadastro social, posição de dezembro variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-no-ensino-fundamental",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 144421,
+                  "valueEnd": 124264,
+                  "delta": -20157,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "familias-inscritas-no-cadastro-social-posicao-de-dezembro",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 159545,
+                  "valueEnd": 202685,
+                  "delta": 43140,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas no ensino fundamental, de 144 421 em 2015 para 124 264 em 2025 (queda de 14,0%); Famílias inscritas no cadastro social, posição de dezembro, de 159 545 em 2015 para 202 685 em 2025 (alta de 27,0%)."
+              },
+              "correlation": {
+                "intervals": 10,
+                "pearsonDelta": -0.06,
+                "spearmanDelta": -0.22,
+                "strength": "fraca",
+                "direction": "negativa",
+                "statement": "Na janela de 2015 a 2025, a correlação entre as variações anuais das duas séries é de -0,06 — fraca e negativa."
+              }
+            }
+          ],
+          "stateContrast": {
+            "seriesId": "matriculas-no-ensino-fundamental",
+            "statistic": "variacao_percentual",
+            "value": -14,
+            "rank": 1,
+            "totalComparable": 10,
+            "sameDirectionCount": 8,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a maior queda acumulada de Matrículas no ensino fundamental nessa janela; 8 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "associationId": "escolas-com-matriculas-na-educacao-basica-e-populacao-de-60-anos-ou-mais",
@@ -14646,7 +14981,107 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: territórios que envelhecem mais convivem com uma rede escolar em contração.",
           "Hipótese a verificar com dado local: a rede escolar responde a decisões administrativas de rede, em ritmo próprio ao envelhecimento."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "escolas-com-matriculas-na-educacao-basica",
+              "factorSeriesId": "populacao-de-60-anos-ou-mais",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 2,
+                "opposite": 7,
+                "ties": 2,
+                "statement": "Em 2 dos 11 intervalos anuais entre 2014 e 2025, Escolas com matrículas na educação básica e População de 60 anos ou mais variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "escolas-com-matriculas-na-educacao-basica",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 1060,
+                  "valueEnd": 1037,
+                  "delta": -23,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "populacao-de-60-anos-ou-mais",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 197766,
+                  "valueEnd": 264489,
+                  "delta": 66723,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Escolas com matrículas na educação básica, de 1 060 em 2014 para 1 037 em 2025 (queda de 2,2%); População de 60 anos ou mais, de 197 766 em 2014 para 264 489 em 2025 (alta de 33,7%)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": -0.54,
+                "spearmanDelta": -0.35,
+                "strength": "moderada",
+                "direction": "negativa",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,54 — moderada e negativa."
+              }
+            },
+            {
+              "outcomeSeriesId": "escolas-com-matriculas-na-educacao-basica",
+              "factorSeriesId": "pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos",
+              "directionConcordance": {
+                "windowStart": 2014,
+                "windowEnd": 2025,
+                "intervals": 11,
+                "concordant": 2,
+                "opposite": 7,
+                "ties": 2,
+                "statement": "Em 2 dos 11 intervalos anuais entre 2014 e 2025, Escolas com matrículas na educação básica e Pessoas de 60 anos ou mais por cem pessoas de 0 a 14 anos variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "escolas-com-matriculas-na-educacao-basica",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 1060,
+                  "valueEnd": 1037,
+                  "delta": -23,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos",
+                  "effStart": 2014,
+                  "effEnd": 2025,
+                  "valueStart": 81.69144405569853,
+                  "valueEnd": 128.24517424128553,
+                  "delta": 46.553730185587,
+                  "deltaKind": "pontos"
+                },
+                "statement": "Movimento acumulado na janela: Escolas com matrículas na educação básica, de 1 060 em 2014 para 1 037 em 2025 (queda de 2,2%); Pessoas de 60 anos ou mais por cem pessoas de 0 a 14 anos, de 81,7 em 2014 para 128,2 em 2025 (alta de 46,6 pontos)."
+              },
+              "correlation": {
+                "intervals": 11,
+                "pearsonDelta": -0.42,
+                "spearmanDelta": -0.33,
+                "strength": "moderada",
+                "direction": "negativa",
+                "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,42 — moderada e negativa."
+              }
+            }
+          ],
+          "stateContrast": {
+            "seriesId": "escolas-com-matriculas-na-educacao-basica",
+            "statistic": "variacao_percentual",
+            "value": -2.2,
+            "rank": 6,
+            "totalComparable": 10,
+            "sameDirectionCount": 6,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 6ª maior queda acumulada de Escolas com matrículas na educação básica nessa janela; 6 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
@@ -14676,7 +15111,107 @@
         "hypotheses": [
           "Hipótese a verificar com dado local: a procura por conclusão da educação básica convive com o universo inscrito no cadastro social.",
           "Hipótese a verificar com dado local: a oferta de turmas de jovens e adultos depende de decisões de rede, e a matrícula segue a oferta disponível."
-        ]
+        ],
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "factorReadings": [
+            {
+              "outcomeSeriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "factorSeriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+              "directionConcordance": {
+                "windowStart": 2015,
+                "windowEnd": 2025,
+                "intervals": 10,
+                "concordant": 5,
+                "opposite": 5,
+                "ties": 0,
+                "statement": "Em 5 dos 10 intervalos anuais entre 2015 e 2025, Matrículas na educação de jovens e adultos e Pessoas inscritas no perfil de baixa renda, posição de dezembro variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 20820,
+                  "valueEnd": 7032,
+                  "delta": -13788,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 134278,
+                  "valueEnd": 107581,
+                  "delta": -26697,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas na educação de jovens e adultos, de 20 820 em 2015 para 7 032 em 2025 (queda de 66,2%); Pessoas inscritas no perfil de baixa renda, posição de dezembro, de 134 278 em 2015 para 107 581 em 2025 (queda de 19,9%)."
+              },
+              "correlation": {
+                "intervals": 10,
+                "pearsonDelta": -0.15,
+                "spearmanDelta": -0.03,
+                "strength": "fraca",
+                "direction": "negativa",
+                "statement": "Na janela de 2015 a 2025, a correlação entre as variações anuais das duas séries é de -0,15 — fraca e negativa."
+              }
+            },
+            {
+              "outcomeSeriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "factorSeriesId": "massa-salarial-de-dezembro-a-precos-de-2025",
+              "directionConcordance": {
+                "windowStart": 2015,
+                "windowEnd": 2025,
+                "intervals": 10,
+                "concordant": 6,
+                "opposite": 4,
+                "ties": 0,
+                "statement": "Em 6 dos 10 intervalos anuais entre 2015 e 2025, Matrículas na educação de jovens e adultos e Massa salarial de dezembro a preços de 2025 variaram no mesmo sentido."
+              },
+              "comovement": {
+                "outcome": {
+                  "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 20820,
+                  "valueEnd": 7032,
+                  "delta": -13788,
+                  "deltaKind": "nivel"
+                },
+                "factor": {
+                  "seriesId": "massa-salarial-de-dezembro-a-precos-de-2025",
+                  "effStart": 2015,
+                  "effEnd": 2025,
+                  "valueStart": 741907994.6371012,
+                  "valueEnd": 850160750.6500001,
+                  "delta": 108252756.01289892,
+                  "deltaKind": "nivel"
+                },
+                "statement": "Movimento acumulado na janela: Matrículas na educação de jovens e adultos, de 20 820 em 2015 para 7 032 em 2025 (queda de 66,2%); Massa salarial de dezembro a preços de 2025, de 741 907 994,6 em 2015 para 850 160 750,7 em 2025 (alta de 14,6%)."
+              },
+              "correlation": {
+                "intervals": 10,
+                "pearsonDelta": 0.76,
+                "spearmanDelta": 0.65,
+                "strength": "forte",
+                "direction": "positiva",
+                "statement": "Na janela de 2015 a 2025, a correlação entre as variações anuais das duas séries é de 0,76 — forte e positiva."
+              }
+            }
+          ],
+          "stateContrast": {
+            "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+            "statistic": "variacao_percentual",
+            "value": -66.2,
+            "rank": 7,
+            "totalComparable": 10,
+            "sameDirectionCount": 9,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 7ª maior queda acumulada de Matrículas na educação de jovens e adultos nessa janela; 9 das 10 regiões registraram queda."
+          }
+        }
       }
     ]
   },
@@ -14701,7 +15236,59 @@
           "label": "Matrículas na educação de jovens e adultos"
         },
         "observedStatement": "Entre 2014 e 2025, na região: Massa salarial de dezembro a preços de 2025, de 761 086 533,9 para 850 160 750,7; Matrículas na educação de jovens e adultos, de 20 797 para 7 032.",
-        "prohibitedClaim": "Não se pode concluir que a evolução da massa salarial mostra o que aconteceu com a educação de jovens e adultos."
+        "prohibitedClaim": "Não se pode concluir que a evolução da massa salarial mostra o que aconteceu com a educação de jovens e adultos.",
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "directionConcordance": {
+            "windowStart": 2014,
+            "windowEnd": 2025,
+            "intervals": 11,
+            "concordant": 6,
+            "opposite": 5,
+            "ties": 0,
+            "statement": "Em 6 dos 11 intervalos anuais entre 2014 e 2025, Massa salarial de dezembro a preços de 2025 e Matrículas na educação de jovens e adultos variaram no mesmo sentido."
+          },
+          "comovement": {
+            "a": {
+              "seriesId": "massa-salarial-de-dezembro-a-precos-de-2025",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 761086533.8978236,
+              "valueEnd": 850160750.6500001,
+              "delta": 89074216.75217652,
+              "deltaKind": "nivel"
+            },
+            "b": {
+              "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 20797,
+              "valueEnd": 7032,
+              "delta": -13765,
+              "deltaKind": "nivel"
+            },
+            "statement": "Movimento acumulado na janela: Massa salarial de dezembro a preços de 2025, de 761 086 533,9 em 2014 para 850 160 750,7 em 2025 (alta de 11,7%); Matrículas na educação de jovens e adultos, de 20 797 em 2014 para 7 032 em 2025 (queda de 66,2%)."
+          },
+          "correlation": {
+            "intervals": 11,
+            "pearsonDelta": 0.62,
+            "spearmanDelta": 0.57,
+            "strength": "moderada",
+            "direction": "positiva",
+            "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,62 — moderada e positiva."
+          },
+          "stateContrast": {
+            "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+            "statistic": "variacao_percentual",
+            "value": -66.2,
+            "rank": 5,
+            "totalComparable": 10,
+            "sameDirectionCount": 9,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 5ª maior queda acumulada de Matrículas na educação de jovens e adultos nessa janela; 9 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "pairId": "indice-de-envelhecimento-e-escolas-com-matriculas",
@@ -14720,7 +15307,59 @@
           "label": "Escolas com matrículas na educação básica"
         },
         "observedStatement": "Entre 2014 e 2025, na região: Pessoas de 60 anos ou mais por cem pessoas de 0 a 14 anos, de 81,7 para 128,2; Escolas com matrículas na educação básica, de 1 060 para 1 037.",
-        "prohibitedClaim": "Não se pode concluir que o envelhecimento da população mostra o rumo que a rede escolar seguiu."
+        "prohibitedClaim": "Não se pode concluir que o envelhecimento da população mostra o rumo que a rede escolar seguiu.",
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "directionConcordance": {
+            "windowStart": 2014,
+            "windowEnd": 2025,
+            "intervals": 11,
+            "concordant": 2,
+            "opposite": 7,
+            "ties": 2,
+            "statement": "Em 2 dos 11 intervalos anuais entre 2014 e 2025, Pessoas de 60 anos ou mais por cem pessoas de 0 a 14 anos e Escolas com matrículas na educação básica variaram no mesmo sentido."
+          },
+          "comovement": {
+            "a": {
+              "seriesId": "pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 81.69144405569853,
+              "valueEnd": 128.24517424128553,
+              "delta": 46.553730185587,
+              "deltaKind": "pontos"
+            },
+            "b": {
+              "seriesId": "escolas-com-matriculas-na-educacao-basica",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 1060,
+              "valueEnd": 1037,
+              "delta": -23,
+              "deltaKind": "nivel"
+            },
+            "statement": "Movimento acumulado na janela: Pessoas de 60 anos ou mais por cem pessoas de 0 a 14 anos, de 81,7 em 2014 para 128,2 em 2025 (alta de 46,6 pontos); Escolas com matrículas na educação básica, de 1 060 em 2014 para 1 037 em 2025 (queda de 2,2%)."
+          },
+          "correlation": {
+            "intervals": 11,
+            "pearsonDelta": -0.42,
+            "spearmanDelta": -0.33,
+            "strength": "moderada",
+            "direction": "negativa",
+            "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,42 — moderada e negativa."
+          },
+          "stateContrast": {
+            "seriesId": "escolas-com-matriculas-na-educacao-basica",
+            "statistic": "variacao_percentual",
+            "value": -2.2,
+            "rank": 6,
+            "totalComparable": 10,
+            "sameDirectionCount": 6,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 6ª maior queda acumulada de Escolas com matrículas na educação básica nessa janela; 6 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "pairId": "populacao-de-0-a-14-anos-e-matriculas-no-ensino-medio",
@@ -14739,7 +15378,59 @@
           "label": "Matrículas no ensino médio"
         },
         "observedStatement": "Entre 2014 e 2025, na região: População de 0 a 14 anos, de 242 089 para 206 237; Matrículas no ensino médio, de 45 419 para 33 126.",
-        "prohibitedClaim": "Não se pode concluir que a evolução conjunta das duas séries mostra que uma delas moveu a outra."
+        "prohibitedClaim": "Não se pode concluir que a evolução conjunta das duas séries mostra que uma delas moveu a outra.",
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "directionConcordance": {
+            "windowStart": 2014,
+            "windowEnd": 2025,
+            "intervals": 11,
+            "concordant": 8,
+            "opposite": 3,
+            "ties": 0,
+            "statement": "Em 8 dos 11 intervalos anuais entre 2014 e 2025, População de 0 a 14 anos e Matrículas no ensino médio variaram no mesmo sentido."
+          },
+          "comovement": {
+            "a": {
+              "seriesId": "populacao-de-0-a-14-anos",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 242089,
+              "valueEnd": 206237,
+              "delta": -35852,
+              "deltaKind": "nivel"
+            },
+            "b": {
+              "seriesId": "matriculas-no-ensino-medio",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 45419,
+              "valueEnd": 33126,
+              "delta": -12293,
+              "deltaKind": "nivel"
+            },
+            "statement": "Movimento acumulado na janela: População de 0 a 14 anos, de 242 089 em 2014 para 206 237 em 2025 (queda de 14,8%); Matrículas no ensino médio, de 45 419 em 2014 para 33 126 em 2025 (queda de 27,1%)."
+          },
+          "correlation": {
+            "intervals": 11,
+            "pearsonDelta": 0.1,
+            "spearmanDelta": 0,
+            "strength": "fraca",
+            "direction": "positiva",
+            "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,10 — fraca e positiva."
+          },
+          "stateContrast": {
+            "seriesId": "matriculas-no-ensino-medio",
+            "statistic": "variacao_percentual",
+            "value": -27.1,
+            "rank": 2,
+            "totalComparable": 10,
+            "sameDirectionCount": 10,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 2ª maior queda acumulada de Matrículas no ensino médio nessa janela; 10 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "pairId": "pessoas-inscritas-no-cadastro-social-e-matriculas-no-ensino-fundamental",
@@ -14758,7 +15449,59 @@
           "label": "Matrículas no ensino fundamental"
         },
         "observedStatement": "Entre 2015 e 2025, na região: Pessoas inscritas no perfil de baixa renda, posição de dezembro, de 134 278 para 107 581; Matrículas no ensino fundamental, de 144 421 para 124 264.",
-        "prohibitedClaim": "Não se pode concluir que a evolução do cadastro social mostra o que aconteceu com a matrícula no ensino fundamental."
+        "prohibitedClaim": "Não se pode concluir que a evolução do cadastro social mostra o que aconteceu com a matrícula no ensino fundamental.",
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "directionConcordance": {
+            "windowStart": 2015,
+            "windowEnd": 2025,
+            "intervals": 10,
+            "concordant": 5,
+            "opposite": 5,
+            "ties": 0,
+            "statement": "Em 5 dos 10 intervalos anuais entre 2015 e 2025, Pessoas inscritas no perfil de baixa renda, posição de dezembro e Matrículas no ensino fundamental variaram no mesmo sentido."
+          },
+          "comovement": {
+            "a": {
+              "seriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+              "effStart": 2015,
+              "effEnd": 2025,
+              "valueStart": 134278,
+              "valueEnd": 107581,
+              "delta": -26697,
+              "deltaKind": "nivel"
+            },
+            "b": {
+              "seriesId": "matriculas-no-ensino-fundamental",
+              "effStart": 2015,
+              "effEnd": 2025,
+              "valueStart": 144421,
+              "valueEnd": 124264,
+              "delta": -20157,
+              "deltaKind": "nivel"
+            },
+            "statement": "Movimento acumulado na janela: Pessoas inscritas no perfil de baixa renda, posição de dezembro, de 134 278 em 2015 para 107 581 em 2025 (queda de 19,9%); Matrículas no ensino fundamental, de 144 421 em 2015 para 124 264 em 2025 (queda de 14,0%)."
+          },
+          "correlation": {
+            "intervals": 10,
+            "pearsonDelta": 0.15,
+            "spearmanDelta": 0.18,
+            "strength": "fraca",
+            "direction": "positiva",
+            "statement": "Na janela de 2015 a 2025, a correlação entre as variações anuais das duas séries é de 0,15 — fraca e positiva."
+          },
+          "stateContrast": {
+            "seriesId": "matriculas-no-ensino-fundamental",
+            "statistic": "variacao_percentual",
+            "value": -14,
+            "rank": 1,
+            "totalComparable": 10,
+            "sameDirectionCount": 8,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a maior queda acumulada de Matrículas no ensino fundamental nessa janela; 8 das 10 regiões registraram queda."
+          }
+        }
       },
       {
         "pairId": "composicao-do-emprego-formal-por-grau-de-instrucao-e-matriculas-na-educacao-de-jovens-e-adultos",
@@ -14777,7 +15520,339 @@
           "label": "Matrículas na educação de jovens e adultos"
         },
         "observedStatement": "Entre 2014 e 2025, na região: Vínculos formais de pessoas com ensino médio completo por cem vínculos formais, de 46,3 para 49,0; Matrículas na educação de jovens e adultos, de 20 797 para 7 032.",
-        "prohibitedClaim": "Não se pode concluir que a mudança na composição do emprego formal mostra o que aconteceu com a permanência escolar na região."
+        "prohibitedClaim": "Não se pode concluir que a mudança na composição do emprego formal mostra o que aconteceu com a permanência escolar na região.",
+        "associativeReading": {
+          "grammarVersion": "vocacoes-regiao-associativo-v0.1",
+          "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+          "directionConcordance": {
+            "windowStart": 2014,
+            "windowEnd": 2025,
+            "intervals": 11,
+            "concordant": 6,
+            "opposite": 5,
+            "ties": 0,
+            "statement": "Em 6 dos 11 intervalos anuais entre 2014 e 2025, Vínculos formais de pessoas com ensino médio completo por cem vínculos formais e Matrículas na educação de jovens e adultos variaram no mesmo sentido."
+          },
+          "comovement": {
+            "a": {
+              "seriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 46.25534514355528,
+              "valueEnd": 48.978589511176416,
+              "delta": 2.7232443676211346,
+              "deltaKind": "pontos"
+            },
+            "b": {
+              "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+              "effStart": 2014,
+              "effEnd": 2025,
+              "valueStart": 20797,
+              "valueEnd": 7032,
+              "delta": -13765,
+              "deltaKind": "nivel"
+            },
+            "statement": "Movimento acumulado na janela: Vínculos formais de pessoas com ensino médio completo por cem vínculos formais, de 46,3 em 2014 para 49,0 em 2025 (alta de 2,7 pontos); Matrículas na educação de jovens e adultos, de 20 797 em 2014 para 7 032 em 2025 (queda de 66,2%)."
+          },
+          "correlation": {
+            "intervals": 11,
+            "pearsonDelta": 0.29,
+            "spearmanDelta": 0.5,
+            "strength": "fraca",
+            "direction": "positiva",
+            "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,29 — fraca e positiva."
+          },
+          "stateContrast": {
+            "seriesId": "matriculas-na-educacao-de-jovens-e-adultos",
+            "statistic": "variacao_percentual",
+            "value": -66.2,
+            "rank": 5,
+            "totalComparable": 10,
+            "sameDirectionCount": 9,
+            "direction": "queda",
+            "statement": "Entre as 10 regiões comparáveis do estado, esta é a 5ª maior queda acumulada de Matrículas na educação de jovens e adultos nessa janela; 9 das 10 regiões registraram queda."
+          }
+        }
+      }
+    ],
+    "laggedItems": [
+      {
+        "aSeriesId": "nascidos-vivos-por-residencia-da-mae",
+        "bSeriesId": "matriculas-no-ensino-fundamental",
+        "lagYears": 6,
+        "rationale": "a coorte nascida em um ano atinge a idade de ingresso no ensino fundamental seis anos depois",
+        "windowA": {
+          "start": 2008,
+          "end": 2019
+        },
+        "windowB": {
+          "start": 2014,
+          "end": 2025
+        },
+        "intervals": 11,
+        "concordant": 8,
+        "opposite": 3,
+        "ties": 0,
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": -0.09,
+          "spearmanDelta": -0.35,
+          "strength": "fraca",
+          "direction": "negativa"
+        },
+        "statement": "Com defasagem de 6 anos — a coorte nascida em um ano atinge a idade de ingresso no ensino fundamental seis anos depois —, em 8 dos 11 intervalos anuais Nascidos vivos por residência da mãe (2008 a 2019) e Matrículas no ensino fundamental (2014 a 2025) variaram no mesmo sentido; a correlação das variações anuais nessa defasagem é de -0,09."
+      }
+    ]
+  },
+  "screenedRelations": {
+    "label": "Relações observadas por triagem",
+    "description": "Relações adicionais entre séries observadas que atendem aos critérios declarados; a triagem descreve movimento conjunto e não afirma causa.",
+    "methodNote": "Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; não medem causa nem permitem projeção.",
+    "criteria": {
+      "minIntervals": 8,
+      "minAbsPearson": 0.6,
+      "maxItems": 5
+    },
+    "items": [
+      {
+        "relationId": "familias-inscritas-no-cadastro-social-posicao-de-dezembro--matriculas-no-ensino-medio",
+        "seriesAId": "familias-inscritas-no-cadastro-social-posicao-de-dezembro",
+        "seriesBId": "matriculas-no-ensino-medio",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "directionConcordance": {
+          "windowStart": 2014,
+          "windowEnd": 2025,
+          "intervals": 11,
+          "concordant": 8,
+          "opposite": 3,
+          "ties": 0,
+          "statement": "Em 8 dos 11 intervalos anuais entre 2014 e 2025, Famílias inscritas no cadastro social, posição de dezembro e Matrículas no ensino médio variaram no mesmo sentido."
+        },
+        "comovement": {
+          "a": {
+            "seriesId": "familias-inscritas-no-cadastro-social-posicao-de-dezembro",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 178347,
+            "valueEnd": 202685,
+            "delta": 24338,
+            "deltaKind": "nivel"
+          },
+          "b": {
+            "seriesId": "matriculas-no-ensino-medio",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 45419,
+            "valueEnd": 33126,
+            "delta": -12293,
+            "deltaKind": "nivel"
+          },
+          "statement": "Movimento acumulado na janela: Famílias inscritas no cadastro social, posição de dezembro, de 178 347 em 2014 para 202 685 em 2025 (alta de 13,6%); Matrículas no ensino médio, de 45 419 em 2014 para 33 126 em 2025 (queda de 27,1%)."
+        },
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": 0.74,
+          "spearmanDelta": 0.59,
+          "strength": "forte",
+          "direction": "positiva",
+          "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,74 — forte e positiva."
+        },
+        "originStatement": "Relação observada por triagem estatística entre as séries da região; não integra a curadoria e não traz hipóteses."
+      },
+      {
+        "relationId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro--matriculas-na-educacao-profissional-tecnica",
+        "seriesAId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+        "seriesBId": "matriculas-na-educacao-profissional-tecnica",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "directionConcordance": {
+          "windowStart": 2014,
+          "windowEnd": 2025,
+          "intervals": 11,
+          "concordant": 11,
+          "opposite": 0,
+          "ties": 0,
+          "statement": "Em 11 dos 11 intervalos anuais entre 2014 e 2025, Pessoas inscritas no perfil de baixa renda, posição de dezembro e Matrículas na educação profissional técnica variaram no mesmo sentido."
+        },
+        "comovement": {
+          "a": {
+            "seriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 117853,
+            "valueEnd": 107581,
+            "delta": -10272,
+            "deltaKind": "nivel"
+          },
+          "b": {
+            "seriesId": "matriculas-na-educacao-profissional-tecnica",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 13858,
+            "valueEnd": 12290,
+            "delta": -1568,
+            "deltaKind": "nivel"
+          },
+          "statement": "Movimento acumulado na janela: Pessoas inscritas no perfil de baixa renda, posição de dezembro, de 117 853 em 2014 para 107 581 em 2025 (queda de 8,7%); Matrículas na educação profissional técnica, de 13 858 em 2014 para 12 290 em 2025 (queda de 11,3%)."
+        },
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": 0.74,
+          "spearmanDelta": 0.79,
+          "strength": "forte",
+          "direction": "positiva",
+          "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de 0,74 — forte e positiva."
+        },
+        "originStatement": "Relação observada por triagem estatística entre as séries da região; não integra a curadoria e não traz hipóteses."
+      },
+      {
+        "relationId": "obitos-por-residencia-40-a-49-anos--matriculas-na-educacao-infantil",
+        "seriesAId": "obitos-por-residencia-40-a-49-anos",
+        "seriesBId": "matriculas-na-educacao-infantil",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "directionConcordance": {
+          "windowStart": 2014,
+          "windowEnd": 2025,
+          "intervals": 11,
+          "concordant": 3,
+          "opposite": 8,
+          "ties": 0,
+          "statement": "Em 3 dos 11 intervalos anuais entre 2014 e 2025, Óbitos por residência, 40 a 49 anos e Matrículas na educação infantil variaram no mesmo sentido."
+        },
+        "comovement": {
+          "a": {
+            "seriesId": "obitos-por-residencia-40-a-49-anos",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 567,
+            "valueEnd": 491,
+            "delta": -76,
+            "deltaKind": "nivel"
+          },
+          "b": {
+            "seriesId": "matriculas-na-educacao-infantil",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 38328,
+            "valueEnd": 43111,
+            "delta": 4783,
+            "deltaKind": "nivel"
+          },
+          "statement": "Movimento acumulado na janela: Óbitos por residência, 40 a 49 anos, de 567 em 2014 para 491 em 2025 (queda de 13,4%); Matrículas na educação infantil, de 38 328 em 2014 para 43 111 em 2025 (alta de 12,5%)."
+        },
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": -0.72,
+          "spearmanDelta": -0.34,
+          "strength": "forte",
+          "direction": "negativa",
+          "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,72 — forte e negativa."
+        },
+        "originStatement": "Relação observada por triagem estatística entre as séries da região; não integra a curadoria e não traz hipóteses."
+      },
+      {
+        "relationId": "obitos-por-residencia-50-a-59-anos--matriculas-na-educacao-infantil",
+        "seriesAId": "obitos-por-residencia-50-a-59-anos",
+        "seriesBId": "matriculas-na-educacao-infantil",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "directionConcordance": {
+          "windowStart": 2014,
+          "windowEnd": 2025,
+          "intervals": 11,
+          "concordant": 4,
+          "opposite": 7,
+          "ties": 0,
+          "statement": "Em 4 dos 11 intervalos anuais entre 2014 e 2025, Óbitos por residência, 50 a 59 anos e Matrículas na educação infantil variaram no mesmo sentido."
+        },
+        "comovement": {
+          "a": {
+            "seriesId": "obitos-por-residencia-50-a-59-anos",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 1163,
+            "valueEnd": 1008,
+            "delta": -155,
+            "deltaKind": "nivel"
+          },
+          "b": {
+            "seriesId": "matriculas-na-educacao-infantil",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 38328,
+            "valueEnd": 43111,
+            "delta": 4783,
+            "deltaKind": "nivel"
+          },
+          "statement": "Movimento acumulado na janela: Óbitos por residência, 50 a 59 anos, de 1 163 em 2014 para 1 008 em 2025 (queda de 13,3%); Matrículas na educação infantil, de 38 328 em 2014 para 43 111 em 2025 (alta de 12,5%)."
+        },
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": -0.71,
+          "spearmanDelta": -0.28,
+          "strength": "forte",
+          "direction": "negativa",
+          "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,71 — forte e negativa."
+        },
+        "originStatement": "Relação observada por triagem estatística entre as séries da região; não integra a curadoria e não traz hipóteses."
+      },
+      {
+        "relationId": "obitos-por-residencia-30-a-39-anos--matriculas-na-educacao-infantil",
+        "seriesAId": "obitos-por-residencia-30-a-39-anos",
+        "seriesBId": "matriculas-na-educacao-infantil",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "directionConcordance": {
+          "windowStart": 2014,
+          "windowEnd": 2025,
+          "intervals": 11,
+          "concordant": 5,
+          "opposite": 6,
+          "ties": 0,
+          "statement": "Em 5 dos 11 intervalos anuais entre 2014 e 2025, Óbitos por residência, 30 a 39 anos e Matrículas na educação infantil variaram no mesmo sentido."
+        },
+        "comovement": {
+          "a": {
+            "seriesId": "obitos-por-residencia-30-a-39-anos",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 298,
+            "valueEnd": 269,
+            "delta": -29,
+            "deltaKind": "nivel"
+          },
+          "b": {
+            "seriesId": "matriculas-na-educacao-infantil",
+            "effStart": 2014,
+            "effEnd": 2025,
+            "valueStart": 38328,
+            "valueEnd": 43111,
+            "delta": 4783,
+            "deltaKind": "nivel"
+          },
+          "statement": "Movimento acumulado na janela: Óbitos por residência, 30 a 39 anos, de 298 em 2014 para 269 em 2025 (queda de 9,7%); Matrículas na educação infantil, de 38 328 em 2014 para 43 111 em 2025 (alta de 12,5%)."
+        },
+        "correlation": {
+          "intervals": 11,
+          "pearsonDelta": -0.66,
+          "spearmanDelta": -0.31,
+          "strength": "moderada",
+          "direction": "negativa",
+          "statement": "Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,66 — moderada e negativa."
+        },
+        "originStatement": "Relação observada por triagem estatística entre as séries da região; não integra a curadoria e não traz hipóteses."
       }
     ]
   },
@@ -14865,7 +15940,7 @@
     "scenarioPackageSha256": null,
     "scenarioSourceSha256": null,
     "municipalPackageSha256": null,
-    "synthesisPackageSha256": "ee162e2603fa76c53d32b48422daeacfe1d8936351313540a040a9d10b101c2b"
+    "synthesisPackageSha256": "2a4fe67c2b1d26e2a30d70764040e34017fe90757a32b40b25fcd92bacb56b78"
   },
-  "contentVersion": "529ca25e80f7aa026c750202dbafd7c4b694078f52901cee5d374f93fc6d3c91"
+  "contentVersion": "4e1770296fa72acf5ac4d1e0f7af398a10033f3b8e3f7a996e08eaa950b91602"
 }
