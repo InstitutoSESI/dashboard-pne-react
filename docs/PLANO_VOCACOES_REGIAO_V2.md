@@ -5,7 +5,11 @@ Origem: este plano é a **revisão total prevista pela decisão D12** do
 `docs/PLANO_VOCACOES_REGIAO_V1.md` — conduzida pelo mantenedor com o Fable, cobrindo todas as
 Rodadas 0–10 do V1 e o pedido original da gestão. O V1 está encerrado; a partir daqui vale este
 documento.
-Status: **aprovado para execução** (protocolo v3, §4).
+Status: **encerrado em 2026-08-26** (decisão V2-D9): Rodadas 0–4 fechadas CONFORME; a R5
+foi **encerrada CONFORME com ressalva na Rodada 0 do sucessor** (C12 = 20/20 no ambiente
+integral; GA de leitura dispensado pelo mantenedor — desvio V3-D6, registro em
+`.tmp/vocacoes-regiao-v2/rodada-05/ENCERRAMENTO_R5.md`); R6–R7 foram absorvidas e
+redesenhadas no `docs/PLANO_VOCACOES_REGIAO_V3.md` (protocolo v4). A partir daqui vale o V3.
 
 ---
 
@@ -57,6 +61,11 @@ hoje os dois produtos não se referenciam em nenhum ponto do código ou dos dado
 | V2-D2 | **Sequência dirigida pelo pedido da gestão**, não pela arquitetura: primeiro fechar o que falta das duas saídas (fluxo escolar, curadoria regional, ponte PNE), depois expandir cenários. | 2026-08-25 |
 | V2-D3 | A **expansão dos cenários às 8 regiões (R6) revoga a suspensão da D12** somente se o gate de transferibilidade da própria R6 fechar verde; caso contrário a suspensão continua e o fato é levado à gestão como limitação declarada. | 2026-08-25 |
 | V2-D4 | Invariantes do V1 permanecem: fluxo pesquisa→gerador→plataforma fail-closed (D7), sem causalidade, sem número futuro, prévia rotulada, CadÚnico com universo, classe `calculated` na migração, guardas de linguagem com corpus bilateral. | herdadas |
+| V2-D6 | **A ponte é platform-side por natureza (R4).** Ela costura dois produtos da plataforma (matriz/PNE ↔ Vocações), e a camada de pesquisa **não conhece o vocabulário do PNE** (meta/estratégia). Logo: (a) o sentido PNE→Vocações lê o pacote regional **já publicado**, sem nova origem (como o próprio plano manda na Tarefa 1); (b) os **temas de agenda** são um **vocabulário fechado editorial da plataforma** (como `UNIVERSE_LABELS`/`SCENARIO_FRAMING`), e a atribuição tema→implicação vive em **configuração versionada do gerador** (`AGENDA_THEME_MAP`), resolvendo cada tema à **frase de uma implicação educacional já publicada no cenário** — nenhuma prosa nova, nenhum número de meta. O contrato reconfere que a frase do tema é byte-idêntica a uma implicação do cenário; a guarda barra número de meta e causalidade município←região. A camada de pesquisa não muda: só o aperto de mão (`CONTRATO_PUBLICO_APROVADO.json`) sobe a 2.3.0. | 2026-08-26 |
+| V2-D7 | **Escopo dos dados da camada municipal (R5).** Dos três eixos de composição que a Tarefa 1 da R5 nomeia (emprego setorial, matrícula, demografia), apenas a **demografia** — e sinais sociais (CadÚnico) e de fluxo (INEP) — estão em grão municipal nas fontes manifest-clean da pesquisa; RAIS (emprego setorial) e matrícula-por-etapa vivem em grão regional (`csv-dashboard/RS/*_regiao`). Decisão do mantenedor: **Opção A** — compor a posição municipal só a partir do grão-município já presente e manifest-clean (Censo por idade, SINASC, CadÚnico, fluxo INEP); emprego setorial e matrícula-por-etapa entram como **ausência declarada por município, com a fonte consultada nomeada**, sem proxy (disciplina V2-D5/5C). Nenhuma nova aquisição na R5. A taxa municipal do fluxo entra como **sinal de mediana/faixa**, nunca soma. | 2026-08-26 |
+| V2-D8 | **Camada de conclusões (síntese):** quatro tipos com gramática fechada por construção (observada, posição, invariante dos cenários, agenda), compostas na pesquisa e reverificadas na plataforma; pedido do mantenedor em 2026-08-26 a partir da demanda de gestão por relações e conclusões explícitas. Contrato público 2.4.0 → 2.5.0. | 2026-08-26 |
+| V2-D9 | **Plano encerrado após a R4** (2026-08-26): novo pedido da gestão por relações explícitas motivou revisão com o Fable. R5 (construída, pendente de GA) encerra na Rodada 0 do `PLANO_VOCACOES_REGIAO_V3.md`; R6–R7 absorvidas nas R3–R4 do V3; protocolo v4 inverte os papéis (Fable orquestra/audita, GPT 5.6 sol executa). | 2026-08-26 |
+| V2-D5 | **R3 não bump o contrato público.** O fluxo escolar da R2 é `municipal_distribution` (`value: null` + distribuição), incompatível com o ponto numérico do contrato 2.2.0 (`vocacoesRegiaoContract.js`). Publicá-lo como série renderizável exigiria mudança de componente+contrato e colidiria com o 2.3.0 reservado à R4. Logo o fluxo entra na R3 **como sinal da regra de seleção determinística e na frase de saliência** (citando a mediana municipal rotulada, nunca "a taxa da região"), não como fator renderizado. Renda RAIS (`massa_salarial_real_dezembro`) entra como fator renderizado (cabe no contrato). Resíduo declarado: fluxo não vira linha na página — levado à R4/gestão. Decisão do mantenedor via árbitro. | 2026-08-26 |
 
 ## 4. Protocolo de execução v3
 
@@ -299,7 +308,7 @@ se referenciar de fato: a leitura municipal do PNE aponta para o território, e 
 regional aponta para a agenda do PNE.
 
 **Tarefas:**
-1. **Sentido PME → Vocações:** na página da matriz municipal do PNE, bloco novo "Contexto
+1. **Sentido PNE → Vocações:** na página da matriz municipal do PNE, bloco novo "Contexto
    territorial da região" — identifica a região do município e apresenta um resumo das
    associações da região (dados regionais + link para a página regional). Dados vêm do pacote
    regional publicado (a plataforma pode ler o próprio publicado); nenhuma nova origem.
