@@ -8,7 +8,7 @@
  * Fase A; o que mudou é que agora há regiões no manifesto.
  *
  * A validação do pacote vive em `vocacoesRegiaoContract.js`, que é o contrato
- * público `vocacoes-regiao-2.0.0`. Este módulo cuida do que é leitura: buscar,
+ * público `vocacoes-regiao-2.1.0`. Este módulo cuida do que é leitura: buscar,
  * conferir o resumo do arquivo contra o manifesto, casar identidade e versão de
  * conteúdo, e memorizar. A separação importa — o contrato precisa rodar também
  * no gerador, em Node, sem nada de rede.
@@ -24,7 +24,13 @@ export const VOCACOES_MANIFEST_PATH = '/data/vocacoes-regiao/manifest.json'
 export const VOCACOES_REGION_PATH = '/data/vocacoes-regiao/regioes/{regionSlug}.json'
 export const VOCACOES_REGION_FILE_PATTERN = 'regioes/{regionSlug}.json'
 
-export const VOCACOES_MANIFEST_SCHEMA = 'vocacoes-regiao-manifest-v1'
+/*
+ * `v2` porque a entrada de região ganhou dois campos obrigatórios com o Bloco 4,
+ * e o conjunto de campos da entrada é fechado. Manifesto cujo formato mudou e
+ * cuja versão não mudou é a maneira mais silenciosa de um leitor antigo aceitar
+ * um arquivo que não entende.
+ */
+export const VOCACOES_MANIFEST_SCHEMA = 'vocacoes-regiao-manifest-v2'
 export const VOCACOES_SCOPE_TYPE = 'region'
 
 export { VOCACOES_DOCUMENT_SCHEMA, validateRegionIdentity }
@@ -68,6 +74,16 @@ const MANIFEST_ENTRY_FIELDS = new Set([
   'seriesCount',
   'associationCount',
   'temporalPairCount',
+  /*
+   * O Bloco 4 contado de fora do documento. `scenarioStatus` diz em qual dos
+   * dois estados a região está e `scenarioCount` diz quantos cenários ela
+   * publica — zero quando não publica nenhum. Sem os dois, uma região que
+   * perdesse o bloco pelo caminho seria indistinguível de uma região que nunca
+   * o teve, e a diferença entre as duas é justamente o que o plano manda
+   * declarar de forma verificável.
+   */
+  'scenarioStatus',
+  'scenarioCount',
 ])
 
 /** Erro de carga do Vocações da Região, sempre com estágio e código. */
@@ -184,6 +200,21 @@ export function parseVocacoesManifest(candidate) {
       `${label}.byteSize deve ser inteiro positivo.`,
     )
     invariant(entry.publicationStatus === 'published', `${label}.publicationStatus deve ser "published".`)
+    invariant(
+      entry.scenarioStatus === 'published' || entry.scenarioStatus === 'absent',
+      `${label}.scenarioStatus deve ser "published" ou "absent".`,
+    )
+    invariant(
+      Number.isInteger(entry.scenarioCount) && entry.scenarioCount >= 0,
+      `${label}.scenarioCount deve ser inteiro não negativo.`,
+    )
+    /* Os dois campos precisam concordar nos dois sentidos: contar cenário sem
+     * declarar publicação, ou declarar publicação e contar zero, são os dois
+     * jeitos de o manifesto mentir sobre o Bloco 4. */
+    invariant(
+      (entry.scenarioStatus === 'published') === (entry.scenarioCount > 0),
+      `${label}.scenarioStatus e ${label}.scenarioCount não concordam.`,
+    )
     for (const field of ['seriesCount', 'associationCount', 'temporalPairCount']) {
       invariant(
         Number.isInteger(entry[field]) && entry[field] > 0,

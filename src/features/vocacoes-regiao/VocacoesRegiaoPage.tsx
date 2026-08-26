@@ -6,6 +6,8 @@ import { useVocacoesRegiao } from '../../hooks/useVocacoesRegiao'
 import type {
   VocacoesAssociation,
   VocacoesDocument,
+  VocacoesScenario,
+  VocacoesScenarios,
   VocacoesSeries,
   VocacoesSeriesReference,
   VocacoesTemporalPair,
@@ -15,12 +17,19 @@ import { buildSparklineModel } from '../../utils/sparkline'
 import '../../styles/vocacoes-regiao-page.css'
 
 /*
- * Vocações da Região — Fase A.
+ * Vocações da Região.
  *
- * Três blocos, nenhum cenário. O Bloco 1 é o retrato do território em séries
- * longas; o Bloco 2 põe um resultado educacional e os fatores territoriais lado
- * a lado, com os dados que sustentam a leitura visíveis na própria associação;
- * o Bloco 3 mostra pares de séries que mudaram ao mesmo tempo.
+ * Quatro blocos. O Bloco 1 é o retrato do território em séries longas; o Bloco 2
+ * põe um resultado educacional e os fatores territoriais lado a lado, com os
+ * dados que sustentam a leitura visíveis na própria associação; o Bloco 3
+ * mostra pares de séries que mudaram ao mesmo tempo; o Bloco 4 traz os cenários
+ * da região — em duas regiões, e **declarando a ausência** nas outras oito.
+ *
+ * O Bloco 4 tem uma regra que os outros três não têm, e ela é a razão de a nota
+ * de estatuto aparecer antes de qualquer cenário: os quatro cenários não têm o
+ * mesmo peso. Três são exploratórios e um é normativo, e um leitor que não
+ * souber disso lerá o normativo como previsão. É a diferença mais fácil de
+ * perder e a mais cara de perder.
  *
  * A página não calcula nada. Toda agregação vive no builder da camada de
  * pesquisa e toda transposição vive no gerador — o que chega aqui já foi
@@ -385,6 +394,246 @@ function TemporalPairCard({
  * esconde nada por conta própria — quem não digita vê tudo, na ordem em que o
  * pacote publicou.
  */
+/* ------------------------------------------------------------------ *
+ * Bloco 4 — cenários da região.
+ * ------------------------------------------------------------------ */
+
+function ScenarioAnchors({
+  scenario,
+  series,
+}: {
+  scenario: VocacoesScenario
+  series: Map<string, VocacoesSeries>
+}) {
+  return (
+    <div className="vocacoes-table-scroll">
+      <table className="vocacoes-table vocacoes-anchors">
+        <caption className="u-sr-only">
+          {`Séries que ancoram o cenário ${scenario.title}`}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Série</th>
+            <th scope="col">Janela</th>
+            <th scope="col">Início</th>
+            <th scope="col">Fim</th>
+            <th scope="col">Na janela</th>
+          </tr>
+        </thead>
+        <tbody>
+          {scenario.anchors.map((anchor) => {
+            const serie = series.get(anchor.seriesId)
+            return (
+              <tr key={anchor.seriesId}>
+                <th scope="row">{anchor.label}</th>
+                <td>{anchor.periodLabel}</td>
+                <td>{formatValue(anchor.startValue)}</td>
+                <td>{formatValue(anchor.endValue)}</td>
+                <td>
+                  {anchor.directionLabel}
+                  {serie === undefined ? null : ` · ${serie.unitLabel}`}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ScenarioCard({
+  scenario,
+  series,
+}: {
+  scenario: VocacoesScenario
+  series: Map<string, VocacoesSeries>
+}) {
+  return (
+    <article className="vocacoes-card vocacoes-scenario">
+      <header className="vocacoes-card__head">
+        <p className="vocacoes-scenario__profile">{scenario.profileLabel}</p>
+        <h3 className="vocacoes-card__title">{scenario.title}</h3>
+        {/*
+          * O estatuto vem antes do texto do cenário, e não depois: quem lê a
+          * narrativa primeiro já a leu como previsão quando chega à ressalva.
+          */}
+        <p className={`vocacoes-statute vocacoes-statute--${scenario.statute}`}>
+          {scenario.statuteLabel}
+        </p>
+      </header>
+
+      <p className="vocacoes-card__statement">{scenario.centralMechanism}</p>
+
+      <ScenarioAnchors scenario={scenario} series={series} />
+
+      <dl className="vocacoes-meta vocacoes-scenario__arc">
+        <div>
+          <dt>De onde parte</dt>
+          <dd>{scenario.startingPointStatement}</dd>
+        </div>
+        <div>
+          <dt>O que acontece com as séries</dt>
+          <dd>{scenario.trajectoryStatement}</dd>
+        </div>
+        <div>
+          <dt>Como fica no horizonte</dt>
+          <dd>{scenario.stateAtHorizonStatement}</dd>
+        </div>
+      </dl>
+
+      <p className="vocacoes-subtitle">O que isso pede da educação da região</p>
+      <ul className="vocacoes-list">
+        {scenario.educationImplications.map((implication) => (
+          <li key={implication.stageLabel}>
+            <strong>{implication.stageLabel}.</strong> {implication.statement}
+          </li>
+        ))}
+      </ul>
+
+      <p className="vocacoes-subtitle">O que enfraqueceria este cenário</p>
+      <ul className="vocacoes-list">
+        {scenario.contraryEvidence.map((evidence) => (
+          <li key={evidence}>{evidence}</li>
+        ))}
+      </ul>
+
+      <p className="vocacoes-subtitle">O que este cenário não alcança</p>
+      <ul className="vocacoes-list">
+        {scenario.limits.map((limit) => (
+          <li key={limit}>{limit}</li>
+        ))}
+      </ul>
+
+      <ProhibitedClaim claim={scenario.prohibitedClaim} />
+    </article>
+  )
+}
+
+function ScenariosPanel({
+  scenarios,
+  series,
+  regionName,
+}: {
+  scenarios: VocacoesScenarios
+  series: Map<string, VocacoesSeries>
+  regionName: string
+}) {
+  const block = scenarios.block
+
+  return (
+    <section aria-labelledby="vocacoes-cenarios" className="vocacoes-panel">
+      <div className="vocacoes-panel__head">
+        <h2 className="vocacoes-panel__title" id="vocacoes-cenarios">{scenarios.label}</h2>
+        <p className="vocacoes-panel__text">{scenarios.description}</p>
+      </div>
+
+      {/*
+        * A região sem cenário não recebe seção vazia nem seção escondida: recebe
+        * a frase que diz que não há cenário aqui. Esconder a seção faria a
+        * ausência parecer um bloco que se perdeu no caminho; deixá-la vazia
+        * faria parecer um erro de carregamento.
+        */}
+      {block === null ? (
+        <p className="vocacoes-scenarios__absence">{scenarios.absenceStatement}</p>
+      ) : (
+        <>
+          <p className="vocacoes-neutrality vocacoes-scenarios__statute-note">
+            {scenarios.statuteReadingNote}
+          </p>
+
+          <dl className="vocacoes-meta">
+            <div>
+              <dt>Pergunta que os cenários respondem</dt>
+              <dd>{block.focalQuestion}</dd>
+            </div>
+            <div>
+              <dt>Horizonte</dt>
+              <dd>
+                {block.horizonStatement} {block.longScanStatement}
+              </dd>
+            </div>
+            <div>
+              <dt>Linha de base</dt>
+              <dd>{block.baseYearStatement}</dd>
+            </div>
+            <div>
+              <dt>Alcance da leitura entre trabalho e educação</dt>
+              <dd>{block.compatibilityCeilingStatement}</dd>
+            </div>
+            <div>
+              <dt>Como foram construídos</dt>
+              <dd>
+                {block.methodologyLabel}. {block.maturityNote}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="vocacoes-panel__text">{block.statuteNote}</p>
+
+          <div className="vocacoes-card-stack">
+            {block.items.map((scenario) => (
+              <ScenarioCard key={scenario.scenarioId} scenario={scenario} series={series} />
+            ))}
+          </div>
+
+          <div className="vocacoes-scenarios__closing">
+            <p className="vocacoes-subtitle">O que vale em qualquer um dos quatro</p>
+            <ul className="vocacoes-list">
+              {block.robustImplications.map((implication) => (
+                <li key={implication}>{implication}</li>
+              ))}
+            </ul>
+
+            <p className="vocacoes-subtitle">
+              {`O que o cenário normativo exigiria da região ${regionName}`}
+            </p>
+            <div className="vocacoes-table-scroll">
+              <table className="vocacoes-table">
+                <caption className="u-sr-only">
+                  {`Critérios do cenário normativo da região ${regionName}`}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Critério</th>
+                    <th scope="col">O que significa</th>
+                    <th scope="col">O que precisaria estar valendo</th>
+                    <th scope="col">O que se perde no caminho</th>
+                    <th scope="col">Como ele falha</th>
+                    <th scope="col">O que acompanhar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.normativeCriteria.map((criterion) => (
+                    <tr key={criterion.publicName}>
+                      <th scope="row">{criterion.publicName}</th>
+                      <td>{criterion.definition}</td>
+                      <td>{criterion.requiredState}</td>
+                      <td>{criterion.tradeOff}</td>
+                      <td>{criterion.failureMode}</td>
+                      <td>{criterion.whatToFollow}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="vocacoes-subtitle">O que precisaria existir para ele ganhar força</p>
+            <ul className="vocacoes-list">
+              {block.realizationConditions.map((condition) => (
+                <li key={condition}>{condition}</li>
+              ))}
+            </ul>
+
+            <p className="vocacoes-panel__text">{block.conditionalImplication}</p>
+            <ProhibitedClaim claim={block.prohibitedClaim} />
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
 function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
   const [query, setQuery] = useState('')
   const normalized = query.trim().toLocaleLowerCase('pt-BR')
@@ -433,7 +682,12 @@ function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
   )
 }
 
-function VocacoesReport({ document }: { document: VocacoesDocument }) {
+/*
+ * Exportado para o teste de renderização: é o componente que recebe o pacote já
+ * validado e desenha os quatro blocos. A página pública continua sendo
+ * `VocacoesRegiaoPage`, que resolve a carga antes de chegar aqui.
+ */
+export function VocacoesReport({ document }: { document: VocacoesDocument }) {
   const seriesById = useMemo(
     () => new Map(document.territoryPortrait.series.map((serie) => [serie.seriesId, serie])),
     [document.territoryPortrait.series],
@@ -495,6 +749,12 @@ function VocacoesReport({ document }: { document: VocacoesDocument }) {
           ))}
         </div>
       </section>
+
+      <ScenariosPanel
+        regionName={document.region.name}
+        scenarios={document.scenarios}
+        series={seriesById}
+      />
 
       <section aria-labelledby="vocacoes-fontes" className="vocacoes-panel">
         <div className="vocacoes-panel__head">

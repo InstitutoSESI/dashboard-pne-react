@@ -4,8 +4,10 @@ Data: 2026-08-24 (reestruturado em rodadas na mesma data)
 Revisão: 2026-08-25 — protocolo de execução v2 (D9), adotado pelo mantenedor após as
 Rodadas 0–2 esgotarem os ciclos do v1 sem dupla concordância; v2.1 (D10) na mesma data —
 Codex sai do caminho crítico da construção.
-Status: aprovado em conversa (sequência, metodologia, cobertura e protocolo de execução
-decididos pelo mantenedor)
+Status: **encerrado em 2026-08-25 na Rodada 10** — as onze rodadas R0–R10 correram e a
+decisão D12 transfere a continuidade para o plano que sair da revisão total com o Fable.
+Foi aprovado em conversa (sequência, metodologia, cobertura e protocolo de execução
+decididos pelo mantenedor).
 Antecessores: `docs/PLANO_REORGANIZACAO_PLATAFORMA_V1.md` (Fases 0–6 fechadas; §6 reservou este
 trabalho), `docs/FORESIGHT_EDUCACAO_INTEGRACAO_PLATAFORMA_V0_4_0_RC4.md` (gabarito de publicação).
 
@@ -40,11 +42,14 @@ Essa assimetria define o faseamento (Fase A = camadas 1 e 3 nas 10 regiões; Fas
 | D3 | Consequência de D2: a regra pública "os quatro cenários têm o mesmo peso" (família `foresight-educacao`) **não vale para o artefato regional**. O contrato `vocacoes-regiao` declara o estatuto de cada cenário (3 exploratórios + 1 normativo) e a página o apresenta com transparência. A regra municipal permanece intacta. | derivado de D2 |
 | D4 | **Cobertura da Fase B: Vale do Rio Pardo + 1 região de contraste** (perfil distinto — candidatas: Metropolitana ou Noroeste). Expansão às demais 8 regiões só após veredito de transferibilidade. | decidido 2026-08-24 |
 | D5 | **Unidade territorial: as mesmas 10 regiões** já ativas na plataforma (`config/regions/rs.json`), idênticas ao recorte do Vocações (partição exata dos 497 municípios). Nenhum crosswalk novo. Guarda de linguagem vigente (`FORBIDDEN_REGION_TOKENS`) vale para todo texto público novo. | herdada |
-| D6 | A relação entre os **Cenários da educação (municipais)** e os regionais é o debate D6 já armado no plano da reorganização — disparado ao fim da Fase B, não antes. | herdada |
+| D6 | A relação entre os **Cenários da educação (municipais)** e os regionais é o debate D6 já armado no plano da reorganização — disparado ao fim da Fase B, não antes. **Debatido e encerrado na Rodada 10: ver D11.** | herdada, resolvida em 2026-08-25 |
 | D7 | **Fluxo arquitetural inalterado**: pesquisa produz artefato canônico com manifesto + hash; gerador `.mjs` determinístico transpõe; plataforma valida fail-closed. A plataforma nunca lê a camada de pesquisa em runtime. | invariante |
 | D8 | **Protocolo de execução em rodadas com dupla concordância** (§5, v1): Opus 5 high executa cada rodada a partir de contexto limpo; GPT 5.6 xhigh revisa o feito contra o planejado; a rodada só encerra quando os dois concordarem que está conforme este plano. Vigorou nas Rodadas 0–2. | decidido 2026-08-24 |
 | D9 | **Protocolo v2 (a partir da R3), substitui o ciclo do D8.** Papéis invertidos: **GPT 5.6 sol xhigh constrói** (via codex-rescue, sempre xhigh); **Opus 5 high orquestra** — escreve specs fechadas, monitora e destrava a execução, verifica por **checklist fechado derivado do Aceite** e julga por instrumento. Sem dupla concordância: encerramento = checklist verde; julgamento vincula só entregáveis; garantia declarada só com prova; achado fora do aceite vira backlog, não bloqueio. Motivo: nas Rodadas 0–2 nenhum encerramento veio por dupla concordância e as maiores fontes de reprovação foram prosa (sobreafirmação de garantia, contradição de documentação), não defeito de entregável. | decidido 2026-08-25 |
 | D10 | **Protocolo v2.1 — Codex fora do caminho crítico.** O orquestrador Opus 5 high passa a ser também o **executor**: constrói diretamente, sem esperar job de delegação. O GPT 5.6 sol xhigh vira **consultor adversarial**: consultas pontuais e de escopo fechado (ataque a guardas, revisão de contrato, posição independente), disparadas **em background e em paralelo** ao trabalho do executor, com saída em arquivo; consulta que morrer é reexecutada uma vez ou descartada com registro — nunca bloqueia a rodada. Motivo: sob D9, toda construção esperava um job xhigh lento e sujeito a morrer; a independência entre modelos rende no adversarial, não na construção. | decidido 2026-08-25 |
+| D11 | **Aposentadoria dos Cenários da educação municipais — decisão do mantenedor na Rodada 10, encerrando o debate D6.** O produto `foresight-educacao` sai da plataforma: item de menu, rota, página, loader, contrato, dados publicados, geradores, suítes, documentos de plano e a camada de pesquisa municipal. Não é despromoção nem arquivamento — é remoção. **O que substitui não é o cenário regional sozinho**, e sim uma camada nova: os cenários da região acrescidos de **como cada município da região contribui para o cenário e como é afetado por ele**. A perda declarada no dossiê — Nova Santa Rita e São Leopoldo perdem 8 cenários e o Vale do Sinos declara ausência de cenário regional — foi levada ao mantenedor e ele decidiu assim mesmo, com essa camada nova como sucessora. | decidido 2026-08-25 |
+| D12 | **Expansão dos cenários regionais suspensa; nenhuma região nova por enquanto.** A Fase B fecha com Vale do Rio Pardo e Noroeste. Antes de qualquer região nova vem uma **revisão total do trabalho** — todas as etapas e todos os resultados das Rodadas 0–10 —, conduzida pelo mantenedor junto ao Fable, de onde sai **um novo plano de rodadas de melhoria**. Este plano V1 encerra-se na Rodada 10; o que vier depois corre sob o plano novo. Consequência: o veredito de transferibilidade que a D4 exigia fica **em aberto e declarado**, e não é fechado por este plano. | decidido 2026-08-25 |
+| D13 | **A governança de manutenção entra na revisão total, não no produto ainda.** Responsável, cadência de revisão, regra de expiração e canal de contestação territorial (itens `B39`, `B40` e `B42` do backlog da Rodada 10, levantados pelo parecer adversarial) são pontos a decidir na revisão da D12, junto com o resto. Nenhum deles é requisito do produto hoje, e a ausência fica declarada. | decidido 2026-08-25 |
 
 ## 3. Arquitetura do fluxo
 
@@ -617,6 +622,53 @@ recomendação ao mantenedor com as divergências explícitas. A rodada encerra 
 do mantenedor registrada no plano.
 ```
 
+**Executada e encerrada em 2026-08-25.** Relatório em `.tmp/vocacoes-regiao/rodada-10/`.
+O dossiê, a posição independente do consultor e o confronto estão lá; as duas posições
+concordaram em cinco pontos e divergiram em três, e a decisão do mantenedor não coincidiu
+com nenhuma das duas recomendações — foi além delas.
+
+**Decisão do mantenedor (D11, D12, D13):**
+
+1. **Os cenários municipais são removidos**, não reposicionados nem arquivados — página,
+   código, dados, geradores, suítes, documentos de plano e camada de pesquisa. O sucessor
+   não é o cenário regional como está hoje, e sim uma **camada nova**: cenário da região
+   **mais** a contribuição e o impacto de cada município dela dentro do cenário.
+2. **Nenhuma região nova por enquanto.** A Fase B fecha em duas regiões, e o próximo passo
+   é a **revisão total das Rodadas 0–10** com o Fable, de onde sai um plano novo de
+   rodadas de melhoria.
+3. **A governança de manutenção entra nessa revisão**, não no produto agora.
+
+**Este plano V1 encerra-se aqui.** As duas frentes que a decisão abre — a remoção do
+produto municipal e a camada municipal dentro do cenário regional — pertencem ao plano que
+sair da revisão da D12, e não a uma Rodada 11 deste documento.
+
+**O que a remoção precisa levar em conta** (inventário fechado, levantado do disco na
+Rodada 10 e registrado aqui para que o plano novo não redescubra):
+
+- **Plataforma:** `src/features/foresight/` (8 arquivos), `src/hooks/useForesightEducacao.ts`,
+  `src/domain/foresightPublication.ts`, `public/data/foresight-educacao/` (4 arquivos),
+  `scripts/generate-foresight-educacao.mjs`, 4 suítes em `scripts/checks/`,
+  `scripts/tsconfig.foresight.json`, 4 scripts do `package.json`, e as referências em
+  `navigationRegistry.ts`, `Header.jsx`, `AppPageRouter.tsx`, `NavGlyphIcon.tsx`,
+  `analyticsProducts.ts`, `types/app.ts` e `app-routing-test.mjs`.
+- **Documentos:** `docs/BRIEFING_FORESIGHT_EDUCACAO_MUNICIPAL.md`,
+  `docs/FORESIGHT_EDUCACAO_INTEGRACAO_PLATAFORMA_V0_4_0_RC4.md` — este último é citado como
+  gabarito de publicação no cabeçalho deste plano.
+- **Portar antes de deletar** — o produto regional depende hoje do municipal em três
+  pontos, e apagar sem tratar cada um quebra o que fica no ar:
+  1. `scripts/checks/vocacoes-regiao-cenarios.test.mjs` lê
+     `public/data/foresight-educacao/schema.json` para provar a D3 (a regra de peso igual
+     está lá e não aqui). Sem o arquivo municipal, o teste da D3 perde o outro lado.
+  2. `public/data/vocacoes-regiao/schema.json` declara
+     `distinctFrom.family: "foresight-educacao"` e cita a regra municipal palavra por
+     palavra. Com a família removida, a declaração passa a apontar para o que não existe.
+  3. `scripts/generate-vocacoes-regiao.mjs` escreve esse `family` no schema publicado.
+  A D3 deixa de ser «duas famílias com regras diferentes» e passa a ser «esta família tem
+  esta regra» — o que é mudança de contrato público, não limpeza de código.
+- A camada de pesquisa municipal fica fora deste repositório
+  (`SESI\PNE\foresight\`), e o item `B7` do backlog — documento declarado no manifesto
+  daquele produto que sumiu do disco — deixa de importar se o produto sair.
+
 ---
 
 ## 7. Inventário de dados (referência rápida)
@@ -650,7 +702,12 @@ plataforma já publica (fora da v1, como no Panorama).
    condição uniforme; onde a heterogeneidade interna for alta, o documento a declara
    (contagem de municípios no dado, como o `municipiosComDado` do Panorama).
 3. **C4 normativo × regra municipal "mesmo peso"** — resolvido por D3 (regras públicas por
-   família), mas exige nota de leitura clara e retorna no debate D6 (Rodada 10).
+   família), com nota de leitura construída na Rodada 9 e renderizada antes do primeiro
+   cenário. Voltou no debate D6 e **a D11 o dissolve**: com a família municipal removida,
+   deixa de haver duas regras opostas no mesmo painel. O risco muda de forma, não some —
+   a declaração `distinctFrom` do contrato regional passa a citar uma família que não
+   existe mais, e o plano novo precisa reescrever a D3 como regra única desta família (ver
+   Rodada 10 do §6).
 4. **Texto genérico entre regiões** — teste de intercambialidade (Rodada 8) desde o primeiro
    par de regiões.
 5. **Tokens internos do recorte regional** — guarda dupla (pesquisa + plataforma) já ativa.
@@ -680,7 +737,11 @@ plataforma já publica (fora da v1, como no Panorama).
 ```
 R0 (merge reorg) → R1 → R2 → R3 → R4 → R5  [Fase A publicada: 10 regiões, blocos 1–3]
                                    → R6 → R7 → R8 → R9  [Fase B: cenários VRP + contraste]
-                                                  → R10 [D6 + expansão]
+                                                  → R10 [D6 + expansão]  ENCERRADA
+
+Fim do plano V1. A decisão D12 transfere o que vem depois para o plano que sair da
+revisão total das Rodadas 0–10 com o Fable — a remoção do produto municipal (D11) e a
+camada municipal dentro do cenário regional não são rodadas deste documento.
 ```
 
 - Cada rodada começa em sessão nova do orquestrador Opus 5 high (contexto limpo), com o

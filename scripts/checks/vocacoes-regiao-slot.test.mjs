@@ -1,5 +1,5 @@
 /*
- * O Vocações da Região publicado — contrato `vocacoes-regiao-2.0.0`.
+ * O Vocações da Região publicado — contrato `vocacoes-regiao-2.1.0`.
  *
  * Até a Fase A este arquivo guardava a **ausência**: que o manifesto vazio era
  * um estado declarado e verificável. A ausência continua guardada, e continua
@@ -302,7 +302,7 @@ function publicTexts(document) {
  * 2. O contrato, provado por injeção
  * ================================================================= */
 
-test('o contrato 2.0.0 aceita o pacote publicado', () => {
+test('o contrato 2.1.0 aceita o pacote publicado', () => {
   const document = parseDocument(draft())
   assert.equal(document.schemaVersion, VOCACOES_DOCUMENT_SCHEMA)
   assert.ok(document.territoryPortrait.series.length > 0)
@@ -310,17 +310,27 @@ test('o contrato 2.0.0 aceita o pacote publicado', () => {
   assert.ok(document.temporalPairs.items.length > 0)
 })
 
-test('o esquema antigo, com cenários, deixou de ser aceito', () => {
+/*
+ * A Rodada 5 guardava aqui que o esquema `1.0.0`, que trazia cenários
+ * transpostos do municipal, deixara de ser aceito. A recusa continua valendo, e
+ * o que mudou é o outro lado: o `2.1.0` tem bloco de cenários, com forma
+ * própria — a lista solta do esquema antigo continua sendo recusada.
+ *
+ * A região de referência deste arquivo é uma das oito **sem** cenário, e é isso
+ * que ela prova: a ausência é declarada em campo obrigatório, e é contável no
+ * manifesto sem abrir o documento.
+ */
+test('o esquema antigo, com cenários em lista solta, segue recusado', () => {
   refuses((candidate) => { candidate.schemaVersion = 'vocacoes-regiao-1.0.0' }, /esquema do pacote desconhecido/)
-  refuses((candidate) => { candidate.scenarios = [] }, /campo desconhecido.*scenarios/s)
-  assert.ok(
-    !Object.prototype.hasOwnProperty.call(publishedRegion, 'scenarios'),
-    'a Fase A não publica bloco de cenários, nem vazio',
-  )
-  assert.ok(
-    !Object.prototype.hasOwnProperty.call(publishedManifest.regions[0], 'scenarioCount'),
-    'o manifesto da Fase A não conta cenários',
-  )
+  refuses((candidate) => { candidate.scenarios = [] }, /pacote\.scenarios deve ser um objeto/)
+  assert.equal(publishedRegion.scenarios.status, 'absent')
+  assert.equal(publishedRegion.scenarios.block, null)
+  assert.equal(publishedRegion.scenarios.statuteReadingNote, null)
+  assert.ok(publishedRegion.scenarios.absenceStatement.length > 0)
+
+  const entry = publishedManifest.regions.find((region) => region.slug === REFERENCE_SLUG)
+  assert.equal(entry.scenarioStatus, 'absent')
+  assert.equal(entry.scenarioCount, 0)
 })
 
 /*
@@ -646,8 +656,14 @@ test('manifesto quebrado fecha a divisão inteira, em vez de virar publicação 
   assert.throws(() => parseVocacoesManifest(extra), /fora do contrato/)
 
   const stale = JSON.parse(publishedManifestRaw)
-  stale.regions[0] = { ...stale.regions[0], scenarioCount: 4 }
+  stale.regions[0] = { ...stale.regions[0], cenarioDestaque: 'x' }
   assert.throws(() => parseVocacoesManifest(stale), /fora do contrato/)
+
+  /* Os dois campos do Bloco 4 no manifesto precisam concordar: contar cenário
+   * numa região que declara ausência é o manifesto mentindo sobre o bloco. */
+  const mismatched = JSON.parse(publishedManifestRaw)
+  mismatched.regions[0] = { ...mismatched.regions[0], scenarioCount: 4 }
+  assert.throws(() => parseVocacoesManifest(mismatched), /não concordam/)
 
   const loader = loaderOver({ manifest: `${JSON.stringify(broken, null, 2)}\n` })
   await assert.rejects(loader.loadManifest(), (error) => {

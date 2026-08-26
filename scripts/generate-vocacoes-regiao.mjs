@@ -4,13 +4,21 @@
  * O gerador atravessa a fronteira uma vez, em tempo de publicação: lê o pacote
  * regional aprovado na camada de pesquisa, reconfere o resumo de cada arquivo
  * contra o manifesto da origem, transpõe para o contrato público
- * `vocacoes-regiao-2.0.0` e escreve. Depois disso a plataforma não sabe mais
+ * `vocacoes-regiao-2.1.0` e escreve. Depois disso a plataforma não sabe mais
  * que a camada de pesquisa existe — ela valida o artefato publicado, e só ele.
  *
- * Nada aqui inventa cenário, transpõe o pacote municipal para a região nem
- * reaproveita narrativa de outro escopo. A Fase A não tem cenários: o bloco
- * deles é da Fase B e entra por versão aditiva do contrato, não por campo
- * opcional deixado vazio.
+ * Nada aqui inventa cenário nem transpõe o pacote municipal para a região. Duas
+ * regiões têm cenários construídos na camada de pesquisa, e o gerador os
+ * transpõe do pacote promovido delas; as outras oito publicam o Bloco 4
+ * **declarando que não há cenário**, com a frase que o leitor lê. Ausência
+ * declarada, nunca campo vazio.
+ *
+ * Os cenários vivem num arquivo separado do pacote da Fase A, e é assim de
+ * propósito: o gerador transpõe os blocos 1–3 do pacote que a Rodada 4
+ * promoveu, o Bloco 4 do pacote de cenários, e **recusa publicar se os dois
+ * discordarem em qualquer byte dos três primeiros blocos**. Publicar cenário
+ * não pode reescrever o retrato do território, e essa garantia é conferida aqui
+ * em vez de prometida.
  *
  * Determinismo: sem rede, sem relógio, sem modelo. A data de publicação vem da
  * data que a origem declara, não de `Date.now()` — dois `generate` seguidos
@@ -37,6 +45,10 @@ import {
   AGGREGATION_LABELS,
   EVIDENCE_CLASS_LABELS,
   PROHIBITED_CLAIM_OPENER,
+  SCENARIO_FRAMING,
+  SCENARIO_DIRECTION_LABELS,
+  SCENARIO_STATUTES,
+  SCENARIO_STATUTE_LABELS,
   UNIVERSE_LABELS,
   VOCACOES_DOCUMENT_SCHEMA,
   createVocacoesDocumentParser,
@@ -51,7 +63,7 @@ import {
 const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const OUTPUT_ROOT = new URL('public/data/vocacoes-regiao/', REPOSITORY_ROOT)
 
-export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v2'
+export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v3'
 export const STATE_CODE = 'RS'
 export const VOCACOES_PUBLICATION_SCOPE = 'estadual'
 
@@ -72,8 +84,14 @@ export const DEFAULT_SOURCE_ROOT = 'C:/Users/rnbirck/PROJETOS/SESI/PNE/foresight
 
 export const PUBLIC_CONTRACT_APPROVAL_FILE = 'CONTRATO_PUBLICO_APROVADO.json'
 export const ORIGIN_MANIFEST_FILE = 'MANIFESTO_ORIGEM.json'
-export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_1.json'
+export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_2.json'
 export const REGISTRY_FILE = 'registro/registro_regioes_rs_v0_1.json'
+
+/** Pacote de cenários promovido na Rodada 9. Existe só nas regiões da Fase B. */
+export const SCENARIO_PACKAGE_PATTERN = 'pacotes/cenarios/{regionSlug}.json'
+
+/** Blocos que o pacote de cenários repete do pacote da Fase A, sem alterar. */
+const SHARED_BLOCKS = Object.freeze(['series', 'associations', 'temporalPairs', 'region'])
 
 export class VocacoesGeneratorError extends Error {
   constructor(message) {
@@ -183,6 +201,7 @@ function openVerifiedSource(root) {
   return {
     manifest,
     readVerified,
+    declares: (relative) => index.has(relative),
     readVerifiedJson: (relative) => JSON.parse(readVerified(relative).toString('utf8')),
     sha256Of: (relative) => {
       const entry = index.get(relative)
@@ -277,6 +296,15 @@ function buildFraming(regionName) {
       label: 'Fontes',
       description: 'As fontes de onde vieram as séries desta página, com o período que cada uma cobre.',
     },
+    /*
+     * A moldura do Bloco 4 não é escrita aqui: ela vive no contrato, que é quem
+     * a confere. A revisão adversarial do `2.1.0` mostrou que uma frase de
+     * ausência livre podia afirmar que havia quatro cenários publicados, com o
+     * documento inteiro em estado de ausência e a forma toda coerente. Frase
+     * que o leitor lê sobre haver ou não cenário é tabela fechada, como a
+     * frase do universo da série.
+     */
+    scenarios: SCENARIO_FRAMING,
     limitations: {
       label: 'O que este retrato não alcança',
       description:
@@ -425,6 +453,112 @@ function transposeTemporalPair(sourcePair, seriesIdByKey, labelByKey) {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * Bloco 4 — cenários da região.
+ *
+ * A transposição faz aqui o mesmo que faz na série: **a chave interna para de
+ * existir**. `scenarioKey`, `anchorKey`, `implicationKey` e `criterionKey` são
+ * vocabulário de processo e não atravessam a fronteira; o identificador público
+ * do cenário nasce do título dele, como o da série nasce do rótulo.
+ *
+ * Dois enums da origem viram frase desta camada, e nunca o contrário: o
+ * estatuto e a direção observada da âncora. A origem os declara; a plataforma
+ * escreve o que o leitor lê. Foi assim que a Fase A tratou o universo da série,
+ * e a razão é a mesma — os dois pacotes promovidos chegaram com frases de
+ * estatuto diferentes entre si para o mesmo enum.
+ * ------------------------------------------------------------------ */
+
+function transposeAnchor(sourceAnchor, seriesIdByKey, labelByKey) {
+  const seriesId = seriesIdByKey.get(sourceAnchor.seriesKey)
+  invariant(
+    seriesId !== undefined,
+    `a âncora "${sourceAnchor.anchorKey}" cita uma série que não está no pacote: `
+    + `"${sourceAnchor.seriesKey}".`,
+  )
+  const directionLabel = SCENARIO_DIRECTION_LABELS[sourceAnchor.observedDirection]
+  invariant(
+    directionLabel !== undefined,
+    `direção observada desconhecida na origem: "${sourceAnchor.observedDirection}". `
+    + 'Escreva a frase pública antes de publicar a âncora — o enum não vai ao público.',
+  )
+  return {
+    seriesId,
+    label: labelByKey.get(sourceAnchor.seriesKey) ?? sourceAnchor.publicLabel,
+    window: { start: sourceAnchor.window.start, end: sourceAnchor.window.end },
+    periodLabel: formatWindowLabel(sourceAnchor.window),
+    startValue: sourceAnchor.startValue,
+    endValue: sourceAnchor.endValue,
+    directionLabel,
+  }
+}
+
+function transposeScenarioItem(sourceItem, seriesIdByKey, labelByKey) {
+  invariant(
+    SCENARIO_STATUTES.includes(sourceItem.statute),
+    `estatuto de cenário desconhecido na origem: "${sourceItem.statute}".`,
+  )
+  return {
+    scenarioId: slugify(sourceItem.publicTitle),
+    order: sourceItem.order,
+    profileLabel: sourceItem.profileLabel,
+    title: sourceItem.publicTitle,
+    statute: sourceItem.statute,
+    statuteLabel: SCENARIO_STATUTE_LABELS[sourceItem.statute],
+    centralMechanism: sourceItem.centralMechanism,
+    startingPointStatement: sourceItem.startingPointStatement,
+    trajectoryStatement: sourceItem.trajectoryStatement,
+    stateAtHorizonStatement: sourceItem.stateAtHorizonStatement,
+    anchors: sourceItem.anchors.map((anchor) =>
+      transposeAnchor(anchor, seriesIdByKey, labelByKey)),
+    educationImplications: sourceItem.educationImplications.map((implication) => ({
+      stageLabel: implication.stageLabel,
+      statement: implication.statement,
+    })),
+    contraryEvidence: [...sourceItem.contraryEvidence],
+    limits: [...sourceItem.limits],
+    prohibitedClaim: composeProhibitedClaim(sourceItem.forbiddenInterpretation.prohibitedClaim),
+  }
+}
+
+function transposeScenarioBlock(sourceBlock, seriesIdByKey, labelByKey) {
+  /*
+   * O teto de compatibilidade da origem é uma letra (`B`) — marca de nível
+   * interna, do vocabulário da metodologia. O que atravessa a fronteira é a
+   * frase que explica o alcance da leitura; a letra fica do lado de lá.
+   */
+  return {
+    methodologyLabel: `${sourceBlock.methodologyName}, versão ${sourceBlock.methodologyVersion}`,
+    focalQuestion: sourceBlock.focalQuestion,
+    maturityNote: sourceBlock.maturityNote,
+    statuteNote: sourceBlock.statuteNote,
+    baseYear: sourceBlock.baseYear,
+    targetYear: sourceBlock.targetYear,
+    longScanTargetYear: sourceBlock.longScanTargetYear,
+    baseYearStatement: sourceBlock.baseYearStatement,
+    horizonStatement: sourceBlock.horizonStatement,
+    longScanStatement: sourceBlock.longScanStatement,
+    compatibilityCeilingStatement: sourceBlock.compatibilityCeilingStatement,
+    items: [...sourceBlock.items]
+      .sort((left, right) => left.order - right.order)
+      .map((item) => transposeScenarioItem(item, seriesIdByKey, labelByKey)),
+    normativeCriteria: [...sourceBlock.normativeCriteria]
+      .sort((left, right) => left.order - right.order)
+      .map((criterion) => ({
+        order: criterion.order,
+        publicName: criterion.publicName,
+        definition: criterion.definition,
+        requiredState: criterion.requiredState,
+        tradeOff: criterion.tradeOff,
+        failureMode: criterion.failureMode,
+        whatToFollow: criterion.whatToFollow,
+      })),
+    realizationConditions: [...sourceBlock.realizationConditions],
+    robustImplications: [...sourceBlock.robustImplications],
+    conditionalImplication: sourceBlock.conditionalImplication,
+    prohibitedClaim: composeProhibitedClaim(sourceBlock.forbiddenInterpretation.prohibitedClaim),
+  }
+}
+
 /*
  * Fontes: uma linha por fonte pública, com a união dos períodos das séries que
  * vêm dela. A união é calculada na granularidade de cada série e apresentada em
@@ -485,6 +619,8 @@ export function transposeRegion({
   registryRegion,
   sourcePackage,
   sourcePackageSha256,
+  scenarioPackage = null,
+  scenarioPackageSha256 = null,
   researchContract,
   guard,
 }) {
@@ -493,11 +629,47 @@ export function transposeRegion({
     `o pacote da região "${registryRegion.slug}" está em "${sourcePackage.packageStatus}", `
     + 'e a Fase A só publica pacote completo.',
   )
+  /*
+   * O pacote da Fase A nunca traz cenários — é o pacote de cenários que os
+   * traz. Um pacote da Fase A que passasse a trazê-los publicaria um Bloco 4
+   * que ninguém promoveu, por um caminho que ninguém confere.
+   */
   invariant(
     sourcePackage.scenarios === null,
-    `o pacote da região "${registryRegion.slug}" traz cenários, e o contrato `
-    + `${VOCACOES_DOCUMENT_SCHEMA} não os publica.`,
+    `o pacote da Fase A da região "${registryRegion.slug}" traz cenários; eles vêm do pacote `
+    + 'promovido em pacotes/cenarios/, não daqui.',
   )
+  if (scenarioPackage !== null) {
+    invariant(
+      scenarioPackage.scenarios !== null,
+      `o pacote de cenários da região "${registryRegion.slug}" não traz o bloco de cenários.`,
+    )
+    /*
+     * A garantia que dá nome à rodada: publicar cenário não reescreve o retrato.
+     * Ela é conferida aqui, byte a byte na forma canônica, e não prometida no
+     * relatório — os dois pacotes precisam concordar em tudo o que não é o
+     * Bloco 4.
+     */
+    for (const block of SHARED_BLOCKS) {
+      invariant(
+        JSON.stringify(canonicalize(scenarioPackage[block]))
+          === JSON.stringify(canonicalize(sourcePackage[block])),
+        `o pacote de cenários da região "${registryRegion.slug}" altera o bloco "${block}" do `
+        + 'pacote da Fase A; a publicação dos cenários é aditiva.',
+      )
+    }
+    invariant(
+      scenarioPackage.packageStatus === 'complete',
+      `o pacote de cenários da região "${registryRegion.slug}" não está completo.`,
+    )
+    invariant(
+      scenarioPackage.generation.deterministic === true
+        && scenarioPackage.generation.networkUsed === false
+        && scenarioPackage.generation.clockUsed === false
+        && scenarioPackage.generation.modelUsed === false,
+      `o pacote de cenários da região "${registryRegion.slug}" não se declara determinístico.`,
+    )
+  }
   invariant(
     sourcePackage.generation.deterministic === true
       && sourcePackage.generation.networkUsed === false
@@ -537,6 +709,7 @@ export function transposeRegion({
   const series = sourcePackage.series.map((serie) =>
     transposeSeries(serie, researchContract, seriesIdByKey, labelByKey))
   const framing = buildFraming(registryRegion.name)
+  const publishesScenarios = scenarioPackage !== null
 
   const body = {
     schemaVersion: VOCACOES_DOCUMENT_SCHEMA,
@@ -564,10 +737,35 @@ export function transposeRegion({
       items: sourcePackage.temporalPairs.map((pair) =>
         transposeTemporalPair(pair, seriesIdByKey, labelByKey)),
     },
+    scenarios: publishesScenarios
+      ? {
+        label: SCENARIO_FRAMING.label,
+        description: SCENARIO_FRAMING.publishedDescription,
+        statuteReadingNote: SCENARIO_FRAMING.statuteReadingNote,
+        status: 'published',
+        absenceStatement: null,
+        block: transposeScenarioBlock(scenarioPackage.scenarios, seriesIdByKey, labelByKey),
+      }
+      : {
+        label: SCENARIO_FRAMING.label,
+        description: SCENARIO_FRAMING.absentDescription,
+        statuteReadingNote: null,
+        status: 'absent',
+        absenceStatement: SCENARIO_FRAMING.absenceStatement,
+        block: null,
+      },
     sources: { ...framing.sources, items: buildSources(series) },
     limitations: {
+      /*
+       * As limitações vêm do pacote que de fato foi publicado. Onde há cenário,
+       * é o pacote de cenários que declara os limites que os cenários criam — e
+       * publicar o bloco sem eles seria publicar o cenário sem a ressalva que o
+       * torna honesto.
+       */
       ...framing.limitations,
-      items: sourcePackage.limitations.map((limitation) => limitation.statement),
+      items: (publishesScenarios ? scenarioPackage : sourcePackage).limitations.map(
+        (limitation) => limitation.statement,
+      ),
     },
     provenance: {
       sourcePackageSha256,
@@ -575,6 +773,10 @@ export function transposeRegion({
       sourceBuilderVersion: sourcePackage.provenance.builderVersion,
       sourceGeneratedAt: sourcePackage.provenance.generatedAt,
       registrySha256: sourcePackage.region.registrySha256,
+      scenarioPackageSha256: publishesScenarios ? scenarioPackageSha256 : null,
+      scenarioSourceSha256: publishesScenarios
+        ? scenarioPackage.provenance.scenarioSourceSha256
+        : null,
     },
   }
 
@@ -604,9 +806,16 @@ export function buildPublication({ sourceRoot } = {}) {
       || verified.manifest.contractVersion.endsWith(researchContract.contractVersion),
     'a versão do contrato de pesquisa diverge do manifesto da origem.',
   )
+  /*
+   * O contrato da pesquisa precisa **prever** o Bloco 4 para que o gerador o
+   * publique. Enquanto ele dizia `absent_in_v0_1`, publicar cenário aqui seria
+   * a plataforma inventando um bloco que a origem não reconhece.
+   */
   invariant(
-    researchContract.blocks.block4RegionalScenarios === 'absent_in_v0_1',
-    'o contrato da pesquisa passou a prever cenários; a Fase A não os publica.',
+    researchContract.blocks.block4RegionalScenarios === 'optional_in_v0_2',
+    `o contrato da pesquisa declara o bloco de cenários como `
+    + `"${researchContract.blocks.block4RegionalScenarios}", e esta versão do gerador publica `
+    + 'a partir de "optional_in_v0_2".',
   )
 
   const guard = createPublicLanguageGuard(researchContract)
@@ -639,10 +848,24 @@ export function buildPublication({ sourceRoot } = {}) {
     left.slug.localeCompare(right.slug, 'en'))) {
     const relative = `pacotes/regioes/${registryRegion.slug}.json`
     const sourcePackage = verified.readVerifiedJson(relative)
+
+    /*
+     * O pacote de cenários existe só nas regiões da Fase B, e a pergunta «existe?»
+     * é feita ao **manifesto da origem**, não ao sistema de arquivos: um arquivo
+     * que aparecesse no disco sem constar do manifesto seria publicado sem
+     * ninguém ter conferido o resumo dele.
+     */
+    const scenarioRelative = SCENARIO_PACKAGE_PATTERN.replace('{regionSlug}', registryRegion.slug)
+    const hasScenarios = verified.declares(scenarioRelative)
+    const scenarioPackage = hasScenarios ? verified.readVerifiedJson(scenarioRelative) : null
+    const scenarioPackageSha256 = hasScenarios ? verified.sha256Of(scenarioRelative) : null
+
     const document = transposeRegion({
       registryRegion,
       sourcePackage,
       sourcePackageSha256: verified.sha256Of(relative),
+      scenarioPackage,
+      scenarioPackageSha256,
       researchContract,
       guard,
     })
@@ -678,6 +901,14 @@ export function buildPublication({ sourceRoot } = {}) {
       seriesCount: document.territoryPortrait.series.length,
       associationCount: document.associations.items.length,
       temporalPairCount: document.temporalPairs.items.length,
+      /*
+       * A ausência de cenário é contável no manifesto, e não só legível dentro
+       * do documento. Sem estas duas linhas, saber quais regiões têm cenário
+       * exigiria abrir os dez arquivos — e uma região que perdesse o bloco pelo
+       * caminho seria indistinguível de uma região que nunca o teve.
+       */
+      scenarioStatus: document.scenarios.status,
+      scenarioCount: document.scenarios.block === null ? 0 : document.scenarios.block.items.length,
     })
   }
 
@@ -704,6 +935,87 @@ export function buildPublication({ sourceRoot } = {}) {
   parseVocacoesManifest(structuredClone(manifest))
 
   return { manifest, files, origin: source.root, available: true, refusal: null }
+}
+
+/*
+ * O `schema.json` da família — o mesmo papel que o da família municipal cumpre
+ * em `public/data/foresight-educacao/`: um arquivo público que declara, em
+ * linguagem que não é código, o que esta família garante ao leitor.
+ *
+ * Ele existe **porque as duas famílias não têm as mesmas regras** (decisão `D3`
+ * do plano). A família municipal publica quatro cenários de peso igual; esta
+ * publica três exploratórios e um normativo. Duas divisões do mesmo painel
+ * mostrando quatro cenários cada, sob regras opostas, é exatamente a situação
+ * em que a regra precisa estar escrita ao lado do dado — e em que a regra da
+ * outra família precisa ser nomeada como não valendo aqui, em vez de ficar
+ * subentendida.
+ */
+export const MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE =
+  'Os quatro cenários têm o mesmo peso: não há ordem, pontuação ou probabilidade.'
+
+export function buildFamilySchema(manifest) {
+  const withScenarios = manifest.regions
+    .filter((entry) => entry.scenarioStatus === 'published')
+    .map((entry) => entry.slug)
+  const withoutScenarios = manifest.regions
+    .filter((entry) => entry.scenarioStatus === 'absent')
+    .map((entry) => entry.slug)
+
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://painel.pne/data/vocacoes-regiao/schema.json',
+    title: 'Vocações da Região — contrato público',
+    description:
+      'Projeção pública do retrato regional, da leitura entre educação e território, das '
+      + 'transformações simultâneas e dos cenários da região. Contém apenas os campos que a '
+      + 'interface renderiza.',
+    documentSchemaVersion: manifest.documentSchemaVersion,
+    manifestSchemaVersion: manifest.schemaVersion,
+    publicationScope: manifest.publicationScope,
+    referenceYear: manifest.referenceYear,
+    blocks: [
+      'retrato-e-transformacoes-do-territorio',
+      'educacao-e-territorio-lado-a-lado',
+      'transformacoes-simultaneas',
+      'cenarios-da-regiao',
+    ],
+    scenarioStatutes: {
+      exploratory: SCENARIO_STATUTE_LABELS.exploratory,
+      normative: SCENARIO_STATUTE_LABELS.normative,
+    },
+    scenarioCoverage: {
+      regionsWithScenarios: withScenarios,
+      regionsWithoutScenarios: withoutScenarios,
+      scenariosPerRegion: 4,
+      absenceIsDeclared: true,
+    },
+    rules: [
+      'Somente as regiões listadas no manifesto têm documento publicado.',
+      'Nenhum identificador interno, enum de processo ou resumo criptográfico aparece em texto '
+      + 'renderizado.',
+      'Nenhuma leitura desta família afirma causa. Cada uma declara, ela mesma, a interpretação '
+      + 'que permite e a que proíbe.',
+      'Nenhum valor numérico é atribuído a ano posterior ao ano de referência. O horizonte dos '
+      + 'cenários é declarado como horizonte, e nenhuma quantidade é atribuída a ele.',
+      'Os quatro cenários de uma região não têm o mesmo peso: três são exploratórios e um é '
+      + 'normativo, e o estatuto de cada um é campo obrigatório do documento.',
+      'O cenário normativo descreve um ideal técnico provisório. Não é previsão, não é '
+      + 'compromisso e não foi pactuado.',
+      'Todo valor citado por um cenário é reconferido contra a série publicada no mesmo '
+      + 'documento, no mesmo ano.',
+      'Região sem cenários publica o bloco declarando a ausência, com a frase que o leitor lê — '
+      + 'nunca um bloco vazio.',
+    ],
+    distinctFrom: {
+      family: 'foresight-educacao',
+      ruleThatDoesNotApplyHere: MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE,
+      note:
+        'A regra acima é da família dos cenários municipais e continua valendo lá, intacta. Ela '
+        + 'não vale nesta família: as duas usam metodologias diferentes, e a desta declara um '
+        + 'cenário normativo entre os quatro. Quem lê as duas divisões do painel precisa que a '
+        + 'diferença esteja escrita, e não subentendida.',
+    },
+  }
 }
 
 function writeFileAtomic(targetUrl, contents) {
@@ -739,6 +1051,10 @@ function main(argv) {
     {
       contents: `${JSON.stringify(publication.manifest, null, 2)}\n`,
       url: new URL('manifest.json', OUTPUT_ROOT),
+    },
+    {
+      contents: `${JSON.stringify(buildFamilySchema(publication.manifest), null, 2)}\n`,
+      url: new URL('schema.json', OUTPUT_ROOT),
     },
     ...publication.files.map((file) => ({
       contents: file.serialized,
@@ -783,13 +1099,16 @@ function main(argv) {
         series: accumulator.series + entry.seriesCount,
         associations: accumulator.associations + entry.associationCount,
         pairs: accumulator.pairs + entry.temporalPairCount,
+        scenarios: accumulator.scenarios + entry.scenarioCount,
+        withScenarios: accumulator.withScenarios + (entry.scenarioStatus === 'published' ? 1 : 0),
       }),
-      { series: 0, associations: 0, pairs: 0 },
+      { series: 0, associations: 0, pairs: 0, scenarios: 0, withScenarios: 0 },
     )
     process.stdout.write(
       `Vocações da Região: ${publication.manifest.regions.length} regiões publicadas — `
       + `${totals.series} séries, ${totals.associations} associações, ${totals.pairs} pares `
-      + `temporais, a partir de ${publication.origin}.\n`,
+      + `temporais, ${totals.scenarios} cenários em ${totals.withScenarios} regiões, a partir de `
+      + `${publication.origin}.\n`,
     )
   } else if (publication.refusal) {
     process.stdout.write(

@@ -166,6 +166,50 @@ const CLAIM_REVERSERS = /\b(?:mas|porem|contudo|todavia|entretanto|no entanto|po
  * nenhum ("daqui a quatro anos"). Nenhum dos dois é pego por uma varredura de
  * `\d{4}`.
  */
+/*
+ * Prosa de cenário que desmente o estatuto dele.
+ *
+ * A revisão adversarial do contrato `2.1.0` fez a pergunta certa: o estatuto é
+ * estrutural — enum fechado, frase renderizada do enum, exatamente um normativo
+ * —, e ainda assim `centralMechanism` podia dizer «este cenário é a previsão
+ * oficial e o plano aprovado pela região» e passar por tudo. A estrutura
+ * garante que a ressalva **está na página**; ela não garante qual das duas
+ * frases o leitor toma como a verdadeira.
+ *
+ * Esta guarda ataca a metade que é atacável: as afirmações que contradizem o
+ * estatuto de forma explícita — previsão, plano aprovado, pactuação, decisão
+ * tomada, certeza sobre o que vai ocorrer. Ela roda com o mesmo detector de
+ * negação das outras: «não é previsão» e «não foi pactuado» são exatamente o
+ * que o bloco precisa poder dizer, e dizem.
+ *
+ * O que ela **não** fecha está declarado: uma narrativa pode induzir leitura de
+ * previsão sem usar nenhuma destas palavras, e nenhuma lista fecha isso. O que
+ * resta é risco editorial, e é assim que ele é reportado — não como garantia.
+ */
+const STATUTE_CONTRADICTION_PATTERNS = Object.freeze([
+  /\bprevisao oficial\b/u,
+  /\bplano aprovado\b/u,
+  /\bfoi aprovad[oa]\b/u,
+  /\besta aprovad[oa]\b/u,
+  /\bfoi pactuad[oa]\b/u,
+  /\besta pactuad[oa]\b/u,
+  /\bcompromisso assumido\b/u,
+  /\bdecisao ja tomada\b/u,
+  /\bcenario mais provavel\b/u,
+  /\bmais provavel\b/u,
+  /\bvai acontecer\b/u,
+  /\bira acontecer\b/u,
+  /\bacontecera\b/u,
+  /\bo que vai ocorrer\b/u,
+  /\bcom certeza\b/u,
+])
+
+/*
+ * Futuro sem ano escrito por extenso em dígitos. Os dois casos que a Rodada 4
+ * encontrou: o ano partido por espaço ("20 30") e o futuro relativo sem ano
+ * nenhum ("daqui a quatro anos"). Nenhum dos dois é pego por uma varredura de
+ * `\d{4}`.
+ */
 const SPLIT_YEAR_PATTERN = /\b(?:19|20)\s+\d\s*\d\b/u
 const RELATIVE_FUTURE_PATTERN = /\b(?:daqui a|nos proximos|nas proximas|dentro de|ate o fim d|em \d+ anos)\b/u
 
@@ -471,6 +515,92 @@ export function createPublicLanguageGuard(researchContract) {
     }
   }
 
+  /*
+   * Texto de horizonte: a única isenção da regra de ano futuro nesta camada, e
+   * ela é estreita de propósito.
+   *
+   * O que o plano proíbe é **número atribuído a ano futuro** — dizer quantas
+   * matrículas haverá em 2031. Dizer que o horizonte dos cenários alcança 2031
+   * não é isso: é declarar o recorte do exercício, e um bloco de cenários que
+   * não pode nomear o próprio horizonte não pode existir.
+   *
+   * A isenção vale só nos campos de horizonte, e dentro deles vale só assim:
+   *
+   *   1. o ano citado precisa ser **um dos anos de horizonte que o bloco
+   *      declara** — 2031 e 2041 aqui, não um ano qualquer; e
+   *   2. a oração em que ele aparece **não pode trazer nenhuma outra
+   *      quantidade**: nem outro grupo de dígitos, nem palavra de número da
+   *      lista do contrato.
+   *
+   * Com as duas juntas, "o horizonte alcança 2031" passa e "em 2031 serão
+   * 145 000 matrículas" e "em 2031 serão mil matrículas" continuam sendo
+   * recusadas — que é exatamente a fronteira que a regra queria.
+   */
+  function checkHorizonText(text, field, { allowedYears = [] } = {}) {
+    checkTokens(text, field)
+    checkCausal(text, field)
+
+    const permitidos = new Set(allowedYears)
+    const normalized = normalize(text)
+    const sentencas = normalized.split(/(?<=[.;])\s+/u)
+    for (const sentenca of sentencas) {
+      const anos = [...sentenca.matchAll(/\b(?:19|20)\d{2}\b/gu)]
+        .map((match) => Number.parseInt(match[0], 10))
+        .filter((year) => year > referenceYear)
+      if (anos.length === 0) continue
+
+      const forasteiro = anos.find((year) => !permitidos.has(year))
+      if (forasteiro !== undefined) {
+        fail(
+          'FUTURE_YEAR_IN_PUBLIC_TEXT',
+          field,
+          `o campo de horizonte cita ${forasteiro}, que não é um dos anos de horizonte declarados`,
+          text,
+        )
+      }
+
+      const outrosDigitos = [...sentenca.matchAll(/\d[\d\s.,]*/gu)]
+        .map((match) => match[0].replace(/[\s.,]+$/u, ''))
+        .filter((grupo) => !anos.includes(Number.parseInt(grupo.replace(/[\s.,]/gu, ''), 10)))
+      if (outrosDigitos.length > 0) {
+        fail(
+          'FUTURE_YEAR_IN_PUBLIC_TEXT',
+          field,
+          `o campo de horizonte atribui a quantidade "${outrosDigitos[0].trim()}" a um ano futuro`,
+          text,
+        )
+      }
+
+      for (const word of numberWords) {
+        if (sentenca.includes(word)) {
+          fail(
+            'FUTURE_YEAR_IN_PUBLIC_TEXT',
+            field,
+            `o campo de horizonte atribui a quantidade "${word}" a um ano futuro`,
+            text,
+          )
+        }
+      }
+    }
+    return text
+  }
+
+  /** Prosa de cenário que afirma previsão, aprovação ou pactuação. */
+  function checkStatuteContradiction(text, field) {
+    for (const pattern of STATUTE_CONTRADICTION_PATTERNS) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'SCENARIO_STATUTE_CONTRADICTED',
+          field,
+          `o texto do cenário afirma "${found}", que contradiz o estatuto declarado dele`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
   /** Uma passagem de texto público, com as isenções declaradas por campo. */
   function checkText(text, field, options = {}) {
     checkTokens(text, field)
@@ -484,6 +614,8 @@ export function createPublicLanguageGuard(researchContract) {
     checkText,
     checkTokens,
     checkFutureYear,
+    checkHorizonText,
+    checkStatuteContradiction,
     checkCausal,
     checkCadastralUniverse,
     checkCadastralComparison,
@@ -626,6 +758,8 @@ export function scanPublicDocument(document, guard) {
     }
   })
 
+  scanScenarios(document, guard, { citesCadastral })
+
   guard.checkText(document.sources.label, 'sources.label')
   guard.checkText(document.sources.description, 'sources.description')
   document.sources.items.forEach((item, index) => {
@@ -637,6 +771,159 @@ export function scanPublicDocument(document, guard) {
   guard.checkText(document.limitations.description, 'limitations.description')
   document.limitations.items.forEach((item, index) => {
     guard.checkText(item, `limitations.items[${index}]`, { exemptConnective: true })
+  })
+
+  return document
+}
+
+/*
+ * Bloco 4 — cenários da região.
+ *
+ * Todo campo público do bloco corre no perfil mais severo da guarda: causal,
+ * conectivo causal e ano futuro, **sem isenção** — o mesmo perfil que a
+ * hipótese de uma associação. É o que o contrato da camada de pesquisa declara
+ * campo a campo em `scenarioPublicTextFields`, e a razão é simples: o Bloco 4 é
+ * o único do documento que fala do futuro, e é onde uma frase causal custa
+ * mais.
+ *
+ * As duas exceções são declaradas, e são as mesmas da Fase A:
+ *   - a alegação proibida, que precisa nomear a leitura causal;
+ *   - o campo de horizonte, que precisa nomear o próprio horizonte.
+ *
+ * A região sem cenários passa por aqui do mesmo jeito: a frase de ausência é
+ * texto público como qualquer outro.
+ */
+function scanScenarios(document, guard, { citesCadastral }) {
+  const scenarios = document.scenarios
+  guard.checkText(scenarios.label, 'scenarios.label')
+  guard.checkText(scenarios.description, 'scenarios.description')
+
+  if (scenarios.status === 'absent') {
+    guard.checkText(scenarios.absenceStatement, 'scenarios.absenceStatement')
+    guard.checkSentenceComplete(scenarios.absenceStatement, 'scenarios.absenceStatement')
+    return document
+  }
+
+  guard.checkText(scenarios.statuteReadingNote, 'scenarios.statuteReadingNote')
+
+  const block = scenarios.block
+  const horizonYears = [block.targetYear, block.longScanTargetYear]
+
+  guard.checkText(block.methodologyLabel, 'scenarios.block.methodologyLabel')
+  guard.checkText(block.focalQuestion, 'scenarios.block.focalQuestion')
+  guard.checkText(block.maturityNote, 'scenarios.block.maturityNote')
+  guard.checkSentenceComplete(block.maturityNote, 'scenarios.block.maturityNote')
+  guard.checkText(block.statuteNote, 'scenarios.block.statuteNote')
+  guard.checkSentenceComplete(block.statuteNote, 'scenarios.block.statuteNote')
+  guard.checkText(block.baseYearStatement, 'scenarios.block.baseYearStatement')
+  guard.checkSentenceComplete(block.baseYearStatement, 'scenarios.block.baseYearStatement')
+  guard.checkText(block.compatibilityCeilingStatement, 'scenarios.block.compatibilityCeilingStatement')
+  guard.checkText(block.conditionalImplication, 'scenarios.block.conditionalImplication')
+  guard.checkSentenceComplete(block.conditionalImplication, 'scenarios.block.conditionalImplication')
+
+  guard.checkHorizonText(block.horizonStatement, 'scenarios.block.horizonStatement', {
+    allowedYears: horizonYears,
+  })
+  guard.checkSentenceComplete(block.horizonStatement, 'scenarios.block.horizonStatement')
+  guard.checkHorizonText(block.longScanStatement, 'scenarios.block.longScanStatement', {
+    allowedYears: horizonYears,
+  })
+  guard.checkSentenceComplete(block.longScanStatement, 'scenarios.block.longScanStatement')
+
+  block.realizationConditions.forEach((condition, index) => {
+    guard.checkText(condition, `scenarios.block.realizationConditions[${index}]`)
+    guard.checkSentenceComplete(condition, `scenarios.block.realizationConditions[${index}]`)
+    guard.checkStatuteContradiction(condition, `scenarios.block.realizationConditions[${index}]`)
+  })
+  block.robustImplications.forEach((implication, index) => {
+    guard.checkText(implication, `scenarios.block.robustImplications[${index}]`)
+    guard.checkSentenceComplete(implication, `scenarios.block.robustImplications[${index}]`)
+  })
+  guard.checkProhibitedClaim(block.prohibitedClaim, 'scenarios.block.prohibitedClaim')
+
+  block.normativeCriteria.forEach((criterion, index) => {
+    const field = `scenarios.block.normativeCriteria[${index}]`
+    guard.checkText(criterion.publicName, `${field}.publicName`)
+    for (const key of ['definition', 'requiredState', 'tradeOff', 'failureMode', 'whatToFollow']) {
+      guard.checkText(criterion[key], `${field}.${key}`)
+      guard.checkSentenceComplete(criterion[key], `${field}.${key}`)
+    }
+  })
+
+  block.items.forEach((item, index) => {
+    const field = `scenarios.block.items[${index}]`
+    guard.checkTokens(item.scenarioId, `${field}.scenarioId`)
+    guard.checkText(item.title, `${field}.title`)
+    guard.checkText(item.profileLabel, `${field}.profileLabel`)
+    guard.checkText(item.statuteLabel, `${field}.statuteLabel`)
+
+    const prose = [
+      item.centralMechanism,
+      item.startingPointStatement,
+      item.trajectoryStatement,
+      item.stateAtHorizonStatement,
+    ]
+    const proseFields = [
+      'centralMechanism',
+      'startingPointStatement',
+      'trajectoryStatement',
+      'stateAtHorizonStatement',
+    ]
+    prose.forEach((text, position) => {
+      guard.checkText(text, `${field}.${proseFields[position]}`)
+      guard.checkSentenceComplete(text, `${field}.${proseFields[position]}`)
+      guard.checkStatuteContradiction(text, `${field}.${proseFields[position]}`)
+    })
+
+    item.anchors.forEach((anchor, position) => {
+      guard.checkText(anchor.label, `${field}.anchors[${position}].label`)
+      guard.checkText(anchor.periodLabel, `${field}.anchors[${position}].periodLabel`)
+      guard.checkText(anchor.directionLabel, `${field}.anchors[${position}].directionLabel`)
+      guard.checkTokens(anchor.seriesId, `${field}.anchors[${position}].seriesId`)
+    })
+
+    item.educationImplications.forEach((implication, position) => {
+      guard.checkText(implication.stageLabel, `${field}.educationImplications[${position}].stageLabel`)
+      guard.checkText(implication.statement, `${field}.educationImplications[${position}].statement`)
+      guard.checkSentenceComplete(
+        implication.statement,
+        `${field}.educationImplications[${position}].statement`,
+      )
+      guard.checkStatuteContradiction(
+        implication.statement,
+        `${field}.educationImplications[${position}].statement`,
+      )
+    })
+
+    item.contraryEvidence.forEach((evidence, position) => {
+      guard.checkText(evidence, `${field}.contraryEvidence[${position}]`)
+      guard.checkSentenceComplete(evidence, `${field}.contraryEvidence[${position}]`)
+    })
+    /* O limite do cenário é onde ele declara o que não alcança — mesma língua
+     * natural da limitação de série, e mesma isenção de conectivo causal. */
+    item.limits.forEach((limit, position) => {
+      guard.checkText(limit, `${field}.limits[${position}]`, { exemptConnective: true })
+      guard.checkSentenceComplete(limit, `${field}.limits[${position}]`)
+    })
+
+    guard.checkProhibitedClaim(item.prohibitedClaim, `${field}.prohibitedClaim`)
+
+    /*
+     * A frase partida entre dois campos, de novo: o cenário tem quatro campos
+     * de prosa longa que a página renderiza um embaixo do outro, e a varredura
+     * por campo não vê a oração que atravessa a fronteira entre eles.
+     */
+    guard.checkCausal([...prose, ...item.contraryEvidence].join(' '), `${field} (texto corrido)`)
+
+    if (citesCadastral(...item.anchors)) {
+      for (const text of prose) guard.checkCadastralComparison(text, `${field} (prosa)`)
+      item.educationImplications.forEach((implication, position) => {
+        guard.checkCadastralComparison(
+          implication.statement,
+          `${field}.educationImplications[${position}].statement`,
+        )
+      })
+    }
   })
 
   return document

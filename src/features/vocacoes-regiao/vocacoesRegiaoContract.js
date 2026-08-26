@@ -1,11 +1,26 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.0.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.1.0`.
  *
- * A Fase A publica três blocos por região e **nenhum cenário**: retrato e
- * transformações do território (Bloco 1), leitura associativa entre educação e
- * território (Bloco 2) e comparação temporal em pares curados (Bloco 3). O
- * bloco de cenários é da Fase B e entra por versão aditiva (`2.1.0`), não por
- * campo opcional aqui.
+ * Quatro blocos por região: retrato e transformações do território (Bloco 1),
+ * leitura associativa entre educação e território (Bloco 2), comparação
+ * temporal em pares curados (Bloco 3) e **cenários da região (Bloco 4)**.
+ *
+ * O `2.1.0` é **aditivo** sobre o `2.0.0`: nenhum campo dos três primeiros
+ * blocos mudou de forma, de nome ou de regra. O que entra é um campo novo no
+ * documento, `scenarios`, e nada mais.
+ *
+ * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
+ * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
+ * publicado, com o bloco inteiro; ou ausente, com a frase que diz ao leitor que
+ * ali não há cenários e por quê. Campo opcional deixaria a ausência silenciosa,
+ * e ausência silenciosa é indistinguível de bloco que se perdeu no caminho.
+ *
+ * **Os quatro cenários de uma região não têm o mesmo peso.** Três são
+ * exploratórios e um é normativo, e o estatuto de cada um é campo obrigatório
+ * do contrato — decisão `D3` do plano. A regra pública da família municipal
+ * (`foresight-educacao`), em que os quatro cenários têm peso igual, permanece
+ * intacta e **não vale aqui**: são duas famílias, com duas metodologias e duas
+ * regras públicas próprias, e o `schema.json` de cada uma declara a sua.
  *
  * Por que este contrato não é o dos Cenários municipais: até a versão `1.0.0`
  * o slot regional emprestava a fábrica de validador do foresight, porque o
@@ -25,7 +40,7 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.0.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.1.0'
 
 /** Classes de evidência aceitas, e a frase pública de cada uma. */
 export const EVIDENCE_CLASS_LABELS = Object.freeze({
@@ -72,6 +87,102 @@ export const UNIVERSE_LABELS = Object.freeze({
 })
 
 const UNIVERSE_LABEL_VALUES = Object.freeze(Object.values(UNIVERSE_LABELS))
+
+/*
+ * Estatuto do cenário, e a frase pública de cada um.
+ *
+ * Mesma divisão de trabalho do universo: a camada de pesquisa **declara** o
+ * estatuto por enum fechado, e a plataforma **escreve** a frase que o leitor lê.
+ * Aqui isso não é preferência de estilo — é o que impede a assimetria de virar
+ * detalhe editorial. Os dois pacotes promovidos na Rodada 9 chegaram com frases
+ * de estatuto **diferentes entre si** para o mesmo enum; publicá-las como
+ * vieram faria o mesmo estatuto significar duas coisas em duas páginas da mesma
+ * divisão.
+ *
+ * A frase do normativo diz, ela mesma, que ele não é previsão nem compromisso:
+ * um cenário que descreve um ideal técnico e é lido como plano aprovado é o
+ * modo mais provável de esta página enganar alguém.
+ */
+export const SCENARIO_STATUTE_LABELS = Object.freeze({
+  exploratory:
+    'Cenário exploratório: descreve uma configuração possível do território, sem preferência '
+    + 'declarada entre ela e as outras, e sem probabilidade atribuída.',
+  normative:
+    'Cenário normativo: descreve um ideal técnico provisório, e não uma configuração prevista. '
+    + 'Não é previsão, não é compromisso e não foi pactuado com ninguém.',
+})
+
+export const SCENARIO_STATUTES = Object.freeze(Object.keys(SCENARIO_STATUTE_LABELS))
+
+/*
+ * Direção observada da âncora, e a frase pública de cada uma.
+ *
+ * O enum da origem (`alta`, `baixa`, `estabilidade`) não chega ao público: é
+ * vocabulário de processo. O que chega é a frase — e o contrato confere que ela
+ * **não contradiz os dois valores da própria âncora**: quem diz alta precisa
+ * terminar acima de onde começou, e quem diz baixa precisa terminar abaixo.
+ *
+ * A estabilidade não recebe conferência de sinal, e o motivo está declarado: a
+ * origem a atribui por limiar percentual, e o limiar é da camada de pesquisa. A
+ * plataforma não o conhece e não vai adivinhá-lo — conferir sinal estrito aqui
+ * recusaria uma série honesta que variou meio por cento.
+ */
+export const SCENARIO_DIRECTION_LABELS = Object.freeze({
+  alta: 'com alta observada na janela',
+  baixa: 'com baixa observada na janela',
+  estabilidade: 'sem mudança de sentido observada na janela',
+})
+
+const SCENARIO_DIRECTION_LABEL_VALUES = Object.freeze(Object.values(SCENARIO_DIRECTION_LABELS))
+const SCENARIO_DIRECTION_RISING = SCENARIO_DIRECTION_LABELS.alta
+const SCENARIO_DIRECTION_FALLING = SCENARIO_DIRECTION_LABELS.baixa
+
+/** Estados possíveis do Bloco 4 numa região. Não há terceiro. */
+export const SCENARIO_BLOCK_STATUSES = Object.freeze(['published', 'absent'])
+
+/*
+ * A moldura editorial do Bloco 4, palavra por palavra — e é o contrato que a
+ * guarda, não o gerador.
+ *
+ * A revisão adversarial do `2.1.0` mostrou por quê. As duas implicações de
+ * estado eram conferidas nos dois sentidos e ainda assim este documento
+ * passava:
+ *
+ *     { "status": "absent", "block": null, "statuteReadingNote": null,
+ *       "absenceStatement": "Há quatro cenários publicados nesta região." }
+ *
+ * Forma coerente, frase mentindo. `absenceStatement` era texto livre, e texto
+ * livre prova que existe uma frase — não que a frase declara ausência. O mesmo
+ * valia para `description`, que podia dizer o oposto do estado em qualquer um
+ * dos dois lados.
+ *
+ * A correção é a mesma que a Fase A aplicou ao universo da série: a camada de
+ * pesquisa declara o **estado**, e a frase que o leitor lê é renderizada de uma
+ * tabela fechada. Uma frase que não está aqui não é publicável, e por isso não
+ * existe frase de ausência que afirme presença.
+ */
+export const SCENARIO_FRAMING = Object.freeze({
+  label: 'Cenários da região',
+  publishedDescription:
+    'Quatro configurações possíveis para o território e para a educação dele no horizonte '
+    + 'declarado, construídas a partir das mesmas séries que estão nesta página. Cada cenário '
+    + 'declara de onde parte, o que o distingue dos outros três e o que ele pede de quem '
+    + 'planeja a educação da região.',
+  absentDescription:
+    'Os cenários regionais são construídos região a região, a partir das séries de cada '
+    + 'território. Esta região ainda não os tem.',
+  statuteReadingNote:
+    'Os quatro cenários desta página não têm o mesmo peso, e essa é a diferença mais '
+    + 'importante entre eles. Três são exploratórios: descrevem configurações possíveis do '
+    + 'território, sem preferência declarada entre elas. O quarto é normativo: descreve um '
+    + 'ideal técnico provisório, que não é previsão, não foi pactuado com ninguém e não '
+    + 'descreve nada que esteja decidido. O estatuto de cada cenário vem escrito nele mesmo.',
+  absenceStatement:
+    'Esta região ainda não tem cenários publicados. Os cenários regionais foram construídos, '
+    + 'até aqui, para duas regiões do estado, e esta não é uma delas. O que está publicado '
+    + 'nesta página são os três blocos anteriores: o retrato do território, a leitura entre '
+    + 'educação e território, e as transformações simultâneas.',
+})
 
 export const EVIDENCE_CLASSES = Object.freeze(Object.keys(EVIDENCE_CLASS_LABELS))
 export const AGGREGATION_RULES = Object.freeze(Object.keys(AGGREGATION_LABELS))
@@ -133,6 +244,7 @@ const DOCUMENT_FIELDS = new Set([
   'territoryPortrait',
   'associations',
   'temporalPairs',
+  'scenarios',
   'sources',
   'limitations',
   'provenance',
@@ -144,12 +256,20 @@ const TEXT_BLOCK_FIELDS = new Set(['label', 'description', 'items'])
 const PORTRAIT_FIELDS = new Set(['label', 'description', 'series'])
 const WINDOW_FIELDS = new Set(['start', 'end'])
 const RATIO_FIELDS = new Set(['numeratorLabel', 'denominatorLabel'])
+/*
+ * Os dois campos de cenário fecham a cadeia até o esqueleto congelado da rodada
+ * que os construiu, e são `null` nas regiões sem cenário. Sem eles, o documento
+ * publicado provaria a procedência dos três primeiros blocos e nenhuma do
+ * quarto — que é justamente o bloco em que a procedência mais importa.
+ */
 const PROVENANCE_FIELDS = new Set([
   'sourcePackageSha256',
   'sourceContractVersion',
   'sourceBuilderVersion',
   'sourceGeneratedAt',
   'registrySha256',
+  'scenarioPackageSha256',
+  'scenarioSourceSha256',
 ])
 
 const SERIES_FIELDS = new Set([
@@ -198,6 +318,84 @@ const TEMPORAL_PAIR_FIELDS = new Set([
 ])
 
 const SOURCE_ITEM_FIELDS = new Set(['label', 'periodLabel'])
+
+/*
+ * Bloco 4 — cenários da região.
+ *
+ * `label`, `description` e `statuteReadingNote` são moldura editorial desta
+ * camada e existem nas dez regiões, com ou sem cenário. `status` diz em qual
+ * estado o bloco está, e os outros dois campos são a consequência exata dele:
+ * ausente traz frase de ausência e `block` nulo; publicado traz `block` e
+ * frase de ausência nula. As duas implicações são conferidas nos dois sentidos.
+ */
+const SCENARIOS_FIELDS = new Set([
+  'label',
+  'description',
+  'statuteReadingNote',
+  'status',
+  'absenceStatement',
+  'block',
+])
+
+const SCENARIO_BLOCK_FIELDS = new Set([
+  'methodologyLabel',
+  'focalQuestion',
+  'maturityNote',
+  'statuteNote',
+  'baseYear',
+  'targetYear',
+  'longScanTargetYear',
+  'baseYearStatement',
+  'horizonStatement',
+  'longScanStatement',
+  'compatibilityCeilingStatement',
+  'items',
+  'normativeCriteria',
+  'realizationConditions',
+  'robustImplications',
+  'conditionalImplication',
+  'prohibitedClaim',
+])
+
+const SCENARIO_ITEM_FIELDS = new Set([
+  'scenarioId',
+  'order',
+  'profileLabel',
+  'title',
+  'statute',
+  'statuteLabel',
+  'centralMechanism',
+  'startingPointStatement',
+  'trajectoryStatement',
+  'stateAtHorizonStatement',
+  'anchors',
+  'educationImplications',
+  'contraryEvidence',
+  'limits',
+  'prohibitedClaim',
+])
+
+const SCENARIO_ANCHOR_FIELDS = new Set([
+  'seriesId',
+  'label',
+  'window',
+  'periodLabel',
+  'startValue',
+  'endValue',
+  'directionLabel',
+])
+
+const SCENARIO_IMPLICATION_FIELDS = new Set(['stageLabel', 'statement'])
+
+const NORMATIVE_CRITERION_FIELDS = new Set([
+  'order',
+  'publicName',
+  'definition',
+  'requiredState',
+  'tradeOff',
+  'failureMode',
+  'whatToFollow',
+])
 
 /*
  * A alegação proibida é publicada como frase inteira, composta com o abridor
@@ -638,6 +836,422 @@ function validateTemporalPair(candidate, label, seriesById, referenceYear) {
   return candidate
 }
 
+/* ------------------------------------------------------------------ *
+ * Bloco 4 — cenários da região.
+ * ------------------------------------------------------------------ */
+
+/*
+ * A âncora é o único lugar do Bloco 4 em que há número, e é por isso que ela é
+ * o lugar mais perigoso dele. Todo o resto do bloco é prosa que alguém curou; a
+ * âncora é a ponte entre a prosa e a série publicada logo acima, na mesma
+ * página.
+ *
+ * A regra: **os dois valores da âncora são reconferidos contra os pontos da
+ * própria série publicada neste documento**. Não «existe uma série com esse
+ * identificador», nem «a janela encosta na série» — o valor inicial precisa ser
+ * o valor que a série tem no ano de início, e o final o do ano de fim. Um
+ * cenário que cita um número que a série não tem para de ser publicável, e não
+ * há como corrigir isso reescrevendo a narrativa.
+ *
+ * A âncora exige série **anual**: a janela dela é declarada em anos, e casar um
+ * ano com um ponto mensal exigiria escolher um mês — escolha que a origem não
+ * declara e que a plataforma não vai inventar.
+ */
+function validateScenarioAnchor(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, SCENARIO_ANCHOR_FIELDS, label)
+  validateText(candidate.label, `${label}.label`)
+  validatePublicId(candidate.seriesId, `${label}.seriesId`, candidate.label)
+  const serie = seriesById.get(candidate.seriesId)
+  invariant(serie !== undefined, `${label}.seriesId não resolve em nenhuma série do documento.`)
+  invariant(
+    serie.label === candidate.label,
+    `${label}.label diverge do rótulo da série que ele referencia.`,
+  )
+  invariant(
+    serie.periodGranularity === 'annual',
+    `${label} ancora numa série mensal; a janela da âncora é declarada em anos.`,
+  )
+
+  /* O rótulo de período da âncora sai da janela dela. Enquanto era texto
+   * livre, uma âncora de 2014 a 2025 podia anunciar-se como "2019 a 2025" e
+   * passar — a revisão adversarial encontrou a folga, e ela é barata de
+   * fechar porque a derivação é de uma linha. */
+  validateWindow(candidate.window, `${label}.window`, referenceYear)
+  const expectedPeriodLabel = candidate.window.start === candidate.window.end
+    ? `${candidate.window.start}`
+    : `${candidate.window.start} a ${candidate.window.end}`
+  invariant(
+    candidate.periodLabel === expectedPeriodLabel,
+    `${label}.periodLabel não descreve a janela da âncora `
+    + `(esperado "${expectedPeriodLabel}", recebido "${candidate.periodLabel}").`,
+  )
+  validateWindowAgainstSeries(candidate.window, serie, label)
+
+  invariant(
+    typeof candidate.startValue === 'number' && Number.isFinite(candidate.startValue),
+    `${label}.startValue deve ser um número finito.`,
+  )
+  invariant(
+    typeof candidate.endValue === 'number' && Number.isFinite(candidate.endValue),
+    `${label}.endValue deve ser um número finito.`,
+  )
+
+  const pointAt = (period) => serie.points.find((point) => point.period === period)
+  const first = pointAt(candidate.window.start)
+  const last = pointAt(candidate.window.end)
+  invariant(
+    first !== undefined,
+    `${label}: a série "${serie.label}" não tem ponto em ${candidate.window.start}.`,
+  )
+  invariant(
+    last !== undefined,
+    `${label}: a série "${serie.label}" não tem ponto em ${candidate.window.end}.`,
+  )
+  invariant(
+    first.value === candidate.startValue,
+    `${label}.startValue não é o valor da série em ${candidate.window.start} `
+    + `(série ${first.value}, âncora ${candidate.startValue}).`,
+  )
+  invariant(
+    last.value === candidate.endValue,
+    `${label}.endValue não é o valor da série em ${candidate.window.end} `
+    + `(série ${last.value}, âncora ${candidate.endValue}).`,
+  )
+
+  invariant(
+    SCENARIO_DIRECTION_LABEL_VALUES.includes(candidate.directionLabel),
+    `${label}.directionLabel não é uma das frases de direção do contrato.`,
+  )
+  if (candidate.directionLabel === SCENARIO_DIRECTION_RISING) {
+    invariant(
+      candidate.endValue > candidate.startValue,
+      `${label} declara alta e termina em ${candidate.endValue}, que não é maior que `
+      + `${candidate.startValue}.`,
+    )
+  }
+  if (candidate.directionLabel === SCENARIO_DIRECTION_FALLING) {
+    invariant(
+      candidate.endValue < candidate.startValue,
+      `${label} declara baixa e termina em ${candidate.endValue}, que não é menor que `
+      + `${candidate.startValue}.`,
+    )
+  }
+  return candidate
+}
+
+/*
+ * Todo número escrito na prosa de um cenário precisa de âncora por trás.
+ *
+ * Esta é a segunda metade da garantia de que nenhum número do Bloco 4 é
+ * digitado, e ela existe porque a primeira metade não bastava. A revisão
+ * adversarial trocou `14 527` por `999 999` **na frase**, deixou a âncora e a
+ * série intactas, e o documento passava: o contrato reconferia a âncora e nunca
+ * lia a frase que o leitor lê.
+ *
+ * Como a regra funciona, na ordem:
+ *
+ *   1. os rótulos das séries citadas saem do texto primeiro, do mais longo para
+ *      o mais curto. Um número que vive **dentro do nome** de uma série
+ *      ("Pessoas de 60 anos ou mais…") é nome, não alegação — e casar o rótulo
+ *      curto antes do longo faria "Matrículas na educação profissional" comer
+ *      "…profissional técnica", que é a série realmente citada;
+ *   2. o que sobra é varrido atrás de números, com o separador de milhar em
+ *      espaço e o decimal em vírgula, como a origem os escreve;
+ *   3. cada número precisa ser um ano de janela de âncora, ou o valor de uma
+ *      âncora **na precisão em que foi escrito** — a âncora guarda 84,17533…, a
+ *      frase mostra 84,2, e exigir igualdade exata recusaria o arredondamento
+ *      honesto que a própria origem faz ao compor a frase.
+ *
+ * O que esta regra **não** alcança está declarado: a afirmação comparativa sem
+ * dígito ("fica acima do observado na ponta inicial") não é pega por varredura
+ * de número nenhuma, e fechá-la exigiria casar uma frase com uma série por
+ * semântica. Fica como limitação declarada, e não como regra que recusaria
+ * texto honesto.
+ */
+const SCENARIO_PROSE_FIELDS = Object.freeze([
+  'centralMechanism',
+  'startingPointStatement',
+  'trajectoryStatement',
+  'stateAtHorizonStatement',
+])
+
+const SCENARIO_NUMBER_PATTERN = /\d[\d\u00a0 ]*(?:,\d+)?/gu
+
+function validateScenarioProseNumbers(candidate, label, seriesById) {
+  const anchoredLabels = new Set(candidate.anchors.map((anchor) => anchor.label))
+  const years = new Set()
+  const values = []
+  for (const anchor of candidate.anchors) {
+    years.add(anchor.window.start)
+    years.add(anchor.window.end)
+    values.push(anchor.startValue, anchor.endValue)
+  }
+
+  const allLabels = [...seriesById.values()]
+    .map((serie) => serie.label)
+    .sort((left, right) => right.length - left.length)
+
+  for (const field of SCENARIO_PROSE_FIELDS) {
+    let remaining = candidate[field]
+    for (const seriesLabel of allLabels) {
+      if (!remaining.includes(seriesLabel)) continue
+      invariant(
+        anchoredLabels.has(seriesLabel),
+        `${label}.${field} cita a série "${seriesLabel}" sem ancorá-la neste cenário.`,
+      )
+      remaining = remaining.split(seriesLabel).join(' ')
+    }
+
+    for (const match of remaining.matchAll(SCENARIO_NUMBER_PATTERN)) {
+      const written = match[0].replace(/[\u00a0 ]+$/u, '')
+      if (written === '') continue
+      const [whole, fraction = ''] = written.split(',')
+      const decimals = fraction.length
+      const parsed = Number.parseFloat(`${whole.replace(/[\u00a0 ]/gu, '')}.${fraction || '0'}`)
+      if (!Number.isFinite(parsed)) continue
+      if (decimals === 0 && years.has(parsed)) continue
+      const supported = values.some(
+        (value) => Number(value.toFixed(decimals)) === Number(parsed.toFixed(decimals)),
+      )
+      invariant(
+        supported,
+        `${label}.${field} escreve o número "${written}", que nenhuma âncora deste cenário `
+        + 'sustenta.',
+      )
+    }
+  }
+  return candidate
+}
+
+function validateScenarioItem(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, SCENARIO_ITEM_FIELDS, label)
+  validateText(candidate.title, `${label}.title`)
+  validatePublicId(candidate.scenarioId, `${label}.scenarioId`, candidate.title)
+  invariant(
+    Number.isInteger(candidate.order) && candidate.order > 0,
+    `${label}.order deve ser inteiro positivo.`,
+  )
+  validateText(candidate.profileLabel, `${label}.profileLabel`)
+
+  invariant(
+    SCENARIO_STATUTES.includes(candidate.statute),
+    `${label}.statute fora do contrato: ${candidate.statute}.`,
+  )
+  /* Mesma regra da classe de evidência: a frase é a do enum, nunca escrita à
+   * mão. Estatuto que diz uma coisa e frase que diz outra é o defeito que esta
+   * linha existe para tornar impossível. */
+  invariant(
+    candidate.statuteLabel === SCENARIO_STATUTE_LABELS[candidate.statute],
+    `${label}.statuteLabel não é a frase declarada para o estatuto ${candidate.statute}.`,
+  )
+
+  validateText(candidate.centralMechanism, `${label}.centralMechanism`)
+  validateText(candidate.startingPointStatement, `${label}.startingPointStatement`)
+  validateText(candidate.trajectoryStatement, `${label}.trajectoryStatement`)
+  validateText(candidate.stateAtHorizonStatement, `${label}.stateAtHorizonStatement`)
+
+  invariant(
+    Array.isArray(candidate.anchors) && candidate.anchors.length > 0,
+    `${label}.anchors deve trazer ao menos uma âncora.`,
+  )
+  const anchorSeries = new Set()
+  candidate.anchors.forEach((anchor, index) => {
+    const anchorLabel = `${label}.anchors[${index}]`
+    validateScenarioAnchor(anchor, anchorLabel, seriesById, referenceYear)
+    invariant(
+      !anchorSeries.has(anchor.seriesId),
+      `${anchorLabel} ancora duas vezes na mesma série: ${anchor.seriesId}.`,
+    )
+    anchorSeries.add(anchor.seriesId)
+  })
+
+  invariant(
+    Array.isArray(candidate.educationImplications) && candidate.educationImplications.length > 0,
+    `${label}.educationImplications deve trazer ao menos uma implicação.`,
+  )
+  candidate.educationImplications.forEach((implication, index) => {
+    const implicationLabel = `${label}.educationImplications[${index}]`
+    validateExactFields(implication, SCENARIO_IMPLICATION_FIELDS, implicationLabel)
+    validateText(implication.stageLabel, `${implicationLabel}.stageLabel`)
+    validateText(implication.statement, `${implicationLabel}.statement`)
+  })
+
+  validateTextList(candidate.contraryEvidence, `${label}.contraryEvidence`)
+  validateTextList(candidate.limits, `${label}.limits`)
+  validateProhibitedClaim(candidate.prohibitedClaim, `${label}.prohibitedClaim`)
+  validateScenarioProseNumbers(candidate, label, seriesById)
+  return candidate
+}
+
+function validateNormativeCriterion(candidate, label) {
+  validateExactFields(candidate, NORMATIVE_CRITERION_FIELDS, label)
+  invariant(
+    Number.isInteger(candidate.order) && candidate.order > 0,
+    `${label}.order deve ser inteiro positivo.`,
+  )
+  validateText(candidate.publicName, `${label}.publicName`)
+  validateText(candidate.definition, `${label}.definition`)
+  validateText(candidate.requiredState, `${label}.requiredState`)
+  validateText(candidate.tradeOff, `${label}.tradeOff`)
+  validateText(candidate.failureMode, `${label}.failureMode`)
+  validateText(candidate.whatToFollow, `${label}.whatToFollow`)
+  return candidate
+}
+
+function validateScenarioBlock(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, SCENARIO_BLOCK_FIELDS, label)
+  validateText(candidate.methodologyLabel, `${label}.methodologyLabel`)
+  validateText(candidate.focalQuestion, `${label}.focalQuestion`)
+  validateText(candidate.maturityNote, `${label}.maturityNote`)
+  validateText(candidate.statuteNote, `${label}.statuteNote`)
+  validateText(candidate.baseYearStatement, `${label}.baseYearStatement`)
+  validateText(candidate.horizonStatement, `${label}.horizonStatement`)
+  validateText(candidate.longScanStatement, `${label}.longScanStatement`)
+  validateText(candidate.compatibilityCeilingStatement, `${label}.compatibilityCeilingStatement`)
+  validateText(candidate.conditionalImplication, `${label}.conditionalImplication`)
+
+  /*
+   * Os três anos do bloco são os únicos números do documento que apontam para
+   * depois do ano de referência, e são anos **de horizonte**, não valores
+   * atribuídos a ano futuro: dizer que o horizonte alcança 2031 não é dizer
+   * quantas matrículas haverá em 2031. A ordenação entre eles é conferida
+   * porque uma varredura de prazo mais longo que termina antes do horizonte
+   * comum seria uma contradição que ninguém veria lendo a página.
+   */
+  invariant(
+    Number.isInteger(candidate.baseYear) && candidate.baseYear <= referenceYear,
+    `${label}.baseYear deve ser inteiro e não pode ultrapassar o ano de referência.`,
+  )
+  invariant(
+    Number.isInteger(candidate.targetYear) && candidate.targetYear > referenceYear,
+    `${label}.targetYear deve ser um ano posterior ao ano de referência.`,
+  )
+  invariant(
+    Number.isInteger(candidate.longScanTargetYear)
+      && candidate.longScanTargetYear > candidate.targetYear,
+    `${label}.longScanTargetYear deve ser posterior a ${label}.targetYear.`,
+  )
+
+  invariant(
+    Array.isArray(candidate.items) && candidate.items.length > 0,
+    `${label}.items deve trazer ao menos um cenário.`,
+  )
+  const scenarioIds = new Set()
+  const titles = new Set()
+  const orders = new Set()
+  let normativeCount = 0
+  candidate.items.forEach((item, index) => {
+    const itemLabel = `${label}.items[${index}]`
+    validateScenarioItem(item, itemLabel, seriesById, referenceYear)
+    invariant(!scenarioIds.has(item.scenarioId), `${itemLabel}.scenarioId repetido: ${item.scenarioId}.`)
+    invariant(!titles.has(item.title), `${itemLabel}.title repetido: "${item.title}".`)
+    invariant(!orders.has(item.order), `${itemLabel}.order repetido: ${item.order}.`)
+    scenarioIds.add(item.scenarioId)
+    titles.add(item.title)
+    orders.add(item.order)
+    if (item.statute === 'normative') normativeCount += 1
+  })
+
+  /*
+   * A assimetria de estatuto é **estrutural**, não editorial (decisão `D3`).
+   * Um conjunto sem normativo publicaria quatro exploratórios sob uma nota de
+   * leitura que promete um normativo; um conjunto com dois publicaria dois
+   * ideais técnicos concorrentes sob a mesma nota. Os dois estados são recusa.
+   */
+  invariant(
+    normativeCount === 1,
+    `${label} publica ${normativeCount} cenários normativos, e o contrato regional exige `
+    + 'exatamente um.',
+  )
+
+  invariant(
+    Array.isArray(candidate.normativeCriteria) && candidate.normativeCriteria.length > 0,
+    `${label}.normativeCriteria deve trazer ao menos um critério — há um cenário normativo.`,
+  )
+  const criterionOrders = new Set()
+  candidate.normativeCriteria.forEach((criterion, index) => {
+    const criterionLabel = `${label}.normativeCriteria[${index}]`
+    validateNormativeCriterion(criterion, criterionLabel)
+    invariant(
+      !criterionOrders.has(criterion.order),
+      `${criterionLabel}.order repetido: ${criterion.order}.`,
+    )
+    criterionOrders.add(criterion.order)
+  })
+
+  validateTextList(candidate.realizationConditions, `${label}.realizationConditions`)
+  validateTextList(candidate.robustImplications, `${label}.robustImplications`)
+  validateProhibitedClaim(candidate.prohibitedClaim, `${label}.prohibitedClaim`)
+  return candidate
+}
+
+/*
+ * O Bloco 4 existe nas dez regiões. Nas oito sem cenário, ele existe **dizendo
+ * que não há cenário** — e é o contrato, não a página, que garante isso.
+ *
+ * As duas implicações são conferidas nos dois sentidos de propósito. Conferir
+ * só uma delas deixaria passar o par que mais engana: `status` dizendo ausente
+ * com bloco preenchido logo abaixo, que a página renderizaria como cenário
+ * publicado enquanto o manifesto contaria zero.
+ */
+function validateScenarios(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, SCENARIOS_FIELDS, label)
+  invariant(
+    candidate.label === SCENARIO_FRAMING.label,
+    `${label}.label não é o rótulo declarado para o Bloco 4.`,
+  )
+  invariant(
+    SCENARIO_BLOCK_STATUSES.includes(candidate.status),
+    `${label}.status fora do contrato: ${candidate.status}.`,
+  )
+  /* A descrição é a do estado, e só a do estado: a de quem publica cenários
+   * numa região sem cenários seria uma promessa de quatro cenários que a
+   * página não tem, e a inversa seria a negação do que ela mostra. */
+  const expectedDescription = candidate.status === 'published'
+    ? SCENARIO_FRAMING.publishedDescription
+    : SCENARIO_FRAMING.absentDescription
+  invariant(
+    candidate.description === expectedDescription,
+    `${label}.description não é a descrição declarada para o estado "${candidate.status}".`,
+  )
+
+  if (candidate.status === 'absent') {
+    invariant(
+      candidate.absenceStatement === SCENARIO_FRAMING.absenceStatement,
+      `${label}.absenceStatement não é a frase de ausência declarada pelo contrato.`,
+    )
+    invariant(
+      candidate.block === null,
+      `${label} declara ausência de cenários e traz bloco de cenários.`,
+    )
+    /*
+     * A nota de estatuto explica a diferença entre três cenários exploratórios
+     * e um normativo. Numa região sem cenário nenhum ela não é só inútil: é
+     * falsa, porque promete ao leitor quatro cenários que a página não tem. Por
+     * isso ela é `null` aqui, e o contrato recusa a região que a traga assim
+     * mesmo.
+     */
+    invariant(
+      candidate.statuteReadingNote === null,
+      `${label} declara ausência de cenários e traz a nota de estatuto, que fala de quatro `
+      + 'cenários que esta região não publica.',
+    )
+    return candidate
+  }
+
+  invariant(
+    candidate.absenceStatement === null,
+    `${label} publica cenários e traz frase de ausência.`,
+  )
+  invariant(
+    candidate.statuteReadingNote === SCENARIO_FRAMING.statuteReadingNote,
+    `${label}.statuteReadingNote não é a nota de estatuto declarada pelo contrato.`,
+  )
+  invariant(candidate.block !== null, `${label} declara cenários publicados e não traz o bloco.`)
+  validateScenarioBlock(candidate.block, `${label}.block`, seriesById, referenceYear)
+  return candidate
+}
+
 /*
  * O validador nasce do manifesto: é ele que declara a versão de origem, o
  * escopo de publicação e o ano de referência que o pacote precisa repetir.
@@ -751,6 +1365,9 @@ export function createVocacoesDocumentParser({
       pairIds.add(pair.pairId)
     })
 
+    /* Bloco 4 — cenários da região, publicados ou declaradamente ausentes. */
+    validateScenarios(candidate.scenarios, 'pacote.scenarios', seriesById, referenceYear)
+
     validateExactFields(candidate.sources, TEXT_BLOCK_FIELDS, 'pacote.sources')
     validateText(candidate.sources.label, 'pacote.sources.label')
     validateText(candidate.sources.description, 'pacote.sources.description')
@@ -781,6 +1398,31 @@ export function createVocacoesDocumentParser({
         && SHA256_PATTERN.test(candidate.provenance.registrySha256),
       'pacote.provenance.registrySha256 deve ser sha256.',
     )
+    /*
+     * Os dois resumos do cenário existem juntos ou não existem: um documento
+     * que nomeia o pacote de cenários e não nomeia a origem dele prova metade
+     * da cadeia, e metade de uma cadeia de procedência não é procedência.
+     */
+    const scenarioHashes = [
+      candidate.provenance.scenarioPackageSha256,
+      candidate.provenance.scenarioSourceSha256,
+    ]
+    const publishesScenarios = candidate.scenarios.status === 'published'
+    scenarioHashes.forEach((value, index) => {
+      const name = index === 0 ? 'scenarioPackageSha256' : 'scenarioSourceSha256'
+      if (publishesScenarios) {
+        invariant(
+          typeof value === 'string' && SHA256_PATTERN.test(value),
+          `pacote.provenance.${name} deve ser sha256 num documento que publica cenários.`,
+        )
+      } else {
+        invariant(
+          value === null,
+          `pacote.provenance.${name} não pode existir num documento sem cenários.`,
+        )
+      }
+    })
+
     validateText(candidate.provenance.sourceContractVersion, 'pacote.provenance.sourceContractVersion')
     validateText(candidate.provenance.sourceBuilderVersion, 'pacote.provenance.sourceBuilderVersion')
     invariant(

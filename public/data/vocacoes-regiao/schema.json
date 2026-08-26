@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://painel.pne/data/vocacoes-regiao/schema.json",
+  "title": "Vocações da Região — contrato público",
+  "description": "Projeção pública do retrato regional, da leitura entre educação e território, das transformações simultâneas e dos cenários da região. Contém apenas os campos que a interface renderiza.",
+  "documentSchemaVersion": "vocacoes-regiao-2.1.0",
+  "manifestSchemaVersion": "vocacoes-regiao-manifest-v2",
+  "publicationScope": "estadual",
+  "referenceYear": 2026,
+  "blocks": [
+    "retrato-e-transformacoes-do-territorio",
+    "educacao-e-territorio-lado-a-lado",
+    "transformacoes-simultaneas",
+    "cenarios-da-regiao"
+  ],
+  "scenarioStatutes": {
+    "exploratory": "Cenário exploratório: descreve uma configuração possível do território, sem preferência declarada entre ela e as outras, e sem probabilidade atribuída.",
+    "normative": "Cenário normativo: descreve um ideal técnico provisório, e não uma configuração prevista. Não é previsão, não é compromisso e não foi pactuado com ninguém."
+  },
+  "scenarioCoverage": {
+    "regionsWithScenarios": [
+      "noroeste",
+      "vale-do-rio-pardo"
+    ],
+    "regionsWithoutScenarios": [
+      "central",
+      "encosta-da-serra",
+      "metropolitana",
+      "norte",
+      "serra",
+      "sul",
+      "vale-do-sinos",
+      "vale-do-taquari"
+    ],
+    "scenariosPerRegion": 4,
+    "absenceIsDeclared": true
+  },
+  "rules": [
+    "Somente as regiões listadas no manifesto têm documento publicado.",
+    "Nenhum identificador interno, enum de processo ou resumo criptográfico aparece em texto renderizado.",
+    "Nenhuma leitura desta família afirma causa. Cada uma declara, ela mesma, a interpretação que permite e a que proíbe.",
+    "Nenhum valor numérico é atribuído a ano posterior ao ano de referência. O horizonte dos cenários é declarado como horizonte, e nenhuma quantidade é atribuída a ele.",
+    "Os quatro cenários de uma região não têm o mesmo peso: três são exploratórios e um é normativo, e o estatuto de cada um é campo obrigatório do documento.",
+    "O cenário normativo descreve um ideal técnico provisório. Não é previsão, não é compromisso e não foi pactuado.",
+    "Todo valor citado por um cenário é reconferido contra a série publicada no mesmo documento, no mesmo ano.",
+    "Região sem cenários publica o bloco declarando a ausência, com a frase que o leitor lê — nunca um bloco vazio."
+  ],
+  "distinctFrom": {
+    "family": "foresight-educacao",
+    "ruleThatDoesNotApplyHere": "Os quatro cenários têm o mesmo peso: não há ordem, pontuação ou probabilidade.",
+    "note": "A regra acima é da família dos cenários municipais e continua valendo lá, intacta. Ela não vale nesta família: as duas usam metodologias diferentes, e a desta declara um cenário normativo entre os quatro. Quem lê as duas divisões do painel precisa que a diferença esteja escrita, e não subentendida."
+  }
+}
