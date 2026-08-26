@@ -51,6 +51,15 @@ const parseDocument = createVocacoesDocumentParser({
 })
 
 const KIND_LABELS = Object.values(SYNTHESIS_KIND_LABELS)
+const ABSENCE_REASON_CODES = [
+  'sem_intervalos_comparaveis',
+  'janela_curta',
+  'variancia_nula',
+  'variacao_nula',
+  'contraste_sem_regioes_comparaveis',
+  'defasagem_sem_janela_suficiente',
+  'serie_ausente',
+]
 
 test('as dez regiões publicam síntese 2.6.0 sha-verificada e válida', () => {
   assert.equal(manifest.documentSchemaVersion, 'vocacoes-regiao-2.6.0')
@@ -161,3 +170,95 @@ test('o SSR mantém toda a síntese no markup, com nav, destaques e sem enum int
   assert.ok(render(documents['vale-do-rio-pardo']).includes('O que vale em qualquer cenário'))
 })
 
+function cardContaining(markup, marker, context) {
+  const markerPosition = markup.indexOf(marker)
+  assert.ok(markerPosition >= 0, `${context}: marcador do cartão no SSR`)
+  const cardStart = markup.lastIndexOf('<article class="vocacoes-card', markerPosition)
+  const cardEnd = markup.indexOf('</article>', markerPosition)
+  assert.ok(cardStart >= 0 && cardEnd > markerPosition, `${context}: limites do cartão no SSR`)
+  return markup.slice(cardStart, cardEnd + '</article>'.length)
+}
+
+function assertMethodologicalClaim(card, claim, context) {
+  const claimPosition = card.indexOf(claim)
+  const detailsStart = card.lastIndexOf('<details', claimPosition)
+  const summaryPosition = card.lastIndexOf(
+    'Nota metodológica — o que não se conclui',
+    claimPosition,
+  )
+  const detailsEnd = card.indexOf('</details>', claimPosition)
+  assert.ok(
+    claimPosition >= 0
+      && detailsStart >= 0
+      && summaryPosition > detailsStart
+      && summaryPosition < claimPosition
+      && detailsEnd > claimPosition,
+    `${context}: prohibitedClaim dentro da nota metodológica`,
+  )
+}
+
+test('a leitura quantificada lidera e a negação fecha o cartão', () => {
+  for (const [slug, document] of Object.entries(documents)) {
+    const markup = render(document)
+    const association = document.associations.items.find((item) =>
+      item.associativeReading.factorReadings.some((reading) =>
+        Object.prototype.hasOwnProperty.call(reading.correlation, 'statement')))
+    assert.ok(association, `${slug}: associação com correlação declarada`)
+    const factorReading = association.associativeReading.factorReadings.find((reading) =>
+      Object.prototype.hasOwnProperty.call(reading.correlation, 'statement'))
+    const associationCard = cardContaining(
+      markup,
+      association.observedStatement,
+      `${slug}: primeira associação quantificada`,
+    )
+    const correlationPosition = associationCard.indexOf(factorReading.correlation.statement)
+    const supportLabelStart = associationCard.indexOf('vocacoes-support__label')
+    const supportLabelPosition = associationCard.indexOf(
+      association.educationOutcome.label,
+      supportLabelStart,
+    )
+    const prohibitedPosition = associationCard.indexOf(association.prohibitedClaim)
+    assert.ok(
+      correlationPosition >= 0
+        && correlationPosition < supportLabelPosition
+        && correlationPosition < prohibitedPosition,
+      `${slug}: correlação antes da sustentação e da negação`,
+    )
+
+    for (const item of document.associations.items) {
+      const card = cardContaining(markup, item.observedStatement, `${slug}: ${item.associationId}`)
+      assertMethodologicalClaim(card, item.prohibitedClaim, `${slug}: ${item.associationId}`)
+    }
+    for (const pair of document.temporalPairs.items) {
+      const card = cardContaining(markup, pair.observedStatement, `${slug}: ${pair.pairId}`)
+      assertMethodologicalClaim(card, pair.prohibitedClaim, `${slug}: ${pair.pairId}`)
+    }
+
+    const scenarioBlock = document.scenarios.block
+    const expectedMethodologicalNotes = document.associations.items.length
+      + document.temporalPairs.items.length
+      + (scenarioBlock === null
+        ? 0
+        : scenarioBlock.items.length
+          + 1
+          + scenarioBlock.municipalLayer.municipalities[0].scenarioExposure.length)
+    const methodologicalNotes = markup.match(/Nota metodológica — o que não se conclui/gu) ?? []
+    assert.equal(
+      methodologicalNotes.length,
+      expectedMethodologicalNotes,
+      `${slug}: contagem precisa das notas metodológicas`,
+    )
+
+    for (const reasonCode of ABSENCE_REASON_CODES) {
+      assert.ok(!markup.includes(reasonCode), `${slug}: enum ${reasonCode} fora do markup`)
+    }
+    assert.ok(markup.includes(document.screenedRelations.label), `${slug}: seção de triagem`)
+    for (const relation of document.screenedRelations.items) {
+      assert.ok(markup.includes(relation.originStatement), `${slug}: origem ${relation.relationId}`)
+    }
+    for (const item of document.temporalPairs.laggedItems) {
+      assert.ok(markup.includes(item.statement), `${slug}: leitura defasada`)
+    }
+    assert.ok(markup.includes('href="#vocacoes-triagem"'), `${slug}: triagem na nav`)
+  }
+})

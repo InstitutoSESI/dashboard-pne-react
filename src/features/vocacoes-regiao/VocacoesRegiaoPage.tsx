@@ -6,16 +6,20 @@ import { ACTIVE_STATE_CONFIG } from '../../config/stateConfig'
 import { useVocacoesRegiao } from '../../hooks/useVocacoesRegiao'
 import type {
   VocacoesAssociation,
+  VocacoesAssociationReading,
+  VocacoesAssociativeReasonCode,
   VocacoesDocument,
   VocacoesMunicipalLayer,
   VocacoesScenario,
   VocacoesScenarioBlock,
   VocacoesScenarios,
+  VocacoesScreenedRelations,
   VocacoesSeries,
   VocacoesSeriesReference,
   VocacoesSynthesis,
   VocacoesSynthesisItem,
   VocacoesTemporalPair,
+  VocacoesTemporalReading,
   VocacoesWindow,
 } from './vocacoesRegiaoTypes'
 import { buildSparklineModel } from '../../utils/sparkline'
@@ -53,6 +57,20 @@ const decimalFormatter = new Intl.NumberFormat(ACTIVE_STATE_CONFIG.locale, {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
 })
+
+const ABSENCE_STATEMENTS: Readonly<Record<VocacoesAssociativeReasonCode, string>> = Object.freeze({
+  sem_intervalos_comparaveis: 'Sem intervalos anuais comparáveis entre as duas séries nesta janela.',
+  janela_curta: 'A janela comum entre as duas séries é curta demais para esta leitura.',
+  variancia_nula: 'Uma das séries quase não varia nesta janela, e a leitura não se computa.',
+  variacao_nula: 'Uma das séries terminou a janela onde começou, e a leitura de co-movimento não se computa.',
+  contraste_sem_regioes_comparaveis: 'Não há regiões comparáveis para posicionar esta região no estado.',
+  defasagem_sem_janela_suficiente: 'A janela disponível não comporta a defasagem declarada.',
+  serie_ausente: 'Uma das séries desta leitura não está disponível no pacote publicado.',
+})
+
+type VocacoesAssociativeBlock =
+  | { readonly statement: string }
+  | { readonly reasonCode: VocacoesAssociativeReasonCode }
 
 function formatValue(value: number): string {
   return Number.isInteger(value) ? integerFormatter.format(value) : decimalFormatter.format(value)
@@ -304,7 +322,9 @@ function SupportingSeries({
 function ProhibitedClaim({ claim }: { claim: string }) {
   return (
     <details className="vocacoes-prohibited">
-      <summary className="vocacoes-prohibited__mark">O que não se conclui</summary>
+      <summary className="vocacoes-prohibited__mark">
+        Nota metodológica — o que não se conclui
+      </summary>
       <p>{claim}</p>
     </details>
   )
@@ -395,6 +415,73 @@ function scrollToPageSection(
   document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+function AssociativeStatement({ block }: { block: VocacoesAssociativeBlock }) {
+  const isAbsence = 'reasonCode' in block
+  return (
+    <p
+      className={`vocacoes-associative-reading__statement${
+        isAbsence ? ' vocacoes-associative-reading__absence' : ''
+      }`}
+    >
+      {isAbsence ? ABSENCE_STATEMENTS[block.reasonCode] : block.statement}
+    </p>
+  )
+}
+
+function AssociationReadingPanel({
+  allowedInterpretation,
+  reading,
+}: {
+  allowedInterpretation: string
+  reading: VocacoesAssociationReading
+}) {
+  return (
+    <div aria-label="Leitura quantificada" className="vocacoes-associative-reading">
+      <div className="vocacoes-associative-reading__statements">
+        {reading.factorReadings.map((factorReading) => (
+          <div
+            className="vocacoes-associative-reading__factor"
+            key={`${factorReading.outcomeSeriesId}:${factorReading.factorSeriesId}`}
+          >
+            <AssociativeStatement block={factorReading.correlation} />
+            <AssociativeStatement block={factorReading.directionConcordance} />
+            <AssociativeStatement block={factorReading.comovement} />
+          </div>
+        ))}
+        <AssociativeStatement block={reading.stateContrast} />
+      </div>
+
+      <p className="vocacoes-allowed">
+        <span className="vocacoes-allowed__mark">O que se pode ler</span>
+        {allowedInterpretation}
+      </p>
+
+      <details className="vocacoes-reading-detail vocacoes-associative-reading__method">
+        <summary>Como esta leitura foi computada</summary>
+        <p>{reading.methodNote}</p>
+      </details>
+    </div>
+  )
+}
+
+function TemporalReadingPanel({ reading }: { reading: VocacoesTemporalReading }) {
+  return (
+    <div aria-label="Leitura quantificada" className="vocacoes-associative-reading">
+      <div className="vocacoes-associative-reading__statements">
+        <AssociativeStatement block={reading.directionConcordance} />
+        <AssociativeStatement block={reading.comovement} />
+        <AssociativeStatement block={reading.correlation} />
+        <AssociativeStatement block={reading.stateContrast} />
+      </div>
+
+      <details className="vocacoes-reading-detail vocacoes-associative-reading__method">
+        <summary>Como esta leitura foi computada</summary>
+        <p>{reading.methodNote}</p>
+      </details>
+    </div>
+  )
+}
+
 function AssociationCard({
   association,
   conclusion,
@@ -415,6 +502,11 @@ function AssociationCard({
       </header>
 
       <ConclusionVerdict item={conclusion} />
+
+      <AssociationReadingPanel
+        allowedInterpretation={association.allowedInterpretation}
+        reading={association.associativeReading}
+      />
 
       <div className="vocacoes-supports">
         <SupportingSeries
@@ -439,20 +531,18 @@ function AssociationCard({
         <p className="vocacoes-card__statement">{association.observedStatement}</p>
       </details>
 
-      <p className="vocacoes-allowed">
-        <span className="vocacoes-allowed__mark">O que se pode ler</span>
-        {association.allowedInterpretation}
-      </p>
-      <ProhibitedClaim claim={association.prohibitedClaim} />
-
-      <details className="vocacoes-reading-detail">
-        <summary>Hipóteses a verificar com dado local</summary>
+      <div className="vocacoes-hypotheses">
+        <h4 className="vocacoes-subtitle">
+          Hipóteses explicativas — a verificar com dado local
+        </h4>
         <ul className="vocacoes-list">
           {association.hypotheses.map((hypothesis) => (
             <li key={hypothesis}>{hypothesis}</li>
           ))}
         </ul>
-      </details>
+      </div>
+
+      <ProhibitedClaim claim={association.prohibitedClaim} />
     </article>
   )
 }
@@ -474,6 +564,8 @@ function TemporalPairCard({
       </header>
 
       <ConclusionVerdict item={conclusion} />
+
+      <TemporalReadingPanel reading={pair.associativeReading} />
 
       <div className="vocacoes-supports">
         <SupportingSeries reference={pair.seriesA} role="Primeira série" series={series} window={pair.window} />
@@ -570,6 +662,87 @@ function ScenarioComparison({ scenarios }: { scenarios: readonly VocacoesScenari
         </a>
       ))}
     </div>
+  )
+}
+
+function LaggedReadings({
+  items,
+}: {
+  items: VocacoesDocument['temporalPairs']['laggedItems']
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="vocacoes-lagged-readings">
+      <h3 className="vocacoes-subtitle">Leituras com defasagem declarada</h3>
+      <div className="vocacoes-lagged-readings__items">
+        {items.map((item) => (
+          <article
+            className="vocacoes-lagged-reading"
+            key={`${item.aSeriesId}:${item.bSeriesId}:${item.lagYears}`}
+          >
+            <p>{item.statement}</p>
+            {'rationale' in item ? (
+              <details className="vocacoes-reading-detail">
+                <summary>Por que esta defasagem</summary>
+                <p>{item.rationale}</p>
+              </details>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ScreenedRelationsPanel({
+  screenedRelations,
+  series,
+}: {
+  screenedRelations: VocacoesScreenedRelations
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  return (
+    <section aria-labelledby="vocacoes-triagem" className="vocacoes-panel">
+      <div className="vocacoes-panel__head">
+        <h2 className="vocacoes-panel__title" id="vocacoes-triagem">
+          {screenedRelations.label}
+        </h2>
+        <p className="vocacoes-panel__text">{screenedRelations.description}</p>
+      </div>
+
+      <div className="vocacoes-screened-relations">
+        {screenedRelations.items.map((relation) => (
+          <article className="vocacoes-screened-relation" key={relation.relationId}>
+            <header className="vocacoes-card__head">
+              <h3 className="vocacoes-card__title">
+                <span>{series.get(relation.seriesAId)?.label}</span>
+                {' · '}
+                <span>{series.get(relation.seriesBId)?.label}</span>
+              </h3>
+              <p className="vocacoes-card__period">
+                {`Janela: ${relation.window.start} a ${relation.window.end}`}
+              </p>
+            </header>
+
+            <div className="vocacoes-associative-reading__statements">
+              <AssociativeStatement block={relation.correlation} />
+              <AssociativeStatement block={relation.directionConcordance} />
+              <AssociativeStatement block={relation.comovement} />
+            </div>
+            <p className="vocacoes-screened-relation__origin">{relation.originStatement}</p>
+          </article>
+        ))}
+      </div>
+
+      <details className="vocacoes-reading-detail vocacoes-screened-relations__method">
+        <summary>Como a triagem funciona</summary>
+        <p>{screenedRelations.methodNote}</p>
+        <p>
+          {`Critérios fixos: correlação absoluta mínima de ${formatValue(screenedRelations.criteria.minAbsPearson)}, pelo menos ${formatValue(screenedRelations.criteria.minIntervals)} intervalos anuais, no máximo ${formatValue(screenedRelations.criteria.maxItems)} relações por região.`}
+        </p>
+      </details>
+    </section>
   )
 }
 
@@ -1004,13 +1177,22 @@ function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
       ids.add(pair.seriesA.seriesId)
       ids.add(pair.seriesB.seriesId)
     }
+    for (const relation of document.screenedRelations.items) {
+      ids.add(relation.seriesAId)
+      ids.add(relation.seriesBId)
+    }
     if (document.scenarios.block !== null) {
       for (const scenario of document.scenarios.block.items) {
         for (const anchor of scenario.anchors) ids.add(anchor.seriesId)
       }
     }
     return ids
-  }, [document.associations.items, document.scenarios.block, document.temporalPairs.items])
+  }, [
+    document.associations.items,
+    document.scenarios.block,
+    document.screenedRelations.items,
+    document.temporalPairs.items,
+  ])
   const seriesInUse = useMemo(
     () => document.territoryPortrait.series.filter((serie) => seriesInUseIds.has(serie.seriesId)),
     [document.territoryPortrait.series, seriesInUseIds],
@@ -1108,8 +1290,9 @@ function PageSectionNav({ hasMunicipalLayer }: { hasMunicipalLayer: boolean }) {
   const items = [
     { id: 'vocacoes-conclusoes', label: 'Conclusões' },
     { id: 'vocacoes-retrato', label: 'Retrato' },
-    { id: 'vocacoes-associacoes', label: 'Lado a lado' },
+    { id: 'vocacoes-associacoes', label: 'Território e educação' },
     { id: 'vocacoes-pares', label: 'Simultâneas' },
+    { id: 'vocacoes-triagem', label: 'Triagem' },
     { id: 'vocacoes-cenarios', label: 'Cenários' },
     ...(hasMunicipalLayer ? [{ id: 'vocacoes-municipios', label: 'Municípios' }] : []),
     { id: 'vocacoes-fontes', label: 'Fontes' },
@@ -1223,7 +1406,13 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
             />
           ))}
         </div>
+        <LaggedReadings items={document.temporalPairs.laggedItems} />
       </section>
+
+      <ScreenedRelationsPanel
+        screenedRelations={document.screenedRelations}
+        series={seriesById}
+      />
 
       <ScenariosPanel
         conclusions={crossScenarioConclusions}

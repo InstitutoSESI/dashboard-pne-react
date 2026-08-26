@@ -447,9 +447,8 @@
 }
 
 /*
- * As duas caixas de interpretação são a espinha do produto: a leitura permitida
- * e a proibição andam juntas, e a folha não deixa uma parecer mais importante
- * que a outra — mesma caixa, mesmo peso, marcadores diferentes.
+ * A leitura permitida recebe destaque; a proibição fecha o bloco como nota
+ * metodológica discreta.
  */
 .vocacoes-allowed,
 .vocacoes-prohibited {
@@ -672,6 +671,7 @@
 #vocacoes-retrato,
 #vocacoes-associacoes,
 #vocacoes-pares,
+#vocacoes-triagem,
 #vocacoes-cenarios,
 #vocacoes-municipios,
 #vocacoes-fontes,
@@ -803,6 +803,98 @@
   max-width: 78ch;
 }
 
+.vocacoes-associative-reading {
+  background: var(--surface-muted, transparent);
+  border: 1px solid var(--border-strong, var(--border-card));
+  border-radius: var(--radius-sm, 4px);
+  display: grid;
+  gap: var(--space-2);
+  max-width: 78ch;
+  padding: var(--space-3);
+}
+
+.vocacoes-associative-reading__statements,
+.vocacoes-associative-reading__factor {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vocacoes-associative-reading__factor + .vocacoes-associative-reading__factor {
+  border-top: 1px solid var(--border-card);
+  padding-top: var(--space-2);
+}
+
+.vocacoes-associative-reading__statement {
+  color: var(--text-strong);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+}
+
+.vocacoes-associative-reading__absence {
+  border-left: 2px solid var(--border-card);
+  color: var(--text-muted);
+  font-size: var(--type-micro-size);
+  padding-left: var(--space-2);
+}
+
+.vocacoes-associative-reading .vocacoes-allowed {
+  background: var(--surface-card);
+  max-width: none;
+}
+
+.vocacoes-associative-reading__method {
+  background: var(--surface-card);
+  max-width: none;
+}
+
+.vocacoes-hypotheses {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vocacoes-lagged-readings,
+.vocacoes-lagged-readings__items {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.vocacoes-lagged-readings {
+  border-top: 1px solid var(--border-card);
+  padding-top: var(--space-3);
+}
+
+.vocacoes-lagged-reading,
+.vocacoes-screened-relation {
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm, 4px);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.vocacoes-lagged-reading > p,
+.vocacoes-screened-relation__origin {
+  color: var(--text-body);
+  font-size: var(--type-support-size);
+  line-height: var(--type-support-line-height);
+  margin: 0;
+}
+
+.vocacoes-screened-relations {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.vocacoes-screened-relation__origin {
+  border-top: 1px solid var(--border-card);
+  padding-top: var(--space-2);
+}
+
+.vocacoes-screened-relations__method {
+  max-width: 78ch;
+}
+
 .vocacoes-supports {
   gap: var(--space-2);
   grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
@@ -866,8 +958,10 @@
 
 .vocacoes-prohibited {
   background: transparent;
-  border: 1px dashed var(--border-strong, var(--border-card));
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
   display: block;
+  font-size: var(--type-micro-size);
 }
 
 .vocacoes-reading-detail > summary,
@@ -908,8 +1002,10 @@
 }
 
 .vocacoes-prohibited__mark {
-  color: var(--text-strong);
-  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .vocacoes-allowed {

@@ -28,6 +28,7 @@ const MAX_READINGS = 4
 export interface MatrizTerritorialReading {
   readonly title: string
   readonly factors: string
+  readonly reading: string | null
 }
 
 export interface MatrizTerritorialContext {
@@ -72,10 +73,25 @@ export function buildMatrizTerritorialContext(
   document: VocacoesDocument,
   municipalityId: string,
 ): MatrizTerritorialContext {
-  const readings = document.associations.items.slice(0, MAX_READINGS).map((association) => ({
-    title: association.educationOutcome.label,
-    factors: association.territorialFactors.map((factor) => factor.label).join(' · '),
-  }))
+  const readings = document.associations.items.slice(0, MAX_READINGS).map((association) => {
+    const factorReading = association.associativeReading.factorReadings[0]
+    const readingCandidates = factorReading
+      ? [
+          factorReading.correlation,
+          factorReading.directionConcordance,
+          factorReading.comovement,
+        ]
+      : []
+    const selectedReading = readingCandidates.find((candidate) => !('reasonCode' in candidate))
+
+    return {
+      title: association.educationOutcome.label,
+      factors: association.territorialFactors.map((factor) => factor.label).join(' · '),
+      reading: selectedReading && !('reasonCode' in selectedReading)
+        ? selectedReading.statement
+        : null,
+    }
+  })
 
   return {
     regionName: document.region.name,

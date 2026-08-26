@@ -151,16 +151,42 @@ const {
 } = await vite.ssrLoadModule('/src/features/matriz/matrizTerritorialContext.ts')
 const { LoadedMatrizPage } = await vite.ssrLoadModule('/src/features/matriz/MatrizPage.tsx')
 
-const regionDocument = JSON.parse(
-  await read('public/data/vocacoes-regiao/regioes/vale-do-rio-pardo.json'),
+const valeDoSinosDocument = JSON.parse(
+  await read('public/data/vocacoes-regiao/regioes/vale-do-sinos.json'),
 )
-const matriz = JSON.parse(
+const novaSantaRitaMatriz = JSON.parse(
   await read('public/data/pne2026-matriz/municipios/4313375.json'),
 )
+const territorialReadingSummary = 'Nota metodológica — o que estas leituras não dizem'
+
+function expectedFirstAssociationReading(document) {
+  const firstFactorReading = document.associations.items[0]?.associativeReading.factorReadings[0]
+  assert.ok(firstFactorReading, 'a primeira associação precisa ter ao menos uma leitura de fator')
+
+  const selectedReading = [
+    firstFactorReading.correlation,
+    firstFactorReading.directionConcordance,
+    firstFactorReading.comovement,
+  ].find((candidate) => !Object.hasOwn(candidate, 'reasonCode'))
+  assert.ok(selectedReading, 'a primeira associação precisa ter um statement presente')
+  return selectedReading.statement
+}
+
+function withFirstFactorReadings(overrides) {
+  const document = structuredClone(valeDoSinosDocument)
+  Object.assign(document.associations.items[0].associativeReading.factorReadings[0], overrides)
+  return document
+}
 
 test('a moldura do bloco territorial passa a guarda do bloco ponte', () => {
-  const intro = buildTerritorialIntro(regionDocument.region.name, regionDocument.region.municipalityCount)
+  const intro = buildTerritorialIntro(
+    valeDoSinosDocument.region.name,
+    valeDoSinosDocument.region.municipalityCount,
+  )
+  const reading = expectedFirstAssociationReading(valeDoSinosDocument)
   assert.doesNotThrow(() => guard.checkBridgeText(intro, 'territorial.intro'))
+  assert.doesNotThrow(() => guard.checkBridgeText(reading, 'territorial.reading'))
+  assert.doesNotThrow(() => guard.checkBridgeText(territorialReadingSummary, 'territorial.summary'))
   assert.doesNotThrow(() => guard.checkBridgeText(TERRITORIAL_READING_NOTE, 'territorial.note'))
 
   /* A ressalva nega a causalidade município←região, e a negação honesta precisa
@@ -175,20 +201,76 @@ test('a moldura do bloco territorial passa a guarda do bloco ponte', () => {
 const render = (props) => renderToStaticMarkup(createElement(LoadedMatrizPage, props))
 
 test('a matriz mostra o bloco territorial quando há pacote regional', () => {
-  const territorialContext = buildMatrizTerritorialContext(regionDocument, matriz.municipality.ibge7)
-  const markup = render({ matriz, territorialContext })
+  const territorialContext = buildMatrizTerritorialContext(
+    valeDoSinosDocument,
+    novaSantaRitaMatriz.municipality.ibge7,
+  )
+  const markup = render({ matriz: novaSantaRitaMatriz, territorialContext })
+  const firstReading = expectedFirstAssociationReading(valeDoSinosDocument)
 
   assert.ok(markup.includes('Contexto territorial da região'))
-  assert.ok(markup.includes(regionDocument.region.name))
+  assert.ok(markup.includes(valeDoSinosDocument.region.name))
   assert.ok(markup.includes('matriz-territorio'))
   /* A leitura honesta aparece; a proibida (causalidade) não é o que o bloco diz. */
   assert.ok(markup.includes('A região do município'))
+  assert.equal(territorialContext.readings[0]?.reading, firstReading)
+  assert.ok(markup.includes(firstReading))
+  assert.ok(markup.indexOf(firstReading) < markup.indexOf(TERRITORIAL_READING_NOTE))
+  assert.ok(markup.includes(`<summary>${territorialReadingSummary}</summary>`))
+
+  const noteIndex = markup.indexOf(TERRITORIAL_READING_NOTE)
+  const detailsStart = markup.lastIndexOf('<details', noteIndex)
+  const detailsEnd = markup.indexOf('</details>', noteIndex)
+  assert.ok(detailsStart >= 0 && detailsStart < noteIndex && noteIndex < detailsEnd)
+  assert.ok(markup.includes(
+    `<p class="matriz-territorio__note">${TERRITORIAL_READING_NOTE}</p>`,
+  ))
+
+  assert.ok(!markup.includes('reasonCode'))
   /* O link leva à página regional do mesmo município. */
-  assert.ok(markup.includes(`municipio=${matriz.municipality.ibge7}`))
+  assert.ok(markup.includes(`municipio=${novaSantaRitaMatriz.municipality.ibge7}`))
+})
+
+test('a leitura territorial segue correlation, directionConcordance, comovement e null', () => {
+  const factorReading = valeDoSinosDocument.associations.items[0].associativeReading.factorReadings[0]
+  const absence = { reasonCode: 'janela_curta' }
+
+  const correlationContext = buildMatrizTerritorialContext(
+    valeDoSinosDocument,
+    novaSantaRitaMatriz.municipality.ibge7,
+  )
+  assert.equal(correlationContext.readings[0].reading, factorReading.correlation.statement)
+
+  const directionContext = buildMatrizTerritorialContext(
+    withFirstFactorReadings({ correlation: absence }),
+    novaSantaRitaMatriz.municipality.ibge7,
+  )
+  assert.equal(directionContext.readings[0].reading, factorReading.directionConcordance.statement)
+
+  const comovementContext = buildMatrizTerritorialContext(
+    withFirstFactorReadings({ correlation: absence, directionConcordance: absence }),
+    novaSantaRitaMatriz.municipality.ibge7,
+  )
+  assert.equal(comovementContext.readings[0].reading, factorReading.comovement.statement)
+
+  const noReadingContext = buildMatrizTerritorialContext(
+    withFirstFactorReadings({
+      correlation: absence,
+      directionConcordance: absence,
+      comovement: absence,
+    }),
+    novaSantaRitaMatriz.municipality.ibge7,
+  )
+  assert.equal(noReadingContext.readings[0].reading, null)
+
+  const markup = render({ matriz: novaSantaRitaMatriz, territorialContext: noReadingContext })
+  assert.ok(markup.includes(noReadingContext.readings[0].title))
+  assert.ok(markup.includes(noReadingContext.readings[0].factors))
+  assert.ok(!markup.includes(absence.reasonCode))
 })
 
 test('sem pacote regional, o bloco territorial some — a página não quebra', () => {
-  const markup = render({ matriz })
+  const markup = render({ matriz: novaSantaRitaMatriz })
   assert.ok(!markup.includes('Contexto territorial da região'))
   assert.ok(!markup.includes('matriz-territorio'))
   /* O resto da matriz continua no ar. */

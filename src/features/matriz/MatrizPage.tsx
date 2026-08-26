@@ -375,16 +375,23 @@ function MatrizTerritorialContextBlock({
       </header>
       <ul className="matriz-territorio__list">
         {territorialContext.readings.map((reading) => (
-          <li key={reading.title}>
+          <li
+            className={reading.reading ? 'matriz-territorio__item matriz-territorio__item--with-reading' : 'matriz-territorio__item'}
+            key={reading.title}
+          >
+            {reading.reading ? <p className="matriz-territorio__reading">{reading.reading}</p> : null}
             <strong>{reading.title}</strong>
             {reading.factors ? <span>{reading.factors}</span> : null}
           </li>
         ))}
       </ul>
-      <p className="matriz-territorio__note">{territorialContext.readingNote}</p>
       <a className="matriz-territorio__link" href={territorialContext.link.href}>
         {territorialContext.link.label}
       </a>
+      <details className="matriz-territorio__method">
+        <summary>Nota metodológica — o que estas leituras não dizem</summary>
+        <p className="matriz-territorio__note">{territorialContext.readingNote}</p>
+      </details>
     </section>
   )
 }

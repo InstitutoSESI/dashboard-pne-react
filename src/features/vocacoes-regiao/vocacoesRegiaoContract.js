@@ -603,7 +603,7 @@ export const SCENARIO_BLOCK_STATUSES = Object.freeze(['published', 'absent'])
  * existe frase de ausência que afirme presença.
  */
 export const SCENARIO_FRAMING = Object.freeze({
-  label: 'Cenários da região',
+  label: 'O que o futuro do território exige da educação?',
   publishedDescription:
     'Quatro configurações possíveis para o território e para a educação dele no horizonte '
     + 'declarado, construídas a partir das mesmas séries que estão nesta página. Cada cenário '
@@ -621,8 +621,8 @@ export const SCENARIO_FRAMING = Object.freeze({
   absenceStatement:
     'Esta região ainda não tem cenários publicados. Os cenários regionais foram construídos, '
     + 'até aqui, para duas regiões do estado, e esta não é uma delas. O que está publicado '
-    + 'nesta página são os três blocos anteriores: o retrato do território, a leitura entre '
-    + 'educação e território, e as transformações simultâneas.',
+    + 'nesta página são os blocos anteriores: o retrato do território, a leitura entre educação '
+    + 'e território, as transformações simultâneas e as relações observadas por triagem.',
 })
 
 export const EVIDENCE_CLASSES = Object.freeze(Object.keys(EVIDENCE_CLASS_LABELS))
