@@ -19,7 +19,6 @@ import {
   resolveMunicipalityRouteRequest,
 } from '../domain/municipalityRouting'
 import { useMunicipioData } from '../hooks/useMunicipioData'
-import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
 import { isVocacoesPublished, useVocacoesPublication } from '../hooks/useVocacoesRegiao'
 import { resolveRegionForMunicipality } from '../config/regionsConfig'
 import { Home } from '../pages/Home'
@@ -32,7 +31,6 @@ import { isFinancialPage } from './appRoutes'
 import { EmptyMunicipioState } from './EmptyMunicipioState'
 import { PageLoadBoundary } from './PageLoadBoundary'
 
-const LazyForesightEducacaoPage = lazy(() => import('../features/foresight/ForesightEducacaoPage').then((module) => ({ default: module.ForesightEducacaoPage })))
 const LazyAnaliseRegionalPage = lazy(() => import('../features/regional/AnaliseRegionalPage').then((module) => ({ default: module.AnaliseRegionalPage })))
 const LazyVocacoesRegiaoPage = lazy(() => import('../features/vocacoes-regiao/VocacoesRegiaoPage').then((module) => ({ default: module.VocacoesRegiaoPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
@@ -127,21 +125,9 @@ export function AppPageRouter({
   )
 
   /*
-   * Cenários da educação: a disponibilidade vem do manifesto público, nunca de
-   * uma lista fixa aqui. Enquanto o manifesto não chega, a rota espera; quando
-   * chega e o município não está publicado, a navegação volta para o
-   * Diagnóstico municipal — a página municipal anterior — preservando o
-   * município pedido. Nenhuma página vazia é montada e nenhum dado de outro
-   * município é reaproveitado.
+   * O relatório técnico municipal tem uma rota legada que o roteador normaliza
+   * para a chave canônica, preservando o contexto pedido.
    */
-  const isForesightRoute = activePage === 'cenarios-educacao'
-  const foresightPublication = useForesightPublication()
-  const foresightAvailable = isForesightPublished(foresightPublication, effectiveMunicipalityId)
-  const foresightBlocked = isForesightRoute
-    && selectionReady
-    && foresightPublication.ready
-    && !foresightAvailable
-
   useEffect(() => {
     if (!isLegacyTechnicalReportRoute) return
     replaceHashContext('relatorio-tecnico-municipal', {
@@ -173,13 +159,6 @@ export function AppPageRouter({
       municipio: effectiveMunicipality?.slug ?? null,
     })
   }, [effectiveMunicipality?.slug, vocacoesBlocked])
-
-  useEffect(() => {
-    if (!foresightBlocked) return
-    replaceHashContext('diagnostico', {
-      municipio: effectiveMunicipality?.slug ?? null,
-    })
-  }, [effectiveMunicipality?.slug, foresightBlocked])
 
   useLayoutEffect(() => {
     if (!selectionReady || !shouldSyncMunicipalityUrl || isLegacyTechnicalReportRoute) {
@@ -271,21 +250,6 @@ export function AppPageRouter({
     return (
       <LazyPageBoundary page={activePage}>
         <LazyPneOverviewPage onNavigate={onNavigate} />
-      </LazyPageBoundary>
-    )
-  }
-
-  if (isForesightRoute) {
-    if (!foresightPublication.ready || foresightBlocked) {
-      return <LoadingState message="Preparando a leitura municipal..." />
-    }
-    return (
-      <LazyPageBoundary page={activePage}>
-        <LazyForesightEducacaoPage
-          key={effectiveMunicipalityId}
-          municipalityId={effectiveMunicipalityId}
-          selectedMunicipio={selectedMunicipio}
-        />
       </LazyPageBoundary>
     )
   }

@@ -41,7 +41,7 @@ export type NavGlyphName =
   | 'diagnostico'
   | 'matriz-prioridades'
   | 'relatorio-tecnico-municipal'
-  | 'cenarios-educacao'
+  | 'vocacoes-regiao'
   | 'analise-regional'
   | 'financeiros'
   | 'financeiros-panorama'
@@ -72,8 +72,8 @@ const GLYPH_ICONS: Record<NavGlyphName, LucideIcon> = {
   'matriz-prioridades': ListChecks,
   // Documento com barras -- o relatorio tecnico, a leitura longa em numeros.
   'relatorio-tecnico-municipal': FileChartColumn,
-  // Caminhos que se abrem a partir de um mesmo no -- as quatro leituras possiveis.
-  'cenarios-educacao': Waypoints,
+  // Caminhos que se abrem a partir de um mesmo no -- as vocacoes e cenarios da regiao.
+  'vocacoes-regiao': Waypoints,
   // Mapa com marcadores -- os municipios vizinhos que formam a regiao.
   'analise-regional': MapPinned,
   // Grade -- a visao geral, o quadro de todas as areas.

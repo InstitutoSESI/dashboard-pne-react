@@ -105,9 +105,6 @@ const ROUTE_CASES = [
   ['#metas-legais', 'pne-legal-goals'],
   ['#matriz-prioridades', 'matriz-prioridades'],
   ['#matrizprioridades', 'matriz-prioridades'],
-  ['#cenarios-da-educacao', 'cenarios-educacao'],
-  ['#cenarios-da-educacao?municipio=nova-santa-rita', 'cenarios-educacao'],
-  ['#cenarios-educacao', 'cenarios-educacao'],
   ['#pne2014', 'pne2014'],
   ['#pne2014?detalhe=alfabetizacao', 'pne2014'],
   ['#pne2024', 'pne2014'],
@@ -161,9 +158,6 @@ test('o registro preserva o mapa de hashes anterior e declara cada acréscimo', 
     pnelegalgoals: 'pne-legal-goals',
     metaslegais: 'pne-legal-goals',
     matrizprioridades: 'matriz-prioridades',
-    cenariosdaeducacao: 'cenarios-educacao',
-    cenariosdaeducacaomunicipal: 'cenarios-educacao',
-    cenarioseducacao: 'cenarios-educacao',
     pne2014: 'pne2014',
     pne2024: 'pne2014',
     pne2026: 'pne2026',
@@ -230,22 +224,18 @@ test('Panorama educacional permanece apenas no grupo canônico de indicadores', 
  * registro como condição do item: uma UF sem mapa regional não vê o item, e o
  * grupo desaparece junto quando sobra vazio.
  */
-test('o grupo Análise Regional reúne o panorama e os cenários, cada um com seu gate', () => {
+test('o grupo Análise Regional reúne o panorama e o Vocações, cada um com seu gate', () => {
   const group = NAV_GROUPS.find((candidate) => candidate.id === 'analise-regional')
   assert.ok(group)
   assert.deepEqual(
     group.items.map((item) => [item.key, item.target, item.condition]),
     [
       ['analise-regional', 'analise-regional', 'regional'],
-      ['cenarios-educacao', 'cenarios-da-educacao', 'foresight'],
       ['vocacoes-regiao', 'vocacoes-da-regiao', 'vocacoes'],
     ],
   )
   assert.equal(getOwnerGroupId('analise-regional'), 'analise-regional')
-  assert.equal(getOwnerGroupId('cenarios-educacao'), 'analise-regional')
-
-  const pneGroup = NAV_GROUPS.find((candidate) => candidate.id === 'pne')
-  assert.equal(pneGroup.items.some((item) => item.key === 'cenarios-educacao'), false)
+  assert.equal(getOwnerGroupId('vocacoes-regiao'), 'analise-regional')
 
   const header = readFileSync(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
   assert.match(header, /item\.condition === 'regional' && !REGIONAL_ANALYSIS_AVAILABLE/)
@@ -411,7 +401,6 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('pne2026'), 'pne')
   assert.equal(resolvePageProduct('diagnostico'), 'pne')
   assert.equal(resolvePageProduct('matriz-prioridades'), 'pne')
-  assert.equal(resolvePageProduct('cenarios-educacao'), 'pne')
   assert.equal(resolvePageProduct('educacao'), 'educacao')
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
   assert.equal(resolvePageProduct('analise-regional'), 'educacao')
@@ -447,7 +436,6 @@ test('publicação parcial navega o produto declarado e barra os demais', () => 
   assert.equal(isPageNavigable('relatorio-tecnico-municipal', 'partial', enabled), true)
   assert.equal(isPageNavigable('pne2026', 'partial', enabled), false)
   assert.equal(isPageNavigable('diagnostico', 'partial', enabled), false)
-  assert.equal(isPageNavigable('cenarios-educacao', 'partial', enabled), false)
   assert.equal(isPageNavigable(FINANCIAL_PAGE_KEYS.panorama, 'partial', enabled), false)
 
   // Uma rota barrada continua resolvendo para a mesma página: o aviso de

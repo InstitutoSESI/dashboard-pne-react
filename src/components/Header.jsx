@@ -12,7 +12,6 @@ import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
 import { FINANCIAL_NAV_ITEMS, FINANCIAL_PAGE_KEYS } from '../data/financialModules'
-import { isForesightPublished, useForesightPublication } from '../hooks/useForesightEducacao'
 import { isVocacoesPublished, useVocacoesPublication } from '../hooks/useVocacoesRegiao'
 import { EducationDomainIcon, isEducationDomain } from './icons/EducationDomainIcon'
 import { NavGlyphIcon, isNavGlyphName } from './icons/NavGlyphIcon'
@@ -92,20 +91,10 @@ const NAV_BLOCKS = NAV_GROUPS
 const ROOT_NAV_ITEMS = NAV_ROOT_ITEMS.map(toRenderableItem).filter(isItemVisible)
 
 /*
- * Os Cenários da educação existem para os municípios que o manifesto público
- * declara publicados. A entrada aparece só nesse caso — sem item desabilitado,
- * sem aviso de indisponibilidade e sem código IBGE escrito na interface. O
- * registro marca o item como condicional; o gate é aplicado aqui.
- */
-function withForesightItem(block, isVisible) {
-  if (isVisible || !block.items.some((item) => item.condition === 'foresight')) return block
-  return { ...block, items: block.items.filter((item) => item.condition !== 'foresight') }
-}
-
-/*
- * O Vocações da Região segue a mesma regra dos Cenários municipais: existe
- * quando o manifesto declara a região publicada. Enquanto o manifesto estiver
- * vazio — o estado de hoje —, o item não aparece.
+ * O Vocações da Região existe quando o manifesto público declara a região
+ * publicada. A entrada aparece só nesse caso — sem item desabilitado, sem aviso
+ * de indisponibilidade e sem código escrito na interface. O registro marca o
+ * item como condicional; o gate é aplicado aqui.
  */
 function withVocacoesItem(block, isVisible) {
   if (isVisible || !block.items.some((item) => item.condition === 'vocacoes')) return block
@@ -125,8 +114,6 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
   const menuButtonRef = useRef(null)
   const restoreFocusRef = useRef(null)
   const { selectedMunicipalityId } = useMunicipality()
-  const foresightPublication = useForesightPublication()
-  const foresightVisible = isForesightPublished(foresightPublication, selectedMunicipalityId)
   const vocacoesPublication = useVocacoesPublication()
   const selectedRegion = resolveRegionForMunicipality(selectedMunicipalityId)
   const vocacoesVisible = isVocacoesPublished(vocacoesPublication, selectedRegion?.slug ?? null)
@@ -255,7 +242,6 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
           {ANALYTICS_AVAILABLE ? (
             <>
               {NAV_BLOCKS
-                .map((block) => withForesightItem(block, foresightVisible))
                 .map((block) => withVocacoesItem(block, vocacoesVisible))
                 .filter((block) => block.items.length > 0)
                 .map((item) => (

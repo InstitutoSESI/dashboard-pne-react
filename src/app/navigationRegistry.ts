@@ -32,7 +32,7 @@ export type NavGroupIconName = 'Target' | 'GraduationCap' | 'Landmark' | 'FileTe
 
 export type NavDynamicItemSource = 'education-sections' | 'financial-modules'
 
-export type NavItemCondition = 'foresight' | 'regional' | 'vocacoes'
+export type NavItemCondition = 'regional' | 'vocacoes'
 
 export interface NavPage {
   /** Chave canonica da pagina, a mesma do roteador. */
@@ -131,14 +131,6 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     crumb: 'Relatórios / Matriz de Prioridades',
   }),
   page({
-    key: 'cenarios-educacao',
-    label: 'Cenários da educação',
-    route: 'cenarios-da-educacao',
-    aliases: ['cenarios-da-educacao-municipal', 'cenarios-educacao'],
-    glyph: 'cenarios-educacao',
-    crumb: 'Análise Regional / Cenários da educação',
-  }),
-  page({
     key: 'analise-regional',
     label: 'Panorama da Região',
     route: 'analise-regional',
@@ -151,7 +143,7 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     label: 'Vocações da Região',
     route: 'vocacoes-da-regiao',
     aliases: ['vocacoes', 'vocacoes-regiao'],
-    glyph: 'cenarios-educacao',
+    glyph: 'vocacoes-regiao',
     crumb: 'Análise Regional / Vocações da Região',
   }),
   page({
@@ -301,10 +293,10 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
   } satisfies NavGroup),
   /*
    * Análise Regional lê o município pelo território a que ele pertence. O
-   * Panorama da Região depende do mapa regional da UF ativa, e os Cenários da
-   * educação — ainda municipais — dependem do manifesto do foresight. Cada
-   * item carrega o próprio gate, e o grupo desaparece quando nenhum deles se
-   * sustenta: numa UF sem mapa e sem cenários publicados, não há menu.
+   * Panorama da Região depende do mapa regional da UF ativa, e o Vocações da
+   * Região depende do manifesto público da região. Cada item carrega o próprio
+   * gate, e o grupo desaparece quando nenhum deles se sustenta: numa UF sem
+   * mapa e sem região publicada, não há menu.
    */
   Object.freeze({
     id: 'analise-regional',
@@ -312,11 +304,10 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
     icon: 'Compass',
     items: Object.freeze([
       itemFromPage('analise-regional', { condition: 'regional' }),
-      itemFromPage('cenarios-educacao', { condition: 'foresight' }),
       itemFromPage('vocacoes-regiao', { condition: 'vocacoes' }),
     ]),
     dynamicItems: null,
-    ownedPages: Object.freeze(['analise-regional', 'cenarios-educacao', 'vocacoes-regiao']),
+    ownedPages: Object.freeze(['analise-regional', 'vocacoes-regiao']),
   } satisfies NavGroup),
   Object.freeze({
     id: 'pne',
