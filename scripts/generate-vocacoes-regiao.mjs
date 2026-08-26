@@ -4,7 +4,7 @@
  * O gerador atravessa a fronteira uma vez, em tempo de publicação: lê o pacote
  * regional aprovado na camada de pesquisa, reconfere o resumo de cada arquivo
  * contra o manifesto da origem, transpõe para o contrato público
- * `vocacoes-regiao-2.3.0` e escreve. Depois disso a plataforma não sabe mais
+ * `vocacoes-regiao-2.6.0` e escreve. Depois disso a plataforma não sabe mais
  * que a camada de pesquisa existe — ela valida o artefato publicado, e só ele.
  *
  * Nada aqui inventa cenário nem transpõe o pacote municipal para a região. Duas
@@ -45,6 +45,8 @@ import {
   AGENDA_THEME_LABELS,
   AGENDA_THEMES,
   AGGREGATION_LABELS,
+  ASSOCIATIVE_GRAMMAR_VERSION,
+  ASSOCIATIVE_METHOD_NOTE,
   EVIDENCE_CLASS_LABELS,
   MUNICIPAL_KIND_LABELS,
   PROHIBITED_CLAIM_OPENER,
@@ -55,11 +57,24 @@ import {
   SYNTHESIS_FRAMING,
   SYNTHESIS_KIND_LABELS,
   SYNTHESIS_REQUIRED_OPENERS,
+  SCREENED_ORIGIN_STATEMENT,
+  SCREENED_RELATIONS_CRITERIA,
   UNIVERSE_LABELS,
   VOCACOES_DOCUMENT_SCHEMA,
   commonScenarioAgendaThemes,
+  computeComovement,
+  computeDirectionConcordance,
+  computePearsonDelta,
+  computeSpearmanDelta,
+  correlationStrength,
   createVocacoesDocumentParser,
   renderAgendaSynthesis,
+  renderComovementStatement,
+  renderConcordanceStatement,
+  renderContrastStatement,
+  renderCorrelationStatement,
+  renderLaggedStatement,
+  roundHalfAwayFromZero,
   slugify,
   synthesisAssociationBasisLabel,
   synthesisTemporalPairBasisLabel,
@@ -73,7 +88,12 @@ import {
 const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const OUTPUT_ROOT = new URL('public/data/vocacoes-regiao/', REPOSITORY_ROOT)
 
-export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v4'
+/*
+ * Changelog do gerador: v4 → v5 acompanha o contrato público 2.5.0 → 2.6.0.
+ * Mudança aditiva motivada pela leitura associativa quantificada da V3 R1
+ * (V3-D8): nenhum campo 2.5.0 é removido ou reinterpretado.
+ */
+export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v5'
 export const STATE_CODE = 'RS'
 export const VOCACOES_PUBLICATION_SCOPE = 'estadual'
 
@@ -94,7 +114,7 @@ export const DEFAULT_SOURCE_ROOT = 'C:/Users/rnbirck/PROJETOS/SESI/PNE/foresight
 
 export const PUBLIC_CONTRACT_APPROVAL_FILE = 'CONTRATO_PUBLICO_APROVADO.json'
 export const ORIGIN_MANIFEST_FILE = 'MANIFESTO_ORIGEM.json'
-export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_2.json'
+export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_4.json'
 export const REGISTRY_FILE = 'registro/registro_regioes_rs_v0_1.json'
 
 /** Pacote de cenários promovido na Rodada 9. Existe só nas regiões da Fase B. */
@@ -110,6 +130,16 @@ export const MUNICIPAL_LAYER_PACKAGE_PATTERN = 'pacotes/cenarios/municipal/{regi
 
 /** Pacote obrigatório da camada de conclusões promovida na Rodada 6 do V2. */
 export const SYNTHESIS_LAYER_PACKAGE_PATTERN = 'pacotes/conclusoes/{regionSlug}.json'
+
+/** Pacote obrigatório da leitura associativa quantificada da Rodada 1 do V3. */
+export const ASSOCIATIVE_LAYER_PACKAGE_PATTERN = 'pacotes/associativo/{regionSlug}.json'
+
+export const SCREENED_RELATIONS_FRAMING = Object.freeze({
+  label: 'Relações observadas por triagem',
+  description:
+    'Relações adicionais entre séries observadas que atendem aos critérios declarados; a '
+    + 'triagem descreve movimento conjunto e não afirma causa.',
+})
 
 export const MUNICIPAL_LAYER_FRAMING = Object.freeze({
   label: 'Os municípios no cenário',
@@ -365,6 +395,57 @@ function validateSynthesisApproval(approval, registry) {
   return layer
 }
 
+function validateAssociativeApproval(approval, registry) {
+  const layer = approval.associativeReadingLayer
+  invariant(isRecord(layer), 'o contrato público 2.6.0 não declara associativeReadingLayer.')
+  const expectedRegions = registry.regions
+    .map((region) => region.slug)
+    .sort((left, right) => left.localeCompare(right, 'en'))
+  assertSameArray(layer.regions, expectedRegions, 'associativeReadingLayer.regions')
+  invariant(
+    layer.packagePattern === ASSOCIATIVE_LAYER_PACKAGE_PATTERN,
+    `associativeReadingLayer.packagePattern deve ser "${ASSOCIATIVE_LAYER_PACKAGE_PATTERN}".`,
+  )
+  invariant(
+    layer.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1',
+    `associativeReadingLayer.schemaVersion desconhecida: "${layer.schemaVersion}".`,
+  )
+  invariant(
+    layer.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
+    `associativeReadingLayer.grammarVersion deve ser "${ASSOCIATIVE_GRAMMAR_VERSION}".`,
+  )
+  for (const field of [
+    'requiredInAssociations',
+    'requiredInTemporalPairs',
+    'laggedItemsRequired',
+    'screenedRelationsRequired',
+  ]) {
+    invariant(layer[field] === true, `associativeReadingLayer.${field} deve ser true.`)
+  }
+  return layer
+}
+
+function validateAssociativeResearchContract(researchContract) {
+  const layer = researchContract.associativeReadingLayer
+  invariant(isRecord(layer), 'o contrato de pesquisa v0.4 não declara associativeReadingLayer.')
+  invariant(
+    layer.packagePattern === ASSOCIATIVE_LAYER_PACKAGE_PATTERN
+      && layer.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1'
+      && layer.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
+    'o contrato de pesquisa v0.4 diverge da camada associativa implementada.',
+  )
+  assertCanonicalEqual(
+    layer.criteria,
+    SCREENED_RELATIONS_CRITERIA,
+    'contrato de pesquisa.associativeReadingLayer.criteria',
+  )
+  invariant(
+    layer.correlationClosedGrammarOnly === true && layer.pValueForbidden === true,
+    'o contrato de pesquisa não fecha a gramática da correlação ou permite p-valor.',
+  )
+  return layer
+}
+
 const MONTH_NAMES = Object.freeze([
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
@@ -545,7 +626,125 @@ function composeProhibitedClaim(claim) {
   return `${PROHIBITED_CLAIM_OPENER}${trimmed}${suffix}`
 }
 
-function transposeAssociation(sourceAssociation, seriesIdByKey) {
+function resolveAssociativeSeriesId(seriesKey, seriesIdByKey, label) {
+  const seriesId = seriesIdByKey.get(seriesKey)
+  invariant(seriesId !== undefined, `${label} referencia série ausente do pacote: "${seriesKey}".`)
+  return seriesId
+}
+
+function transposeDirectionConcordance(block) {
+  if (Object.prototype.hasOwnProperty.call(block, 'reasonCode')) return { reasonCode: block.reasonCode }
+  return {
+    windowStart: block.windowStart,
+    windowEnd: block.windowEnd,
+    intervals: block.intervals,
+    concordant: block.concordant,
+    opposite: block.opposite,
+    ties: block.ties,
+    statement: block.statement,
+  }
+}
+
+function transposeComovement(block, roles, seriesIdByKey, label) {
+  if (Object.prototype.hasOwnProperty.call(block, 'reasonCode')) return { reasonCode: block.reasonCode }
+  const transposeSeries = (source, role) => ({
+    seriesId: resolveAssociativeSeriesId(source.seriesKey, seriesIdByKey, `${label}.${role}`),
+    effStart: source.effStart,
+    effEnd: source.effEnd,
+    valueStart: source.valueStart,
+    valueEnd: source.valueEnd,
+    delta: source.delta,
+    deltaKind: source.deltaKind,
+  })
+  return {
+    [roles[0]]: transposeSeries(block[roles[0]], roles[0]),
+    [roles[1]]: transposeSeries(block[roles[1]], roles[1]),
+    statement: block.statement,
+  }
+}
+
+function transposeCorrelation(block) {
+  if (Object.prototype.hasOwnProperty.call(block, 'reasonCode')) return { reasonCode: block.reasonCode }
+  const transposed = {
+    intervals: block.intervals,
+    pearsonDelta: block.pearsonDelta,
+    spearmanDelta: block.spearmanDelta,
+    strength: block.strength,
+    direction: block.direction,
+  }
+  if (Object.prototype.hasOwnProperty.call(block, 'statement')) {
+    transposed.statement = block.statement
+  }
+  return transposed
+}
+
+function transposeStateContrast(block, seriesIdByKey, label) {
+  if (Object.prototype.hasOwnProperty.call(block, 'reasonCode')) return { reasonCode: block.reasonCode }
+  return {
+    seriesId: resolveAssociativeSeriesId(block.seriesId, seriesIdByKey, label),
+    statistic: block.statistic,
+    value: block.value,
+    rank: block.rank,
+    totalComparable: block.totalComparable,
+    sameDirectionCount: block.sameDirectionCount,
+    direction: block.direction,
+    statement: block.statement,
+  }
+}
+
+function transposeAssociationReading(sourceReading, seriesIdByKey, associationLabel) {
+  return {
+    grammarVersion: ASSOCIATIVE_GRAMMAR_VERSION,
+    methodNote: ASSOCIATIVE_METHOD_NOTE,
+    factorReadings: sourceReading.factorReadings.map((reading, index) => ({
+      outcomeSeriesId: resolveAssociativeSeriesId(
+        reading.outcomeSeriesKey,
+        seriesIdByKey,
+        `${associationLabel}.factorReadings[${index}].outcomeSeriesKey`,
+      ),
+      factorSeriesId: resolveAssociativeSeriesId(
+        reading.factorSeriesKey,
+        seriesIdByKey,
+        `${associationLabel}.factorReadings[${index}].factorSeriesKey`,
+      ),
+      directionConcordance: transposeDirectionConcordance(reading.directionConcordance),
+      comovement: transposeComovement(
+        reading.comovement,
+        ['outcome', 'factor'],
+        seriesIdByKey,
+        `${associationLabel}.factorReadings[${index}].comovement`,
+      ),
+      correlation: transposeCorrelation(reading.correlation),
+    })),
+    stateContrast: transposeStateContrast(
+      sourceReading.stateContrast,
+      seriesIdByKey,
+      `${associationLabel}.stateContrast`,
+    ),
+  }
+}
+
+function transposeTemporalReading(sourceReading, seriesIdByKey, pairLabel) {
+  return {
+    grammarVersion: ASSOCIATIVE_GRAMMAR_VERSION,
+    methodNote: ASSOCIATIVE_METHOD_NOTE,
+    directionConcordance: transposeDirectionConcordance(sourceReading.directionConcordance),
+    comovement: transposeComovement(
+      sourceReading.comovement,
+      ['a', 'b'],
+      seriesIdByKey,
+      `${pairLabel}.comovement`,
+    ),
+    correlation: transposeCorrelation(sourceReading.correlation),
+    stateContrast: transposeStateContrast(
+      sourceReading.stateContrast,
+      seriesIdByKey,
+      `${pairLabel}.stateContrast`,
+    ),
+  }
+}
+
+function transposeAssociation(sourceAssociation, sourceReading, seriesIdByKey) {
   const outcomeId = seriesIdByKey.get(sourceAssociation.educationOutcome.seriesKey)
   invariant(
     outcomeId !== undefined,
@@ -586,10 +785,15 @@ function transposeAssociation(sourceAssociation, seriesIdByKey) {
       sourceAssociation.forbiddenInterpretation.prohibitedClaim,
     ),
     hypotheses: [...sourceAssociation.hypotheses],
+    associativeReading: transposeAssociationReading(
+      sourceReading,
+      seriesIdByKey,
+      `associação "${sourceAssociation.associationKey}"`,
+    ),
   }
 }
 
-function transposeTemporalPair(sourcePair, seriesIdByKey, labelByKey) {
+function transposeTemporalPair(sourcePair, sourceReading, seriesIdByKey, labelByKey) {
   const build = (key, label) => {
     const seriesId = seriesIdByKey.get(key)
     invariant(seriesId !== undefined, `o par temporal referencia série ausente do pacote: "${key}".`)
@@ -604,6 +808,502 @@ function transposeTemporalPair(sourcePair, seriesIdByKey, labelByKey) {
     seriesB: build(sourcePair.seriesKeyB),
     observedStatement: sourcePair.observedStatement,
     prohibitedClaim: composeProhibitedClaim(sourcePair.forbiddenInterpretation.prohibitedClaim),
+    associativeReading: transposeTemporalReading(
+      sourceReading,
+      seriesIdByKey,
+      `par temporal "${sourcePair.pairKey}"`,
+    ),
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Leitura associativa quantificada — reverificação da origem.
+ *
+ * O parser 2.6.0 fará a mesma conferência sobre o documento público. Esta
+ * primeira passagem trabalha ainda com as seriesKeys do pacote de pesquisa e
+ * impede que um statement ou um rank divergente atravesse a transposição.
+ * ------------------------------------------------------------------ */
+
+function assertCanonicalEqual(actual, expected, label) {
+  invariant(
+    JSON.stringify(canonicalize(actual)) === JSON.stringify(canonicalize(expected)),
+    `${label} diverge da recomputação da plataforma.`,
+  )
+}
+
+function sourceSeriesByKey(sourcePackage, label) {
+  const byKey = new Map(sourcePackage.series.map((serie) => [serie.seriesKey, serie]))
+  invariant(byKey.size === sourcePackage.series.length, `${label} repete seriesKey.`)
+  return byKey
+}
+
+function deltaKindOf(sourceSeries) {
+  return sourceSeries.ratioOf !== null && sourceSeries.ratioOf !== undefined ? 'pontos' : 'nivel'
+}
+
+function expectedDirectionConcordance(serieA, serieB, window) {
+  const computed = computeDirectionConcordance(serieA.points, serieB.points, window)
+  if (Object.prototype.hasOwnProperty.call(computed, 'reasonCode')) return computed
+  return {
+    ...computed,
+    statement: renderConcordanceStatement({
+      ...computed,
+      labelA: serieA.publicLabel,
+      labelB: serieB.publicLabel,
+    }),
+  }
+}
+
+function expectedComovement(serieA, serieB, window, roles) {
+  const movementA = computeComovement(serieA.points, window, deltaKindOf(serieA))
+  const movementB = computeComovement(serieB.points, window, deltaKindOf(serieB))
+  if (
+    Object.prototype.hasOwnProperty.call(movementA, 'reasonCode')
+    || Object.prototype.hasOwnProperty.call(movementB, 'reasonCode')
+  ) {
+    return { reasonCode: 'sem_intervalos_comparaveis' }
+  }
+  return {
+    [roles[0]]: { seriesKey: serieA.seriesKey, ...movementA },
+    [roles[1]]: { seriesKey: serieB.seriesKey, ...movementB },
+    statement: renderComovementStatement({
+      a: movementA,
+      b: movementB,
+      labelA: serieA.publicLabel,
+      labelB: serieB.publicLabel,
+    }),
+  }
+}
+
+function expectedCorrelation(serieA, serieB, window, { statement = true } = {}) {
+  const concordance = computeDirectionConcordance(serieA.points, serieB.points, window)
+  const intervals = Object.prototype.hasOwnProperty.call(concordance, 'reasonCode')
+    ? 0
+    : concordance.intervals
+  if (intervals < 5) return { reasonCode: 'janela_curta' }
+  const pearsonRaw = computePearsonDelta(serieA.points, serieB.points, window)
+  const spearmanRaw = computeSpearmanDelta(serieA.points, serieB.points, window)
+  if (pearsonRaw === null || spearmanRaw === null) return { reasonCode: 'variancia_nula' }
+  const direction = pearsonRaw > 0 ? 'positiva' : pearsonRaw < 0 ? 'negativa' : 'nula'
+  const result = {
+    intervals,
+    pearsonDelta: roundHalfAwayFromZero(pearsonRaw, 2),
+    spearmanDelta: roundHalfAwayFromZero(spearmanRaw, 2),
+    strength: correlationStrength(Math.abs(pearsonRaw)),
+    direction,
+  }
+  if (statement) {
+    result.statement = renderCorrelationStatement({
+      windowStart: window.start,
+      windowEnd: window.end,
+      pearsonDelta: result.pearsonDelta,
+      strength: result.strength,
+      direction,
+    })
+  }
+  return result
+}
+
+function comparableStateMovements(seriesKey, window, allSourcePackagesBySlug) {
+  const comparable = []
+  for (const [regionSlug, sourcePackage] of allSourcePackagesBySlug) {
+    const sourceSeries = sourcePackage.series.find((serie) => serie.seriesKey === seriesKey)
+    if (sourceSeries === undefined) continue
+    const movement = computeComovement(sourceSeries.points, window, deltaKindOf(sourceSeries))
+    if (Object.prototype.hasOwnProperty.call(movement, 'reasonCode')) continue
+    if (movement.deltaKind === 'nivel' && movement.valueStart === 0) continue
+    comparable.push({
+      regionSlug,
+      value: movement.deltaKind === 'pontos'
+        ? movement.delta
+        : movement.delta / movement.valueStart * 100,
+      movement,
+      sourceSeries,
+    })
+  }
+  return comparable
+}
+
+function expectedStateContrast({
+  seriesKey,
+  window,
+  regionSlug,
+  allSourcePackagesBySlug,
+}) {
+  const comparable = comparableStateMovements(seriesKey, window, allSourcePackagesBySlug)
+  if (comparable.length < 2) return { reasonCode: 'contraste_sem_regioes_comparaveis' }
+  const own = comparable.find((entry) => entry.regionSlug === regionSlug)
+  invariant(own !== undefined, `o contraste estadual de "${regionSlug}" excluiu a própria região.`)
+  if (own.value === 0) return { reasonCode: 'variacao_nula' }
+  const direction = own.value > 0 ? 'alta' : 'queda'
+  const rank = 1 + comparable.filter((entry) =>
+    direction === 'alta' ? entry.value > own.value : entry.value < own.value).length
+  const sameDirectionCount = comparable.filter((entry) =>
+    direction === 'alta' ? entry.value > 0 : entry.value < 0).length
+  const statistic = own.movement.deltaKind === 'pontos'
+    ? 'variacao_em_pontos'
+    : 'variacao_percentual'
+  const result = {
+    seriesId: seriesKey,
+    statistic,
+    value: roundHalfAwayFromZero(own.value, 1),
+    rank,
+    totalComparable: comparable.length,
+    sameDirectionCount,
+    direction,
+  }
+  return {
+    ...result,
+    statement: renderContrastStatement({
+      ...result,
+      label: own.sourceSeries.publicLabel,
+    }),
+  }
+}
+
+function verifyComparisonReading({
+  reading,
+  serieA,
+  serieB,
+  window,
+  roles,
+  label,
+}) {
+  assertCanonicalEqual(
+    reading.directionConcordance,
+    expectedDirectionConcordance(serieA, serieB, window),
+    `${label}.directionConcordance`,
+  )
+  assertCanonicalEqual(
+    reading.comovement,
+    expectedComovement(serieA, serieB, window, roles),
+    `${label}.comovement`,
+  )
+  assertCanonicalEqual(
+    reading.correlation,
+    expectedCorrelation(serieA, serieB, window),
+    `${label}.correlation`,
+  )
+}
+
+function lagComparablePeriods(serieA, serieB, lagYears) {
+  const valuesA = new Map(serieA.points.map((point) => [point.period, point.value]))
+  const valuesB = new Map(serieB.points.map((point) => [point.period, point.value]))
+  const periods = []
+  for (const period of [...valuesA.keys()].sort((left, right) => left - right)) {
+    if (
+      valuesA.has(period - 1)
+      && valuesB.has(period + lagYears - 1)
+      && valuesB.has(period + lagYears)
+    ) periods.push(period)
+  }
+  return periods
+}
+
+function expectedLaggedPair(sourcePair, sourceSeriesMap) {
+  const serieA = sourceSeriesMap.get(sourcePair.aSeriesKey)
+  const serieB = sourceSeriesMap.get(sourcePair.bSeriesKey)
+  if (serieA === undefined || serieB === undefined) {
+    return {
+      aSeriesKey: sourcePair.aSeriesKey,
+      bSeriesKey: sourcePair.bSeriesKey,
+      lagYears: sourcePair.lagYears,
+      reasonCode: 'serie_ausente',
+      statement: renderLaggedStatement({
+        aSeriesLabel: serieA?.publicLabel ?? sourcePair.aSeriesKey,
+        bSeriesLabel: serieB?.publicLabel ?? sourcePair.bSeriesKey,
+        lagYears: sourcePair.lagYears,
+        reasonCode: 'serie_ausente',
+      }),
+    }
+  }
+  const periods = lagComparablePeriods(serieA, serieB, sourcePair.lagYears)
+  if (periods.length < 5) {
+    return {
+      aSeriesKey: sourcePair.aSeriesKey,
+      bSeriesKey: sourcePair.bSeriesKey,
+      lagYears: sourcePair.lagYears,
+      reasonCode: 'defasagem_sem_janela_suficiente',
+      statement: renderLaggedStatement({
+        aSeriesLabel: serieA.publicLabel,
+        bSeriesLabel: serieB.publicLabel,
+        lagYears: sourcePair.lagYears,
+        reasonCode: 'defasagem_sem_janela_suficiente',
+      }),
+    }
+  }
+  const windowA = { start: periods[0] - 1, end: periods[periods.length - 1] }
+  const windowB = {
+    start: windowA.start + sourcePair.lagYears,
+    end: windowA.end + sourcePair.lagYears,
+  }
+  const shiftedB = {
+    ...serieB,
+    points: serieB.points.map((point) => ({ ...point, period: point.period - sourcePair.lagYears })),
+  }
+  const concordance = computeDirectionConcordance(serieA.points, shiftedB.points, windowA)
+  invariant(!Object.prototype.hasOwnProperty.call(concordance, 'reasonCode'),
+    'a janela defasada suficiente não produziu intervalos comparáveis.')
+  const correlation = expectedCorrelation(serieA, shiftedB, windowA, { statement: false })
+  const result = {
+    aSeriesKey: sourcePair.aSeriesKey,
+    bSeriesKey: sourcePair.bSeriesKey,
+    lagYears: sourcePair.lagYears,
+    rationale: sourcePair.rationale,
+    windowA,
+    windowB,
+    intervals: concordance.intervals,
+    concordant: concordance.concordant,
+    opposite: concordance.opposite,
+    ties: concordance.ties,
+    correlation,
+  }
+  return {
+    ...result,
+    statement: renderLaggedStatement({
+      aSeriesLabel: serieA.publicLabel,
+      bSeriesLabel: serieB.publicLabel,
+      lagYears: result.lagYears,
+      rationale: result.rationale,
+      windowA,
+      windowB,
+      concordant: result.concordant,
+      intervals: result.intervals,
+      correlation,
+    }),
+  }
+}
+
+export function verifyAssociativePackage({
+  associativePackage,
+  sourcePackage,
+  sourcePackageSha256,
+  sourceRelative,
+  registryRegion,
+  allRegionPackageSha256,
+  allSourcePackagesBySlug,
+}) {
+  assertExactKeys(associativePackage, [
+    'associations',
+    'generation',
+    'grammarVersion',
+    'laggedPairs',
+    'method',
+    'provenance',
+    'region',
+    'schemaVersion',
+    'screenedRelations',
+    'temporalPairs',
+  ], `pacote associativo de "${registryRegion.slug}"`)
+  invariant(
+    associativePackage.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1',
+    `o pacote associativo de "${registryRegion.slug}" traz schema desconhecido.`,
+  )
+  invariant(
+    associativePackage.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
+    `o pacote associativo de "${registryRegion.slug}" traz grammarVersion desconhecida.`,
+  )
+  invariant(
+    associativePackage.method?.methodNote === ASSOCIATIVE_METHOD_NOTE,
+    `o pacote associativo de "${registryRegion.slug}" altera a nota metodológica fechada.`,
+  )
+  assertCanonicalEqual(
+    associativePackage.screenedRelations?.criteria,
+    SCREENED_RELATIONS_CRITERIA,
+    `pacote associativo de "${registryRegion.slug}".screenedRelations.criteria`,
+  )
+  invariant(
+    associativePackage.generation?.deterministic === true
+      && associativePackage.generation.networkUsed === false
+      && associativePackage.generation.clockUsed === false
+      && associativePackage.generation.modelUsed === false,
+    `o pacote associativo de "${registryRegion.slug}" não se declara determinístico.`,
+  )
+  invariant(
+    associativePackage.region.slug === registryRegion.slug
+      && associativePackage.region.name === registryRegion.name
+      && associativePackage.region.uf === registryRegion.uf
+      && associativePackage.region.municipalityCount === registryRegion.municipalityCount
+      && associativePackage.region.registrySha256 === sourcePackage.region.registrySha256,
+    `a identidade do pacote associativo diverge do registro em "${registryRegion.slug}".`,
+  )
+  invariant(
+    associativePackage.provenance?.regionPackageRef === sourceRelative,
+    `o pacote associativo de "${registryRegion.slug}" referencia outro pacote regional.`,
+  )
+  invariant(
+    associativePackage.provenance.regionPackageSha256 === sourcePackageSha256,
+    `o pacote associativo de "${registryRegion.slug}" não referencia o sha256 do pacote `
+    + 'regional correspondente no manifesto.',
+  )
+  assertCanonicalEqual(
+    associativePackage.provenance.allRegionPackagesSha256,
+    allRegionPackageSha256,
+    `pacote associativo de "${registryRegion.slug}".provenance.allRegionPackagesSha256`,
+  )
+
+  const sourceSeriesMap = sourceSeriesByKey(sourcePackage, `pacote regional de "${registryRegion.slug}"`)
+  invariant(
+    associativePackage.associations.length === sourcePackage.associations.length,
+    `o pacote associativo de "${registryRegion.slug}" não cobre todas as associações.`,
+  )
+  sourcePackage.associations.forEach((association, index) => {
+    const reading = associativePackage.associations[index]
+    const label = `pacote associativo.associations[${index}]`
+    invariant(reading.associationKey === association.associationKey,
+      `${label}.associationKey diverge da associação regional correspondente.`)
+    invariant(reading.window.start === association.window.start
+      && reading.window.end === association.window.end,
+    `${label}.window diverge da associação regional correspondente.`)
+    invariant(reading.factorReadings.length === association.territorialFactors.length,
+      `${label}.factorReadings não cobre todos os fatores territoriais.`)
+    const outcome = sourceSeriesMap.get(association.educationOutcome.seriesKey)
+    invariant(outcome !== undefined, `${label} referencia resultado educacional ausente.`)
+    reading.factorReadings.forEach((factorReading, factorIndex) => {
+      const factorRef = association.territorialFactors[factorIndex]
+      invariant(
+        factorReading.outcomeSeriesKey === association.educationOutcome.seriesKey
+          && factorReading.factorSeriesKey === factorRef.seriesKey,
+        `${label}.factorReadings[${factorIndex}] diverge da ordem curada.`,
+      )
+      const factor = sourceSeriesMap.get(factorRef.seriesKey)
+      invariant(factor !== undefined, `${label} referencia fator territorial ausente.`)
+      verifyComparisonReading({
+        reading: factorReading,
+        serieA: outcome,
+        serieB: factor,
+        window: association.window,
+        roles: ['outcome', 'factor'],
+        label: `${label}.factorReadings[${factorIndex}]`,
+      })
+    })
+    assertCanonicalEqual(
+      reading.stateContrast,
+      expectedStateContrast({
+        seriesKey: association.educationOutcome.seriesKey,
+        window: association.window,
+        regionSlug: registryRegion.slug,
+        allSourcePackagesBySlug,
+      }),
+      `${label}.stateContrast`,
+    )
+  })
+
+  invariant(
+    associativePackage.temporalPairs.length === sourcePackage.temporalPairs.length,
+    `o pacote associativo de "${registryRegion.slug}" não cobre todos os pares temporais.`,
+  )
+  sourcePackage.temporalPairs.forEach((pair, index) => {
+    const reading = associativePackage.temporalPairs[index]
+    const label = `pacote associativo.temporalPairs[${index}]`
+    invariant(reading.pairKey === pair.pairKey, `${label}.pairKey diverge do par regional.`)
+    invariant(reading.window.start === pair.window.start && reading.window.end === pair.window.end,
+      `${label}.window diverge do par regional.`)
+    const serieA = sourceSeriesMap.get(pair.seriesKeyA)
+    const serieB = sourceSeriesMap.get(pair.seriesKeyB)
+    invariant(serieA !== undefined && serieB !== undefined, `${label} referencia série ausente.`)
+    verifyComparisonReading({
+      reading,
+      serieA,
+      serieB,
+      window: pair.window,
+      roles: ['a', 'b'],
+      label,
+    })
+    assertCanonicalEqual(
+      reading.stateContrast,
+      expectedStateContrast({
+        seriesKey: pair.seriesKeyB,
+        window: pair.window,
+        regionSlug: registryRegion.slug,
+        allSourcePackagesBySlug,
+      }),
+      `${label}.stateContrast`,
+    )
+  })
+
+  invariant(
+    Array.isArray(associativePackage.laggedPairs) && associativePackage.laggedPairs.length === 1,
+    `o pacote associativo de "${registryRegion.slug}" deve trazer uma leitura defasada.`,
+  )
+  assertCanonicalEqual(
+    associativePackage.laggedPairs[0],
+    expectedLaggedPair(associativePackage.laggedPairs[0], sourceSeriesMap),
+    'pacote associativo.laggedPairs[0]',
+  )
+
+  invariant(Array.isArray(associativePackage.screenedRelations.items),
+    'pacote associativo.screenedRelations.items deve ser lista.')
+  associativePackage.screenedRelations.items.forEach((item, index) => {
+    const label = `pacote associativo.screenedRelations.items[${index}]`
+    const serieA = sourceSeriesMap.get(item.aSeriesKey)
+    const serieB = sourceSeriesMap.get(item.bSeriesKey)
+    invariant(serieA !== undefined && serieB !== undefined, `${label} referencia série ausente.`)
+    invariant(item.relationId === `${slugify(serieA.publicLabel)}--${slugify(serieB.publicLabel)}`,
+      `${label}.relationId não deriva dos rótulos públicos.`)
+    invariant(item.originStatement === SCREENED_ORIGIN_STATEMENT,
+      `${label}.originStatement fora do contrato.`)
+    verifyComparisonReading({
+      reading: item,
+      serieA,
+      serieB,
+      window: item.window,
+      roles: ['a', 'b'],
+      label,
+    })
+  })
+  return associativePackage
+}
+
+function transposeLaggedItems(laggedPairs, seriesIdByKey) {
+  return laggedPairs.map((pair, index) => {
+    const base = {
+      aSeriesId: resolveAssociativeSeriesId(
+        pair.aSeriesKey, seriesIdByKey, `laggedPairs[${index}].aSeriesKey`),
+      bSeriesId: resolveAssociativeSeriesId(
+        pair.bSeriesKey, seriesIdByKey, `laggedPairs[${index}].bSeriesKey`),
+      lagYears: pair.lagYears,
+    }
+    if (Object.prototype.hasOwnProperty.call(pair, 'reasonCode')) {
+      return { ...base, reasonCode: pair.reasonCode, statement: pair.statement }
+    }
+    return {
+      ...base,
+      rationale: pair.rationale,
+      windowA: { start: pair.windowA.start, end: pair.windowA.end },
+      windowB: { start: pair.windowB.start, end: pair.windowB.end },
+      intervals: pair.intervals,
+      concordant: pair.concordant,
+      opposite: pair.opposite,
+      ties: pair.ties,
+      correlation: transposeCorrelation(pair.correlation),
+      statement: pair.statement,
+    }
+  })
+}
+
+function transposeScreenedRelations(screenedRelations, seriesIdByKey) {
+  return {
+    ...SCREENED_RELATIONS_FRAMING,
+    methodNote: ASSOCIATIVE_METHOD_NOTE,
+    criteria: { ...SCREENED_RELATIONS_CRITERIA },
+    items: screenedRelations.items.map((item, index) => ({
+      relationId: item.relationId,
+      seriesAId: resolveAssociativeSeriesId(
+        item.aSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].aSeriesKey`),
+      seriesBId: resolveAssociativeSeriesId(
+        item.bSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].bSeriesKey`),
+      window: { start: item.window.start, end: item.window.end },
+      directionConcordance: transposeDirectionConcordance(item.directionConcordance),
+      comovement: transposeComovement(
+        item.comovement,
+        ['a', 'b'],
+        seriesIdByKey,
+        `screenedRelations.items[${index}].comovement`,
+      ),
+      correlation: transposeCorrelation(item.correlation),
+      originStatement: item.originStatement,
+    })),
   }
 }
 
@@ -1341,6 +2041,7 @@ export function transposeRegion({
   registryRegion,
   sourcePackage,
   sourcePackageSha256,
+  associativePackage,
   scenarioPackage = null,
   scenarioPackageSha256 = null,
   municipalPackage = null,
@@ -1503,10 +2204,15 @@ export function transposeRegion({
     transposeSeries(serie, researchContract, seriesIdByKey, labelByKey))
   const framing = buildFraming(registryRegion.name)
   const publishesScenarios = scenarioPackage !== null
-  const associations = sourcePackage.associations.map((association) =>
-    transposeAssociation(association, seriesIdByKey))
-  const temporalPairs = sourcePackage.temporalPairs.map((pair) =>
-    transposeTemporalPair(pair, seriesIdByKey, labelByKey))
+  const associations = sourcePackage.associations.map((association, index) =>
+    transposeAssociation(association, associativePackage.associations[index], seriesIdByKey))
+  const temporalPairs = sourcePackage.temporalPairs.map((pair, index) =>
+    transposeTemporalPair(
+      pair,
+      associativePackage.temporalPairs[index],
+      seriesIdByKey,
+      labelByKey,
+    ))
   const scenarios = publishesScenarios
     ? {
       label: SCENARIO_FRAMING.label,
@@ -1569,7 +2275,12 @@ export function transposeRegion({
     temporalPairs: {
       ...framing.temporalPairs,
       items: temporalPairs,
+      laggedItems: transposeLaggedItems(associativePackage.laggedPairs, seriesIdByKey),
     },
+    screenedRelations: transposeScreenedRelations(
+      associativePackage.screenedRelations,
+      seriesIdByKey,
+    ),
     scenarios,
     sources: { ...framing.sources, items: buildSources(series) },
     limitations: {
@@ -1619,10 +2330,21 @@ export function buildPublication({ sourceRoot } = {}) {
   }
 
   const verified = openVerifiedSource(source.root)
+  invariant(
+    verified.manifest.contractVersion === 'vocacoes-regiao-pesquisa-v0.4'
+      && verified.manifest.round === 'v3-rodada-01',
+    'o manifesto da origem não declara o contrato v0.4 e a rodada v3-rodada-01.',
+  )
   const verifiedApproval = verified.readVerifiedJson(PUBLIC_CONTRACT_APPROVAL_FILE)
   invariant(
     JSON.stringify(canonicalize(verifiedApproval)) === JSON.stringify(canonicalize(source.approval)),
     'o contrato público lido no handshake diverge do contrato sha-verificado pelo manifesto.',
+  )
+  invariant(
+    verifiedApproval.supersedes === 'vocacoes-regiao-2.5.0'
+      && verifiedApproval.approvedInRound === 'v3-rodada-01'
+      && verifiedApproval.researchContractVersion === 'vocacoes-regiao-pesquisa-v0.4',
+    'a aprovação do contrato público 2.6.0 não declara a sucessão e a rodada V3 R1 esperadas.',
   )
   const researchContract = verified.readVerifiedJson(RESEARCH_CONTRACT_FILE)
   invariant(
@@ -1630,6 +2352,7 @@ export function buildPublication({ sourceRoot } = {}) {
       || verified.manifest.contractVersion.endsWith(researchContract.contractVersion),
     'a versão do contrato de pesquisa diverge do manifesto da origem.',
   )
+  validateAssociativeResearchContract(researchContract)
   /*
    * O contrato da pesquisa precisa **prever** o Bloco 4 para que o gerador o
    * publique. Enquanto ele dizia `absent_in_v0_1`, publicar cenário aqui seria
@@ -1656,6 +2379,7 @@ export function buildPublication({ sourceRoot } = {}) {
     'o registro territorial não lista as regiões que declara.',
   )
   validateSynthesisApproval(verifiedApproval, registry)
+  validateAssociativeApproval(verifiedApproval, registry)
 
   const parseDocument = createVocacoesDocumentParser({
     sourceVersion: researchContract.schemaVersion,
@@ -1669,10 +2393,56 @@ export function buildPublication({ sourceRoot } = {}) {
   let generatedAt = null
   let methodologyStatus = null
 
-  for (const registryRegion of [...registry.regions].sort((left, right) =>
-    left.slug.localeCompare(right.slug, 'en'))) {
+  /*
+   * Os dez pacotes regionais são abertos antes da primeira região porque o
+   * contraste estadual é uma estatística cruzada. A leitura associativa não
+   * pode confiar no rank pronto da pesquisa: a plataforma o recompõe sobre
+   * estes mesmos dez arquivos, todos sha-verificados pelo manifesto.
+   */
+  const orderedRegistryRegions = [...registry.regions].sort((left, right) =>
+    left.slug.localeCompare(right.slug, 'en'))
+  const regionalLayers = new Map()
+  for (const registryRegion of orderedRegistryRegions) {
     const relative = `pacotes/regioes/${registryRegion.slug}.json`
-    const sourcePackage = verified.readVerifiedJson(relative)
+    regionalLayers.set(registryRegion.slug, {
+      relative,
+      package: verified.readVerifiedJson(relative),
+      sha256: verified.sha256Of(relative),
+    })
+  }
+  const allSourcePackagesBySlug = new Map(
+    orderedRegistryRegions.map((region) => [region.slug, regionalLayers.get(region.slug).package]),
+  )
+  const allRegionPackageSha256 = Object.fromEntries(
+    orderedRegistryRegions.map((region) => [region.slug, regionalLayers.get(region.slug).sha256]),
+  )
+  const associativeLayers = new Map()
+  for (const registryRegion of orderedRegistryRegions) {
+    const associativeRelative = ASSOCIATIVE_LAYER_PACKAGE_PATTERN.replace(
+      '{regionSlug}', registryRegion.slug)
+    invariant(
+      verified.declares(associativeRelative),
+      `o manifesto da origem não declara o pacote associativo "${associativeRelative}".`,
+    )
+    const regional = regionalLayers.get(registryRegion.slug)
+    const associativePackage = verified.readVerifiedJson(associativeRelative)
+    verifyAssociativePackage({
+      associativePackage,
+      sourcePackage: regional.package,
+      sourcePackageSha256: regional.sha256,
+      sourceRelative: regional.relative,
+      registryRegion,
+      allRegionPackageSha256,
+      allSourcePackagesBySlug,
+    })
+    associativeLayers.set(registryRegion.slug, associativePackage)
+  }
+
+  for (const registryRegion of orderedRegistryRegions) {
+    const regional = regionalLayers.get(registryRegion.slug)
+    const relative = regional.relative
+    const sourcePackage = regional.package
+    const associativePackage = associativeLayers.get(registryRegion.slug)
 
     /*
      * O pacote de cenários existe só nas regiões da Fase B, e a pergunta «existe?»
@@ -1717,7 +2487,8 @@ export function buildPublication({ sourceRoot } = {}) {
     const document = transposeRegion({
       registryRegion,
       sourcePackage,
-      sourcePackageSha256: verified.sha256Of(relative),
+      sourcePackageSha256: regional.sha256,
+      associativePackage,
       scenarioPackage,
       scenarioPackageSha256,
       municipalPackage,
@@ -1833,6 +2604,7 @@ export function buildFamilySchema(manifest) {
       'retrato-e-transformacoes-do-territorio',
       'educacao-e-territorio-lado-a-lado',
       'transformacoes-simultaneas',
+      'relacoes-observadas-por-triagem',
       'cenarios-da-regiao',
       'o-que-se-conclui',
     ],
@@ -1865,6 +2637,10 @@ export function buildFamilySchema(manifest) {
       'Toda região publica a camada de conclusões. Os tipos são rótulos públicos fechados; T1 '
       + 'reconfere associações e pares, T3 reconfere as quatro âncoras e T4 usa somente a '
       + 'interseção dos temas presentes nos quatro cenários do documento.',
+      'Toda associação e todo par temporal publica leitura associativa quantificada; as frases '
+      + 'são recompostas dos números e os ranks estaduais são recomputados sobre as dez regiões.',
+      'Correlação aparece somente na gramática fechada da leitura associativa, sem p-valor, '
+      + 'inferência causal ou projeção.',
     ],
   }
 }

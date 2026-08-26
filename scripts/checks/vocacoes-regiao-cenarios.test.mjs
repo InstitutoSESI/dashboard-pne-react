@@ -182,7 +182,8 @@ test('os campos aditivos do documento são cenários e síntese', () => {
   const congelados = [...FIELDS_2_0_0.documento].sort()
   const novos = publicados.filter((field) => !congelados.includes(field))
   const perdidos = congelados.filter((field) => !publicados.includes(field))
-  assert.deepEqual(novos, ['scenarios', 'synthesis'])
+  /* 2.6.0 (V3 R1): o bloco de relações triadas é o terceiro aditivo declarado. */
+  assert.deepEqual(novos, ['scenarios', 'screenedRelations', 'synthesis'])
   assert.deepEqual(perdidos, [])
 
   /* A procedência é o outro conjunto que cresceu, e o acréscimo é declarado: os

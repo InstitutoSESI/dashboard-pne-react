@@ -35,6 +35,12 @@ export const CAUSAL_FLOOR = Object.freeze([
   '\\bgerou\\b',
   '\\blevou a\\b',
   '\\bimpactou\\b',
+  '\\bp[- ]?valor',
+  '\\bcomprova\\w*\\b[^.;]{0,40}\\b(?:rela[çc]|correla|efeito|causa|liga[çc])',
+])
+
+export const LOOSE_COEFFICIENT_FLOOR = Object.freeze([
+  '\\br\\s*=\\s*-?[01]?[.,]\\d',
 ])
 
 export const TOKEN_FLOOR = Object.freeze(['fiergs', 'senai', 'sesi', 'regiao_fiergs', 'id_municipio'])
@@ -424,6 +430,19 @@ export function assertResearchContractCoversFloor(researchContract) {
       )
     }
   }
+  const looseCoefficients = new Set(
+    researchContract.associativeReadingLayer?.looseCoefficientPatterns ?? [],
+  )
+  for (const pattern of LOOSE_COEFFICIENT_FLOOR) {
+    if (!looseCoefficients.has(pattern)) {
+      fail(
+        'RESEARCH_CONTRACT_BELOW_FLOOR',
+        null,
+        `o contrato da camada de pesquisa não traz o padrão de coeficiente solto exigido `
+        + `pelo piso da plataforma: ${pattern}`,
+      )
+    }
+  }
   return true
 }
 
@@ -440,6 +459,12 @@ export function createPublicLanguageGuard(researchContract) {
 
   const causal = compile(researchContract.causalLanguagePatterns ?? [])
   const connectives = compile(researchContract.causalConnectivePatterns ?? [])
+  const looseCoefficients = compile(
+    researchContract.associativeReadingLayer?.looseCoefficientPatterns ?? [],
+  )
+  const associativeClosedGrammar = compile(
+    researchContract.associativeReadingLayer?.closedGrammarForbiddenPatterns ?? [],
+  )
   const forbiddenTokens = [
     ...(researchContract.forbiddenPublicTokens ?? []),
     ...PLATFORM_FORBIDDEN_TOKENS,
@@ -548,6 +573,34 @@ export function createPublicLanguageGuard(researchContract) {
         if (found !== null) {
           fail('CAUSAL_CONNECTIVE_IN_PUBLIC_TEXT', field, `o texto público usa o conectivo causal "${found}"`, text)
         }
+      }
+    }
+  }
+
+  function checkLooseCoefficient(text, field) {
+    for (const pattern of looseCoefficients) {
+      const found = pattern.exec(normalize(text))
+      if (found !== null) {
+        fail(
+          'LOOSE_CORRELATION_COEFFICIENT_IN_PUBLIC_TEXT',
+          field,
+          `o texto público expõe coeficiente de correlação fora da moldura: "${found[0]}"`,
+          text,
+        )
+      }
+    }
+  }
+
+  function checkAssociativeClosedGrammar(text, field) {
+    for (const pattern of associativeClosedGrammar) {
+      const found = findAsserted(text, pattern)
+      if (found !== null) {
+        fail(
+          'ASSOCIATIVE_CLOSED_GRAMMAR_VIOLATION',
+          field,
+          `o texto público sai da gramática associativa fechada: "${found}"`,
+          text,
+        )
       }
     }
   }
@@ -917,6 +970,8 @@ export function createPublicLanguageGuard(researchContract) {
     checkTokens(text, field)
     checkFutureYear(text, field)
     checkCausal(text, field, options)
+    checkLooseCoefficient(text, field)
+    checkAssociativeClosedGrammar(text, field)
     if (options.cadastral === true) checkCadastralUniverse(text, field)
     return text
   }
@@ -928,6 +983,8 @@ export function createPublicLanguageGuard(researchContract) {
     checkHorizonText,
     checkStatuteContradiction,
     checkCausal,
+    checkLooseCoefficient,
+    checkAssociativeClosedGrammar,
     checkCadastralUniverse,
     checkCadastralComparison,
     checkProhibitedClaim,
@@ -1044,6 +1101,20 @@ export function scanPublicDocument(document, guard) {
     association.territorialFactors.forEach((factor, position) => {
       guard.checkText(factor.label, `${field}.territorialFactors[${position}].label`)
     })
+    const associative = association.associativeReading
+    guard.checkText(associative.methodNote, `${field}.associativeReading.methodNote`)
+    associative.factorReadings.forEach((reading, position) => {
+      scanAssociativeComparison(
+        reading,
+        guard,
+        `${field}.associativeReading.factorReadings[${position}]`,
+      )
+    })
+    scanAssociativeStatement(
+      associative.stateContrast,
+      guard,
+      `${field}.associativeReading.stateContrast`,
+    )
     /*
      * A frase partida entre dois campos. Um dos vetores da Rodada 4 escrevia
      * "A retração do emprego levou" num campo e "à evasão escolar." no
@@ -1084,6 +1155,17 @@ export function scanPublicDocument(document, guard) {
     guard.checkProhibitedClaim(pair.prohibitedClaim, `${field}.prohibitedClaim`)
     guard.checkText(pair.seriesA.label, `${field}.seriesA.label`)
     guard.checkText(pair.seriesB.label, `${field}.seriesB.label`)
+    guard.checkText(pair.associativeReading.methodNote, `${field}.associativeReading.methodNote`)
+    scanAssociativeComparison(
+      pair.associativeReading,
+      guard,
+      `${field}.associativeReading`,
+    )
+    scanAssociativeStatement(
+      pair.associativeReading.stateContrast,
+      guard,
+      `${field}.associativeReading.stateContrast`,
+    )
     guard.checkCausal(
       [pair.label, pair.observedStatement].join(' '),
       `${field} (texto corrido)`,
@@ -1094,6 +1176,22 @@ export function scanPublicDocument(document, guard) {
       guard.checkCadastralComparison(pair.observedStatement, `${field}.observedStatement`)
       guard.checkCadastralComparison(pair.prohibitedClaim, `${field}.prohibitedClaim`)
     }
+  })
+
+  document.temporalPairs.laggedItems.forEach((item, index) => {
+    const field = `temporalPairs.laggedItems[${index}]`
+    if (item.rationale !== undefined) guard.checkText(item.rationale, `${field}.rationale`)
+    scanAssociativeStatement(item, guard, field)
+  })
+
+  guard.checkText(document.screenedRelations.label, 'screenedRelations.label')
+  guard.checkText(document.screenedRelations.description, 'screenedRelations.description')
+  guard.checkText(document.screenedRelations.methodNote, 'screenedRelations.methodNote')
+  document.screenedRelations.items.forEach((item, index) => {
+    const field = `screenedRelations.items[${index}]`
+    scanAssociativeComparison(item, guard, field)
+    guard.checkText(item.originStatement, `${field}.originStatement`)
+    guard.checkSentenceComplete(item.originStatement, `${field}.originStatement`)
   })
 
   scanScenarios(document, guard, { citesCadastral })
@@ -1112,6 +1210,18 @@ export function scanPublicDocument(document, guard) {
   })
 
   return document
+}
+
+function scanAssociativeStatement(block, guard, field) {
+  if (block?.statement === undefined) return
+  guard.checkText(block.statement, `${field}.statement`)
+  guard.checkSentenceComplete(block.statement, `${field}.statement`)
+}
+
+function scanAssociativeComparison(block, guard, field) {
+  scanAssociativeStatement(block.directionConcordance, guard, `${field}.directionConcordance`)
+  scanAssociativeStatement(block.comovement, guard, `${field}.comovement`)
+  scanAssociativeStatement(block.correlation, guard, `${field}.correlation`)
 }
 
 /*

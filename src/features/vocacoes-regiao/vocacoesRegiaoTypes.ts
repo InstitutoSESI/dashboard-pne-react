@@ -1,5 +1,5 @@
 /*
- * A forma do pacote público `vocacoes-regiao-2.5.0`, do lado de quem renderiza.
+ * A forma do pacote público `vocacoes-regiao-2.6.0`, do lado de quem renderiza.
  *
  * Estes tipos descrevem o que o validador já garantiu. Eles não repetem a
  * validação — repetir daria a ilusão de duas camadas onde há uma: em runtime só
@@ -50,6 +50,149 @@ export interface VocacoesWindow {
   readonly end: number
 }
 
+export type VocacoesAssociativeReasonCode =
+  | 'sem_intervalos_comparaveis'
+  | 'janela_curta'
+  | 'variancia_nula'
+  | 'variacao_nula'
+  | 'contraste_sem_regioes_comparaveis'
+  | 'defasagem_sem_janela_suficiente'
+  | 'serie_ausente'
+
+export interface VocacoesAssociativeAbsence {
+  readonly reasonCode: VocacoesAssociativeReasonCode
+}
+
+export interface VocacoesDirectionConcordance {
+  readonly windowStart: number
+  readonly windowEnd: number
+  readonly intervals: number
+  readonly concordant: number
+  readonly opposite: number
+  readonly ties: number
+  readonly statement: string
+}
+
+export interface VocacoesComovementSeries {
+  readonly seriesId: string
+  readonly effStart: number
+  readonly effEnd: number
+  readonly valueStart: number
+  readonly valueEnd: number
+  readonly delta: number
+  readonly deltaKind: 'nivel' | 'pontos'
+}
+
+export interface VocacoesAssociationComovement {
+  readonly outcome: VocacoesComovementSeries
+  readonly factor: VocacoesComovementSeries
+  readonly statement: string
+}
+
+export interface VocacoesPairComovement {
+  readonly a: VocacoesComovementSeries
+  readonly b: VocacoesComovementSeries
+  readonly statement: string
+}
+
+export interface VocacoesCorrelation {
+  readonly intervals: number
+  readonly pearsonDelta: number
+  readonly spearmanDelta: number
+  readonly strength: 'fraca' | 'moderada' | 'forte'
+  readonly direction: 'positiva' | 'negativa' | 'nula'
+  readonly statement: string
+}
+
+export interface VocacoesLaggedCorrelation {
+  readonly intervals: number
+  readonly pearsonDelta: number
+  readonly spearmanDelta: number
+  readonly strength: 'fraca' | 'moderada' | 'forte'
+  readonly direction: 'positiva' | 'negativa' | 'nula'
+}
+
+export interface VocacoesStateContrast {
+  readonly seriesId: string
+  readonly statistic: 'variacao_percentual' | 'variacao_em_pontos'
+  readonly value: number
+  readonly rank: number
+  readonly totalComparable: number
+  readonly sameDirectionCount: number
+  readonly direction: 'alta' | 'queda'
+  readonly statement: string
+}
+
+export interface VocacoesFactorReading {
+  readonly outcomeSeriesId: string
+  readonly factorSeriesId: string
+  readonly directionConcordance: VocacoesDirectionConcordance | VocacoesAssociativeAbsence
+  readonly comovement: VocacoesAssociationComovement | VocacoesAssociativeAbsence
+  readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
+}
+
+export interface VocacoesAssociationReading {
+  readonly grammarVersion: string
+  readonly methodNote: string
+  readonly factorReadings: readonly VocacoesFactorReading[]
+  readonly stateContrast: VocacoesStateContrast | VocacoesAssociativeAbsence
+}
+
+export interface VocacoesTemporalReading {
+  readonly grammarVersion: string
+  readonly methodNote: string
+  readonly directionConcordance: VocacoesDirectionConcordance | VocacoesAssociativeAbsence
+  readonly comovement: VocacoesPairComovement | VocacoesAssociativeAbsence
+  readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
+  readonly stateContrast: VocacoesStateContrast | VocacoesAssociativeAbsence
+}
+
+export interface VocacoesLaggedReading {
+  readonly aSeriesId: string
+  readonly bSeriesId: string
+  readonly lagYears: number
+  readonly rationale: string
+  readonly windowA: VocacoesWindow
+  readonly windowB: VocacoesWindow
+  readonly intervals: number
+  readonly concordant: number
+  readonly opposite: number
+  readonly ties: number
+  readonly correlation: VocacoesLaggedCorrelation | VocacoesAssociativeAbsence
+  readonly statement: string
+}
+
+export interface VocacoesLaggedAbsence {
+  readonly aSeriesId: string
+  readonly bSeriesId: string
+  readonly lagYears: number
+  readonly reasonCode: 'defasagem_sem_janela_suficiente' | 'serie_ausente'
+  readonly statement: string
+}
+
+export interface VocacoesScreenedRelation {
+  readonly relationId: string
+  readonly seriesAId: string
+  readonly seriesBId: string
+  readonly window: VocacoesWindow
+  readonly directionConcordance: VocacoesDirectionConcordance | VocacoesAssociativeAbsence
+  readonly comovement: VocacoesPairComovement | VocacoesAssociativeAbsence
+  readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
+  readonly originStatement: string
+}
+
+export interface VocacoesScreenedRelations {
+  readonly label: string
+  readonly description: string
+  readonly methodNote: string
+  readonly criteria: {
+    readonly minIntervals: number
+    readonly minAbsPearson: number
+    readonly maxItems: number
+  }
+  readonly items: readonly VocacoesScreenedRelation[]
+}
+
 export interface VocacoesAssociation {
   readonly associationId: string
   readonly label: string
@@ -61,6 +204,7 @@ export interface VocacoesAssociation {
   readonly allowedInterpretation: string
   readonly prohibitedClaim: string
   readonly hypotheses: readonly string[]
+  readonly associativeReading: VocacoesAssociationReading
 }
 
 export interface VocacoesTemporalPair {
@@ -72,6 +216,7 @@ export interface VocacoesTemporalPair {
   readonly seriesB: VocacoesSeriesReference
   readonly observedStatement: string
   readonly prohibitedClaim: string
+  readonly associativeReading: VocacoesTemporalReading
 }
 
 export type VocacoesScenarioStatute = 'exploratory' | 'normative'
@@ -267,7 +412,10 @@ export interface VocacoesDocument {
     readonly series: readonly VocacoesSeries[]
   }
   readonly associations: TextBlock<VocacoesAssociation>
-  readonly temporalPairs: TextBlock<VocacoesTemporalPair>
+  readonly temporalPairs: TextBlock<VocacoesTemporalPair> & {
+    readonly laggedItems: readonly (VocacoesLaggedReading | VocacoesLaggedAbsence)[]
+  }
+  readonly screenedRelations: VocacoesScreenedRelations
   readonly scenarios: VocacoesScenarios
   readonly sources: TextBlock<{ readonly label: string; readonly periodLabel: string }>
   readonly limitations: TextBlock<string>

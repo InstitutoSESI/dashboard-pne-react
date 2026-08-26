@@ -1,5 +1,5 @@
 /*
- * Camada de conclusões — contrato `vocacoes-regiao-2.5.0`, decisão V2-D8.
+ * Camada de conclusões — contrato `vocacoes-regiao-2.6.0` (V3 R1; nasceu no 2.5.0, decisão V2-D8).
  *
  * O teste cobre a cadeia inteira: pacote sha-verificado na origem, forma
  * pública sem enum interno, recomposição estrutural de T1/T3/T4, T4 derivado
@@ -52,11 +52,11 @@ const parseDocument = createVocacoesDocumentParser({
 
 const KIND_LABELS = Object.values(SYNTHESIS_KIND_LABELS)
 
-test('as dez regiões publicam síntese 2.5.0 sha-verificada e válida', () => {
-  assert.equal(manifest.documentSchemaVersion, 'vocacoes-regiao-2.5.0')
+test('as dez regiões publicam síntese 2.6.0 sha-verificada e válida', () => {
+  assert.equal(manifest.documentSchemaVersion, 'vocacoes-regiao-2.6.0')
   assert.equal(manifest.regions.length, 10)
   for (const [slug, document] of Object.entries(documents)) {
-    assert.equal(document.schemaVersion, 'vocacoes-regiao-2.5.0', slug)
+    assert.equal(document.schemaVersion, 'vocacoes-regiao-2.6.0', slug)
     assert.doesNotThrow(() => parseDocument(structuredClone(document)), slug)
     assert.doesNotThrow(() => scanPublicDocument(structuredClone(document), guard), slug)
     const originEntry = originManifest.files.find((entry) =>

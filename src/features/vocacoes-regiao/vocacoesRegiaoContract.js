@@ -1,5 +1,5 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.2.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.6.0`.
  *
  * Quatro blocos por região: retrato e transformações do território (Bloco 1),
  * leitura associativa entre educação e território (Bloco 2), comparação
@@ -45,6 +45,10 @@
  *     construções fechadas. As frases nascem de dados e templates promovidos,
  *     perdem os enums internos na fronteira e são reverificadas contra as
  *     associações, pares, séries, âncoras e temas do próprio documento.
+ *   - `2.5.0` → `2.6.0` (Rodada 1 do V3, decisão `V3-D8`): **aditivo**. As
+ *     associações e os pares ganham leitura associativa quantificada; entram a
+ *     leitura defasada e a triagem estatística. Coeficientes, bins e frases são
+ *     recomputados a partir das séries do próprio documento.
  *
  * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
  * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
@@ -70,7 +74,353 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.5.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.6.0'
+
+export const ASSOCIATIVE_GRAMMAR_VERSION = 'vocacoes-regiao-associativo-v0.1'
+
+export const ASSOCIATIVE_METHOD_NOTE =
+  'Concordância, co-movimento e correlação descrevem movimento conjunto no período observado; '
+  + 'não medem causa nem permitem projeção.'
+
+export const SCREENED_ORIGIN_STATEMENT =
+  'Relação observada por triagem estatística entre as séries da região; não integra a curadoria '
+  + 'e não traz hipóteses.'
+
+export const ASSOCIATIVE_REASON_CODES = Object.freeze([
+  'sem_intervalos_comparaveis',
+  'janela_curta',
+  'variancia_nula',
+  'variacao_nula',
+  'contraste_sem_regioes_comparaveis',
+  'defasagem_sem_janela_suficiente',
+  'serie_ausente',
+])
+
+export const SCREENED_RELATIONS_CRITERIA = Object.freeze({
+  minIntervals: 8,
+  minAbsPearson: 0.6,
+  maxItems: 5,
+})
+
+const ASSOCIATIVE_REASON_CODE_SET = new Set(ASSOCIATIVE_REASON_CODES)
+const COMPARISON_REASON_CODES = new Set(['sem_intervalos_comparaveis'])
+const CORRELATION_REASON_CODES = new Set(['janela_curta', 'variancia_nula'])
+const CONTRAST_REASON_CODES = new Set([
+  'variacao_nula',
+  'contraste_sem_regioes_comparaveis',
+])
+const LAGGED_REASON_CODES = new Set([
+  'defasagem_sem_janela_suficiente',
+  'serie_ausente',
+])
+const ASSOCIATIVE_STRENGTHS = new Set(['fraca', 'moderada', 'forte'])
+const ASSOCIATIVE_DIRECTIONS = new Set(['positiva', 'negativa', 'nula'])
+const COMOVEMENT_DELTA_KINDS = new Set(['nivel', 'pontos'])
+const CONTRAST_DIRECTIONS = new Set(['alta', 'queda'])
+const CONTRAST_STATISTICS = new Set(['variacao_percentual', 'variacao_em_pontos'])
+const LAGGED_RATIONALE =
+  'a coorte nascida em um ano atinge a idade de ingresso no ensino fundamental seis anos depois'
+
+function roundedScaledInteger(value, decimals) {
+  invariant(typeof value === 'number' && Number.isFinite(value), 'valor para arredondamento deve ser finito.')
+  invariant(
+    Number.isInteger(decimals) && decimals >= 0 && decimals <= 20,
+    'casas decimais devem ser um inteiro entre 0 e 20.',
+  )
+  const negative = value < 0
+  const [coefficient, exponentText = '0'] = Math.abs(value).toString().toLowerCase().split('e')
+  const exponent = Number(exponentText)
+  const [integerPart, fractionPart = ''] = coefficient.split('.')
+  const digits = (integerPart + fractionPart).replace(/^0+(?=\d)/u, '') || '0'
+  const shift = decimals + exponent - fractionPart.length
+  let scaled
+  if (shift >= 0) {
+    scaled = BigInt(digits) * (10n ** BigInt(shift))
+  } else {
+    const divisor = 10n ** BigInt(-shift)
+    const absolute = BigInt(digits)
+    scaled = absolute / divisor
+    if ((absolute % divisor) * 2n >= divisor) scaled += 1n
+  }
+  return { negative: negative && scaled !== 0n, scaled }
+}
+
+function scaledIntegerText({ negative, scaled }, decimals) {
+  const digits = scaled.toString().padStart(decimals + 1, '0')
+  const sign = negative ? '-' : ''
+  if (decimals === 0) return `${sign}${digits}`
+  const splitAt = digits.length - decimals
+  return `${sign}${digits.slice(0, splitAt)}.${digits.slice(splitAt)}`
+}
+
+/** Arredondamento decimal half-away-from-zero, sem depender de `toFixed`. */
+export function roundHalfAwayFromZero(value, decimals) {
+  return Number(scaledIntegerText(roundedScaledInteger(value, decimals), decimals))
+}
+
+/** Decimal com vírgula e quantidade fixa de casas, usando o arredondamento do contrato. */
+export function formatDecimalComma(value, decimals) {
+  return scaledIntegerText(roundedScaledInteger(value, decimals), decimals).replace('.', ',')
+}
+
+function groupIntegerDigits(digits) {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/gu, ' ')
+}
+
+/* O `numero_publico` canônico usa o arredondamento do formatador de `float` do
+ * Python. Ele é half-even sobre o double binário, não o arredondamento decimal
+ * half-away empregado em percentuais, pontos e coeficientes. */
+function roundedBinaryHalfEvenScaledInteger(value, decimals) {
+  const buffer = new ArrayBuffer(8)
+  const view = new DataView(buffer)
+  view.setFloat64(0, Math.abs(value), false)
+  const high = view.getUint32(0, false)
+  const low = view.getUint32(4, false)
+  const exponentBits = (high >>> 20) & 0x7ff
+  const fraction = (BigInt(high & 0xfffff) << 32n) | BigInt(low)
+  const mantissa = exponentBits === 0 ? fraction : (1n << 52n) | fraction
+  const binaryExponent = exponentBits === 0
+    ? -1074 + decimals
+    : exponentBits - 1023 - 52 + decimals
+  const numerator = mantissa * (5n ** BigInt(decimals))
+  let scaled
+  if (binaryExponent >= 0) {
+    scaled = numerator << BigInt(binaryExponent)
+  } else {
+    const divisor = 1n << BigInt(-binaryExponent)
+    scaled = numerator / divisor
+    const remainder = numerator % divisor
+    if (remainder * 2n > divisor || (remainder * 2n === divisor && scaled % 2n === 1n)) {
+      scaled += 1n
+    }
+  }
+  return { negative: value < 0 && scaled !== 0n, scaled }
+}
+
+/** Formatação de nível idêntica a `numero_publico`: espaço de milhar e vírgula decimal. */
+export function formatPublicNumber(value) {
+  invariant(typeof value === 'number' && Number.isFinite(value), 'número público deve ser finito.')
+  const decimals = Number.isInteger(value) ? 0 : 1
+  const rounded = roundedBinaryHalfEvenScaledInteger(value, decimals)
+  const digits = rounded.scaled.toString().padStart(decimals + 1, '0')
+  const splitAt = digits.length - decimals
+  const integer = decimals === 0 ? digits : digits.slice(0, splitAt)
+  const fraction = decimals === 0 ? '' : `,${digits.slice(splitAt)}`
+  return `${rounded.negative ? '-' : ''}${groupIntegerDigits(integer)}${fraction}`
+}
+
+function pointValueMap(points) {
+  return new Map(points.map((point) => [point.period, point.value]))
+}
+
+function computeDeltaPairs(pointsA, pointsB, window, lagYears = 0) {
+  const valuesA = pointValueMap(pointsA)
+  const valuesB = pointValueMap(pointsB)
+  const pairs = []
+  for (let period = window.start + 1; period <= window.end; period += 1) {
+    if (
+      valuesA.has(period - 1)
+      && valuesA.has(period)
+      && valuesB.has(period + lagYears - 1)
+      && valuesB.has(period + lagYears)
+    ) {
+      pairs.push({
+        period,
+        deltaA: valuesA.get(period) - valuesA.get(period - 1),
+        deltaB: valuesB.get(period + lagYears) - valuesB.get(period + lagYears - 1),
+      })
+    }
+  }
+  return pairs
+}
+
+function directionSign(value) {
+  return value > 0 ? 1 : value < 0 ? -1 : 0
+}
+
+export function computeDirectionConcordance(pointsA, pointsB, window) {
+  const pairs = computeDeltaPairs(pointsA, pointsB, window)
+  if (pairs.length === 0) return { reasonCode: 'sem_intervalos_comparaveis' }
+  const concordant = pairs.filter(({ deltaA, deltaB }) =>
+    directionSign(deltaA) * directionSign(deltaB) === 1).length
+  const opposite = pairs.filter(({ deltaA, deltaB }) =>
+    directionSign(deltaA) * directionSign(deltaB) === -1).length
+  return {
+    windowStart: window.start,
+    windowEnd: window.end,
+    intervals: pairs.length,
+    concordant,
+    opposite,
+    ties: pairs.length - concordant - opposite,
+  }
+}
+
+export function computeComovement(points, window, deltaKind) {
+  invariant(COMOVEMENT_DELTA_KINDS.has(deltaKind), `deltaKind fora do contrato: ${deltaKind}.`)
+  const available = points
+    .filter((point) => point.period >= window.start && point.period <= window.end)
+    .sort((left, right) => left.period - right.period)
+  if (available.length < 2 || available[0].period >= available[available.length - 1].period) {
+    return { reasonCode: 'sem_intervalos_comparaveis' }
+  }
+  const first = available[0]
+  const last = available[available.length - 1]
+  return {
+    effStart: first.period,
+    effEnd: last.period,
+    valueStart: first.value,
+    valueEnd: last.value,
+    delta: last.value - first.value,
+    deltaKind,
+  }
+}
+
+function pearson(valuesA, valuesB) {
+  const meanA = valuesA.reduce((total, value) => total + value, 0) / valuesA.length
+  const meanB = valuesB.reduce((total, value) => total + value, 0) / valuesB.length
+  let varianceA = 0
+  let varianceB = 0
+  let covariance = 0
+  for (let index = 0; index < valuesA.length; index += 1) {
+    const centeredA = valuesA[index] - meanA
+    const centeredB = valuesB[index] - meanB
+    varianceA += centeredA ** 2
+    varianceB += centeredB ** 2
+    covariance += centeredA * centeredB
+  }
+  if (varianceA === 0 || varianceB === 0) return null
+  return covariance / (varianceA ** 0.5 * varianceB ** 0.5)
+}
+
+function averageRanks(values) {
+  const order = values.map((value, index) => ({ value, index }))
+    .sort((left, right) => left.value - right.value)
+  const ranks = Array(values.length).fill(0)
+  let start = 0
+  while (start < order.length) {
+    let end = start
+    while (end + 1 < order.length && order[end + 1].value === order[start].value) end += 1
+    const average = (start + end) / 2 + 1
+    for (let index = start; index <= end; index += 1) ranks[order[index].index] = average
+    start = end + 1
+  }
+  return ranks
+}
+
+export function computePearsonDelta(pointsA, pointsB, window) {
+  const pairs = computeDeltaPairs(pointsA, pointsB, window)
+  if (pairs.length < 5) return null
+  return pearson(pairs.map((pair) => pair.deltaA), pairs.map((pair) => pair.deltaB))
+}
+
+export function computeSpearmanDelta(pointsA, pointsB, window) {
+  const pairs = computeDeltaPairs(pointsA, pointsB, window)
+  if (pairs.length < 5) return null
+  return pearson(
+    averageRanks(pairs.map((pair) => pair.deltaA)),
+    averageRanks(pairs.map((pair) => pair.deltaB)),
+  )
+}
+
+export function correlationStrength(absPearson) {
+  invariant(typeof absPearson === 'number' && Number.isFinite(absPearson), 'correlação deve ser finita.')
+  return absPearson >= 0.7 ? 'forte' : absPearson >= 0.3 ? 'moderada' : 'fraca'
+}
+
+export function renderConcordanceStatement({
+  concordant,
+  intervals,
+  windowStart,
+  windowEnd,
+  labelA,
+  labelB,
+}) {
+  return `Em ${concordant} dos ${intervals} intervalos anuais entre ${windowStart} e `
+    + `${windowEnd}, ${labelA} e ${labelB} variaram no mesmo sentido.`
+}
+
+function renderComovementSegment(label, movement) {
+  let direction
+  if (movement.delta === 0) {
+    direction = 'estável'
+  } else {
+    const directionLabel = movement.delta > 0 ? 'alta' : 'queda'
+    if (movement.deltaKind === 'pontos') {
+      const magnitude = formatDecimalComma(Math.abs(movement.delta), 1)
+      direction = `${directionLabel} de ${magnitude} ${magnitude === '1,0' ? 'ponto' : 'pontos'}`
+    } else if (movement.valueStart > 0) {
+      const magnitude = formatDecimalComma(
+        Math.abs(movement.delta) / movement.valueStart * 100,
+        1,
+      )
+      direction = `${directionLabel} de ${magnitude}%`
+    } else {
+      direction = directionLabel
+    }
+  }
+  return `${label}, de ${formatPublicNumber(movement.valueStart)} em ${movement.effStart} para `
+    + `${formatPublicNumber(movement.valueEnd)} em ${movement.effEnd} (${direction})`
+}
+
+export function renderComovementStatement({ a, b, labelA, labelB }) {
+  return `Movimento acumulado na janela: ${renderComovementSegment(labelA, a)}; `
+    + `${renderComovementSegment(labelB, b)}.`
+}
+
+export function renderCorrelationStatement({
+  windowStart,
+  windowEnd,
+  pearsonDelta,
+  strength,
+  direction,
+}) {
+  if (direction === 'nula') {
+    return `Na janela de ${windowStart} a ${windowEnd}, a correlação entre as variações anuais `
+      + 'das duas séries é nula.'
+  }
+  return `Na janela de ${windowStart} a ${windowEnd}, a correlação entre as variações anuais `
+    + `das duas séries é de ${formatDecimalComma(pearsonDelta, 2)} — ${strength} e ${direction}.`
+}
+
+export function renderLaggedStatement({
+  aSeriesLabel,
+  bSeriesLabel,
+  lagYears,
+  rationale,
+  windowA,
+  windowB,
+  concordant,
+  intervals,
+  correlation,
+  reasonCode,
+}) {
+  if (reasonCode !== undefined) {
+    const reasonLabel = reasonCode === 'defasagem_sem_janela_suficiente'
+      ? 'a janela comum às duas séries é curta demais para a leitura'
+      : 'uma das séries não está disponível na região'
+    return `A leitura defasada de ${aSeriesLabel} sobre ${bSeriesLabel} não é publicada nesta `
+      + `região: ${reasonLabel}.`
+  }
+  const base = `Com defasagem de ${lagYears} anos — ${rationale} —, em ${concordant} dos `
+    + `${intervals} intervalos anuais ${aSeriesLabel} (${windowA.start} a ${windowA.end}) e `
+    + `${bSeriesLabel} (${windowB.start} a ${windowB.end}) variaram no mesmo sentido`
+  if (correlation?.reasonCode !== undefined) return `${base}.`
+  return `${base}; a correlação das variações anuais nessa defasagem é de `
+    + `${formatDecimalComma(correlation.pearsonDelta, 2)}.`
+}
+
+export function renderContrastStatement({
+  totalComparable,
+  rank,
+  direction,
+  label,
+  sameDirectionCount,
+}) {
+  const position = rank === 1 ? 'a maior' : `a ${rank}ª maior`
+  return `Entre as ${totalComparable} regiões comparáveis do estado, esta é ${position} `
+    + `${direction} acumulada de ${label} nessa janela; ${sameDirectionCount} das `
+    + `${totalComparable} regiões registraram ${direction}.`
+}
 
 /** Classes de evidência aceitas, e a frase pública de cada uma. */
 export const EVIDENCE_CLASS_LABELS = Object.freeze({
@@ -336,6 +686,7 @@ const DOCUMENT_FIELDS = new Set([
   'territoryPortrait',
   'associations',
   'temporalPairs',
+  'screenedRelations',
   'scenarios',
   'sources',
   'limitations',
@@ -408,6 +759,7 @@ const ASSOCIATION_FIELDS = new Set([
   'allowedInterpretation',
   'prohibitedClaim',
   'hypotheses',
+  'associativeReading',
 ])
 const SERIES_REF_FIELDS = new Set(['seriesId', 'label'])
 
@@ -420,6 +772,118 @@ const TEMPORAL_PAIR_FIELDS = new Set([
   'seriesB',
   'observedStatement',
   'prohibitedClaim',
+  'associativeReading',
+])
+
+const TEMPORAL_PAIRS_BLOCK_FIELDS = new Set(['label', 'description', 'items', 'laggedItems'])
+const ASSOCIATION_READING_FIELDS = new Set([
+  'grammarVersion',
+  'methodNote',
+  'factorReadings',
+  'stateContrast',
+])
+const FACTOR_READING_FIELDS = new Set([
+  'outcomeSeriesId',
+  'factorSeriesId',
+  'directionConcordance',
+  'comovement',
+  'correlation',
+])
+const TEMPORAL_READING_FIELDS = new Set([
+  'grammarVersion',
+  'methodNote',
+  'directionConcordance',
+  'comovement',
+  'correlation',
+  'stateContrast',
+])
+const REASON_FIELDS = new Set(['reasonCode'])
+const DIRECTION_CONCORDANCE_FIELDS = new Set([
+  'windowStart',
+  'windowEnd',
+  'intervals',
+  'concordant',
+  'opposite',
+  'ties',
+  'statement',
+])
+const COMOVEMENT_FIELDS_BY_ROLE = Object.freeze({
+  association: new Set(['outcome', 'factor', 'statement']),
+  temporal: new Set(['a', 'b', 'statement']),
+  screened: new Set(['a', 'b', 'statement']),
+})
+const COMOVEMENT_SERIES_FIELDS = new Set([
+  'seriesId',
+  'effStart',
+  'effEnd',
+  'valueStart',
+  'valueEnd',
+  'delta',
+  'deltaKind',
+])
+const CORRELATION_FIELDS = new Set([
+  'intervals',
+  'pearsonDelta',
+  'spearmanDelta',
+  'strength',
+  'direction',
+  'statement',
+])
+const LAGGED_CORRELATION_FIELDS = new Set([
+  'intervals',
+  'pearsonDelta',
+  'spearmanDelta',
+  'strength',
+  'direction',
+])
+const STATE_CONTRAST_FIELDS = new Set([
+  'seriesId',
+  'statistic',
+  'value',
+  'rank',
+  'totalComparable',
+  'sameDirectionCount',
+  'direction',
+  'statement',
+])
+const LAGGED_ITEM_FIELDS = new Set([
+  'aSeriesId',
+  'bSeriesId',
+  'lagYears',
+  'rationale',
+  'windowA',
+  'windowB',
+  'intervals',
+  'concordant',
+  'opposite',
+  'ties',
+  'correlation',
+  'statement',
+])
+const LAGGED_ABSENCE_FIELDS = new Set([
+  'aSeriesId',
+  'bSeriesId',
+  'lagYears',
+  'reasonCode',
+  'statement',
+])
+const SCREENED_RELATIONS_FIELDS = new Set([
+  'label',
+  'description',
+  'methodNote',
+  'criteria',
+  'items',
+])
+const SCREENED_CRITERIA_FIELDS = new Set(['minIntervals', 'minAbsPearson', 'maxItems'])
+const SCREENED_RELATION_FIELDS = new Set([
+  'relationId',
+  'seriesAId',
+  'seriesBId',
+  'window',
+  'directionConcordance',
+  'comovement',
+  'correlation',
+  'originStatement',
 ])
 
 const SOURCE_ITEM_FIELDS = new Set(['label', 'periodLabel'])
@@ -948,6 +1412,521 @@ function validateWindowAgainstSeries(window, serie, label) {
   )
 }
 
+function validateReasonBlock(candidate, label, allowedReasonCodes, expectedReasonCode = null) {
+  validateExactFields(candidate, REASON_FIELDS, label)
+  invariant(
+    ASSOCIATIVE_REASON_CODE_SET.has(candidate.reasonCode),
+    `${label}.reasonCode fora do contrato: ${candidate.reasonCode}.`,
+  )
+  invariant(
+    allowedReasonCodes.has(candidate.reasonCode),
+    `${label}.reasonCode não é admitido neste bloco: ${candidate.reasonCode}.`,
+  )
+  if (expectedReasonCode !== null) {
+    invariant(
+      candidate.reasonCode === expectedReasonCode,
+      `${label}.reasonCode diverge da recomputação: esperado ${expectedReasonCode}, `
+      + `recebido ${candidate.reasonCode}.`,
+    )
+  }
+  return candidate
+}
+
+function validateAssociativeSeries(seriesId, label, seriesById) {
+  validatePublicId(seriesId, label)
+  const serie = seriesById.get(seriesId)
+  invariant(serie !== undefined, `${label} não resolve em nenhuma série do documento.`)
+  invariant(
+    serie.periodGranularity === 'annual',
+    `${label} referencia série não anual; a leitura associativa exige séries anuais.`,
+  )
+  return serie
+}
+
+function expectedDeltaKind(serie) {
+  return serie.ratioOf === null ? 'nivel' : 'pontos'
+}
+
+function validateDirectionConcordance(candidate, label, serieA, serieB, window) {
+  const expected = computeDirectionConcordance(serieA.points, serieB.points, window)
+  if (expected.reasonCode !== undefined) {
+    return validateReasonBlock(candidate, label, COMPARISON_REASON_CODES, expected.reasonCode)
+  }
+  validateExactFields(candidate, DIRECTION_CONCORDANCE_FIELDS, label)
+  for (const field of ['windowStart', 'windowEnd', 'intervals', 'concordant', 'opposite', 'ties']) {
+    invariant(Number.isInteger(candidate[field]), `${label}.${field} deve ser inteiro.`)
+    invariant(
+      candidate[field] === expected[field],
+      `${label}.${field} diverge da recomputação: esperado ${expected[field]}, `
+      + `recebido ${candidate[field]}.`,
+    )
+  }
+  validateText(candidate.statement, `${label}.statement`)
+  const statement = renderConcordanceStatement({
+    ...expected,
+    labelA: serieA.label,
+    labelB: serieB.label,
+  })
+  invariant(
+    candidate.statement === statement,
+    `${label}.statement diverge do template T-CONC.`,
+  )
+  return candidate
+}
+
+function validateComovementSeries(candidate, expected, seriesId, label) {
+  validateExactFields(candidate, COMOVEMENT_SERIES_FIELDS, label)
+  invariant(candidate.seriesId === seriesId, `${label}.seriesId diverge da série esperada.`)
+  for (const field of ['effStart', 'effEnd']) {
+    invariant(Number.isInteger(candidate[field]), `${label}.${field} deve ser inteiro.`)
+  }
+  for (const field of ['valueStart', 'valueEnd', 'delta']) {
+    invariant(
+      typeof candidate[field] === 'number' && Number.isFinite(candidate[field]),
+      `${label}.${field} deve ser número finito.`,
+    )
+  }
+  invariant(
+    COMOVEMENT_DELTA_KINDS.has(candidate.deltaKind),
+    `${label}.deltaKind fora do contrato: ${candidate.deltaKind}.`,
+  )
+  for (const field of ['effStart', 'effEnd', 'valueStart', 'valueEnd', 'delta', 'deltaKind']) {
+    invariant(
+      candidate[field] === expected[field],
+      `${label}.${field} diverge da recomputação: esperado ${expected[field]}, `
+      + `recebido ${candidate[field]}.`,
+    )
+  }
+  return candidate
+}
+
+function validateComovement(candidate, label, serieA, serieB, window, role) {
+  const expectedA = computeComovement(serieA.points, window, expectedDeltaKind(serieA))
+  const expectedB = computeComovement(serieB.points, window, expectedDeltaKind(serieB))
+  if (expectedA.reasonCode !== undefined || expectedB.reasonCode !== undefined) {
+    return validateReasonBlock(
+      candidate,
+      label,
+      COMPARISON_REASON_CODES,
+      'sem_intervalos_comparaveis',
+    )
+  }
+  validateExactFields(candidate, COMOVEMENT_FIELDS_BY_ROLE[role], label)
+  const keyA = role === 'association' ? 'outcome' : 'a'
+  const keyB = role === 'association' ? 'factor' : 'b'
+  validateComovementSeries(candidate[keyA], expectedA, serieA.seriesId, `${label}.${keyA}`)
+  validateComovementSeries(candidate[keyB], expectedB, serieB.seriesId, `${label}.${keyB}`)
+  validateText(candidate.statement, `${label}.statement`)
+  const statement = renderComovementStatement({
+    a: expectedA,
+    b: expectedB,
+    labelA: serieA.label,
+    labelB: serieB.label,
+  })
+  invariant(candidate.statement === statement, `${label}.statement diverge do template T-COMOV.`)
+  return candidate
+}
+
+function correlationFromPairs(pairs) {
+  if (pairs.length < 5) return { reasonCode: 'janela_curta' }
+  const valuesA = pairs.map((pair) => pair.deltaA)
+  const valuesB = pairs.map((pair) => pair.deltaB)
+  const pearsonDelta = pearson(valuesA, valuesB)
+  if (pearsonDelta === null) return { reasonCode: 'variancia_nula' }
+  return {
+    intervals: pairs.length,
+    pearsonDelta,
+    spearmanDelta: pearson(averageRanks(valuesA), averageRanks(valuesB)),
+    strength: correlationStrength(Math.abs(pearsonDelta)),
+    direction: pearsonDelta > 0 ? 'positiva' : pearsonDelta < 0 ? 'negativa' : 'nula',
+  }
+}
+
+function validateCorrelationFromPairs(
+  candidate,
+  label,
+  pairs,
+  { window = null, statement = true } = {},
+) {
+  const expected = correlationFromPairs(pairs)
+  if (expected.reasonCode !== undefined) {
+    return validateReasonBlock(candidate, label, CORRELATION_REASON_CODES, expected.reasonCode)
+  }
+  validateExactFields(
+    candidate,
+    statement ? CORRELATION_FIELDS : LAGGED_CORRELATION_FIELDS,
+    label,
+  )
+  invariant(Number.isInteger(candidate.intervals), `${label}.intervals deve ser inteiro.`)
+  invariant(
+    candidate.intervals === expected.intervals,
+    `${label}.intervals diverge da recomputação.`,
+  )
+  for (const field of ['pearsonDelta', 'spearmanDelta']) {
+    invariant(
+      typeof candidate[field] === 'number' && Number.isFinite(candidate[field]),
+      `${label}.${field} deve ser número finito.`,
+    )
+    const rounded = roundHalfAwayFromZero(expected[field], 2)
+    invariant(
+      candidate[field] === rounded,
+      `${label}.${field} diverge da recomputação: esperado ${rounded}, `
+      + `recebido ${candidate[field]}.`,
+    )
+  }
+  invariant(
+    ASSOCIATIVE_STRENGTHS.has(candidate.strength),
+    `${label}.strength fora do contrato: ${candidate.strength}.`,
+  )
+  invariant(
+    candidate.strength === expected.strength,
+    `${label}.strength diverge do bin recomputado: esperado ${expected.strength}, `
+    + `recebido ${candidate.strength}.`,
+  )
+  invariant(
+    ASSOCIATIVE_DIRECTIONS.has(candidate.direction),
+    `${label}.direction fora do contrato: ${candidate.direction}.`,
+  )
+  invariant(
+    candidate.direction === expected.direction,
+    `${label}.direction diverge do sinal recomputado: esperado ${expected.direction}, `
+    + `recebido ${candidate.direction}.`,
+  )
+  if (statement) {
+    validateText(candidate.statement, `${label}.statement`)
+    const expectedStatement = renderCorrelationStatement({
+      windowStart: window.start,
+      windowEnd: window.end,
+      pearsonDelta: candidate.pearsonDelta,
+      strength: candidate.strength,
+      direction: candidate.direction,
+    })
+    invariant(
+      candidate.statement === expectedStatement,
+      `${label}.statement diverge do template T-CORR.`,
+    )
+  }
+  return candidate
+}
+
+function validateCorrelation(candidate, label, serieA, serieB, window) {
+  return validateCorrelationFromPairs(
+    candidate,
+    label,
+    computeDeltaPairs(serieA.points, serieB.points, window),
+    { window },
+  )
+}
+
+function validateStateContrast(candidate, label, targetSerie) {
+  if (isRecord(candidate) && Object.prototype.hasOwnProperty.call(candidate, 'reasonCode')) {
+    return validateReasonBlock(candidate, label, CONTRAST_REASON_CODES)
+  }
+  validateExactFields(candidate, STATE_CONTRAST_FIELDS, label)
+  invariant(candidate.seriesId === targetSerie.seriesId, `${label}.seriesId diverge da série-alvo.`)
+  const expectedStatistic = expectedDeltaKind(targetSerie) === 'pontos'
+    ? 'variacao_em_pontos'
+    : 'variacao_percentual'
+  invariant(
+    CONTRAST_STATISTICS.has(candidate.statistic) && candidate.statistic === expectedStatistic,
+    `${label}.statistic diverge da unidade da série-alvo.`,
+  )
+  invariant(
+    typeof candidate.value === 'number' && Number.isFinite(candidate.value),
+    `${label}.value deve ser número finito.`,
+  )
+  invariant(
+    Number.isInteger(candidate.rank) && candidate.rank >= 1,
+    `${label}.rank deve ser inteiro positivo.`,
+  )
+  invariant(
+    Number.isInteger(candidate.totalComparable) && candidate.totalComparable >= 2,
+    `${label}.totalComparable deve ser inteiro ao menos 2.`,
+  )
+  invariant(candidate.rank <= candidate.totalComparable, `${label}.rank excede totalComparable.`)
+  invariant(
+    Number.isInteger(candidate.sameDirectionCount)
+      && candidate.sameDirectionCount >= 1
+      && candidate.sameDirectionCount <= candidate.totalComparable,
+    `${label}.sameDirectionCount deve estar entre 1 e totalComparable.`,
+  )
+  invariant(
+    CONTRAST_DIRECTIONS.has(candidate.direction),
+    `${label}.direction fora do contrato: ${candidate.direction}.`,
+  )
+  validateText(candidate.statement, `${label}.statement`)
+  const statement = renderContrastStatement({
+    totalComparable: candidate.totalComparable,
+    rank: candidate.rank,
+    direction: candidate.direction,
+    label: targetSerie.label,
+    sameDirectionCount: candidate.sameDirectionCount,
+  })
+  invariant(candidate.statement === statement, `${label}.statement diverge do template T-CONTRASTE.`)
+  return candidate
+}
+
+function validateAssociationReading(candidate, label, association, seriesById) {
+  validateExactFields(candidate, ASSOCIATION_READING_FIELDS, label)
+  invariant(
+    candidate.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
+    `${label}.grammarVersion fora do contrato.`,
+  )
+  invariant(candidate.methodNote === ASSOCIATIVE_METHOD_NOTE, `${label}.methodNote fora do contrato.`)
+  invariant(Array.isArray(candidate.factorReadings), `${label}.factorReadings deve ser uma lista.`)
+  invariant(
+    candidate.factorReadings.length === association.territorialFactors.length,
+    `${label}.factorReadings não cobre todos os fatores territoriais.`,
+  )
+  const outcomeSerie = validateAssociativeSeries(
+    association.educationOutcome.seriesId,
+    `${label}.outcomeSeriesId`,
+    seriesById,
+  )
+  candidate.factorReadings.forEach((reading, index) => {
+    const readingLabel = `${label}.factorReadings[${index}]`
+    validateExactFields(reading, FACTOR_READING_FIELDS, readingLabel)
+    const factorReference = association.territorialFactors[index]
+    invariant(
+      reading.outcomeSeriesId === association.educationOutcome.seriesId,
+      `${readingLabel}.outcomeSeriesId diverge do resultado educacional da associação.`,
+    )
+    invariant(
+      reading.factorSeriesId === factorReference.seriesId,
+      `${readingLabel}.factorSeriesId diverge do fator territorial correspondente.`,
+    )
+    const factorSerie = validateAssociativeSeries(
+      reading.factorSeriesId,
+      `${readingLabel}.factorSeriesId`,
+      seriesById,
+    )
+    validateDirectionConcordance(
+      reading.directionConcordance,
+      `${readingLabel}.directionConcordance`,
+      outcomeSerie,
+      factorSerie,
+      association.window,
+    )
+    validateComovement(
+      reading.comovement,
+      `${readingLabel}.comovement`,
+      outcomeSerie,
+      factorSerie,
+      association.window,
+      'association',
+    )
+    validateCorrelation(
+      reading.correlation,
+      `${readingLabel}.correlation`,
+      outcomeSerie,
+      factorSerie,
+      association.window,
+    )
+  })
+  validateStateContrast(candidate.stateContrast, `${label}.stateContrast`, outcomeSerie)
+  return candidate
+}
+
+function validateTemporalReading(candidate, label, pair, seriesById) {
+  validateExactFields(candidate, TEMPORAL_READING_FIELDS, label)
+  invariant(
+    candidate.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
+    `${label}.grammarVersion fora do contrato.`,
+  )
+  invariant(candidate.methodNote === ASSOCIATIVE_METHOD_NOTE, `${label}.methodNote fora do contrato.`)
+  const serieA = validateAssociativeSeries(pair.seriesA.seriesId, `${label}.seriesA`, seriesById)
+  const serieB = validateAssociativeSeries(pair.seriesB.seriesId, `${label}.seriesB`, seriesById)
+  validateDirectionConcordance(
+    candidate.directionConcordance,
+    `${label}.directionConcordance`,
+    serieA,
+    serieB,
+    pair.window,
+  )
+  validateComovement(
+    candidate.comovement,
+    `${label}.comovement`,
+    serieA,
+    serieB,
+    pair.window,
+    'temporal',
+  )
+  validateCorrelation(
+    candidate.correlation,
+    `${label}.correlation`,
+    serieA,
+    serieB,
+    pair.window,
+  )
+  validateStateContrast(candidate.stateContrast, `${label}.stateContrast`, serieB)
+  return candidate
+}
+
+function allLaggedDeltaPairs(serieA, serieB, lagYears) {
+  const periodsA = serieA.points.map((point) => point.period)
+  const window = { start: Math.min(...periodsA), end: Math.max(...periodsA) }
+  return computeDeltaPairs(serieA.points, serieB.points, window, lagYears)
+}
+
+function validateLaggedItem(candidate, label, seriesById, referenceYear) {
+  invariant(isRecord(candidate), `${label} deve ser um objeto.`)
+  const isAbsence = Object.prototype.hasOwnProperty.call(candidate, 'reasonCode')
+  validateExactFields(candidate, isAbsence ? LAGGED_ABSENCE_FIELDS : LAGGED_ITEM_FIELDS, label)
+  invariant(candidate.lagYears === 6, `${label}.lagYears deve ser 6 nesta rodada.`)
+  const serieA = validateAssociativeSeries(candidate.aSeriesId, `${label}.aSeriesId`, seriesById)
+  const serieB = validateAssociativeSeries(candidate.bSeriesId, `${label}.bSeriesId`, seriesById)
+  invariant(serieA.seriesId !== serieB.seriesId, `${label} compara uma série com ela mesma.`)
+  const pairs = allLaggedDeltaPairs(serieA, serieB, candidate.lagYears)
+
+  if (pairs.length < 5) {
+    invariant(isAbsence, `${label} deveria declarar ausência por janela defasada curta.`)
+    validateReasonBlock(
+      { reasonCode: candidate.reasonCode },
+      `${label}.reasonCode`,
+      LAGGED_REASON_CODES,
+      'defasagem_sem_janela_suficiente',
+    )
+    const statement = renderLaggedStatement({
+      aSeriesLabel: serieA.label,
+      bSeriesLabel: serieB.label,
+      lagYears: candidate.lagYears,
+      reasonCode: candidate.reasonCode,
+    })
+    invariant(candidate.statement === statement, `${label}.statement diverge do template T-LAG.`)
+    return candidate
+  }
+
+  invariant(!isAbsence, `${label} declara ausência apesar de haver janela defasada suficiente.`)
+  invariant(candidate.rationale === LAGGED_RATIONALE, `${label}.rationale fora do contrato.`)
+  validateWindow(candidate.windowA, `${label}.windowA`, referenceYear)
+  validateWindow(candidate.windowB, `${label}.windowB`, referenceYear)
+  const firstPeriod = pairs[0].period
+  const lastPeriod = pairs[pairs.length - 1].period
+  const expectedWindowA = { start: firstPeriod - 1, end: lastPeriod }
+  const expectedWindowB = {
+    start: expectedWindowA.start + candidate.lagYears,
+    end: expectedWindowA.end + candidate.lagYears,
+  }
+  for (const field of ['start', 'end']) {
+    invariant(
+      candidate.windowA[field] === expectedWindowA[field],
+      `${label}.windowA.${field} diverge da recomputação.`,
+    )
+    invariant(
+      candidate.windowB[field] === expectedWindowB[field],
+      `${label}.windowB.${field} diverge da recomputação.`,
+    )
+  }
+  const concordant = pairs.filter(({ deltaA, deltaB }) =>
+    directionSign(deltaA) * directionSign(deltaB) === 1).length
+  const opposite = pairs.filter(({ deltaA, deltaB }) =>
+    directionSign(deltaA) * directionSign(deltaB) === -1).length
+  const expectedCounts = {
+    intervals: pairs.length,
+    concordant,
+    opposite,
+    ties: pairs.length - concordant - opposite,
+  }
+  for (const [field, expected] of Object.entries(expectedCounts)) {
+    invariant(Number.isInteger(candidate[field]), `${label}.${field} deve ser inteiro.`)
+    invariant(candidate[field] === expected, `${label}.${field} diverge da recomputação.`)
+  }
+  validateCorrelationFromPairs(candidate.correlation, `${label}.correlation`, pairs, {
+    statement: false,
+  })
+  validateText(candidate.statement, `${label}.statement`)
+  const statement = renderLaggedStatement({
+    aSeriesLabel: serieA.label,
+    bSeriesLabel: serieB.label,
+    lagYears: candidate.lagYears,
+    rationale: candidate.rationale,
+    windowA: expectedWindowA,
+    windowB: expectedWindowB,
+    concordant,
+    intervals: pairs.length,
+    correlation: candidate.correlation,
+  })
+  invariant(candidate.statement === statement, `${label}.statement diverge do template T-LAG.`)
+  return candidate
+}
+
+function validateScreenedRelations(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, SCREENED_RELATIONS_FIELDS, label)
+  invariant(candidate.label === 'Relações observadas por triagem', `${label}.label fora do contrato.`)
+  validateText(candidate.description, `${label}.description`)
+  invariant(candidate.methodNote === ASSOCIATIVE_METHOD_NOTE, `${label}.methodNote fora do contrato.`)
+  validateExactFields(candidate.criteria, SCREENED_CRITERIA_FIELDS, `${label}.criteria`)
+  for (const [field, expected] of Object.entries(SCREENED_RELATIONS_CRITERIA)) {
+    invariant(candidate.criteria[field] === expected, `${label}.criteria.${field} fora do contrato.`)
+  }
+  invariant(Array.isArray(candidate.items), `${label}.items deve ser uma lista.`)
+  invariant(
+    candidate.items.length <= SCREENED_RELATIONS_CRITERIA.maxItems,
+    `${label}.items excede o teto de triagem.`,
+  )
+  const relationIds = new Set()
+  let previous = null
+  candidate.items.forEach((item, index) => {
+    const itemLabel = `${label}.items[${index}]`
+    validateExactFields(item, SCREENED_RELATION_FIELDS, itemLabel)
+    const serieA = validateAssociativeSeries(item.seriesAId, `${itemLabel}.seriesAId`, seriesById)
+    const serieB = validateAssociativeSeries(item.seriesBId, `${itemLabel}.seriesBId`, seriesById)
+    invariant(serieA.seriesId !== serieB.seriesId, `${itemLabel} compara uma série com ela mesma.`)
+    invariant(
+      item.relationId === `${item.seriesAId}--${item.seriesBId}`,
+      `${itemLabel}.relationId não deriva das duas séries.`,
+    )
+    invariant(!relationIds.has(item.relationId), `${itemLabel}.relationId repetido.`)
+    relationIds.add(item.relationId)
+    validateWindow(item.window, `${itemLabel}.window`, referenceYear)
+    validateWindowAgainstSeries(item.window, serieA, `${itemLabel}.seriesAId`)
+    validateWindowAgainstSeries(item.window, serieB, `${itemLabel}.seriesBId`)
+    validateDirectionConcordance(
+      item.directionConcordance,
+      `${itemLabel}.directionConcordance`,
+      serieA,
+      serieB,
+      item.window,
+    )
+    validateComovement(
+      item.comovement,
+      `${itemLabel}.comovement`,
+      serieA,
+      serieB,
+      item.window,
+      'screened',
+    )
+    validateCorrelation(item.correlation, `${itemLabel}.correlation`, serieA, serieB, item.window)
+    const intervals = computeDeltaPairs(serieA.points, serieB.points, item.window).length
+    const pearsonDelta = computePearsonDelta(serieA.points, serieB.points, item.window)
+    invariant(
+      intervals >= SCREENED_RELATIONS_CRITERIA.minIntervals,
+      `${itemLabel} não alcança o mínimo de intervalos da triagem.`,
+    )
+    invariant(
+      pearsonDelta !== null
+        && Math.abs(pearsonDelta) >= SCREENED_RELATIONS_CRITERIA.minAbsPearson,
+      `${itemLabel} não alcança o limiar de correlação da triagem.`,
+    )
+    validateText(item.originStatement, `${itemLabel}.originStatement`)
+    invariant(
+      item.originStatement === SCREENED_ORIGIN_STATEMENT,
+      `${itemLabel}.originStatement fora do contrato.`,
+    )
+    const ordering = { absPearson: Math.abs(pearsonDelta), relationId: item.relationId }
+    if (previous !== null) {
+      invariant(
+        previous.absPearson > ordering.absPearson
+          || (previous.absPearson === ordering.absPearson
+            && previous.relationId.localeCompare(ordering.relationId) <= 0),
+        `${itemLabel} está fora da ordem determinística da triagem.`,
+      )
+    }
+    previous = ordering
+  })
+  return candidate
+}
+
 function validateAssociation(candidate, label, seriesById, referenceYear) {
   validateExactFields(candidate, ASSOCIATION_FIELDS, label)
   validatePublicId(candidate.associationId, `${label}.associationId`)
@@ -996,6 +1975,12 @@ function validateAssociation(candidate, label, seriesById, referenceYear) {
   validateText(candidate.allowedInterpretation, `${label}.allowedInterpretation`)
   validateProhibitedClaim(candidate.prohibitedClaim, `${label}.prohibitedClaim`)
   validateTextList(candidate.hypotheses, `${label}.hypotheses`)
+  validateAssociationReading(
+    candidate.associativeReading,
+    `${label}.associativeReading`,
+    candidate,
+    seriesById,
+  )
   return candidate
 }
 
@@ -1015,6 +2000,12 @@ function validateTemporalPair(candidate, label, seriesById, referenceYear) {
   validateWindowAgainstSeries(candidate.window, seriesById.get(second.seriesId), `${label}.seriesB`)
   validateText(candidate.observedStatement, `${label}.observedStatement`)
   validateProhibitedClaim(candidate.prohibitedClaim, `${label}.prohibitedClaim`)
+  validateTemporalReading(
+    candidate.associativeReading,
+    `${label}.associativeReading`,
+    candidate,
+    seriesById,
+  )
   return candidate
 }
 
@@ -1943,7 +2934,7 @@ export function createVocacoesDocumentParser({
     })
 
     /* Bloco 3 — comparação temporal em pares curados. */
-    validateExactFields(candidate.temporalPairs, TEXT_BLOCK_FIELDS, 'pacote.temporalPairs')
+    validateExactFields(candidate.temporalPairs, TEMPORAL_PAIRS_BLOCK_FIELDS, 'pacote.temporalPairs')
     validateText(candidate.temporalPairs.label, 'pacote.temporalPairs.label')
     validateText(candidate.temporalPairs.description, 'pacote.temporalPairs.description')
     invariant(
@@ -1957,6 +2948,27 @@ export function createVocacoesDocumentParser({
       invariant(!pairIds.has(pair.pairId), `${label}.pairId repetido: ${pair.pairId}.`)
       pairIds.add(pair.pairId)
     })
+    invariant(
+      Array.isArray(candidate.temporalPairs.laggedItems)
+        && candidate.temporalPairs.laggedItems.length === 1,
+      'pacote.temporalPairs.laggedItems deve trazer exatamente uma leitura defasada.',
+    )
+    candidate.temporalPairs.laggedItems.forEach((item, index) => {
+      validateLaggedItem(
+        item,
+        `pacote.temporalPairs.laggedItems[${index}]`,
+        seriesById,
+        referenceYear,
+      )
+    })
+
+    /* Relações adicionais aprovadas pela triagem estatística fechada. */
+    validateScreenedRelations(
+      candidate.screenedRelations,
+      'pacote.screenedRelations',
+      seriesById,
+      referenceYear,
+    )
 
     /* Bloco 4 — cenários da região, publicados ou declaradamente ausentes. */
     validateScenarios(candidate.scenarios, 'pacote.scenarios', seriesById, referenceYear)
