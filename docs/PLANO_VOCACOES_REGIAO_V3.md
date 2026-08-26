@@ -49,6 +49,12 @@ estatística descritiva não causal, e inverter a moldura da página para que a 
 lidere e a negação vire nota metodológica. É isso que responde à frase da gestão
 "mostrando os dados que sustentam essa leitura".
 
+**Piloto do plano (V3-D7):** toda análise nova é construída e validada primeiro no par
+**região Vale do Sinos × município Nova Santa Rita (4313375)** antes de expandir às
+demais. Nova Santa Rita é o piloto histórico do PNE (ficha diagnóstica de 2026-08-14,
+matriz v4, foresight municipal), o que permite contrastar a leitura nova com o material
+já validado no município e verificar a ponte região→município num território conhecido.
+
 ## 3. Decisões
 
 | # | Decisão | Registro |
@@ -59,6 +65,8 @@ lidere e a negação vire nota metodológica. É isso que responde à frase da g
 | V3-D4 | **Estatística associativa é descritiva e fechada por construção** (R1): concordância de direção, co-movimento por janela, defasagem declarada e contraste com a distribuição estadual — computadas na pesquisa, reverificadas na plataforma, **nunca** correlação apresentada como causa, **nunca** r/p-valor solto na página sem gramática fechada. | 2026-08-26 |
 | V3-D5 | **Sequência dirigida pelo pedido**: primeiro dar força e legibilidade ao que já está no ar (R0–R2), depois expandir cobertura (R3), depois entregar (R4). Opção C da R5 do V2 (matrícula municipal via microdados do Censo Escolar) vai ao backlog como rodada condicional, não bloqueia. | 2026-08-26 |
 | V3-D6 | **GA de leitura da R5 do V2 dispensado pelo mantenedor** (árbitro) na Rodada 0: "não li, mas vamos avançando sem minha revisão". Não é sign-off de leitura; registrado como desvio §4.2.6 em `GA_HUMANO_RODADA_05.md` e `ENCERRAMENTO_R5.md`. Compensações mecânicas do gate registradas; achado futuro do mantenedor entra como correção na rodada em que surgir. | 2026-08-26 |
+| V3-D7 | **Piloto Nova Santa Rita / Vale do Sinos**: toda análise nova do plano (estatística associativa da R1, moldura da R2, cenários + camada municipal da R3, legibilidade da R4) é construída e validada primeiro na região **Vale do Sinos** e no município **Nova Santa Rita (4313375)** — piloto histórico do PNE — antes de expandir às demais regiões. Amostras de verificação e GAs humanos incluem obrigatoriamente esse par. | 2026-08-26 |
+| V3-D8 | **Estatística enriquecida na R1** (pedido do mantenedor na abertura da R1): a leitura associativa deixa de ser só concordância/co-movimento e passa a incluir **correlações (Pearson e Spearman sobre variações anuais) com força qualificada por faixas fechadas**, correlação na defasagem estrutural, e uma **triagem determinística de relações adicionais** educação×território fora da curadoria (limiar e teto fixos), publicadas como "relações observadas por triagem". Revisa o alcance de V3-D4: o proibido não é o coeficiente — é o coeficiente **solto fora da gramática fechada** ou **apresentado como causa**. Guardas deixam de banir o termo "correlação" e passam a atacar a correlação-como-causa e o r/p-valor fora de moldura (p-valor segue inexistente: a camada é descritiva, sem inferência). | 2026-08-26 |
 
 ## 4. Protocolo de execução v4
 
@@ -172,29 +180,44 @@ Relate em .tmp/vocacoes-v3/rodada-00/. Não inicie a rodada seguinte.
      variaram no mesmo sentido ("em 8 dos 11 anos, as duas caíram juntas");
    - **Co-movimento por janela**: variação acumulada de cada série em janelas
      idênticas, com sentido e magnitude relatados lado a lado;
+   - **Correlação com gramática fechada (V3-D8)**: Pearson e Spearman sobre as
+     variações anuais das duas séries, com força qualificada por faixas fechadas
+     (fraca/moderada/forte) e sentido (positiva/negativa), sempre dentro de frase de
+     template com a moldura não causal;
    - **Defasagem declarada** onde a estrutura do par já a define (SINASC → matrículas
-     k anos depois): concordância computada na janela defasada, com k explícito;
+     k anos depois): concordância e correlação computadas na janela defasada, com k
+     explícito;
    - **Contraste estadual**: posição da região na distribuição das 10 para a mesma
-     estatística ("esta região é a 2ª maior queda entre as 10").
+     estatística ("esta região é a 2ª maior queda entre as 10");
+   - **Relações adicionais por triagem determinística (V3-D8)**: varredura fechada
+     educação×território fora dos pares curados, com limiar de correlação, mínimo de
+     intervalos e teto por região fixos no builder; publicadas como "relações
+     observadas por triagem", sem hipóteses curadas e com a mesma moldura não causal.
    Tudo **fechado por construção**: números computados, frases montadas de template com
    gramática fechada (mesma disciplina de V2-D8), zero prosa livre.
 2. **Proibições verificadas por guarda + corpus**: nenhum termo causal ("explica",
-   "determina", "impacto de", "por causa de"), nenhum coeficiente de correlação nu na
-   página, nenhuma extrapolação. Corpus bilateral com ataques novos (correlação
-   travestida, causalidade por ordem temporal).
+   "determina", "impacto de", "por causa de"), nenhum coeficiente de correlação **fora
+   da moldura de template** (dentro dela, o coeficiente é bem-vindo — V3-D8), nenhum
+   p-valor (não há inferência), nenhuma extrapolação. Corpus bilateral com ataques
+   novos (correlação apresentada como causa, r/p-valor solto, causalidade por ordem
+   temporal).
 3. **Contrato público 2.5.0 → 2.6.0 (aditivo)**: bloco `associativeReading` por
    associação/par, com dados de sustentação, estatística, interpretação
    permitida/proibida; reverificação fail-closed na plataforma
    (`vocacoesRegiaoContract.js`); gerador atualizado; changelog com motivo.
-4. Rebuild das 10 regiões; prova de que as estatísticas **diferem entre regiões**
+4. **Piloto primeiro (V3-D7)**: a camada roda e é verificada de ponta a ponta no
+   **Vale do Sinos** (builder → contrato → reverificação na plataforma) antes do rebuild
+   das demais; só com o piloto verde o rebuild das 10 acontece.
+5. Rebuild das 10 regiões; prova de que as estatísticas **diferem entre regiões**
    (anti-template, instrumento da R3 do V2); teste de intercambialidade (trocar a região
    e o texto denuncia pelos números).
-5. Publicação (dados; a renderização muda na R2).
+6. Publicação (dados; a renderização muda na R2).
 
-**Aceite:** builder determinístico com hash estável ×2; estatística correta provada por
-recomputação independente do Fable em amostra (2 regiões × 3 associações, cálculo
-próprio × valor publicado); contrato 2.6.0 verde; corpus bilateral 100%; anti-template
-verde; suíte sem regressão.
+**Aceite:** piloto Vale do Sinos verde antes do rebuild geral; builder determinístico
+com hash estável ×2; estatística correta provada por recomputação independente do Fable
+em amostra (2 regiões × 3 associações, **incluindo obrigatoriamente o Vale do Sinos**,
+cálculo próprio × valor publicado); contrato 2.6.0 verde; corpus bilateral 100%;
+anti-template verde; suíte sem regressão.
 
 **Prompt de abertura:**
 ```text
@@ -220,13 +243,15 @@ em vez de liderar com o que não se pode concluir.
    não se conclui" **recolhido como nota metodológica** (`details`, padrão do redesign
    2026-08-26) — presente, honesto, mas não protagonista.
 2. Mesma inversão no bloco territorial da matriz municipal (ponte R4 do V2) e nos pares
-   temporais.
+   temporais; a verificação da matriz usa **Nova Santa Rita** como caso de referência
+   (V3-D7).
 3. Títulos e "como ler" reescritos contra as duas perguntas literais da gestão (cada
    seção responde visivelmente a uma).
 4. Nenhuma guarda afrouxada: o conteúdo da nota é o mesmo; muda posição e peso visual.
    Guardas de linguagem e testes de arquitetura de UI atualizados junto.
-5. **GA humano**: o mantenedor lê 1 região completa e 1 município na tela, comparando
-   com o print original da gestão; achados viram correções na própria rodada.
+5. **GA humano**: o mantenedor lê o par piloto na tela — a região **Vale do Sinos**
+   completa e o município **Nova Santa Rita** na matriz (V3-D7) —, comparando com o
+   print original da gestão; achados viram correções na própria rodada.
 
 **Aceite:** hierarquia nova no ar nas 10 regiões + matriz; SSR mantém conteúdo no
 markup (restrição conhecida do redesign); zero mudança de conteúdo nas frases de guarda;
@@ -254,13 +279,16 @@ municipal. Absorve a R6 do V2, com a condição V2-D3 herdada.
    resolvido ou aceito com registro?). Veredito negativo = rodada encerra aqui, fato
    declarado à gestão na R4.
 2. Construção em **2 lotes de 4 regiões** pelas 8 etapas do guia v1.6 (esqueleto fixado
-   antes da narrativa); o executor constrói sob especificação por etapa; o Fable audita
+   antes da narrativa); **o Vale do Sinos abre o lote 1 e é a primeira região construída
+   e auditada** (V3-D7); o executor constrói sob especificação por etapa; o Fable audita
    a narrativa de cada lote (papel que era do GPT no v3 — agora invertido).
 3. Por lote: intercambialidade contra **todas** as já publicadas; teste cego por
    realidade (juiz = job GPT não-gate); zero contradição trajetória×número; temas de
    agenda; leitura associativa (R1) e moldura (R2) aplicadas; **camada municipal** da
-   região construída junto (contrato 2.4.0 já cobre).
-4. GA humano por lote: 1 região sorteada, leitura integral do mantenedor.
+   região construída junto (contrato 2.4.0 já cobre) — no Vale do Sinos, verificada
+   município a município a partir de **Nova Santa Rita**.
+4. GA humano por lote: no lote 1, a leitura integral é do **Vale do Sinos** (piloto);
+   no lote 2, 1 região sorteada.
 5. Publicação incremental por lote (`scenarioStatus: published` região a região).
 
 **Aceite:** veredito de transferibilidade registrado; por lote publicado —
@@ -287,8 +315,9 @@ perguntas do pedido — com dono, cadência e regra de expiração. Absorve a R7
 1. Revisão editorial dirigida pelo pedido: leitura adversarial do Fable das duas
    páginas contra as duas perguntas literais; implicações de continuidade reescritas
    como agenda ("o que acompanhar / o que decidir"); correções pelo executor.
-2. Teste de leitura humano: mantenedor (e, se possível, a gestora) lê 1 região completa
-   e 1 município; achados viram correções na própria rodada.
+2. Teste de leitura humano: mantenedor (e, se possível, a gestora) lê o par piloto —
+   região **Vale do Sinos** completa e município **Nova Santa Rita** (V3-D7); achados
+   viram correções na própria rodada.
 3. Governança (`docs/GOVERNANCA_VOCACOES_REGIAO.md`): responsável, cadência por fonte
    (RAIS anual, SINASC mensal/prévia, INEP anual, CadÚnico mensal), regra de expiração
    fail-visible ("desatualizado" na página), canal de contestação.
