@@ -1,5 +1,5 @@
 /*
- * O Vocações da Região publicado — contrato `vocacoes-regiao-2.1.0`.
+ * O Vocações da Região publicado — contrato `vocacoes-regiao-2.3.0`.
  *
  * Até a Fase A este arquivo guardava a **ausência**: que o manifesto vazio era
  * um estado declarado e verificável. A ausência continua guardada, e continua

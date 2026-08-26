@@ -1,5 +1,5 @@
 /*
- * A forma do pacote público `vocacoes-regiao-2.1.0`, do lado de quem renderiza.
+ * A forma do pacote público `vocacoes-regiao-2.5.0`, do lado de quem renderiza.
  *
  * Estes tipos descrevem o que o validador já garantiu. Eles não repetem a
  * validação — repetir daria a ilusão de duas camadas onde há uma: em runtime só
@@ -91,6 +91,18 @@ export interface VocacoesScenarioImplication {
   readonly statement: string
 }
 
+/*
+ * Tema de agenda do PNE — a ponte Vocações → PNE. `theme` é o enum fechado,
+ * `themeLabel` a frase pública dele, e `statement` é byte-idêntico a uma das
+ * implicações educacionais do mesmo cenário: o tema aponta para a implicação que
+ * o sustenta, não escreve prosa nova.
+ */
+export interface VocacoesAgendaTheme {
+  readonly theme: string
+  readonly themeLabel: string
+  readonly statement: string
+}
+
 export interface VocacoesNormativeCriterion {
   readonly order: number
   readonly publicName: string
@@ -114,9 +126,57 @@ export interface VocacoesScenario {
   readonly stateAtHorizonStatement: string
   readonly anchors: readonly VocacoesScenarioAnchor[]
   readonly educationImplications: readonly VocacoesScenarioImplication[]
+  readonly agendaThemes: readonly VocacoesAgendaTheme[]
   readonly contraryEvidence: readonly string[]
   readonly limits: readonly string[]
   readonly prohibitedClaim: string
+}
+
+/*
+ * Camada municipal (Rodada 5 do V2, sucessora da D11) — vive dentro do bloco de
+ * cenários, e por isso só existe onde há cenário.
+ */
+export interface VocacoesMunicipalDimension {
+  readonly label: string
+  readonly sourceLabel: string
+  readonly unitLabel: string
+  readonly periodLabel: string
+  readonly kindLabel: string
+  readonly universeLabel: string | null
+}
+
+export interface VocacoesMunicipalUndecomposable {
+  readonly label: string
+  readonly consultedSource: string
+  readonly reason: string
+}
+
+export interface VocacoesMunicipalCompositionLine {
+  readonly dimensionLabel: string
+  readonly statement: string
+}
+
+export interface VocacoesMunicipalExposure {
+  readonly order: number
+  readonly exposureStatement: string
+  readonly allowedInterpretation: string
+  readonly prohibitedClaim: string
+}
+
+export interface VocacoesMunicipality {
+  readonly municipalityId: string
+  readonly name: string
+  readonly composition: readonly VocacoesMunicipalCompositionLine[]
+  readonly scenarioExposure: readonly VocacoesMunicipalExposure[]
+}
+
+export interface VocacoesMunicipalLayer {
+  readonly label: string
+  readonly description: string
+  readonly methodNote: string
+  readonly dimensions: readonly VocacoesMunicipalDimension[]
+  readonly undecomposableDomains: readonly VocacoesMunicipalUndecomposable[]
+  readonly municipalities: readonly VocacoesMunicipality[]
 }
 
 export interface VocacoesScenarioBlock {
@@ -137,6 +197,7 @@ export interface VocacoesScenarioBlock {
   readonly robustImplications: readonly string[]
   readonly conditionalImplication: string
   readonly prohibitedClaim: string
+  readonly municipalLayer: VocacoesMunicipalLayer
 }
 
 /*
@@ -151,6 +212,25 @@ export interface VocacoesScenarios {
   readonly status: 'published' | 'absent'
   readonly absenceStatement: string | null
   readonly block: VocacoesScenarioBlock | null
+}
+
+export interface VocacoesSynthesisItem {
+  readonly kindLabel: string
+  readonly statement: string
+  readonly basisLabel?: string
+}
+
+export interface VocacoesSynthesisAbsence {
+  readonly kindLabel: string
+  readonly statement: string
+}
+
+export interface VocacoesSynthesis {
+  readonly label: string
+  readonly description: string
+  readonly methodNote: string
+  readonly items: readonly VocacoesSynthesisItem[]
+  readonly absentKinds: readonly VocacoesSynthesisAbsence[]
 }
 
 interface TextBlock<Item> {
@@ -180,6 +260,7 @@ export interface VocacoesDocument {
     readonly neutralityNote: string
   }
   readonly howToRead: TextBlock<string>
+  readonly synthesis: VocacoesSynthesis
   readonly territoryPortrait: {
     readonly label: string
     readonly description: string
@@ -198,5 +279,7 @@ export interface VocacoesDocument {
     readonly registrySha256: string
     readonly scenarioPackageSha256: string | null
     readonly scenarioSourceSha256: string | null
+    readonly municipalPackageSha256: string | null
+    readonly synthesisPackageSha256: string
   }
 }

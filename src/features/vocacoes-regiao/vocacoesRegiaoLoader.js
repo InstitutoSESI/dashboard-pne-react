@@ -8,7 +8,7 @@
  * Fase A; o que mudou é que agora há regiões no manifesto.
  *
  * A validação do pacote vive em `vocacoesRegiaoContract.js`, que é o contrato
- * público `vocacoes-regiao-2.1.0`. Este módulo cuida do que é leitura: buscar,
+ * público `vocacoes-regiao-2.3.0`. Este módulo cuida do que é leitura: buscar,
  * conferir o resumo do arquivo contra o manifesto, casar identidade e versão de
  * conteúdo, e memorizar. A separação importa — o contrato precisa rodar também
  * no gerador, em Node, sem nada de rede.

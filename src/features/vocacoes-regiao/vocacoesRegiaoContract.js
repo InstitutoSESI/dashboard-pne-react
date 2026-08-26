@@ -1,13 +1,50 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.1.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.2.0`.
  *
  * Quatro blocos por região: retrato e transformações do território (Bloco 1),
  * leitura associativa entre educação e território (Bloco 2), comparação
  * temporal em pares curados (Bloco 3) e **cenários da região (Bloco 4)**.
  *
- * O `2.1.0` é **aditivo** sobre o `2.0.0`: nenhum campo dos três primeiros
- * blocos mudou de forma, de nome ou de regra. O que entra é um campo novo no
- * documento, `scenarios`, e nada mais.
+ * Changelog do contrato:
+ *   - `2.0.0` → `2.1.0`: **aditivo**. Nenhum campo dos três primeiros blocos
+ *     mudou de forma, de nome ou de regra; o único acréscimo ao documento é o
+ *     campo `scenarios` (Bloco 4), mais os dois resumos de procedência do
+ *     cenário.
+ *   - `2.1.0` → `2.2.0` (Rodada 1 do V2, decisão `V2` da D11): **a forma do
+ *     documento não muda** — nenhum campo entra ou sai. Muda a regra pública do
+ *     `schema.json` da família: a decisão `D3` deixa de ser «duas famílias com
+ *     regras diferentes» e passa a ser «esta família tem esta regra». A família
+ *     dos cenários municipais foi **removida da plataforma** (D11); com ela
+ *     fora, o contrato não pode mais nomear a regra da outra família como a que
+ *     não vale aqui — declara a sua e só a sua. O
+ *     motivo do salto de versão é essa mudança de contrato público, não uma
+ *     mudança de forma do documento.
+ *   - `2.2.0` → `2.3.0` (Rodada 4 do V2, decisão `V2-D6`): **aditivo**. O único
+ *     campo novo do **documento** continua sendo `scenarios`; o acréscimo é um
+ *     subcampo obrigatório do item de cenário — `agendaThemes` —, a ponte
+ *     Vocações → PNE. Cada tema é um enum fechado alinhado a uma **meta do PNE**
+ *     (o tema da meta, nunca o número dela com valor), e a frase que o sustenta
+ *     é **byte-idêntica a uma implicação educacional já publicada no próprio
+ *     cenário**: o tema de agenda não escreve prosa nova, ele aponta para a
+ *     implicação que o justifica. É a mesma disciplina da âncora — o Bloco 4 não
+ *     digita número, e agora também não digita frase de agenda.
+ *   - `2.3.0` → `2.4.0` (Rodada 5 do V2, sucessora da D11): **aditivo**. O único
+ *     acréscimo é `scenarios.block.municipalLayer` — a **camada municipal dentro
+ *     do cenário**, presente só nas regiões que publicam cenário (o bloco é
+ *     `null` nas outras oito, e a camada com ele). Para cada município da região,
+ *     ela traz a **composição observada** dele na região (participação em
+ *     demografia e cadastro social, sinal de fluxo escolar) e, por cenário, uma
+ *     leitura de **exposição derivada dessa composição** — nunca uma projeção
+ *     municipal nem uma probabilidade. Emprego setorial e matrícula-por-etapa,
+ *     que os cenários também citam, estão em grão regional e a camada os declara
+ *     como ausência por município (decisão `V2-D7`). A guarda de linguagem barra
+ *     número futuro municipal, probabilidade municipal, ranking implícito de
+ *     municípios e causalidade município←região.
+ *   - `2.4.0` → `2.5.0` (Rodada 6 do V2, decisão `V2-D8`): **aditivo**. O
+ *     documento passa a trazer `synthesis`, uma camada de conclusões com quatro
+ *     construções fechadas. As frases nascem de dados e templates promovidos,
+ *     perdem os enums internos na fronteira e são reverificadas contra as
+ *     associações, pares, séries, âncoras e temas do próprio documento.
  *
  * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
  * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
@@ -17,22 +54,15 @@
  *
  * **Os quatro cenários de uma região não têm o mesmo peso.** Três são
  * exploratórios e um é normativo, e o estatuto de cada um é campo obrigatório
- * do contrato — decisão `D3` do plano. A regra pública da família municipal
- * (`foresight-educacao`), em que os quatro cenários têm peso igual, permanece
- * intacta e **não vale aqui**: são duas famílias, com duas metodologias e duas
- * regras públicas próprias, e o `schema.json` de cada uma declara a sua.
+ * do contrato — decisão `D3` do plano. Essa assimetria é a regra própria desta
+ * família, declarada no seu `schema.json` e reconferida na página, onde o
+ * estatuto de cada cenário vem escrito nele mesmo — o leitor desatento que lê o
+ * normativo como previsão encontra, ao lado, a frase que o desmente.
  *
- * Por que este contrato não é o dos Cenários municipais: até a versão `1.0.0`
- * o slot regional emprestava a fábrica de validador do foresight, porque o
- * pacote regional projetado era a transposição literal do municipal — mesma
- * forma, identidade trocada. A Fase A não é isso. O corpo do documento é
- * disjunto do corpo do foresight: onde lá há cenários, sinais e condições
- * partilhadas, aqui há séries, associações e pares. Alargar a fábrica do
- * foresight para caber nos dois relaxaria o contrato municipal — um pacote
- * municipal sem cenários passaria a ser válido. O contrato regional é próprio,
- * e o que ele compartilha com o municipal é a disciplina, não os campos:
- * conjunto de campos fechado em todo nível, texto não vazio, ausência
- * declarada em vez de valor inventado, e recusa em vez de tolerância.
+ * O corpo do documento é próprio, não uma transposição de outro produto: há
+ * séries, associações e pares, e o conjunto de campos é fechado em todo nível,
+ * texto não vazio, ausência declarada em vez de valor inventado, e recusa em
+ * vez de tolerância.
  *
  * Fechado significa fechado: campo desconhecido em qualquer nível — documento,
  * região, bloco, série, ponto, associação, par — é recusa, não campo ignorado.
@@ -40,7 +70,7 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.1.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.5.0'
 
 /** Classes de evidência aceitas, e a frase pública de cada uma. */
 export const EVIDENCE_CLASS_LABELS = Object.freeze({
@@ -113,6 +143,67 @@ export const SCENARIO_STATUTE_LABELS = Object.freeze({
 })
 
 export const SCENARIO_STATUTES = Object.freeze(Object.keys(SCENARIO_STATUTE_LABELS))
+
+/*
+ * Temas de agenda do PNE — a ponte Vocações → PNE (decisão `V2-D6`).
+ *
+ * Mesma divisão de trabalho do universo e do estatuto: um enum fechado declara o
+ * tema, e a plataforma escreve a frase pública. Aqui a razão é mais forte que
+ * estilo — é o que mantém a ponte do lado certo da fronteira do número futuro. O
+ * tema nomeia **a meta**, não o número dela: "Universalização e permanência no
+ * ensino médio", nunca "meta 3" nem "atingir 85% até 2031". Um número de meta com
+ * valor é justamente a alegação que o plano proíbe, e o enum fechado torna
+ * impossível escrevê-lo por descuido no rótulo.
+ *
+ * O vocabulário é do lado da plataforma porque o PNE é do lado da plataforma: a
+ * camada de pesquisa do Vocações não conhece meta nem estratégia do PNE. A ponte
+ * é, por natureza, editorial desta camada — como a moldura de `buildFraming`.
+ */
+export const AGENDA_THEME_LABELS = Object.freeze({
+  ensino_medio: 'Universalização e permanência no ensino médio',
+  educacao_profissional: 'Educação profissional e técnica',
+  eja: 'Educação de jovens e adultos',
+  alfabetizacao: 'Alfabetização na idade certa',
+  formacao_docente: 'Formação e valorização dos profissionais do ensino',
+  oferta_e_rede: 'Oferta e organização da rede',
+  gestao_e_planejamento: 'Gestão e planejamento da educação',
+})
+
+export const AGENDA_THEMES = Object.freeze(Object.keys(AGENDA_THEME_LABELS))
+
+/*
+ * Camada de conclusões (V2-D8). O enum da pesquisa morre na fronteira: o
+ * documento público carrega somente estes rótulos, e o validador resolve o
+ * rótulo de volta à construção apenas para conferir sua gramática.
+ */
+export const SYNTHESIS_KIND_LABELS = Object.freeze({
+  observed: 'Do observado',
+  state_position: 'De posição na comparação estadual',
+  scenario_invariant: 'Sustentado nos quatro cenários',
+  agenda: 'Frentes da agenda mobilizadas',
+})
+
+export const SYNTHESIS_REQUIRED_OPENERS = Object.freeze({
+  observed: 'Conclui-se do observado que',
+  state_position: 'Conclui-se que',
+  scenario_invariant: 'Conclui-se que',
+  agenda: 'Conclui-se que',
+})
+
+export const SYNTHESIS_FRAMING = Object.freeze({
+  label: 'O que se conclui',
+  description:
+    'Conclusões compostas a partir do que foi observado, da comparação estadual e, onde existem, '
+    + 'dos quatro cenários publicados para a região.',
+  methodNote:
+    'As frases seguem quatro construções fixas e são reverificadas contra as séries, associações, '
+    + 'pares e âncoras deste documento. A conclusão de agenda usa somente os temas presentes nos '
+    + 'quatro cenários publicados do próprio documento.',
+})
+
+const SYNTHESIS_KIND_BY_LABEL = new Map(
+  Object.entries(SYNTHESIS_KIND_LABELS).map(([kind, label]) => [label, kind]),
+)
 
 /*
  * Direção observada da âncora, e a frase pública de cada uma.
@@ -241,6 +332,7 @@ const DOCUMENT_FIELDS = new Set([
   'region',
   'page',
   'howToRead',
+  'synthesis',
   'territoryPortrait',
   'associations',
   'temporalPairs',
@@ -270,7 +362,20 @@ const PROVENANCE_FIELDS = new Set([
   'registrySha256',
   'scenarioPackageSha256',
   'scenarioSourceSha256',
+  'municipalPackageSha256',
+  'synthesisPackageSha256',
 ])
+
+const SYNTHESIS_FIELDS = new Set([
+  'label',
+  'description',
+  'methodNote',
+  'items',
+  'absentKinds',
+])
+const SYNTHESIS_ITEM_REQUIRED_FIELDS = new Set(['kindLabel', 'statement'])
+const SYNTHESIS_ITEM_OPTIONAL_FIELDS = new Set(['basisLabel'])
+const SYNTHESIS_ABSENCE_FIELDS = new Set(['kindLabel', 'statement'])
 
 const SERIES_FIELDS = new Set([
   'seriesId',
@@ -355,7 +460,59 @@ const SCENARIO_BLOCK_FIELDS = new Set([
   'robustImplications',
   'conditionalImplication',
   'prohibitedClaim',
+  'municipalLayer',
 ])
+
+/*
+ * Camada municipal (Rodada 5 do V2, sucessora da D11) — vive dentro do bloco de
+ * cenários, e por isso só existe onde há cenário. Para cada município da região:
+ * a composição observada dele (uma linha por dimensão que se decompõe ao
+ * município) e, por cenário, a leitura de exposição derivada dessa composição.
+ *
+ * `municipalityId` é o código IBGE de sete dígitos — identificador público
+ * oficial, não vocabulário de processo. `dimensionLabel` e `statement` são texto
+ * já composto pela camada de pesquisa, como o `observedStatement` da associação;
+ * a plataforma não reescreve, confere. A alegação proibida é frase inteira com o
+ * abridor do contrato, e a guarda de linguagem faz a varredura de número futuro,
+ * probabilidade e causalidade.
+ */
+const MUNICIPAL_LAYER_FIELDS = new Set([
+  'label',
+  'description',
+  'methodNote',
+  'dimensions',
+  'undecomposableDomains',
+  'municipalities',
+])
+const MUNICIPAL_DIMENSION_FIELDS = new Set([
+  'label',
+  'sourceLabel',
+  'unitLabel',
+  'periodLabel',
+  'kindLabel',
+  'universeLabel',
+])
+const MUNICIPAL_UNDECOMPOSABLE_FIELDS = new Set(['label', 'consultedSource', 'reason'])
+const MUNICIPAL_MUNICIPALITY_FIELDS = new Set([
+  'municipalityId',
+  'name',
+  'composition',
+  'scenarioExposure',
+])
+const MUNICIPAL_COMPOSITION_FIELDS = new Set(['dimensionLabel', 'statement'])
+const MUNICIPAL_EXPOSURE_FIELDS = new Set([
+  'order',
+  'exposureStatement',
+  'allowedInterpretation',
+  'prohibitedClaim',
+])
+const MUNICIPALITY_ID_PATTERN = /^\d{7}$/
+
+/** Frase pública da natureza de cada dimensão municipal — enum → frase. */
+export const MUNICIPAL_KIND_LABELS = Object.freeze({
+  share: 'Participação: o valor do município sobre a soma dos municípios da região.',
+  rate: 'Taxa municipal: a posição do município ante a mediana dos municípios da região, sem soma.',
+})
 
 const SCENARIO_ITEM_FIELDS = new Set([
   'scenarioId',
@@ -370,10 +527,19 @@ const SCENARIO_ITEM_FIELDS = new Set([
   'stateAtHorizonStatement',
   'anchors',
   'educationImplications',
+  'agendaThemes',
   'contraryEvidence',
   'limits',
   'prohibitedClaim',
 ])
+
+/*
+ * O tema de agenda tem três campos e nenhum a mais: o enum (`theme`), a frase
+ * pública do enum (`themeLabel`) e a frase de implicação que o sustenta
+ * (`statement`). Não há campo de número de meta, nem de valor, nem de ano — de
+ * propósito: o contrato não guarda o que ele proíbe.
+ */
+const SCENARIO_AGENDA_THEME_FIELDS = new Set(['theme', 'themeLabel', 'statement'])
 
 const SCENARIO_ANCHOR_FIELDS = new Set([
   'seriesId',
@@ -425,6 +591,22 @@ function validateExactFields(value, allowed, label) {
   const keys = Object.keys(value)
   const unexpected = keys.filter((key) => !allowed.has(key))
   const missing = [...allowed].filter((key) => !keys.includes(key))
+  invariant(
+    unexpected.length === 0,
+    `${label} traz campo desconhecido fora do contrato: ${unexpected.join(', ')}.`,
+  )
+  invariant(
+    missing.length === 0,
+    `${label} não traz os campos obrigatórios: ${missing.join(', ')}.`,
+  )
+}
+
+function validateClosedFields(value, required, optional, label) {
+  invariant(isRecord(value), `${label} deve ser um objeto.`)
+  const keys = Object.keys(value)
+  const accepted = new Set([...required, ...optional])
+  const unexpected = keys.filter((key) => !accepted.has(key))
+  const missing = [...required].filter((key) => !keys.includes(key))
   invariant(
     unexpected.length === 0,
     `${label} traz campo desconhecido fora do contrato: ${unexpected.join(', ')}.`,
@@ -1069,11 +1251,48 @@ function validateScenarioItem(candidate, label, seriesById, referenceYear) {
     Array.isArray(candidate.educationImplications) && candidate.educationImplications.length > 0,
     `${label}.educationImplications deve trazer ao menos uma implicação.`,
   )
+  const implicationStatements = new Set()
   candidate.educationImplications.forEach((implication, index) => {
     const implicationLabel = `${label}.educationImplications[${index}]`
     validateExactFields(implication, SCENARIO_IMPLICATION_FIELDS, implicationLabel)
     validateText(implication.stageLabel, `${implicationLabel}.stageLabel`)
     validateText(implication.statement, `${implicationLabel}.statement`)
+    implicationStatements.add(implication.statement)
+  })
+
+  /*
+   * Temas de agenda — a ponte Vocações → PNE. A regra que fecha a fronteira do
+   * número futuro é a mesma disciplina da âncora: o tema não digita frase, ele
+   * aponta para uma implicação **já publicada neste cenário**. `statement`
+   * precisa ser byte-idêntico a uma das implicações acima; um tema que
+   * inventasse a própria frase abriria uma porta de texto que ninguém guardou.
+   */
+  invariant(
+    Array.isArray(candidate.agendaThemes) && candidate.agendaThemes.length > 0,
+    `${label}.agendaThemes deve trazer ao menos um tema de agenda.`,
+  )
+  const seenThemes = new Set()
+  candidate.agendaThemes.forEach((theme, index) => {
+    const themeLabel = `${label}.agendaThemes[${index}]`
+    validateExactFields(theme, SCENARIO_AGENDA_THEME_FIELDS, themeLabel)
+    invariant(
+      AGENDA_THEMES.includes(theme.theme),
+      `${themeLabel}.theme fora do contrato: ${theme.theme}.`,
+    )
+    invariant(
+      theme.themeLabel === AGENDA_THEME_LABELS[theme.theme],
+      `${themeLabel}.themeLabel não é a frase declarada para o tema ${theme.theme}.`,
+    )
+    invariant(
+      !seenThemes.has(theme.theme),
+      `${themeLabel}.theme repetido no mesmo cenário: ${theme.theme}.`,
+    )
+    seenThemes.add(theme.theme)
+    validateText(theme.statement, `${themeLabel}.statement`)
+    invariant(
+      implicationStatements.has(theme.statement),
+      `${themeLabel}.statement não é a frase de nenhuma implicação educacional deste cenário.`,
+    )
   })
 
   validateTextList(candidate.contraryEvidence, `${label}.contraryEvidence`)
@@ -1095,6 +1314,125 @@ function validateNormativeCriterion(candidate, label) {
   validateText(candidate.tradeOff, `${label}.tradeOff`)
   validateText(candidate.failureMode, `${label}.failureMode`)
   validateText(candidate.whatToFollow, `${label}.whatToFollow`)
+  return candidate
+}
+
+/*
+ * Camada municipal — a leitura de cada município dentro do cenário regional.
+ *
+ * O que a torna honesta não é o que ela afirma, é o que ela recusa afirmar: o
+ * `statement` de composição é observado e passado da pesquisa sem reescrita; a
+ * exposição é derivada dessa composição, com a alegação proibida escrita ao lado
+ * em frase inteira; e a guarda de linguagem, que corre depois, barra número
+ * futuro municipal, probabilidade, ranking e causalidade município←região.
+ *
+ * `scenarioOrders` é o conjunto de `order` dos cenários deste bloco: cada
+ * município traz exatamente uma leitura de exposição por cenário, nem mais nem
+ * menos — um município sem exposição para um cenário publicado deixaria um
+ * cenário sem a sua leitura, e um `order` que não é de cenário nenhum apontaria
+ * para um cenário que não existe.
+ */
+function validateMunicipalLayer(candidate, label, scenarioOrders) {
+  validateExactFields(candidate, MUNICIPAL_LAYER_FIELDS, label)
+  validateText(candidate.label, `${label}.label`)
+  validateText(candidate.description, `${label}.description`)
+  validateText(candidate.methodNote, `${label}.methodNote`)
+
+  invariant(
+    Array.isArray(candidate.dimensions) && candidate.dimensions.length > 0,
+    `${label}.dimensions deve trazer ao menos uma dimensão.`,
+  )
+  const dimensionLabels = new Set()
+  candidate.dimensions.forEach((dimension, index) => {
+    const dimensionLabel = `${label}.dimensions[${index}]`
+    validateExactFields(dimension, MUNICIPAL_DIMENSION_FIELDS, dimensionLabel)
+    validateText(dimension.label, `${dimensionLabel}.label`)
+    validateText(dimension.sourceLabel, `${dimensionLabel}.sourceLabel`)
+    validateText(dimension.unitLabel, `${dimensionLabel}.unitLabel`)
+    validateText(dimension.periodLabel, `${dimensionLabel}.periodLabel`)
+    invariant(
+      Object.values(MUNICIPAL_KIND_LABELS).includes(dimension.kindLabel),
+      `${dimensionLabel}.kindLabel não é uma das frases de natureza do contrato.`,
+    )
+    invariant(
+      dimension.universeLabel === null || UNIVERSE_LABEL_VALUES.includes(dimension.universeLabel),
+      `${dimensionLabel}.universeLabel não é null nem uma das frases de universo do contrato.`,
+    )
+    invariant(
+      !dimensionLabels.has(dimension.label),
+      `${dimensionLabel}.label repetido: "${dimension.label}".`,
+    )
+    dimensionLabels.add(dimension.label)
+  })
+
+  invariant(
+    Array.isArray(candidate.undecomposableDomains) && candidate.undecomposableDomains.length > 0,
+    `${label}.undecomposableDomains deve declarar ao menos um domínio não decomponível.`,
+  )
+  candidate.undecomposableDomains.forEach((domain, index) => {
+    const domainLabel = `${label}.undecomposableDomains[${index}]`
+    validateExactFields(domain, MUNICIPAL_UNDECOMPOSABLE_FIELDS, domainLabel)
+    validateText(domain.label, `${domainLabel}.label`)
+    validateText(domain.consultedSource, `${domainLabel}.consultedSource`)
+    validateText(domain.reason, `${domainLabel}.reason`)
+  })
+
+  invariant(
+    Array.isArray(candidate.municipalities) && candidate.municipalities.length > 0,
+    `${label}.municipalities deve trazer ao menos um município.`,
+  )
+  const municipalityIds = new Set()
+  candidate.municipalities.forEach((municipality, index) => {
+    const municipalityLabel = `${label}.municipalities[${index}]`
+    validateExactFields(municipality, MUNICIPAL_MUNICIPALITY_FIELDS, municipalityLabel)
+    invariant(
+      typeof municipality.municipalityId === 'string'
+        && MUNICIPALITY_ID_PATTERN.test(municipality.municipalityId),
+      `${municipalityLabel}.municipalityId deve ser o código IBGE de sete dígitos.`,
+    )
+    invariant(
+      !municipalityIds.has(municipality.municipalityId),
+      `${municipalityLabel}.municipalityId repetido: ${municipality.municipalityId}.`,
+    )
+    municipalityIds.add(municipality.municipalityId)
+    validateText(municipality.name, `${municipalityLabel}.name`)
+
+    invariant(
+      Array.isArray(municipality.composition) && municipality.composition.length > 0,
+      `${municipalityLabel}.composition deve trazer ao menos uma linha.`,
+    )
+    municipality.composition.forEach((line, lineIndex) => {
+      const lineLabel = `${municipalityLabel}.composition[${lineIndex}]`
+      validateExactFields(line, MUNICIPAL_COMPOSITION_FIELDS, lineLabel)
+      validateText(line.dimensionLabel, `${lineLabel}.dimensionLabel`)
+      invariant(
+        dimensionLabels.has(line.dimensionLabel),
+        `${lineLabel}.dimensionLabel não é uma das dimensões declaradas na camada.`,
+      )
+      validateText(line.statement, `${lineLabel}.statement`)
+    })
+
+    invariant(
+      Array.isArray(municipality.scenarioExposure)
+        && municipality.scenarioExposure.length === scenarioOrders.size,
+      `${municipalityLabel}.scenarioExposure deve trazer uma leitura por cenário `
+      + `(${scenarioOrders.size}).`,
+    )
+    const seenOrders = new Set()
+    municipality.scenarioExposure.forEach((exposure, exposureIndex) => {
+      const exposureLabel = `${municipalityLabel}.scenarioExposure[${exposureIndex}]`
+      validateExactFields(exposure, MUNICIPAL_EXPOSURE_FIELDS, exposureLabel)
+      invariant(
+        Number.isInteger(exposure.order) && scenarioOrders.has(exposure.order),
+        `${exposureLabel}.order não é a ordem de nenhum cenário deste bloco.`,
+      )
+      invariant(!seenOrders.has(exposure.order), `${exposureLabel}.order repetido: ${exposure.order}.`)
+      seenOrders.add(exposure.order)
+      validateText(exposure.exposureStatement, `${exposureLabel}.exposureStatement`)
+      validateText(exposure.allowedInterpretation, `${exposureLabel}.allowedInterpretation`)
+      validateProhibitedClaim(exposure.prohibitedClaim, `${exposureLabel}.prohibitedClaim`)
+    })
+  })
   return candidate
 }
 
@@ -1182,6 +1520,14 @@ function validateScenarioBlock(candidate, label, seriesById, referenceYear) {
   validateTextList(candidate.realizationConditions, `${label}.realizationConditions`)
   validateTextList(candidate.robustImplications, `${label}.robustImplications`)
   validateProhibitedClaim(candidate.prohibitedClaim, `${label}.prohibitedClaim`)
+
+  /*
+   * A camada municipal é obrigatória onde há bloco de cenários: uma região que
+   * publica cenário mas não os municípios dela deixaria a sucessora da D11 pela
+   * metade sem que nada o acusasse. Ela recebe o conjunto de `order` deste bloco
+   * para provar que cada município tem uma leitura por cenário, nem mais nem menos.
+   */
+  validateMunicipalLayer(candidate.municipalLayer, `${label}.municipalLayer`, orders)
   return candidate
 }
 
@@ -1249,6 +1595,253 @@ function validateScenarios(candidate, label, seriesById, referenceYear) {
   )
   invariant(candidate.block !== null, `${label} declara cenários publicados e não traz o bloco.`)
   validateScenarioBlock(candidate.block, `${label}.block`, seriesById, referenceYear)
+  return candidate
+}
+
+export function synthesisAssociationBasisLabel(association) {
+  return [
+    association.educationOutcome.label,
+    ...association.territorialFactors.map((factor) => factor.label),
+  ].join(' · ')
+}
+
+export function synthesisTemporalPairBasisLabel(pair) {
+  return pair.label
+}
+
+function synthesisNumberLabel(value) {
+  invariant(Number.isFinite(value), 'a síntese tentou renderizar número não finito.')
+  const displayValue = Number.isInteger(value) ? String(value) : value.toFixed(1)
+  const [integer, fraction] = displayValue.split('.')
+  const sign = integer.startsWith('-') ? '-' : ''
+  const digits = sign === '' ? integer : integer.slice(1)
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/gu, ' ')
+  return fraction === undefined ? `${sign}${grouped}` : `${sign}${grouped},${fraction}`
+}
+
+function synthesisPeriodYear(period, granularity) {
+  return granularity === 'monthly' ? Math.floor(period / 100) : period
+}
+
+function synthesisSeriesEdges(reference, window, seriesById, label) {
+  const serie = seriesById.get(reference.seriesId)
+  invariant(serie !== undefined, `${label} cita série ausente: ${reference.seriesId}.`)
+  const points = serie.points.filter((point) => {
+    const year = synthesisPeriodYear(point.period, serie.periodGranularity)
+    return year >= window.start && year <= window.end
+  })
+  invariant(points.length > 0, `${label} não encontra pontos da série dentro da janela.`)
+  const start = points[0]
+  const end = points[points.length - 1]
+  return {
+    label: reference.label,
+    startValue: start.value,
+    endValue: end.value,
+  }
+}
+
+function renderObservedSynthesis(references, window, seriesById, label) {
+  const clauses = references.map((reference, index) => {
+    const edge = synthesisSeriesEdges(reference, window, seriesById, `${label}.series[${index}]`)
+    return `${edge.label} passou de ${synthesisNumberLabel(edge.startValue)} para `
+      + `${synthesisNumberLabel(edge.endValue)}`
+  })
+  invariant(clauses.length >= 2, `${label} precisa citar ao menos duas séries.`)
+  return `Conclui-se do observado que, entre ${window.start} e ${window.end}, ${clauses[0]} `
+    + `e, no mesmo período, ${clauses.slice(1).join(' e ')}.`
+}
+
+function expectedObservedSynthesis(associations, temporalPairs, seriesById) {
+  const expected = new Map()
+  for (const association of associations) {
+    const basisLabel = synthesisAssociationBasisLabel(association)
+    invariant(!expected.has(basisLabel), `basisLabel repetido na síntese observada: "${basisLabel}".`)
+    expected.set(
+      basisLabel,
+      renderObservedSynthesis(
+        [association.educationOutcome, ...association.territorialFactors],
+        association.window,
+        seriesById,
+        `síntese da associação "${basisLabel}"`,
+      ),
+    )
+  }
+  for (const pair of temporalPairs) {
+    const basisLabel = synthesisTemporalPairBasisLabel(pair)
+    invariant(!expected.has(basisLabel), `basisLabel repetido na síntese observada: "${basisLabel}".`)
+    expected.set(
+      basisLabel,
+      renderObservedSynthesis(
+        [pair.seriesA, pair.seriesB],
+        pair.window,
+        seriesById,
+        `síntese do par "${basisLabel}"`,
+      ),
+    )
+  }
+  return expected
+}
+
+function expectedScenarioInvariantSynthesis(scenarios) {
+  if (scenarios.status !== 'published') return new Map()
+  const scenarioItems = [...scenarios.block.items].sort((left, right) => left.order - right.order)
+  const anchorsByScenario = scenarioItems.map((scenario) =>
+    new Map(scenario.anchors.map((anchor) => [anchor.seriesId, anchor])))
+  const expected = new Map()
+  for (const [seriesId, first] of anchorsByScenario[0]) {
+    const anchors = anchorsByScenario.map((anchorsById) => anchorsById.get(seriesId))
+    if (anchors.some((anchor) => anchor === undefined)) continue
+    const sameProof = anchors.every((anchor) =>
+      anchor.label === first.label
+      && anchor.window.start === first.window.start
+      && anchor.window.end === first.window.end
+      && Object.is(anchor.startValue, first.startValue)
+      && Object.is(anchor.endValue, first.endValue)
+      && anchor.directionLabel === first.directionLabel)
+    if (!sameProof) continue
+    expected.set(
+      first.label,
+      `Conclui-se que ${first.label}, de ${synthesisNumberLabel(first.startValue)} para `
+      + `${synthesisNumberLabel(first.endValue)} entre ${first.window.start} e ${first.window.end}, `
+      + 'ancora os quatro cenários publicados da região.',
+    )
+  }
+  return expected
+}
+
+export function commonScenarioAgendaThemes(scenarios) {
+  if (scenarios.status !== 'published') return []
+  const themesByScenario = scenarios.block.items.map((scenario) =>
+    new Set(scenario.agendaThemes.map((theme) => theme.theme)))
+  return AGENDA_THEMES.filter((theme) =>
+    themesByScenario.every((scenarioThemes) => scenarioThemes.has(theme)))
+}
+
+export function renderAgendaSynthesis(themes) {
+  const labels = themes.map((theme) => AGENDA_THEME_LABELS[theme])
+  invariant(labels.length > 0 && labels.every((label) => label !== undefined),
+    'a conclusão de agenda precisa de ao menos um tema do enum público.')
+  return 'Conclui-se que as evidências desta região mobilizam, em qualquer dos quatro cenários, '
+    + `as frentes da agenda do PNE: ${labels.join(', ')}.`
+}
+
+export function validateSynthesis(candidate, label, {
+  associations,
+  temporalPairs,
+  scenarios,
+  seriesById,
+}) {
+  validateExactFields(candidate, SYNTHESIS_FIELDS, label)
+  invariant(candidate.label === SYNTHESIS_FRAMING.label,
+    `${label}.label não é o rótulo declarado para a síntese.`)
+  invariant(candidate.description === SYNTHESIS_FRAMING.description,
+    `${label}.description não é a descrição declarada para a síntese.`)
+  invariant(candidate.methodNote === SYNTHESIS_FRAMING.methodNote,
+    `${label}.methodNote não é a nota de método declarada para a síntese.`)
+  invariant(Array.isArray(candidate.items) && candidate.items.length > 0,
+    `${label}.items deve trazer ao menos uma conclusão.`)
+  invariant(Array.isArray(candidate.absentKinds), `${label}.absentKinds deve ser uma lista.`)
+
+  const expectedObserved = expectedObservedSynthesis(associations, temporalPairs, seriesById)
+  const expectedInvariant = expectedScenarioInvariantSynthesis(scenarios)
+  const commonThemes = commonScenarioAgendaThemes(scenarios)
+  const expectedAgenda = commonThemes.length > 0 ? renderAgendaSynthesis(commonThemes) : null
+  const observedBases = new Set()
+  const invariantBases = new Set()
+  let agendaCount = 0
+
+  candidate.items.forEach((item, index) => {
+    const itemLabel = `${label}.items[${index}]`
+    validateClosedFields(
+      item,
+      SYNTHESIS_ITEM_REQUIRED_FIELDS,
+      SYNTHESIS_ITEM_OPTIONAL_FIELDS,
+      itemLabel,
+    )
+    validateText(item.kindLabel, `${itemLabel}.kindLabel`)
+    validateText(item.statement, `${itemLabel}.statement`)
+    const kind = SYNTHESIS_KIND_BY_LABEL.get(item.kindLabel)
+    invariant(kind !== undefined, `${itemLabel}.kindLabel fora do contrato: "${item.kindLabel}".`)
+    const opener = SYNTHESIS_REQUIRED_OPENERS[kind]
+    invariant(item.statement.startsWith(opener),
+      `${itemLabel}.statement não começa com o abridor obrigatório "${opener}".`)
+
+    if (kind === 'observed') {
+      validateText(item.basisLabel, `${itemLabel}.basisLabel`)
+      const expected = expectedObserved.get(item.basisLabel)
+      invariant(expected !== undefined,
+        `${itemLabel}.basisLabel não resolve em associação ou par do documento.`)
+      invariant(item.statement === expected,
+        `${itemLabel}.statement não coincide com os valores observados da base "${item.basisLabel}".`)
+      invariant(!observedBases.has(item.basisLabel),
+        `${itemLabel}.basisLabel repete uma conclusão observada.`)
+      observedBases.add(item.basisLabel)
+      return
+    }
+
+    if (kind === 'state_position') {
+      validateText(item.basisLabel, `${itemLabel}.basisLabel`)
+      const associationBases = new Set(associations.map(synthesisAssociationBasisLabel))
+      invariant(associationBases.has(item.basisLabel),
+        `${itemLabel}.basisLabel não resolve em associação do documento.`)
+      invariant(
+        /^Conclui-se que a mediana dos municípios da região em .+ está em -?\d[\d ]*(?:,\d+)?, ante a mediana estadual de -?\d[\d ]*(?:,\d+)?\.$/u.test(item.statement),
+        `${itemLabel}.statement não segue a gramática fechada da comparação estadual.`,
+      )
+      return
+    }
+
+    if (kind === 'scenario_invariant') {
+      validateText(item.basisLabel, `${itemLabel}.basisLabel`)
+      const expected = expectedInvariant.get(item.basisLabel)
+      invariant(expected !== undefined,
+        `${itemLabel}.basisLabel não é uma série que ancora os quatro cenários.`)
+      invariant(item.statement === expected,
+        `${itemLabel}.statement não coincide com as quatro âncoras do documento.`)
+      invariant(!invariantBases.has(item.basisLabel), `${itemLabel}.basisLabel repetido.`)
+      invariantBases.add(item.basisLabel)
+      return
+    }
+
+    invariant(!Object.prototype.hasOwnProperty.call(item, 'basisLabel'),
+      `${itemLabel}.basisLabel não existe na conclusão de agenda.`)
+    invariant(expectedAgenda !== null,
+      `${itemLabel} traz conclusão de agenda sem tema comum aos quatro cenários.`)
+    invariant(item.statement === expectedAgenda,
+      `${itemLabel}.statement cita tema fora da interseção dos quatro cenários.`)
+    agendaCount += 1
+  })
+
+  invariant(observedBases.size === expectedObserved.size,
+    `${label} publica ${observedBases.size} conclusões observadas para ${expectedObserved.size} bases.`)
+  invariant(invariantBases.size === expectedInvariant.size,
+    `${label} publica ${invariantBases.size} conclusões invariantes para ${expectedInvariant.size} séries.`)
+  invariant(agendaCount === (expectedAgenda === null ? 0 : 1),
+    `${label} publica ${agendaCount} conclusões de agenda quando o contrato espera `
+    + `${expectedAgenda === null ? 0 : 1}.`)
+
+  const absenceLabels = new Set()
+  candidate.absentKinds.forEach((absence, index) => {
+    const absenceLabel = `${label}.absentKinds[${index}]`
+    validateExactFields(absence, SYNTHESIS_ABSENCE_FIELDS, absenceLabel)
+    validateText(absence.kindLabel, `${absenceLabel}.kindLabel`)
+    validateText(absence.statement, `${absenceLabel}.statement`)
+    invariant(
+      absence.kindLabel === SYNTHESIS_KIND_LABELS.scenario_invariant
+        || absence.kindLabel === SYNTHESIS_KIND_LABELS.agenda,
+      `${absenceLabel}.kindLabel não admite ausência declarada.`,
+    )
+    invariant(!absenceLabels.has(absence.kindLabel), `${absenceLabel}.kindLabel repetido.`)
+    absenceLabels.add(absence.kindLabel)
+  })
+  invariant(
+    absenceLabels.has(SYNTHESIS_KIND_LABELS.scenario_invariant) === (expectedInvariant.size === 0),
+    `${label} não declara corretamente a ausência da conclusão invariante dos cenários.`,
+  )
+  invariant(
+    absenceLabels.has(SYNTHESIS_KIND_LABELS.agenda) === (expectedAgenda === null),
+    `${label} não declara corretamente a ausência da conclusão de agenda.`,
+  )
   return candidate
 }
 
@@ -1368,6 +1961,14 @@ export function createVocacoesDocumentParser({
     /* Bloco 4 — cenários da região, publicados ou declaradamente ausentes. */
     validateScenarios(candidate.scenarios, 'pacote.scenarios', seriesById, referenceYear)
 
+    /* Camada de conclusões — aditiva e obrigatória nas dez regiões. */
+    validateSynthesis(candidate.synthesis, 'pacote.synthesis', {
+      associations: candidate.associations.items,
+      temporalPairs: candidate.temporalPairs.items,
+      scenarios: candidate.scenarios,
+      seriesById,
+    })
+
     validateExactFields(candidate.sources, TEXT_BLOCK_FIELDS, 'pacote.sources')
     validateText(candidate.sources.label, 'pacote.sources.label')
     validateText(candidate.sources.description, 'pacote.sources.description')
@@ -1398,6 +1999,11 @@ export function createVocacoesDocumentParser({
         && SHA256_PATTERN.test(candidate.provenance.registrySha256),
       'pacote.provenance.registrySha256 deve ser sha256.',
     )
+    invariant(
+      typeof candidate.provenance.synthesisPackageSha256 === 'string'
+        && SHA256_PATTERN.test(candidate.provenance.synthesisPackageSha256),
+      'pacote.provenance.synthesisPackageSha256 deve ser sha256.',
+    )
     /*
      * Os dois resumos do cenário existem juntos ou não existem: um documento
      * que nomeia o pacote de cenários e não nomeia a origem dele prova metade
@@ -1406,10 +2012,12 @@ export function createVocacoesDocumentParser({
     const scenarioHashes = [
       candidate.provenance.scenarioPackageSha256,
       candidate.provenance.scenarioSourceSha256,
+      candidate.provenance.municipalPackageSha256,
     ]
+    const scenarioHashNames = ['scenarioPackageSha256', 'scenarioSourceSha256', 'municipalPackageSha256']
     const publishesScenarios = candidate.scenarios.status === 'published'
     scenarioHashes.forEach((value, index) => {
-      const name = index === 0 ? 'scenarioPackageSha256' : 'scenarioSourceSha256'
+      const name = scenarioHashNames[index]
       if (publishesScenarios) {
         invariant(
           typeof value === 'string' && SHA256_PATTERN.test(value),

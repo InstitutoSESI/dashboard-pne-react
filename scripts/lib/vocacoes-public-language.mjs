@@ -161,6 +161,16 @@ function findAsserted(text, pattern, options = {}) {
 const CLAIM_REVERSERS = /\b(?:mas|porem|contudo|todavia|entretanto|no entanto|pois|porque|ja que|embora|apesar de)\b/u
 
 /*
+ * A síntese tem gramática menor que a prosa geral. Nela, conectivo explicativo
+ * não recebe sequer a isenção por negação: o template não o usa. O mesmo vale
+ * para probabilidade, ranking e juízo de adequação/suficiência.
+ */
+const SYNTHESIS_CONNECTIVES = /\b(?:mas|porem|pois|porque|enquanto|ja que)\b/u
+const SYNTHESIS_PROBABILITY = /\b(?:provavel|probabilidade|chance|tendencia certa)\b/u
+const SYNTHESIS_RANKING = /\b(?:ranking|lidera|primeiro lugar|ultimo lugar|melhor|pior)\b/u
+const SYNTHESIS_ADEQUACY = /\b(?:adequad[oa]s?|inadequad[oa]s?|suficientes?|insuficientes?)\b/u
+
+/*
  * Futuro sem ano escrito por extenso em dígitos. Os dois casos que a Rodada 4
  * encontrou: o ano partido por espaço ("20 30") e o futuro relativo sem ano
  * nenhum ("daqui a quatro anos"). Nenhum dos dois é pego por uma varredura de
@@ -202,6 +212,125 @@ const STATUTE_CONTRADICTION_PATTERNS = Object.freeze([
   /\bacontecera\b/u,
   /\bo que vai ocorrer\b/u,
   /\bcom certeza\b/u,
+])
+
+/*
+ * Ponte Vocações → PNE (Rodada 4 do V2). Dois vetores novos, e os dois são o
+ * que a ponte torna possível pela primeira vez:
+ *
+ *   1. **Meta do PNE com número.** O tema de agenda nomeia a meta, nunca o
+ *      número dela. "Meta 3", "estratégia 3.1", "meta 9 do PNE" são o que a
+ *      guarda barra — o número futuro de uma meta é o mesmo risco que o número
+ *      futuro de uma matrícula, com outra roupa. O tema é enum fechado; esta
+ *      regra fecha o texto que o acompanha.
+ *
+ *   2. **Causalidade município ← região.** O bloco territorial da matriz lê a
+ *      região do município e a apresenta ao lado do resultado municipal. A
+ *      leitura honesta é "a região do município apresenta…"; a proibida é "isto
+ *      explica o resultado do município". A causalidade genérica já é barrada
+ *      pela guarda causal; estes padrões fecham a forma específica que a ponte
+ *      cria — a região **explicando** ou **determinando** o município.
+ */
+/*
+ * Grafias públicas usuais do identificador de meta/estratégia. A forma
+ * compatível é normalizada em `checkGoalNumber`, portanto dígitos fullwidth,
+ * sobrescritos e numerais romanos Unicode chegam aqui na forma ASCII. O
+ * designador cobre «meta 3», «meta número 3», «meta n.º 3», «meta-3» e
+ * «meta #3», além do número por extenso. A ordem inversa cobre «terceira
+ * meta». O contexto é exclusivamente o bloco ponte: ali qualquer numeração de
+ * meta/estratégia deve dar lugar ao tema editorial fechado.
+ */
+const GOAL_NUMBER_PATTERNS = Object.freeze([
+  /\b(?:metas?|estrategias?)\b\s*(?:(?:de\s+)?(?:numero|n\s*(?:\.\s*)?[o°º]?\s*(?:\.\s*)?)\s*|[-#]\s*)?(?:\d+(?:[.,]\d+)*|(?:xx|x(?:ix|iv|v?i{0,3})|ix|iv|v?i{1,3})\b|zero\b|um\b|uma\b|dois\b|duas\b|tres\b|quatro\b|cinco\b|seis\b|sete\b|oito\b|nove\b|dez\b|onze\b|doze\b|treze\b|catorze\b|quatorze\b|quinze\b|dezesseis\b|dezessete\b|dezoito\b|dezenove\b|vinte\b)/u,
+  /\b(?:primeir[ao]|segund[ao]|terceir[ao]|quart[ao]|quint[ao]|sext[ao]|setim[ao]|oitav[ao]|non[ao]|decim[ao]|\d+[ao])\s+(?:metas?|estrategias?)\b/u,
+])
+
+const REGION_EXPLAINS_MUNICIPALITY_PATTERNS = Object.freeze([
+  /\bexplica(?:m)?\s+o\s+(?:resultado\s+d[eo]\s+)?municipio\b/u,
+  /\bexplica(?:m)?\s+o\s+(?:desempenho|indicador)\s+d[eo]\s+municipio\b/u,
+  /\bdetermina(?:m)?\s+o\s+(?:resultado\s+d[eo]\s+)?municipio\b/u,
+  /\bo\s+municipio\s+(?:tem|apresenta|vai\s+\w+)\s+porque\s+a\s+regiao\b/u,
+  /\b(?:resultado|desempenho|indicador)\s+d[eo]\s+municipio\s+(?:se\s+)?explica\s+(?:por|pel[oa]s?)\s+(?:a\s+)?(?:estrutura\s+d[ae]\s+)?regiao\b/u,
+  /\b(?:a\s+)?(?:estrutura\s+d[ae]\s+)?regiao\s+condiciona\s+o\s+(?:resultado|desempenho|indicador)\s+d[eo]\s+municipio\b/u,
+  /\b(?:a\s+)?(?:estrutura\s+d[ae]\s+)?regiao\s+responde\s+(?:por|pel[oa]s?)\s+(?:o\s+)?(?:resultado|desempenho|indicador)\s+d[eo]\s+municipio\b/u,
+  /\b(?:perfil|estrutura|composicao|dinamica)?\s*(?:d[ae]\s+)?regiao\s+(?:explica\s+por\s+que|molda|define|determina)\b.{0,80}\b(?:municipio|municipal)\b/u,
+  /\b(?:perfil|estrutura|composicao|dinamica)\s+regional\s+(?:explica\s+por\s+que|molda|define|determina)\b.{0,80}\b(?:municipio|municipal)\b/u,
+])
+
+/*
+ * A causalidade que a camada municipal cria nos dois sentidos, e que a guarda
+ * causal por palavra ("causou", "provocou") não pega quando o verbo é "explica"
+ * ou "determina": a região explicando o município (herdada da ponte) e o
+ * município explicando a região (novo, e nomeado na alegação proibida da camada).
+ */
+const MUNICIPALITY_EXPLAINS_REGION_PATTERNS = Object.freeze([
+  /\bo\s+municipio\s+explica\s+o\s+(?:resultado|desempenho|indicador)\s+d[ae]\s+regiao\b/u,
+  /\bo\s+municipio\s+determina\s+o\s+(?:resultado|desempenho|indicador)\s+d[ae]\s+regiao\b/u,
+  /\b(?:a\s+)?(?:posicao|composicao)\s+d[eo]\s+municipio\s+(?:o\s+)?(?:torna|faz)\s+causa\b/u,
+  /\bo\s+municipio\s+responde\s+(?:por|pel[oa]s?)\s+(?:o\s+)?(?:resultado|desempenho|indicador)\s+d[ae]\s+regiao\b/u,
+  /\b(?:composicao|participacao|perfil|posicao)\s+(?:d[eo]\s+municipio|municipal|local)\s+(?:explica|determina|molda|define|responde\s+(?:por|pel[oa]s?))\b.{0,80}\b(?:regiao|regional)\b/u,
+])
+
+/*
+ * Camada municipal (Rodada 5 do V2, sucessora da D11). Três vetores que a camada
+ * torna possível pela primeira vez, e que nenhuma guarda anterior fecha:
+ *
+ *   1. **Probabilidade atribuída a um município.** A exposição é derivada de
+ *      composição observada; ela nunca diz que um município "tem X% de chance" de
+ *      um desfecho, nem que um cenário é "provável" para ele. A frase honesta é
+ *      justamente a negação disto ("não atribui probabilidade"), e por isso a
+ *      varredura é sensível à negação: nega na oração, isenta.
+ *
+ *   2. **Ranking implícito de municípios.** A composição situa cada município ante
+ *      a mediana da região; ela não ordena os municípios por exposição, não elege
+ *      "o mais exposto" nem "o mais vulnerável". A alegação proibida nomeia esse
+ *      ranking para bani-lo, e continua isenta como as outras alegações proibidas.
+ *
+ *   3. **Projeção sem ano explícito.** “O município alcançará...” não contém ano
+ *      futuro nem palavra de probabilidade, mas continua sendo previsão municipal.
+ */
+const MUNICIPAL_PROBABILITY_PATTERNS = Object.freeze([
+  /\bprobabilidade\b/u,
+  /\bpossibilidade\s+de\b/u,
+  /\bchance[s]?\s+de\b/u,
+  /\brisco\s+de\b/u,
+  /\bprovavel(?:mente)?\b/u,
+  /\bplausivel\s+que\b/u,
+  /\bpropens[ãao]/u,
+  /\btender[áa]\s+a\b/u,
+  /\bo\s+municipio\s+deve\s+(?:seguir|acompanhar|aderir|entrar|caminhar)\b/u,
+  /\ba\s+tendencia\s+d[eo]\s+municipio\s+e\s+(?:seguir|acompanhar|aderir|entrar|caminhar)\b/u,
+])
+
+const MUNICIPAL_RANKING_PATTERNS = Object.freeze([
+  /\bmais\s+exposto[s]?\b/u,
+  /\bmenos\s+exposto[s]?\b/u,
+  /\bmaior\s+exposicao\b/u,
+  /\bmenor\s+exposicao\b/u,
+  /\bmais\s+vulner[áa]vel\b/u,
+  /\bo\s+municipio\s+mais\b/u,
+  /\branking\b/u,
+  /\bordena(?:m|r|cao|ndo)?\s+os\s+municipios\b/u,
+  /\bclassifica(?:m|r|cao|ndo)?\s+os\s+municipios\b/u,
+  /\bmelhor\s+colocado\b/u,
+  /\bpior\s+colocado\b/u,
+  /\bprimeir[ao]\s+(?:posicao|lugar)\b.{0,40}\bexposicao\b/u,
+  /\bexposicao\b.{0,50}\bsupera\b.{0,50}\b(?:demais|outros?\s+municipios?)\b/u,
+  /\bexposicao\s+(?:superior|inferior)\b/u,
+])
+
+/*
+ * Projeção municipal sem ano explícito. A guarda geral de futuro fecha anos e
+ * horizontes relativos; a camada municipal precisa fechar também a frase que
+ * atribui diretamente um valor ou uma trajetória futura ao município sem
+ * escrever quando isso ocorreria ("o município alcançará...", "espera-se que
+ * o município..."). As expressões continuam sensíveis à negação pela mesma
+ * janela de oração usada nas demais regras municipais.
+ */
+const MUNICIPAL_PROJECTION_PATTERNS = Object.freeze([
+  /\b(?:municipio|municipalidade)\b.{0,80}\b(?:devera|ira|tera|alcan[cç]ara|chegara|somara|perdera|ganhara|ficara|crescera|diminuira|aumentara|reduzira|seguira|acompanhara|registrara|apresentara)\b/u,
+  /\b(?:espera-se|preve-se|projeta-se|estima-se)\s+que\s+(?:o\s+)?municipio\b/u,
+  /\ba\s+tendencia\s+aponta\b.{0,100}\b(?:para\s+o\s+)?municipio\b/u,
 ])
 
 /*
@@ -585,6 +714,188 @@ export function createPublicLanguageGuard(researchContract) {
     return text
   }
 
+  /*
+   * Número de meta do PNE. A ponte nomeia a meta, nunca o número dela. A
+   * varredura é literal sobre a forma normalizada — "meta 3", "estratégia 3.1",
+   * "meta nº 9" —, e não confunde "metade" nem "metas de aprendizagem" (que não
+   * são seguidos de dígito). Ela roda sem o detector de negação: dizer "a meta 3
+   * não se aplica" ainda cita o número, e citar o número é o que se proíbe.
+   */
+  function checkGoalNumber(text, field) {
+    /* NFKC fecha disfarces tipográficos sem ampliar a normalização das demais
+     * guardas: «３», «³» e «Ⅲ» viram, respectivamente, «3», «3» e «III». */
+    const normalized = normalize(text).normalize('NFKC').toLocaleLowerCase('pt-BR')
+    for (const pattern of GOAL_NUMBER_PATTERNS) {
+      const found = pattern.exec(normalized)
+      if (found !== null) {
+        fail(
+          'GOAL_NUMBER_IN_PUBLIC_TEXT',
+          field,
+          `o texto público cita o número de uma meta do PNE ("${found[0]}"); a ponte nomeia o `
+          + 'tema da meta, não o número dela',
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  /*
+   * Um tema de agenda: o rótulo e a frase que o sustenta. A frase é uma
+   * implicação já varrida no cenário — repeti-la aqui não custa e fecha o caso
+   * de o tema apontar para outra coisa. O que é novo é a regra do número de
+   * meta, e ela vale para os dois campos.
+   */
+  function checkAgendaTheme(themeLabel, statement, field) {
+    checkTokens(themeLabel, `${field}.themeLabel`)
+    checkGoalNumber(themeLabel, `${field}.themeLabel`)
+    checkFutureYear(themeLabel, `${field}.themeLabel`)
+    checkText(statement, `${field}.statement`)
+    checkGoalNumber(statement, `${field}.statement`)
+    checkStatuteContradiction(statement, `${field}.statement`)
+    return statement
+  }
+
+  /*
+   * Texto do bloco ponte na matriz municipal (sentido PNE → Vocações). A leitura
+   * honesta é "a região do município apresenta…"; a proibida é a região
+   * explicando o município. Corre o perfil severo — causal, conectivo, futuro,
+   * número de meta — mais os padrões específicos da forma região→município.
+   */
+  function checkBridgeText(text, field) {
+    checkTokens(text, field)
+    checkFutureYear(text, field)
+    checkGoalNumber(text, field)
+    checkCausal(text, field)
+    for (const pattern of REGION_EXPLAINS_MUNICIPALITY_PATTERNS) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'REGION_EXPLAINS_MUNICIPALITY',
+          field,
+          `o texto da ponte afirma que a região explica o município: "${found}"`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  /*
+   * Probabilidade atribuída a um município (camada municipal). A varredura é
+   * sensível à negação: "não atribui probabilidade" é a frase honesta que a
+   * própria camada precisa dizer, e negá-la numa oração isenta essa oração —
+   * mas não a seguinte.
+   */
+  function checkProbability(text, field) {
+    for (const pattern of MUNICIPAL_PROBABILITY_PATTERNS) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'MUNICIPAL_PROBABILITY_IN_PUBLIC_TEXT',
+          field,
+          `o texto da camada municipal atribui probabilidade a um município: "${found}"`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  /*
+   * Ranking implícito de municípios (camada municipal). A composição situa cada
+   * município ante a mediana; ela não os ordena por exposição. A negação isenta,
+   * pela mesma razão da probabilidade.
+   */
+  function checkRanking(text, field) {
+    for (const pattern of MUNICIPAL_RANKING_PATTERNS) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'MUNICIPAL_RANKING_IN_PUBLIC_TEXT',
+          field,
+          `o texto da camada municipal ordena os municípios por exposição: "${found}"`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  /** Projeção atribuída ao município sem depender de um ano futuro explícito. */
+  function checkMunicipalProjection(text, field) {
+    for (const pattern of MUNICIPAL_PROJECTION_PATTERNS) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'MUNICIPAL_PROJECTION_IN_PUBLIC_TEXT',
+          field,
+          `o texto da camada municipal projeta um valor ou trajetória para o município: "${found}"`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  /*
+   * Uma passagem de texto da camada municipal, no perfil severo: token interno,
+   * ano futuro, causalidade (que fecha também município←região e município→região
+   * pelas palavras causais), probabilidade municipal e ranking implícito. A
+   * alegação proibida não passa por aqui — ela nomeia justamente o que se proíbe,
+   * e corre `checkProhibitedClaim` como as demais.
+   */
+  function checkMunicipalText(text, field) {
+    checkTokens(text, field)
+    checkFutureYear(text, field)
+    checkCausal(text, field)
+    checkMunicipalProjection(text, field)
+    checkProbability(text, field)
+    checkRanking(text, field)
+    for (const pattern of [
+      ...REGION_EXPLAINS_MUNICIPALITY_PATTERNS,
+      ...MUNICIPALITY_EXPLAINS_REGION_PATTERNS,
+    ]) {
+      const found = findAsserted(text, pattern, { extended: true })
+      if (found !== null) {
+        fail(
+          'MUNICIPALITY_REGION_CAUSAL_IN_PUBLIC_TEXT',
+          field,
+          `o texto da camada municipal afirma causalidade entre município e região: "${found}"`,
+          text,
+        )
+      }
+    }
+    return text
+  }
+
+  function checkSynthesisStatement(text, field, requiredOpener) {
+    checkText(text, field)
+    checkSentenceComplete(text, field)
+    checkGoalNumber(text, field)
+    if (!text.startsWith(requiredOpener)) {
+      fail(
+        'SYNTHESIS_OPENER_MISSING',
+        field,
+        `a conclusão não começa com o abridor obrigatório "${requiredOpener}"`,
+        text,
+      )
+    }
+    const normalized = normalize(text)
+    for (const [pattern, code, message] of [
+      [SYNTHESIS_CONNECTIVES, 'SYNTHESIS_CONNECTIVE', 'usa conectivo fora da gramática fechada'],
+      [SYNTHESIS_PROBABILITY, 'SYNTHESIS_PROBABILITY', 'atribui probabilidade'],
+      [SYNTHESIS_RANKING, 'SYNTHESIS_RANKING', 'afirma ranking'],
+      [SYNTHESIS_ADEQUACY, 'SYNTHESIS_ADEQUACY', 'afirma adequação ou suficiência'],
+    ]) {
+      const found = pattern.exec(normalized)
+      if (found !== null) {
+        fail(code, field, `a conclusão ${message}: "${found[0]}"`, text)
+      }
+    }
+    return text
+  }
+
   /** Prosa de cenário que afirma previsão, aprovação ou pactuação. */
   function checkStatuteContradiction(text, field) {
     for (const pattern of STATUTE_CONTRADICTION_PATTERNS) {
@@ -621,6 +932,14 @@ export function createPublicLanguageGuard(researchContract) {
     checkCadastralComparison,
     checkProhibitedClaim,
     checkSentenceComplete,
+    checkGoalNumber,
+    checkAgendaTheme,
+    checkBridgeText,
+    checkProbability,
+    checkRanking,
+    checkMunicipalProjection,
+    checkMunicipalText,
+    checkSynthesisStatement,
     referenceYear,
   }
 }
@@ -642,6 +961,25 @@ export function scanPublicDocument(document, guard) {
   guard.checkText(document.howToRead.description, 'howToRead.description')
   document.howToRead.items.forEach((item, index) => {
     guard.checkText(item, `howToRead.items[${index}]`)
+  })
+
+  guard.checkText(document.synthesis.label, 'synthesis.label')
+  guard.checkText(document.synthesis.description, 'synthesis.description')
+  guard.checkText(document.synthesis.methodNote, 'synthesis.methodNote')
+  document.synthesis.items.forEach((item, index) => {
+    const field = `synthesis.items[${index}]`
+    guard.checkText(item.kindLabel, `${field}.kindLabel`)
+    if (item.basisLabel !== undefined) guard.checkText(item.basisLabel, `${field}.basisLabel`)
+    const opener = item.kindLabel === 'Do observado'
+      ? 'Conclui-se do observado que'
+      : 'Conclui-se que'
+    guard.checkSynthesisStatement(item.statement, `${field}.statement`, opener)
+  })
+  document.synthesis.absentKinds.forEach((absence, index) => {
+    const field = `synthesis.absentKinds[${index}]`
+    guard.checkText(absence.kindLabel, `${field}.kindLabel`)
+    guard.checkText(absence.statement, `${field}.statement`)
+    guard.checkSentenceComplete(absence.statement, `${field}.statement`)
   })
 
   guard.checkText(document.territoryPortrait.label, 'territoryPortrait.label')
@@ -895,6 +1233,20 @@ function scanScenarios(document, guard, { citesCadastral }) {
       )
     })
 
+    /*
+     * Temas de agenda — a ponte Vocações → PNE. Cada tema corre a guarda do
+     * bloco ponte: rótulo e frase sob token interno, número de meta e ano
+     * futuro. A frase já foi varrida como implicação; a regra nova é o número de
+     * meta, que a implicação sozinha não guardava.
+     */
+    item.agendaThemes.forEach((theme, position) => {
+      guard.checkAgendaTheme(
+        theme.themeLabel,
+        theme.statement,
+        `${field}.agendaThemes[${position}]`,
+      )
+    })
+
     item.contraryEvidence.forEach((evidence, position) => {
       guard.checkText(evidence, `${field}.contraryEvidence[${position}]`)
       guard.checkSentenceComplete(evidence, `${field}.contraryEvidence[${position}]`)
@@ -926,7 +1278,66 @@ function scanScenarios(document, guard, { citesCadastral }) {
     }
   })
 
+  scanMunicipalLayer(block.municipalLayer, guard)
   return document
+}
+
+/*
+ * Camada municipal — a leitura de cada município dentro do cenário regional.
+ *
+ * Ela corre o perfil severo mais os três vetores próprios da camada: projeção
+ * municipal sem ano, probabilidade atribuída a município e ranking implícito. A
+ * composição de cadastro social não corre a comparação cadastral da associação:
+ * "X% do total da região" é a **participação** do município no total cadastral,
+ * não uma taxa sobre a população — e o universo dela já vem declarado na
+ * dimensão. A alegação proibida de cada exposição nomeia o ranking e a
+ * causalidade que a camada bane, e por isso corre `checkProhibitedClaim`.
+ */
+function scanMunicipalLayer(layer, guard) {
+  const prefix = 'scenarios.block.municipalLayer'
+  guard.checkText(layer.label, `${prefix}.label`)
+  guard.checkMunicipalText(layer.description, `${prefix}.description`)
+  guard.checkMunicipalText(layer.methodNote, `${prefix}.methodNote`)
+
+  layer.dimensions.forEach((dimension, index) => {
+    const field = `${prefix}.dimensions[${index}]`
+    guard.checkMunicipalText(dimension.label, `${field}.label`)
+    guard.checkMunicipalText(dimension.sourceLabel, `${field}.sourceLabel`)
+    guard.checkMunicipalText(dimension.unitLabel, `${field}.unitLabel`)
+    guard.checkMunicipalText(dimension.periodLabel, `${field}.periodLabel`)
+    guard.checkMunicipalText(dimension.kindLabel, `${field}.kindLabel`)
+    if (dimension.universeLabel !== null) {
+      guard.checkText(dimension.universeLabel, `${field}.universeLabel`)
+    }
+  })
+
+  layer.undecomposableDomains.forEach((domain, index) => {
+    const field = `${prefix}.undecomposableDomains[${index}]`
+    guard.checkMunicipalText(domain.label, `${field}.label`)
+    guard.checkMunicipalText(domain.consultedSource, `${field}.consultedSource`)
+    guard.checkMunicipalText(domain.reason, `${field}.reason`)
+  })
+
+  layer.municipalities.forEach((municipality, index) => {
+    const field = `${prefix}.municipalities[${index}]`
+    guard.checkText(municipality.name, `${field}.name`)
+    municipality.composition.forEach((line, position) => {
+      const lineField = `${field}.composition[${position}]`
+      guard.checkMunicipalText(line.dimensionLabel, `${lineField}.dimensionLabel`)
+      guard.checkMunicipalText(line.statement, `${lineField}.statement`)
+      guard.checkSentenceComplete(line.statement, `${lineField}.statement`)
+    })
+    municipality.scenarioExposure.forEach((exposure, position) => {
+      const exposureField = `${field}.scenarioExposure[${position}]`
+      guard.checkMunicipalText(exposure.exposureStatement, `${exposureField}.exposureStatement`)
+      guard.checkSentenceComplete(exposure.exposureStatement, `${exposureField}.exposureStatement`)
+      guard.checkMunicipalText(exposure.allowedInterpretation, `${exposureField}.allowedInterpretation`)
+      guard.checkSentenceComplete(exposure.allowedInterpretation, `${exposureField}.allowedInterpretation`)
+      guard.checkProhibitedClaim(exposure.prohibitedClaim, `${exposureField}.prohibitedClaim`)
+    })
+  })
+
+  return layer
 }
 
 /*

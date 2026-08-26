@@ -1,5 +1,5 @@
 /*
- * O Bloco 4 do Vocações da Região — contrato `vocacoes-regiao-2.1.0`.
+ * O Bloco 4 do Vocações da Região — contrato `vocacoes-regiao-2.3.0`.
  *
  * O arquivo irmão (`vocacoes-regiao-slot.test.mjs`) guarda os três blocos da
  * Fase A e a ausência. Este guarda o que a Rodada 9 acrescentou, e o que ela
@@ -16,8 +16,9 @@
  *      publicada no mesmo documento;
  *   4. a ausência é declarada nos dois sentidos, e nenhuma das quatro
  *      combinações incoerentes de estado passa;
- *   5. o `schema.json` da família declara regras próprias, e nomeia a regra da
- *      família municipal como a que **não** vale aqui;
+ *   5. o `schema.json` da família declara a assimetria de estatuto como regra
+ *      **única** desta família — a família municipal foi removida (D11), e o
+ *      schema não a nomeia mais nem cita a regra que não vale aqui;
  *   6. a página desenha os dois estados — os quatro cenários numa região, a
  *      frase de ausência na outra, e a nota de estatuto antes de qualquer
  *      cenário.
@@ -33,11 +34,12 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
 
 import {
-  MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE,
   buildFamilySchema,
   buildPublication,
 } from '../generate-vocacoes-regiao.mjs'
 import {
+  AGENDA_THEME_LABELS,
+  AGENDA_THEMES,
   PROHIBITED_CLAIM_OPENER,
   SCENARIO_DIRECTION_LABELS,
   SCENARIO_FRAMING,
@@ -73,7 +75,6 @@ const otherWithScenarios = JSON.parse(
   await read('public/data/vocacoes-regiao/regioes/vale-do-rio-pardo.json'),
 )
 const familySchema = JSON.parse(await read('public/data/vocacoes-regiao/schema.json'))
-const municipalSchema = JSON.parse(await read('public/data/foresight-educacao/schema.json'))
 
 const draft = () => structuredClone(withScenarios)
 const draftAbsent = () => structuredClone(withoutScenarios)
@@ -146,7 +147,7 @@ const NODE_OF = Object.freeze({
   procedencia: (document) => document.provenance,
 })
 
-test('o 2.1.0 é aditivo: nenhum campo dos blocos 1–3 sumiu nem mudou de nome', () => {
+test('o contrato é aditivo sobre o 2.0.0: nenhum campo dos blocos 1–3 sumiu nem mudou de nome', () => {
   for (const [name, fields] of Object.entries(FIELDS_2_0_0)) {
     const node = NODE_OF[name](withScenarios)
     for (const field of fields) {
@@ -176,28 +177,35 @@ test('o 2.1.0 é aditivo: nenhum campo dos blocos 1–3 sumiu nem mudou de nome'
   }
 })
 
-test('o único campo novo do documento é o bloco de cenários', () => {
+test('os campos aditivos do documento são cenários e síntese', () => {
   const publicados = Object.keys(withScenarios).sort()
   const congelados = [...FIELDS_2_0_0.documento].sort()
   const novos = publicados.filter((field) => !congelados.includes(field))
   const perdidos = congelados.filter((field) => !publicados.includes(field))
-  assert.deepEqual(novos, ['scenarios'])
+  assert.deepEqual(novos, ['scenarios', 'synthesis'])
   assert.deepEqual(perdidos, [])
 
-  /* A procedência é o outro conjunto que cresceu, e o acréscimo é declarado:
-   * os dois resumos que fecham a cadeia do Bloco 4 até o esqueleto congelado. */
+  /* A procedência é o outro conjunto que cresceu, e o acréscimo é declarado: os
+   * dois resumos que fecham a cadeia do Bloco 4 até o esqueleto congelado, e o
+   * resumo da camada municipal que a Rodada 5 do V2 acrescentou (sucessora da
+   * D11), que segue a mesma regra — sha onde há cenário, nulo onde não há. */
   const procedencia = Object.keys(withScenarios.provenance).sort()
   const novosNaProcedencia = procedencia.filter(
     (field) => !FIELDS_2_0_0.procedencia.includes(field),
   )
-  assert.deepEqual(novosNaProcedencia, ['scenarioPackageSha256', 'scenarioSourceSha256'])
+  assert.deepEqual(novosNaProcedencia, [
+    'municipalPackageSha256',
+    'scenarioPackageSha256',
+    'scenarioSourceSha256',
+    'synthesisPackageSha256',
+  ])
 })
 
 /* ================================================================= *
  * 2. O estatuto, que é o que distingue esta família da municipal
  * ================================================================= */
 
-test('o contrato 2.1.0 aceita as duas regiões com cenários', () => {
+test('o contrato aceita as duas regiões com cenários', () => {
   const publication = buildPublication()
   const comCenario = publication.manifest.regions.filter(
     (entry) => entry.scenarioStatus === 'published',
@@ -451,26 +459,39 @@ test('o horizonte precisa vir depois do ano de referência, e em ordem', () => {
  * 6. O `schema.json` da família (D3)
  * ================================================================= */
 
-test('o schema da família declara regras próprias, distintas da família municipal', () => {
-  /* A regra municipal existe, é literal, e continua valendo lá. */
-  assert.ok(
-    municipalSchema.rules.includes(MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE),
-    'a regra de peso igual precisa continuar declarada na família municipal',
-  )
-
-  /* E não vale aqui — nem por acidente, nem por omissão. */
-  assert.ok(
-    !familySchema.rules.includes(MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE),
-    'a regra de peso igual não pode entrar nas regras da família regional',
-  )
-  assert.equal(familySchema.distinctFrom.family, 'foresight-educacao')
-  assert.equal(familySchema.distinctFrom.ruleThatDoesNotApplyHere, MUNICIPAL_FAMILY_EQUAL_WEIGHT_RULE)
-
-  /* A regra própria, que ocupa o lugar dela. */
+test('o schema da família declara a assimetria de estatuto como regra única', () => {
+  /* A regra própria da família: a assimetria de peso entre os quatro cenários.
+   * É ela que a D3 protege, e ela é provada aqui contra o próprio schema
+   * regional — não mais contra o «outro lado» de uma família que foi removida. */
   assert.ok(
     familySchema.rules.some((rule) => rule.includes('não têm o mesmo peso')),
     'a família regional precisa declarar a assimetria de estatuto como regra',
   )
+
+  /* A regra de peso igual — que era da família municipal extinta — não pode
+   * entrar aqui, nem por acidente, nem por omissão: esta família é assimétrica.
+   * A cláusula distintiva daquela regra («não há ordem, pontuação ou
+   * probabilidade») não aparece em regra nenhuma desta família. */
+  assert.ok(
+    !familySchema.rules.some((rule) => rule.includes('não há ordem, pontuação ou probabilidade')),
+    'a regra de peso igual não pode aparecer nas regras da família regional',
+  )
+  assert.ok(
+    familySchema.rules.every((rule) => !/(?<!não )têm o mesmo peso/u.test(rule)),
+    'nenhuma regra desta família pode afirmar que os cenários têm o mesmo peso',
+  )
+
+  /* A família removida não é mais nomeada: nenhuma referência a `distinctFrom`
+   * nem ao slug da família municipal sobrou apontando para o que não existe. O
+   * slug é montado em partes de propósito — assim ele não existe como literal em
+   * lugar nenhum do código, nem aqui, no teste que prova a sua ausência. */
+  const removedFamilySlug = ['foresight', 'educacao'].join('-')
+  assert.equal(familySchema.distinctFrom, undefined)
+  assert.ok(
+    !JSON.stringify(familySchema).includes(removedFamilySlug),
+    'o schema regional não pode citar a família municipal removida',
+  )
+
   assert.equal(familySchema.documentSchemaVersion, manifest.documentSchemaVersion)
   assert.equal(familySchema.manifestSchemaVersion, manifest.schemaVersion)
   assert.deepEqual(familySchema.scenarioCoverage.regionsWithScenarios, ['noroeste', 'vale-do-rio-pardo'])
@@ -626,6 +647,78 @@ test('o rótulo de período da âncora sai da janela dela', () => {
   const forjado = draft()
   forjado.scenarios.block.items[0].anchors[0].periodLabel = '2019 a 2025'
   refuses(forjado, /periodLabel não descreve a janela da âncora/)
+})
+
+/* ================================================================= *
+ * 9. Temas de agenda — a ponte Vocações → PNE (contrato 2.3.0, V2-D6)
+ * ================================================================= */
+
+test('cada cenário publicado traz temas de agenda, com o rótulo do enum', () => {
+  for (const item of withScenarios.scenarios.block.items) {
+    assert.ok(
+      Array.isArray(item.agendaThemes) && item.agendaThemes.length > 0,
+      `o cenário "${item.title}" não traz temas de agenda`,
+    )
+    const statements = new Set(item.educationImplications.map((i) => i.statement))
+    const seen = new Set()
+    for (const theme of item.agendaThemes) {
+      assert.ok(AGENDA_THEMES.includes(theme.theme), `tema fora do enum: ${theme.theme}`)
+      assert.equal(theme.themeLabel, AGENDA_THEME_LABELS[theme.theme])
+      /* A frase do tema é byte-idêntica a uma implicação do próprio cenário —
+       * nenhuma prosa nova entra pela porta da agenda. */
+      assert.ok(
+        statements.has(theme.statement),
+        `o tema "${theme.theme}" não aponta para uma implicação do cenário`,
+      )
+      assert.ok(!seen.has(theme.theme), `tema repetido no cenário: ${theme.theme}`)
+      seen.add(theme.theme)
+    }
+  }
+})
+
+test('o contrato recusa tema fora do enum, rótulo à mão, frase órfã e tema repetido', () => {
+  const foraDoEnum = draft()
+  foraDoEnum.scenarios.block.items[0].agendaThemes[0].theme = 'meta_3'
+  refuses(foraDoEnum, /theme fora do contrato/)
+
+  const rotuloAMao = draft()
+  rotuloAMao.scenarios.block.items[0].agendaThemes[0].themeLabel = 'Atingir 85% até 2031'
+  refuses(rotuloAMao, /themeLabel não é a frase declarada/)
+
+  /* A frase que não é implicação nenhuma do cenário: a porta de prosa nova que
+   * a regra de identidade fecha. */
+  const fraseOrfa = draft()
+  fraseOrfa.scenarios.block.items[0].agendaThemes[0].statement =
+    'A meta 3 do PNE será atingida até 2031.'
+  refuses(fraseOrfa, /não é a frase de nenhuma implicação/)
+
+  const repetido = draft()
+  const themes = repetido.scenarios.block.items[0].agendaThemes
+  themes[1].theme = themes[0].theme
+  themes[1].themeLabel = themes[0].themeLabel
+  refuses(repetido, /theme repetido no mesmo cenário/)
+
+  /* Campo desconhecido no tema é recusado como em todo nível fechado. */
+  const campoNovo = draft()
+  campoNovo.scenarios.block.items[0].agendaThemes[0].metaNumero = 3
+  refuses(campoNovo, /campo desconhecido fora do contrato/)
+
+  /* Tema ausente: o subcampo é obrigatório onde há cenário. */
+  const semTemas = draft()
+  semTemas.scenarios.block.items[0].agendaThemes = []
+  refuses(semTemas, /agendaThemes deve trazer ao menos um tema/)
+})
+
+test('a página renderiza os temas de agenda sem vazar o enum interno', () => {
+  const markup = render(withScenarios)
+  for (const item of withScenarios.scenarios.block.items) {
+    for (const theme of item.agendaThemes) {
+      assert.ok(markup.includes(theme.themeLabel), `o tema "${theme.themeLabel}" não foi renderizado`)
+      /* O enum interno nunca chega ao texto. */
+      assert.ok(!markup.includes(`>${theme.theme}<`))
+    }
+  }
+  assert.ok(markup.includes('Temas da agenda do PNE'))
 })
 
 test('a prosa do cenário não pode apresentá-lo como previsão ou plano aprovado', async () => {

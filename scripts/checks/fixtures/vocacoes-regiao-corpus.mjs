@@ -17,9 +17,24 @@
 
 const primeiraAssociacao = (d) => d.associations.items[0]
 const primeiroPar = (d) => d.temporalPairs.items[0]
-const associacaoCadastral = (d) =>
-  d.associations.items.find((item) =>
-    item.territorialFactors.some((fator) => fator.seriesId.includes('cadastro-social')))
+/*
+ * Uma associação cadastral é a que cita uma série de universo cadastral — a
+ * mesma definição que a guarda usa (`universeLabel`), e não o slug de uma série
+ * específica. A Rodada 3 do V2 passou a selecionar associações por região, e a
+ * série cadastral que aparece varia entre "pessoas inscritas" e "famílias
+ * inscritas"; casar só o slug de uma delas acoplava o corpus ao template antigo.
+ */
+const associacaoCadastral = (d) => {
+  const cadastralIds = new Set(
+    d.territoryPortrait.series
+      .filter((serie) => typeof serie.universeLabel === 'string'
+        && serie.universeLabel.startsWith('Universo cadastral'))
+      .map((serie) => serie.seriesId),
+  )
+  return d.associations.items.find((item) =>
+    cadastralIds.has(item.educationOutcome.seriesId)
+    || item.territorialFactors.some((fator) => cadastralIds.has(fator.seriesId)))
+}
 const serie = (d, fragmento) =>
   d.territoryPortrait.series.find((item) => item.seriesId.includes(fragmento))
 

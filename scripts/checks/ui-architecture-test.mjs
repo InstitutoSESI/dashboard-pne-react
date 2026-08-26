@@ -17,7 +17,6 @@ const stylesRoot = path.join(sourceRoot, 'styles')
 const CSS_TOTAL_SOFT_LIMIT_BYTES = 1_425_000
 const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/App.css': 286_000,
-  'src/styles/foresight-page.css': 13_000,
   'src/styles/quick-reading-list.css': 3_000,
   'src/styles/education-pages.css': 800,
   'src/styles/education-pages-base.css': 2_500,
