@@ -4,7 +4,12 @@ import { LoadingState } from '../../components/LoadingState'
 import { PnePageHeader } from '../../components/PnePageHeader'
 import { loadEducationMunicipio } from '../../data/educationData.js'
 import { useMunicipioMatriz } from '../../hooks/useMunicipioMatriz.js'
+import { useVocacoesRegiao } from '../../hooks/useVocacoesRegiao'
 import { useAsyncData } from '../../utils/useAsyncData.js'
+import {
+  buildMatrizTerritorialContext,
+} from './matrizTerritorialContext.js'
+import type { MatrizTerritorialContext } from './matrizTerritorialContext.js'
 import {
   buildMatrizEducationContext,
   resolveMatrizEducationContextFact,
@@ -351,12 +356,47 @@ function HonestyBlocks({ matriz }: { matriz: MatrizDocument }) {
   )
 }
 
+/*
+ * Bloco ponte PNE → Vocações. Aparece só quando a região do município tem
+ * pacote regional publicado; sem ele, o bloco não existe — fail-closed por
+ * ausência, sem seção vazia e sem erro. A linguagem é a do módulo de contexto:
+ * "a região do município apresenta…", nunca "isto explica o município".
+ */
+function MatrizTerritorialContextBlock({
+  territorialContext,
+}: {
+  territorialContext: MatrizTerritorialContext
+}) {
+  return (
+    <section aria-labelledby="matriz-territorio-title" className="matriz-territorio">
+      <header className="matriz-territorio__head">
+        <h2 id="matriz-territorio-title">Contexto territorial da região</h2>
+        <p>{territorialContext.intro}</p>
+      </header>
+      <ul className="matriz-territorio__list">
+        {territorialContext.readings.map((reading) => (
+          <li key={reading.title}>
+            <strong>{reading.title}</strong>
+            {reading.factors ? <span>{reading.factors}</span> : null}
+          </li>
+        ))}
+      </ul>
+      <p className="matriz-territorio__note">{territorialContext.readingNote}</p>
+      <a className="matriz-territorio__link" href={territorialContext.link.href}>
+        {territorialContext.link.label}
+      </a>
+    </section>
+  )
+}
+
 export function MatrizDocumentView({
   educationContext,
   matriz,
+  territorialContext = null,
 }: {
   educationContext: MatrizEducationContext | null
   matriz: MatrizDocument
+  territorialContext?: MatrizTerritorialContext | null
 }) {
   const frontCount = matriz.priorityGoals.reduce(
     (total, goal) => total + resolveMatrizFrentes(goal.goalId).length,
@@ -378,6 +418,10 @@ export function MatrizDocumentView({
       </section>
 
       <MatrizPriorityOverview matriz={matriz} />
+
+      {territorialContext ? (
+        <MatrizTerritorialContextBlock territorialContext={territorialContext} />
+      ) : null}
 
       {matriz.priorityGoals.length > 0 ? (
         <div aria-label="Metas prioritárias" className="matriz-goal-list">
@@ -411,6 +455,12 @@ export function MatrizPage({
     const educationDocument = await loadEducationMunicipio(municipalityId)
     return buildMatrizEducationContext(educationDocument)
   }, [municipalityId])
+  /*
+   * O pacote regional da região do município, lido do que já está publicado. O
+   * hook devolve `null` quando não há região mapeada ou a região não está
+   * publicada — e o bloco ponte simplesmente não aparece.
+   */
+  const vocacoes = useVocacoesRegiao(municipalityId)
   const matriz = data?.matriz ?? null
 
   if (loading) {
@@ -425,12 +475,17 @@ export function MatrizPage({
     )
   }
 
+  const territorialContext = vocacoes.data
+    ? buildMatrizTerritorialContext(vocacoes.data.document, matriz.municipality.ibge7)
+    : null
+
   const scopeKey = `${matriz.municipality.ibge7}:${matriz.referenceDate}`
   return (
     <LoadedMatrizPage
       educationContext={educationContextState.data}
       key={scopeKey}
       matriz={matriz}
+      territorialContext={territorialContext}
     />
   )
 }
@@ -438,9 +493,11 @@ export function MatrizPage({
 export function LoadedMatrizPage({
   educationContext = null,
   matriz,
+  territorialContext = null,
 }: {
   educationContext?: MatrizEducationContext | null
   matriz: MatrizDocument
+  territorialContext?: MatrizTerritorialContext | null
 }) {
   return (
     <div className="page-stack matriz-page">
@@ -454,7 +511,11 @@ export function LoadedMatrizPage({
         title="Matriz de Prioridades"
         variant="editorial"
       />
-      <MatrizDocumentView educationContext={educationContext} matriz={matriz} />
+      <MatrizDocumentView
+        educationContext={educationContext}
+        matriz={matriz}
+        territorialContext={territorialContext}
+      />
     </div>
   )
 }
