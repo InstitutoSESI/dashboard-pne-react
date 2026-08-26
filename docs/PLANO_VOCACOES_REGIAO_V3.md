@@ -8,7 +8,11 @@ dados e declara que não tem como trazer relação", o que não faz sentido para
 Este plano **sucede o V2** (`docs/PLANO_VOCACOES_REGIAO_V2.md`): as Rodadas 0–4 do V2
 estão fechadas CONFORME, a R5 está construída e pendente de encerramento (absorvida na
 R0 daqui), e as R6–R7 do V2 são absorvidas e redesenhadas nas R3–R4 daqui.
-Status: **aprovado para execução** (protocolo v4, §4).
+Status: **ENCERRADO na R0 do V5** (2026-08-26). R0–R2 executadas e fechadas (R2
+verificada C1–C8 na rodada; C9–C12 fechados na R0 do V5, com GA humano registrado em
+`.tmp/vocacoes-v3/rodada-02/GA_HUMANO_RODADA_02.md`). As **R3–R4 foram absorvidas nas
+R4–R5 do `docs/PLANO_VOCACOES_REGIAO_V5.md`**, que herda o protocolo v4 (§4 daqui) e
+o piloto V3-D7. Era: aprovado para execução (protocolo v4, §4).
 
 ---
 
