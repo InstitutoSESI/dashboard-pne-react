@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "vocacoes-regiao-2.8.0",
+  "schemaVersion": "vocacoes-regiao-2.9.0",
   "generatedAt": "2026-08-26",
-  "generatorVersion": "vocacoes-regiao-generator-v7",
+  "generatorVersion": "vocacoes-regiao-generator-v8",
   "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.6",
   "sourceMethodologyStatus": "fase_b_com_decomposicao_contabil",
   "publicationScope": "estadual",
@@ -27,6 +27,81 @@
       "Estimativa é estimativa: o que foi calculado a partir de outras séries vem com a nota de método que diz o que aquele número reúne.",
       "Cada leitura traz junto a interpretação que ela permite e a que ela proíbe. As duas fazem parte da leitura.",
       "Correlação não é causa: as leituras quantificadas descrevem co-movimento entre séries — em quantos anos andaram juntas, quanto variaram na mesma janela e com que força — e cada leitura diz, ela mesma, o que não se pode concluir dela."
+    ]
+  },
+  "hero": {
+    "title": "O território mudou de perfil. A educação da região está acompanhando?",
+    "lede": "Duas perguntas organizam esta página: o que anda junto com a educação no território — e o que o futuro do território pede da educação. As respostas vêm de séries longas de emprego, demografia e matrícula, lidas lado a lado. Nenhuma leitura afirma causa além do grau declarado em cada cartão.",
+    "methodNote": "Os quatro números-síntese usam as mesmas séries do retrato do território: o valor mais recente fechado de cada série, a variação desde o primeiro ano fechado e, quando a leitura existe no pacote, a posição da região entre as 10 do estado. Prévia não entra no número-síntese.",
+    "tiles": [
+      {
+        "tileId": "ensino-medio",
+        "seriesId": "matriculas-no-ensino-medio",
+        "entity": "education",
+        "label": "Ensino médio",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "startValue": 45419,
+        "endValue": 33126,
+        "valueStatement": "33 126 matrículas · 2025",
+        "deltaKind": "percentual",
+        "deltaValue": -27.1,
+        "deltaStatement": "-27,1% desde 2014",
+        "contrastStatement": "Entre as 10 regiões comparáveis do estado, esta é a 2ª maior queda acumulada de Matrículas no ensino médio nessa janela; 10 das 10 regiões registraram queda."
+      },
+      {
+        "tileId": "educacao-tecnica",
+        "seriesId": "matriculas-na-educacao-profissional-tecnica",
+        "entity": "education",
+        "label": "Educação técnica",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "startValue": 13858,
+        "endValue": 12290,
+        "valueStatement": "12 290 matrículas · 2025",
+        "deltaKind": "percentual",
+        "deltaValue": -11.3,
+        "deltaStatement": "-11,3% desde 2014",
+        "contrastStatement": null
+      },
+      {
+        "tileId": "escolaridade-do-emprego",
+        "seriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+        "entity": "territory",
+        "label": "Escolaridade do emprego",
+        "window": {
+          "start": 2006,
+          "end": 2025
+        },
+        "startValue": 33.154570001434266,
+        "endValue": 48.978589511176416,
+        "valueStatement": "49,0 de cada 100 vínculos com ensino médio completo · 2025",
+        "deltaKind": "nivel",
+        "deltaValue": null,
+        "deltaStatement": "eram 33,2 em 2006",
+        "contrastStatement": null
+      },
+      {
+        "tileId": "nascimentos",
+        "seriesId": "nascidos-vivos-por-residencia-da-mae",
+        "entity": "territory",
+        "label": "Nascimentos",
+        "window": {
+          "start": 1994,
+          "end": 2024
+        },
+        "startValue": 24301,
+        "endValue": 11264,
+        "valueStatement": "11 264 nascidos vivos · 2024",
+        "deltaKind": "nivel",
+        "deltaValue": null,
+        "deltaStatement": "eram 24 301 em 1994",
+        "contrastStatement": null
+      }
     ]
   },
   "synthesis": {
@@ -16349,12 +16424,14 @@
         "kind": "structural",
         "aSeriesId": "nascidos-vivos-por-residencia-da-mae",
         "bSeriesId": "matriculas-no-ensino-fundamental",
-        "lagYears": 6
+        "lagYears": 6,
+        "storyTitle": "O que nasce hoje chega à escola 6 anos depois"
       },
       {
         "kind": "curated_association",
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
-        "factorSeriesId": "massa-salarial-de-dezembro-a-precos-de-2025"
+        "factorSeriesId": "massa-salarial-de-dezembro-a-precos-de-2025",
+        "storyTitle": "A massa salarial cresceu, a matrícula na EJA caiu"
       },
       {
         "kind": "screened",
@@ -16374,7 +16451,8 @@
       },
       {
         "kind": "curated_pair",
-        "pairId": "massa-salarial-do-trabalho-formal-e-matriculas-na-educacao-de-jovens-e-adultos"
+        "pairId": "massa-salarial-do-trabalho-formal-e-matriculas-na-educacao-de-jovens-e-adultos",
+        "storyTitle": "A massa salarial cresceu, a matrícula na EJA caiu"
       },
       {
         "kind": "screened",
@@ -16387,21 +16465,25 @@
       {
         "kind": "curated_association",
         "associationId": "escolas-com-matriculas-na-educacao-basica-e-populacao-de-60-anos-ou-mais",
-        "factorSeriesId": "populacao-de-60-anos-ou-mais"
+        "factorSeriesId": "populacao-de-60-anos-ou-mais",
+        "storyTitle": "A população de 60 anos ou mais cresceu, as escolas com matrícula caíram"
       },
       {
         "kind": "curated_association",
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
-        "factorSeriesId": "vinculos-formais-ativos"
+        "factorSeriesId": "vinculos-formais-ativos",
+        "storyTitle": "O emprego formal cresceu, a matrícula na EJA caiu"
       },
       {
         "kind": "curated_association",
         "associationId": "escolas-com-matriculas-na-educacao-basica-e-populacao-de-60-anos-ou-mais",
-        "factorSeriesId": "pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos"
+        "factorSeriesId": "pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos",
+        "storyTitle": "O índice de envelhecimento cresceu, as escolas com matrícula caíram"
       },
       {
         "kind": "curated_pair",
-        "pairId": "indice-de-envelhecimento-e-escolas-com-matriculas"
+        "pairId": "indice-de-envelhecimento-e-escolas-com-matriculas",
+        "storyTitle": "O índice de envelhecimento cresceu, as escolas com matrícula caíram"
       }
     ],
     "noteCount": 11,
@@ -16491,7 +16573,7 @@
     "scenarioPackageSha256": null,
     "scenarioSourceSha256": null,
     "municipalPackageSha256": null,
-    "synthesisPackageSha256": "5a02ec0f2fe6889f60e1859e721f794865c540d14599cb8a34a87d8df56ecad1"
+    "synthesisPackageSha256": "43b67e619ca9db986ac14fcef03d78fdf038fb80f5dc7ee7b1fe820b68f4105c"
   },
-  "contentVersion": "17f1c1c1c9057db538701f12ace2bf2e1b19f6cb403803ae7f09d7e50d6c0dcb"
+  "contentVersion": "55220819536b16b6c1fabf08d80d40a5e4e7985c15e3abdbd335ee8f8773f324"
 }

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "vocacoes-regiao-2.8.0",
+  "schemaVersion": "vocacoes-regiao-2.9.0",
   "generatedAt": "2026-08-26",
-  "generatorVersion": "vocacoes-regiao-generator-v7",
+  "generatorVersion": "vocacoes-regiao-generator-v8",
   "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.6",
   "sourceMethodologyStatus": "fase_b_com_decomposicao_contabil",
   "publicationScope": "estadual",
@@ -27,6 +27,81 @@
       "Estimativa é estimativa: o que foi calculado a partir de outras séries vem com a nota de método que diz o que aquele número reúne.",
       "Cada leitura traz junto a interpretação que ela permite e a que ela proíbe. As duas fazem parte da leitura.",
       "Correlação não é causa: as leituras quantificadas descrevem co-movimento entre séries — em quantos anos andaram juntas, quanto variaram na mesma janela e com que força — e cada leitura diz, ela mesma, o que não se pode concluir dela."
+    ]
+  },
+  "hero": {
+    "title": "O território mudou de perfil. A educação da região está acompanhando?",
+    "lede": "Duas perguntas organizam esta página: o que anda junto com a educação no território — e o que o futuro do território pede da educação. As respostas vêm de séries longas de emprego, demografia e matrícula, lidas lado a lado. Nenhuma leitura afirma causa além do grau declarado em cada cartão.",
+    "methodNote": "Os quatro números-síntese usam as mesmas séries do retrato do território: o valor mais recente fechado de cada série, a variação desde o primeiro ano fechado e, quando a leitura existe no pacote, a posição da região entre as 10 do estado. Prévia não entra no número-síntese.",
+    "tiles": [
+      {
+        "tileId": "ensino-medio",
+        "seriesId": "matriculas-no-ensino-medio",
+        "entity": "education",
+        "label": "Ensino médio",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "startValue": 31789,
+        "endValue": 26911,
+        "valueStatement": "26 911 matrículas · 2025",
+        "deltaKind": "percentual",
+        "deltaValue": -15.3,
+        "deltaStatement": "-15,3% desde 2014",
+        "contrastStatement": "Entre as 10 regiões comparáveis do estado, esta é a 9ª maior queda acumulada de Matrículas no ensino médio nessa janela; 10 das 10 regiões registraram queda."
+      },
+      {
+        "tileId": "educacao-tecnica",
+        "seriesId": "matriculas-na-educacao-profissional-tecnica",
+        "entity": "education",
+        "label": "Educação técnica",
+        "window": {
+          "start": 2014,
+          "end": 2025
+        },
+        "startValue": 12774,
+        "endValue": 13945,
+        "valueStatement": "13 945 matrículas · 2025",
+        "deltaKind": "percentual",
+        "deltaValue": 9.2,
+        "deltaStatement": "+9,2% desde 2014",
+        "contrastStatement": "Entre as 10 regiões comparáveis do estado, esta é a 3ª maior alta acumulada de Matrículas na educação profissional técnica nessa janela; 4 das 10 regiões registraram alta."
+      },
+      {
+        "tileId": "escolaridade-do-emprego",
+        "seriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+        "entity": "territory",
+        "label": "Escolaridade do emprego",
+        "window": {
+          "start": 2006,
+          "end": 2025
+        },
+        "startValue": 26.29214450775789,
+        "endValue": 46.291881085483695,
+        "valueStatement": "46,3 de cada 100 vínculos com ensino médio completo · 2025",
+        "deltaKind": "nivel",
+        "deltaValue": null,
+        "deltaStatement": "eram 26,3 em 2006",
+        "contrastStatement": null
+      },
+      {
+        "tileId": "nascimentos",
+        "seriesId": "nascidos-vivos-por-residencia-da-mae",
+        "entity": "territory",
+        "label": "Nascimentos",
+        "window": {
+          "start": 1994,
+          "end": 2024
+        },
+        "startValue": 15482,
+        "endValue": 9276,
+        "valueStatement": "9 276 nascidos vivos · 2024",
+        "deltaKind": "nivel",
+        "deltaValue": null,
+        "deltaStatement": "eram 15 482 em 1994",
+        "contrastStatement": null
+      }
     ]
   },
   "synthesis": {
@@ -16471,7 +16546,8 @@
         "kind": "structural",
         "aSeriesId": "nascidos-vivos-por-residencia-da-mae",
         "bSeriesId": "matriculas-no-ensino-fundamental",
-        "lagYears": 6
+        "lagYears": 6,
+        "storyTitle": "O que nasce hoje chega à escola 6 anos depois"
       },
       {
         "kind": "screened",
@@ -16483,7 +16559,8 @@
       },
       {
         "kind": "curated_pair",
-        "pairId": "vinculos-formais-na-industria-e-matriculas-na-educacao-profissional-tecnica"
+        "pairId": "vinculos-formais-na-industria-e-matriculas-na-educacao-profissional-tecnica",
+        "storyTitle": "O emprego na indústria caiu, a matrícula técnica cresceu"
       },
       {
         "kind": "screened",
@@ -16496,7 +16573,8 @@
       {
         "kind": "curated_association",
         "associationId": "matriculas-no-ensino-medio-e-vinculos-formais-de-profissionais-do-ensino",
-        "factorSeriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais"
+        "factorSeriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+        "storyTitle": "A fatia de vínculos com ensino médio completo cresceu, a matrícula no ensino médio caiu"
       },
       {
         "kind": "screened",
@@ -16516,35 +16594,42 @@
       },
       {
         "kind": "curated_pair",
-        "pairId": "produto-interno-bruto-dos-servicos-e-matriculas-na-educacao-de-jovens-e-adultos"
+        "pairId": "produto-interno-bruto-dos-servicos-e-matriculas-na-educacao-de-jovens-e-adultos",
+        "storyTitle": "O PIB de serviços caiu, a matrícula na EJA cresceu"
       },
       {
         "kind": "curated_association",
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
-        "factorSeriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro"
+        "factorSeriesId": "pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro",
+        "storyTitle": "As pessoas no perfil de baixa renda caíram, a matrícula na EJA cresceu"
       },
       {
         "kind": "curated_association",
         "associationId": "escolas-rurais-com-matriculas-na-educacao-basica-e-produto-interno-bruto-da-agropecuaria-a-precos-de-2023",
-        "factorSeriesId": "populacao-estimada"
+        "factorSeriesId": "populacao-estimada",
+        "storyTitle": "A população estimada cresceu, as escolas rurais caíram"
       },
       {
         "kind": "curated_pair",
-        "pairId": "indice-de-envelhecimento-e-escolas-com-matriculas"
+        "pairId": "indice-de-envelhecimento-e-escolas-com-matriculas",
+        "storyTitle": "O índice de envelhecimento cresceu, as escolas com matrícula cresceram"
       },
       {
         "kind": "curated_association",
         "associationId": "matriculas-na-educacao-de-jovens-e-adultos-e-vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
-        "factorSeriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais"
+        "factorSeriesId": "vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais",
+        "storyTitle": "A fatia de vínculos com ensino médio completo cresceu, a matrícula na EJA cresceu"
       },
       {
         "kind": "curated_pair",
-        "pairId": "composicao-do-emprego-formal-por-grau-de-instrucao-e-matriculas-na-educacao-de-jovens-e-adultos"
+        "pairId": "composicao-do-emprego-formal-por-grau-de-instrucao-e-matriculas-na-educacao-de-jovens-e-adultos",
+        "storyTitle": "A fatia de vínculos com ensino médio completo cresceu, a matrícula na EJA cresceu"
       },
       {
         "kind": "curated_association",
         "associationId": "matriculas-no-ensino-medio-e-massa-salarial-de-dezembro-a-precos-de-2025",
-        "factorSeriesId": "vinculos-formais-ativos"
+        "factorSeriesId": "vinculos-formais-ativos",
+        "storyTitle": "O emprego formal cresceu, a matrícula no ensino médio caiu"
       }
     ],
     "noteCount": 8,
@@ -16634,7 +16719,7 @@
     "scenarioPackageSha256": null,
     "scenarioSourceSha256": null,
     "municipalPackageSha256": null,
-    "synthesisPackageSha256": "7908e892453d8e69d896bd776058c02f911975070285cda1c576d1b5ddb065e5"
+    "synthesisPackageSha256": "7cdf3154c33df46ac82507bbec4b32587ec7e85c51e36887b05ef8044235f373"
   },
-  "contentVersion": "dbd9cbe4436e37d5c3070ec395a4d42f6a8d08e13689d406f2f63465a6dfc4e7"
+  "contentVersion": "20a7565598f85c9a07ae36f3bf78868725cfb423f6bedc822df137b9ac3af40d"
 }
