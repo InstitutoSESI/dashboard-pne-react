@@ -1,6 +1,6 @@
 # Contrato de produto e de linguagem — Vocações × PNE
 
-**Versão:** 1.1.0 (revisada após o parecer adversarial da Rodada 1)
+**Versão:** 1.2.0 (Rodada 2: catálogo de mecanismos, registro de séries e catálogos de referência)
 **Origem:** Rodada 1 do plano V6 (`docs/PLANO_IMPLEMENTACAO_VOCACOES_PNE.md`, Etapas 1 e 9, §6 e §7). Em conflito entre este contrato e o plano, o plano prevalece; este documento é a forma operacional do plano.
 **Aplicação:** este contrato governa tudo o que a página Vocações × PNE publica. É verificado por máquina onde possível (`scripts/checks/fixtures/vocacoes-pne/vocabulario.json` + linter + testes de contrato) e por gate editorial onde não.
 
@@ -154,7 +154,7 @@ digita o rótulo.
 
 ### 3.3 Regras estruturais
 
-- Campo público vazio = cartão inválido (fail-closed no gerador; nenhum bloco renderiza vazio). **Vazio** = string em branco após trim, array `[]`, ou array contendo apenas strings em branco. Itens de `pne_topics`, `monitoring_indicators` e `sources` são strings não vazias e únicas; viram IDs de catálogo na Rodada 2.
+- Campo público vazio = cartão inválido (fail-closed no gerador; nenhum bloco renderiza vazio). **Vazio** = string em branco após trim, array `[]`, ou array contendo apenas strings em branco. Itens de `pne_topics`, `monitoring_indicators` e `sources` são strings não vazias e únicas e, desde a Rodada 2, resolvem por label exato contra `catalogo-referencias.json` (item em branco, desconhecido ou duplicado = violação individual). O `internal.mechanism_id` resolve contra `catalogo-mecanismos.json`, e a direção do cartão deve estar entre as direções permitidas do mecanismo.
 - A serialização pública **constrói um objeto novo por allowlist** dos campos públicos da direção — não apenas remove `internal`. Campo desconhecido no autoral não passa; nenhuma chave interna (`mechanism_id`, checks, `publication_decision`, `transformation_class`, `future_basis`) pode existir no resultado. O teste de contrato verifica.
 - `publication_decision: publicada` exige todos os checks internos `ok` (e, na segunda saída, `future_basis` preenchido). Qualquer check reprovado força `retida`. Cartão `retida` não aparece e não gera mensagem. Hoje a decisão é declarada e auditada pelo gate; quando o motor de candidatos existir (Rodada 5), ela passa a ser **derivada** do registro de gates G1–G10, nunca digitada.
 - Uma mesma história não é dividida em vários cartões de pares; um cartão carrega a história inteira.
@@ -277,7 +277,7 @@ Uma resposta negativa bloqueia a publicação.
 
 G1 relevância PNE · G2 mecanismo catalogado · G3 universo compatível · G4 tempo coerente · G5 estabilidade (janela/município dominante) · G6 valor além dos indicadores isolados · G7 questão de planejamento concreta · G8 clareza sem jargão · G9 não redundância · G10 rastreabilidade total.
 
-Falha em qualquer gate = cartão não publicado, sem mensagem. G2/G3 dependem do catálogo de mecanismos e do registro de séries (Rodada 2); G5 das validações internas (Rodada 5); G8 e a parte formal de G10 já são verificáveis por este contrato (linter + testes).
+Falha em qualquer gate = cartão não publicado, sem mensagem. G2/G3 são verificáveis por máquina desde a Rodada 2: o catálogo de mecanismos (M1–M7, default-deny — nenhum par fora de `paresPermitidos`/`paresProvisorios` alimenta cartão) e o registro canônico de séries (universo, lente territorial, faixa etária, denominadores) sustentam `validatePair` e `validateCardCatalog`, que bloqueiam os erros conhecidos do piloto (população 0–14 × ensino médio, cadastro social como denominador de EJA, vínculos totais como trabalho juvenil, lente mista não declarada, fotografia censitária como série anual). G5 depende das validações internas (Rodada 5); G8 e a parte formal de G10 já são verificáveis por este contrato (linter + testes).
 
 ---
 
@@ -290,5 +290,13 @@ Falha em qualquer gate = cartão não publicado, sem mensagem. G2/G3 dependem do
 | `scripts/lib/vocacoes-pne-linter.mjs` | Linter: aplica o vocabulário a todos os campos públicos de um cartão; valida estrutura, decisão de publicação e serialização pública. |
 | `scripts/checks/vocacoes-pne-linguagem.test.mjs` | Linter × corpus + injeção sintética de cada regra. |
 | `scripts/checks/vocacoes-pne-contrato.test.mjs` | Schema, mínimos/máximos, coerência de `publication_decision`, remoção de `internal`. |
+| `scripts/checks/fixtures/vocacoes-pne/catalogo-mecanismos.json` | Catálogo versionado M1–M7 (Etapa 2): pergunta, justificativa, universo de referência, pares permitidos/provisórios, leitura pública máxima, afirmações proibidas, disponibilidade. Substância muda só por decisão de gate. |
+| `scripts/checks/fixtures/vocacoes-pne/registro-series.json` | Registro canônico das séries (Etapa 3), GERADO por `scripts/generate-vocacoes-pne-registro.mjs` (`--check` byte a byte): universo, lente territorial, faixa etária, `ratioOf`, status (`disponivel_plataforma` / `disponivel_pesquisa` / `pendente_*`). |
+| `scripts/checks/fixtures/vocacoes-pne/regras-universo.json` | Taxonomia de universos e lentes, classificação por padrão, dicionário de denominadores (adequados e proibidos) e ordem das regras de par com `reasonCode`. |
+| `scripts/checks/fixtures/vocacoes-pne/catalogo-referencias.json` | Catálogos de temas do PNE, indicadores de acompanhamento e fontes; itens dos cartões resolvem por label exato. |
+| `scripts/lib/vocacoes-pne-registro.mjs` | Loaders fail-closed + referências cruzadas (mecanismos × registro × referências). |
+| `scripts/lib/vocacoes-pne-compatibilidade.mjs` | `validatePair` (default-deny + regras de universo, janela e lente) e `validateCardCatalog` (mecanismo, direção, itens de catálogo). |
+| `scripts/checks/vocacoes-pne-mecanismos.test.mjs` | Catálogo × corpus × triagem do pacote (default-deny). |
+| `scripts/checks/vocacoes-pne-series.test.mjs` | Registro × pacote publicado + bloqueio nomeado dos erros conhecidos. |
 
 O linter é **necessário, não suficiente**: ele captura vocabulário e estrutura; valor, mecanismo e universo são gates editoriais e das rodadas seguintes.

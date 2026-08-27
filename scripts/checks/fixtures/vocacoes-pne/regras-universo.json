@@ -1,0 +1,514 @@
+{
+  "version": "1.0.0",
+  "descricao": "Transposição mecânica das regras de universo, lentes, denominadores e compatibilidade definidas no Anexo B da Rodada 2.",
+  "universos": {
+    "populacao_residente": {
+      "lente": "residentes",
+      "descricao": "Pessoas residentes, por faixa etária."
+    },
+    "coorte_censitaria": {
+      "lente": "residentes",
+      "descricao": "Coortes acompanhadas entre os censos 2010→2022 (fotografia acumulada, não série anual)."
+    },
+    "nascimentos_residencia": {
+      "lente": "residentes",
+      "descricao": "Nascidos vivos por residência da mãe."
+    },
+    "obitos_residencia": {
+      "lente": "residentes",
+      "descricao": "Óbitos por residência."
+    },
+    "matriculas_localizadas": {
+      "lente": "escolas_da_regiao",
+      "descricao": "Matrículas declaradas ao censo escolar em escolas localizadas na região, qualquer residência do aluno."
+    },
+    "oferta_fisica": {
+      "lente": "escolas_da_regiao",
+      "descricao": "Escolas (unidades) com matrícula na educação básica."
+    },
+    "fluxo_rendimento": {
+      "lente": "escolas_da_regiao",
+      "descricao": "Taxas de rendimento/distorção do INEP, mediana entre os municípios da região."
+    },
+    "trabalho_formal_local": {
+      "lente": "estabelecimentos_da_regiao",
+      "descricao": "Vínculos formais e massa salarial por local de trabalho."
+    },
+    "economia_local": {
+      "lente": "estabelecimentos_da_regiao",
+      "descricao": "PIB municipal somado, exportações por município."
+    },
+    "cadastro_social": {
+      "lente": "cadastro",
+      "descricao": "Pessoas/famílias inscritas no cadastro, tal como o cadastro registra."
+    },
+    "eventos": {
+      "lente": "nao_populacional",
+      "descricao": "Eventos registrados (não populacional)."
+    },
+    "residencia_x_estudo": {
+      "lente": "residencia_x_estudo",
+      "descricao": "Estudantes por município de residência × município de estudo."
+    }
+  },
+  "classificacao": [
+    {
+      "ordem": 1,
+      "pattern": "^(familias|pessoas)-inscritas-",
+      "universo": "cadastro_social",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 2,
+      "pattern": "^escolas-",
+      "universo": "oferta_fisica",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 3,
+      "pattern": "^eventos-climaticos-",
+      "universo": "eventos",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 4,
+      "pattern": "^valor-total-das-exportacoes$",
+      "universo": "economia_local",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 5,
+      "pattern": "^produto-interno-bruto-",
+      "universo": "economia_local",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 6,
+      "pattern": "^pessoas-de-60-anos-ou-mais-por-cem-",
+      "universo": "populacao_residente",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "razao_60_mais_por_0_14"
+    },
+    {
+      "ordem": 7,
+      "pattern": "^massa-salarial-",
+      "universo": "trabalho_formal_local",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 8,
+      "pattern": "^matriculas-",
+      "universo": "matriculas_localizadas",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "ver_populacaoReferenciaMatriculas"
+    },
+    {
+      "ordem": 9,
+      "pattern": "^pessoas-de-(15-a-19|20-a-24)-anos-que-ja-moraram-fora-",
+      "universo": "coorte_censitaria",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "faixa_no_id"
+    },
+    {
+      "ordem": 10,
+      "pattern": "^nascidos-vivos-atribuidos-a-coorte-",
+      "universo": "coorte_censitaria",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "coorte_pos_2010"
+    },
+    {
+      "ordem": 11,
+      "pattern": "^nascidos-vivos-por-residencia-da-mae$",
+      "universo": "nascimentos_residencia",
+      "faixaEtaria": null
+    },
+    {
+      "ordem": 12,
+      "pattern": "^obitos-da-coorte-",
+      "universo": "coorte_censitaria",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "faixa_no_id"
+    },
+    {
+      "ordem": 13,
+      "pattern": "^obitos-por-residencia-",
+      "universo": "obitos_residencia",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "faixa_no_id"
+    },
+    {
+      "ordem": 14,
+      "pattern": "^populacao-da-coorte-",
+      "universo": "coorte_censitaria",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "faixa_no_id"
+    },
+    {
+      "ordem": 15,
+      "pattern": "^populacao-de-0-a-14-anos$",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        0,
+        14
+      ]
+    },
+    {
+      "ordem": 16,
+      "pattern": "^populacao-de-60-anos-ou-mais$",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        60,
+        null
+      ]
+    },
+    {
+      "ordem": 17,
+      "pattern": "^populacao-estimada$",
+      "universo": "populacao_residente",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "todas"
+    },
+    {
+      "ordem": 18,
+      "pattern": "^saldo-migratorio-aparente-",
+      "universo": "coorte_censitaria",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "faixa_no_id"
+    },
+    {
+      "ordem": 19,
+      "pattern": "^vinculos-formais-",
+      "universo": "trabalho_formal_local",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "sem_recorte_etario"
+    },
+    {
+      "ordem": 20,
+      "pattern": "^fluxo_taxa_",
+      "universo": "fluxo_rendimento",
+      "faixaEtaria": null,
+      "faixaEtariaRegra": "etapa_no_id"
+    }
+  ],
+  "populacaoReferenciaMatriculas": {
+    "matriculas-na-educacao-infantil": {
+      "etapa": "educacao_infantil",
+      "faixaEtaria": [
+        0,
+        5
+      ],
+      "descricao": "0–5"
+    },
+    "matriculas-no-ensino-fundamental": {
+      "etapa": "ensino_fundamental",
+      "faixaEtaria": [
+        6,
+        14
+      ],
+      "descricao": "6–14"
+    },
+    "matriculas-no-ensino-medio": {
+      "etapa": "ensino_medio",
+      "faixaEtaria": [
+        15,
+        17
+      ],
+      "descricao": "15–17"
+    },
+    "matriculas-na-educacao-de-jovens-e-adultos": {
+      "etapa": "educacao_de_jovens_e_adultos",
+      "faixaEtaria": [
+        15,
+        null
+      ],
+      "descricao": "15+ sem etapa concluída (sem coorte etária fechada)"
+    },
+    "matriculas-na-educacao-profissional": {
+      "etapa": "educacao_profissional",
+      "faixaEtaria": null,
+      "descricao": "sem coorte fechada"
+    },
+    "matriculas-na-educacao-profissional-tecnica": {
+      "etapa": "educacao_profissional_tecnica",
+      "faixaEtaria": null,
+      "descricao": "sem coorte fechada"
+    }
+  },
+  "seriesPendentes": [
+    {
+      "seriesId": "populacao-de-0-a-3-anos",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        0,
+        3
+      ],
+      "label": "População de 0 a 3 anos",
+      "fonteDesejavel": "estimativas-populacionais-idade"
+    },
+    {
+      "seriesId": "populacao-de-4-e-5-anos",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        4,
+        5
+      ],
+      "label": "População de 4 e 5 anos",
+      "fonteDesejavel": "estimativas-populacionais-idade"
+    },
+    {
+      "seriesId": "populacao-de-6-a-14-anos",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        6,
+        14
+      ],
+      "label": "População de 6 a 14 anos",
+      "fonteDesejavel": "estimativas-populacionais-idade"
+    },
+    {
+      "seriesId": "populacao-de-15-a-17-anos",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        15,
+        17
+      ],
+      "label": "População de 15 a 17 anos",
+      "fonteDesejavel": "estimativas-populacionais-idade"
+    },
+    {
+      "seriesId": "populacao-de-18-a-24-anos",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        18,
+        24
+      ],
+      "label": "População de 18 a 24 anos",
+      "fonteDesejavel": "estimativas-populacionais-idade"
+    },
+    {
+      "seriesId": "populacao-rural",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": null,
+      "label": "População rural",
+      "fonteDesejavel": "censo-demografico-2022"
+    },
+    {
+      "seriesId": "adultos-sem-fundamental-completo",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        15,
+        null
+      ],
+      "label": "Adultos sem ensino fundamental completo",
+      "fonteDesejavel": "censo-demografico-2022"
+    },
+    {
+      "seriesId": "adultos-sem-medio-completo",
+      "status": "pendente_r3",
+      "universo": "populacao_residente",
+      "faixaEtaria": [
+        15,
+        null
+      ],
+      "label": "Adultos sem ensino médio completo",
+      "fonteDesejavel": "censo-demografico-2022"
+    },
+    {
+      "seriesId": "vinculos-formais-de-15-a-17-anos",
+      "status": "pendente_r3",
+      "universo": "trabalho_formal_local",
+      "faixaEtaria": [
+        15,
+        17
+      ],
+      "label": "Vínculos formais de 15 a 17 anos",
+      "fonteDesejavel": "rais-por-idade"
+    },
+    {
+      "seriesId": "vinculos-formais-de-18-a-24-anos",
+      "status": "pendente_r3",
+      "universo": "trabalho_formal_local",
+      "faixaEtaria": [
+        18,
+        24
+      ],
+      "label": "Vínculos formais de 18 a 24 anos",
+      "fonteDesejavel": "rais-por-idade"
+    },
+    {
+      "seriesId": "matriculas-em-tempo-integral",
+      "status": "pendente_r3",
+      "universo": "matriculas_localizadas",
+      "faixaEtaria": null,
+      "label": "Matrículas em tempo integral",
+      "fonteDesejavel": "censo-escolar-inep"
+    },
+    {
+      "seriesId": "matriculas-educacao-profissional-por-modalidade",
+      "status": "pendente_r3",
+      "universo": "matriculas_localizadas",
+      "faixaEtaria": null,
+      "label": "Matrículas de educação profissional por modalidade",
+      "fonteDesejavel": "censo-escolar-inep"
+    },
+    {
+      "seriesId": "ocupacoes-por-cbo",
+      "status": "pendente_r4",
+      "universo": "trabalho_formal_local",
+      "faixaEtaria": null,
+      "label": "Ocupações por CBO",
+      "fonteDesejavel": "rais-por-cbo"
+    },
+    {
+      "seriesId": "deslocamento-para-estudo",
+      "status": "pendente_r4",
+      "universo": "residencia_x_estudo",
+      "faixaEtaria": null,
+      "label": "Deslocamento para estudo",
+      "fonteDesejavel": "censo-demografico-2022"
+    }
+  ],
+  "denominadores": {
+    "adequados": [
+      {
+        "numerador": "matriculas-na-educacao-infantil",
+        "denominadores": [
+          "populacao-de-0-a-3-anos",
+          "populacao-de-4-e-5-anos"
+        ],
+        "alternativa": "coorte de nascimentos acumulada 0–5",
+        "situacao": "parcial (nascimentos disponíveis)"
+      },
+      {
+        "numerador": "matriculas-no-ensino-fundamental",
+        "denominadores": [
+          "populacao-de-6-a-14-anos"
+        ],
+        "situacao": "pendente R3"
+      },
+      {
+        "numerador": "matriculas-no-ensino-medio",
+        "denominadores": [
+          "populacao-de-15-a-17-anos"
+        ],
+        "alternativa": "nascimentos defasados 15–17",
+        "situacao": "parcial"
+      },
+      {
+        "numerador": "matriculas-na-educacao-de-jovens-e-adultos",
+        "denominadores": [
+          "adultos-sem-fundamental-completo",
+          "adultos-sem-medio-completo"
+        ],
+        "situacao": "pendente R3"
+      },
+      {
+        "numerador": "matriculas-na-educacao-profissional(-tecnica)",
+        "denominadores": [
+          "populacao-de-18-a-24-anos"
+        ],
+        "alternativa": "público potencial por eixo",
+        "situacao": "pendente"
+      },
+      {
+        "numerador": "escolas-rurais-com-matriculas-na-educacao-basica",
+        "denominadores": [
+          "populacao-rural"
+        ],
+        "situacao": "pendente R3"
+      },
+      {
+        "numerador": "vinculos-formais-de-pessoas-com-ensino-medio-completo",
+        "denominadores": [
+          "vinculos-formais-com-grau-de-instrucao-declarado"
+        ],
+        "restricao": "nunca o total com ignorados",
+        "situacao": "disponível (razão publicada)"
+      },
+      {
+        "numerador": "trabalho juvenil (15–17 / 18–24)",
+        "denominadores": [
+          "populacao-de-15-a-17-anos",
+          "populacao-de-18-a-24-anos"
+        ],
+        "situacao": "pendente"
+      }
+    ],
+    "proibidos": [
+      {
+        "denominador": "universo:cadastro_social",
+        "aplicaA": "qualquer medida educacional (em especial EJA — plano §3.4)",
+        "reasonCode": "denominador-proibido"
+      },
+      {
+        "denominador": "populacao-estimada",
+        "aplicaA": "matrícula por etapa",
+        "reasonCode": "denominador-proibido"
+      },
+      {
+        "denominador": "vinculos-formais-ativos",
+        "aplicaA": "medida de trabalho juvenil",
+        "reasonCode": "denominador-proibido"
+      }
+    ]
+  },
+  "regrasPar": [
+    {
+      "ordem": 1,
+      "reasonCode": "mecanismo-desconhecido",
+      "descricao": "mechanismId não está no catálogo."
+    },
+    {
+      "ordem": 2,
+      "reasonCode": "faixa-etaria-incompativel",
+      "descricao": "Par educacional×populacional avaliado pela relação entre a faixa da série populacional e a população de referência da série educacional: faixa territorial contida na referência ou idêntica a ela é compatível; faixa territorial mais ampla que a referência é aproximação e só passa via paresProvisorios do mecanismo, com aviso aproximacao-declarada, nunca silenciosamente; sobreposição parcial ou disjunção é bloqueada. Caso canônico: populacao-de-0-a-14-anos × matriculas-no-ensino-medio (0–14 ∩ 15–17 = ∅) — P3."
+    },
+    {
+      "ordem": 3,
+      "reasonCode": "cadastro-nao-denominador",
+      "descricao": "Série cadastro_social em par de leitura com série educacional (cadastro é só contexto de vulnerabilidade; nunca par, nunca denominador)."
+    },
+    {
+      "ordem": 4,
+      "reasonCode": "sem-recorte-de-idade",
+      "descricao": "Série de trabalho sem faixa etária (vinculos-formais-ativos etc.) usada para fenômeno juvenil (mecanismo com populacaoReferencia dentro de 15–24), exceto permissão explícita do mecanismo com nota (caso M6-tempo-integral, fenômeno familiar)."
+    },
+    {
+      "ordem": 5,
+      "reasonCode": "fotografia-nao-serie",
+      "descricao": "Série coorte_censitaria usada por mecanismo cuja defasagem não é do tipo acumulada."
+    },
+    {
+      "ordem": 6,
+      "reasonCode": "fora-do-catalogo",
+      "descricao": "Par não listado em paresPermitidos/paresProvisorios do mecanismo (default-deny; inclui séries que nem existem no registro)."
+    },
+    {
+      "ordem": 7,
+      "reasonCode": "serie-desconhecida",
+      "descricao": "Par listado mas alguma série não resolve no registro (erro de catálogo; o teste de referências cruzadas impede na prática)."
+    },
+    {
+      "ordem": 8,
+      "reasonCode": "janela-insuficiente",
+      "descricao": "Sobreposição de períodos anuais dos dois lados menor que janelaMinimaPontos do mecanismo (fora de tipo acumulada; séries pendente_* sem período ficam isentas — a janela é conferida quando os dados chegarem, na R3)."
+    },
+    {
+      "ordem": 9,
+      "reasonCode": "lente-mista-nao-declarada",
+      "descricao": "Razão matrícula (lente escolas_da_regiao) ÷ população (lente residentes) sem o marcador atendimento_aparente na chamada. Com o marcador, o par é aceito e o rótulo interno registra que valores acima de 100 são possíveis (deslocamento e idades fora da faixa); a redação pública segue o contrato §7.2."
+    },
+    {
+      "ordem": 10,
+      "reasonCode": null,
+      "descricao": "Períodos preliminares (preliminaryPeriods do registro) nunca contam para a janela nem para valores citados (herdado; aplicado no motor da R5, registrado aqui como regra)."
+    }
+  ]
+}
