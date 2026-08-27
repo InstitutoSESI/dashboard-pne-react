@@ -1,7 +1,13 @@
 # Plano — Vocações da Região V5: relações fortes, leitura leve
 
 Data: 2026-08-26
-Status: **aprovado para execução** (pedido do mantenedor, 2026-08-26; protocolo v4 do V3, §4).
+Status: **ENCERRADO em 2026-08-27** — R0–R3 executadas e CONFORMES (contratos
+2.7.0, 2.8.0 e 2.9.0 no ar nas 10 regiões; GA humano da R3 APROVADO, acumulando
+V5-D9). As R4–R5 foram **absorvidas pelo plano V6**
+(`docs/PLANO_IMPLEMENTACAO_VOCACOES_PNE.md`): cenários das 8 regiões →
+Etapas 7/13 do V6; entrega/governança → Etapa 13 do V6. Atas em
+`.tmp/vocacoes-v5/`.
+Status anterior: aprovado para execução (pedido do mantenedor, 2026-08-26; protocolo v4 do V3, §4).
 Origem: diagnóstico medido da página (2026-08-26) + decisão do mantenedor: a página deve
 trazer **apenas relações fortes e indicativas**, com riqueza de análise e insights por
 região — as relações fracas saem da leitura — e o layout deve ser **leve, objetivo e
