@@ -9,6 +9,10 @@ const DEFAULT_REGISTRO_SERIES_PATH = new URL(
   '../checks/fixtures/vocacoes-pne/registro-series.json',
   import.meta.url,
 )
+const DEFAULT_ETAPA4_SERIES_PATH = new URL(
+  '../checks/fixtures/vocacoes-pne/etapa4-series-pesquisa.json',
+  import.meta.url,
+)
 const DEFAULT_REGRAS_UNIVERSO_PATH = new URL(
   '../checks/fixtures/vocacoes-pne/regras-universo.json',
   import.meta.url,
@@ -18,7 +22,12 @@ const DEFAULT_CATALOGO_REFERENCIAS_PATH = new URL(
   import.meta.url,
 )
 
-const MECHANISM_AVAILABILITY = new Set(['disponivel', 'parcial', 'pendente'])
+const MECHANISM_AVAILABILITY = new Set([
+  'disponivel',
+  'disponivel_pesquisa',
+  'parcial',
+  'pendente',
+])
 const SERIES_STATUS = new Set([
   'disponivel_plataforma',
   'disponivel_pesquisa',
@@ -274,6 +283,8 @@ function assertRegistroShape(value, filePath) {
   }
   if (!isRecord(value.generatedFrom)) {
     violations.push('generatedFrom deve ser um objeto')
+  } else if (!isNonEmptyString(value.generatedFrom.componentes)) {
+    violations.push('generatedFrom.componentes deve ser uma string não vazia')
   }
   if (!Array.isArray(value.series)) {
     violations.push('series deve ser um array')
@@ -333,6 +344,23 @@ function assertRegistroShape(value, filePath) {
     ) {
       violations.push(field + '.preliminaryPeriods deve ser array de inteiros')
     }
+    if (item.componentes !== undefined) {
+      validateStringArray(
+        item.componentes,
+        field + '.componentes',
+        violations,
+        { allowEmpty: false },
+      )
+      if (
+        Array.isArray(item.componentes)
+        && new Set(item.componentes).size !== item.componentes.length
+      ) {
+        violations.push(field + '.componentes contém valores duplicados')
+      }
+    }
+    if (item.nota !== undefined && !isNonEmptyString(item.nota)) {
+      violations.push(field + '.nota deve ser uma string não vazia quando presente')
+    }
     if (item.rede !== 'todas') {
       violations.push(field + '.rede deve ser "todas"')
     }
@@ -341,6 +369,130 @@ function assertRegistroShape(value, filePath) {
     }
   })
   throwShape('Registro de séries', filePath, violations)
+}
+
+function assertEtapa4SeriesShape(value, filePath) {
+  const violations = []
+  if (!requireRoot(value, violations)) {
+    throwShape('Snapshot de séries da Etapa 4', filePath, violations)
+  }
+  if (!isNonEmptyString(value.descricao)) {
+    violations.push('descricao deve ser uma string não vazia')
+  }
+  if (value.status !== 'disponivel_pesquisa') {
+    violations.push('status deve ser "disponivel_pesquisa"')
+  }
+  if (!isRecord(value.provenance) || !Array.isArray(value.provenance.sources)) {
+    violations.push('provenance.sources deve ser um array')
+  } else {
+    if (!isNonEmptyString(value.provenance.sourceRoot)) {
+      violations.push('provenance.sourceRoot deve ser uma string não vazia')
+    }
+    if (value.provenance.sources.length !== 4) {
+      violations.push('provenance.sources deve conter os quatro blocos da Etapa 4')
+    }
+    const blocks = new Set()
+    value.provenance.sources.forEach((source, index) => {
+      const field = 'provenance.sources[' + index + ']'
+      if (!isRecord(source)) {
+        violations.push(field + ' deve ser um objeto')
+        return
+      }
+      for (const stringField of ['block', 'regionalDirectory', 'generatedAt']) {
+        if (!isNonEmptyString(source[stringField])) {
+          violations.push(field + '.' + stringField + ' deve ser string não vazia')
+        }
+      }
+      if (isNonEmptyString(source.block)) {
+        if (blocks.has(source.block)) {
+          violations.push('provenance.sources contém bloco duplicado: ' + source.block)
+        }
+        blocks.add(source.block)
+      }
+      if (source.regionalFilesChecked !== 10) {
+        violations.push(field + '.regionalFilesChecked deve ser 10')
+      }
+    })
+  }
+
+  if (!Array.isArray(value.series)) {
+    violations.push('series deve ser um array')
+    throwShape('Snapshot de séries da Etapa 4', filePath, violations)
+  }
+  if (value.series.length !== 27) {
+    violations.push('series deve conter as 27 séries da Etapa 4')
+  }
+  const seriesKeys = new Set()
+  value.series.forEach((item, index) => {
+    const field = 'series[' + index + ']'
+    if (!isRecord(item)) {
+      violations.push(field + ' deve ser um objeto')
+      return
+    }
+    if (!isNonEmptyString(item.seriesKey)) {
+      violations.push(field + '.seriesKey deve ser uma string não vazia')
+    } else if (seriesKeys.has(item.seriesKey)) {
+      violations.push('series contém seriesKey duplicada: ' + item.seriesKey)
+    } else {
+      seriesKeys.add(item.seriesKey)
+    }
+    for (const stringField of [
+      'label',
+      'unit',
+      'source',
+      'evidenceClass',
+      'periodGranularity',
+    ]) {
+      if (!isNonEmptyString(item[stringField])) {
+        violations.push(field + '.' + stringField + ' deve ser string não vazia')
+      }
+    }
+    for (const periodField of ['periodStart', 'periodEnd']) {
+      if (!Number.isInteger(item[periodField])) {
+        violations.push(field + '.' + periodField + ' deve ser inteiro')
+      }
+    }
+    if (
+      Number.isInteger(item.periodStart)
+      && Number.isInteger(item.periodEnd)
+      && item.periodStart > item.periodEnd
+    ) {
+      violations.push(field + '.periodStart não pode ser posterior a periodEnd')
+    }
+    if (
+      !Array.isArray(item.preliminaryPeriods)
+      || !item.preliminaryPeriods.every(Number.isInteger)
+    ) {
+      violations.push(field + '.preliminaryPeriods deve ser array de inteiros')
+    }
+    if (Object.hasOwn(item, 'points')) {
+      violations.push(field + ' não pode conter pontos')
+    }
+    if (item.municipiosComDado !== undefined && !isRecord(item.municipiosComDado)) {
+      violations.push(field + '.municipiosComDado deve ser objeto quando presente')
+    }
+  })
+  throwShape('Snapshot de séries da Etapa 4', filePath, violations)
+  return seriesKeys
+}
+
+function assertRegistroComponents(registro, etapa4SeriesKeys, filePath) {
+  const violations = []
+  registro.series.forEach((item, index) => {
+    ;(item.componentes ?? []).forEach((seriesKey, componentIndex) => {
+      if (!etapa4SeriesKeys.has(seriesKey)) {
+        violations.push(
+          'series['
+          + index
+          + '].componentes['
+          + componentIndex
+          + '] não resolve no snapshot da Etapa 4: '
+          + seriesKey,
+        )
+      }
+    })
+  })
+  throwShape('Componentes do registro de séries', filePath, violations)
 }
 
 function assertRegrasUniversoShape(value, filePath) {
@@ -530,9 +682,27 @@ export function loadCatalogoMecanismos(
   return fixture.value
 }
 
-export function loadRegistroSeries(filePath = DEFAULT_REGISTRO_SERIES_PATH) {
+export function loadEtapa4SeriesPesquisa(filePath = DEFAULT_ETAPA4_SERIES_PATH) {
+  const fixture = readFixture(filePath, 'Snapshot de séries da Etapa 4')
+  assertEtapa4SeriesShape(fixture.value, fixture.label)
+  return fixture.value
+}
+
+export function loadRegistroSeries(
+  filePath = DEFAULT_REGISTRO_SERIES_PATH,
+  etapa4FilePath = DEFAULT_ETAPA4_SERIES_PATH,
+) {
   const fixture = readFixture(filePath, 'Registro de séries')
   assertRegistroShape(fixture.value, fixture.label)
+  const etapa4Fixture = readFixture(
+    etapa4FilePath,
+    'Snapshot de séries da Etapa 4',
+  )
+  const etapa4SeriesKeys = assertEtapa4SeriesShape(
+    etapa4Fixture.value,
+    etapa4Fixture.label,
+  )
+  assertRegistroComponents(fixture.value, etapa4SeriesKeys, fixture.label)
   return fixture.value
 }
 

@@ -1,12 +1,20 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 
 import { validatePair } from '../lib/vocacoes-pne-compatibilidade.mjs'
 import {
+  loadEtapa4SeriesPesquisa,
   loadCatalogoMecanismos,
   loadRegistroSeries,
   loadRegrasUniverso,
@@ -17,6 +25,7 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url))
 const mecanismos = loadCatalogoMecanismos()
 const registro = loadRegistroSeries()
 const regras = loadRegrasUniverso()
+const etapa4 = loadEtapa4SeriesPesquisa()
 const valeDoSinos = JSON.parse(
   readFileSync(
     new URL('../../public/data/vocacoes-regiao/regioes/vale-do-sinos.json', import.meta.url),
@@ -46,15 +55,20 @@ function deterministicSample(items, size, seed) {
   return shuffled.slice(0, size)
 }
 
-test('registro tem 101 séries, contagens esperadas e classificação das 71 publicadas', () => {
-  assert.equal(registro.series.length, 101)
+test('registro tem 102 séries, contagens esperadas e classificação das 71 publicadas', () => {
+  assert.equal(registro.series.length, 102)
   const counts = Object.fromEntries(
     [...Map.groupBy(registro.series, ({ status }) => status)]
       .map(([status, items]) => [status, items.length]),
   )
   assert.equal(counts.disponivel_plataforma, 71)
-  assert.equal(counts.disponivel_pesquisa, 16)
-  assert.equal((counts.pendente_r3 ?? 0) + (counts.pendente_r4 ?? 0), 14)
+  assert.equal(counts.disponivel_pesquisa, 29)
+  assert.equal(counts.pendente_r3 ?? 0, 0)
+  assert.equal(counts.pendente_r4, 2)
+  assert.deepEqual(
+    regras.seriesPendentes.map(({ seriesId }) => seriesId).sort(),
+    ['deslocamento-para-estudo', 'ocupacoes-por-cbo'],
+  )
 
   const published = registro.series.filter(
     ({ status }) => status === 'disponivel_plataforma',
@@ -78,6 +92,119 @@ test('registro tem 101 séries, contagens esperadas e classificação das 71 pub
       registryById.get(series.seriesId).universo,
       series.seriesId,
     )
+  }
+})
+
+test('snapshot da Etapa 4 contém 27 metadados sem pontos e proveniência dos quatro blocos', () => {
+  assert.equal(etapa4.series.length, 27)
+  assert.equal(new Set(etapa4.series.map(({ seriesKey }) => seriesKey)).size, 27)
+  assert.equal(etapa4.provenance.sources.length, 4)
+  for (const source of etapa4.provenance.sources) {
+    assert.equal(source.generatedAt, '2026-08-27', source.block)
+    assert.equal(source.regionalFilesChecked, 10, source.block)
+  }
+  for (const series of etapa4.series) {
+    assert.equal(Object.hasOwn(series, 'points'), false, series.seriesKey)
+  }
+})
+
+test('as 12 ex-pendências e a nova série por rede têm faixas e componentes canônicos', () => {
+  const expected = new Map([
+    ['populacao-de-0-a-3-anos', { faixaEtaria: [0, 3], componentes: [] }],
+    ['populacao-de-4-e-5-anos', { faixaEtaria: [4, 5], componentes: [] }],
+    ['populacao-de-6-a-14-anos', { faixaEtaria: [6, 14], componentes: [] }],
+    ['populacao-de-15-a-17-anos', { faixaEtaria: [15, 17], componentes: [] }],
+    ['populacao-de-18-a-24-anos', { faixaEtaria: [18, 24], componentes: [] }],
+    ['populacao-rural', { faixaEtaria: null, componentes: [] }],
+    ['adultos-sem-fundamental-completo', {
+      faixaEtaria: [18, null],
+      componentes: [],
+    }],
+    ['adultos-sem-medio-completo', {
+      faixaEtaria: [18, null],
+      componentes: [],
+    }],
+    ['vinculos-formais-de-15-a-17-anos', {
+      faixaEtaria: [15, 17],
+      componentes: [],
+    }],
+    ['vinculos-formais-de-18-a-24-anos', {
+      faixaEtaria: [18, 24],
+      componentes: [],
+    }],
+    ['matriculas-em-tempo-integral', {
+      faixaEtaria: null,
+      componentes: [
+        'tempo_integral_creche',
+        'tempo_integral_pre_escola',
+        'tempo_integral_anos_iniciais',
+        'tempo_integral_anos_finais',
+        'tempo_integral_ensino_medio',
+      ],
+    }],
+    ['matriculas-educacao-profissional-por-modalidade', {
+      faixaEtaria: null,
+      componentes: [
+        'ep_tecnica',
+        'ep_tecnico_concomitante',
+        'ep_tecnico_subsequente',
+        'ep_em_com_curso_tecnico',
+        'ep_itinerario_ftp',
+        'ep_eja_fundamental_fic',
+        'ep_eja_medio_fic',
+        'ep_eja_medio_tecnico',
+      ],
+    }],
+    ['matriculas-na-educacao-basica-por-rede', {
+      faixaEtaria: null,
+      componentes: [
+        'matriculas_eb_rede_federal',
+        'matriculas_eb_rede_estadual',
+        'matriculas_eb_rede_municipal',
+        'matriculas_eb_rede_privada',
+      ],
+    }],
+  ])
+  const registryById = new Map(registro.series.map((series) => [series.seriesId, series]))
+  const etapa4Keys = new Set(etapa4.series.map(({ seriesKey }) => seriesKey))
+
+  for (const [seriesId, expectedShape] of expected) {
+    const series = registryById.get(seriesId)
+    assert.equal(series.status, 'disponivel_pesquisa', seriesId)
+    assert.deepEqual(series.faixaEtaria, expectedShape.faixaEtaria, seriesId)
+    assert.deepEqual(series.componentes ?? [], expectedShape.componentes, seriesId)
+    for (const component of series.componentes ?? []) {
+      assert.ok(etapa4Keys.has(component), `${seriesId}: ${component}`)
+    }
+  }
+
+  for (const seriesId of [
+    'adultos-sem-fundamental-completo',
+    'adultos-sem-medio-completo',
+  ]) {
+    assert.equal(
+      registryById.get(seriesId).nota,
+      'universo da fonte: 18 anos ou mais (D-R3-2)',
+      seriesId,
+    )
+  }
+})
+
+test('loader falha fechado quando componente não resolve no snapshot da Etapa 4', () => {
+  const temporaryDirectory = mkdtempSync(path.join(tmpdir(), 'vocacoes-pne-job5-'))
+  const temporaryRegistro = path.join(temporaryDirectory, 'registro-series.json')
+  try {
+    const invalid = structuredClone(registro)
+    invalid.series
+      .find(({ seriesId }) => seriesId === 'matriculas-em-tempo-integral')
+      .componentes.push('componente_inexistente')
+    writeFileSync(temporaryRegistro, JSON.stringify(invalid, null, 2) + '\n', 'utf8')
+    assert.throws(
+      () => loadRegistroSeries(temporaryRegistro),
+      /não resolve no snapshot da Etapa 4: componente_inexistente/u,
+    )
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true })
   }
 })
 
@@ -252,7 +379,7 @@ test('par inventado é bloqueado pelo default-deny', () => {
   assert.equal(result.reasonCode, 'fora-do-catalogo')
 })
 
-test('par provisório é permitido com aproximação e nota declaradas', () => {
+test('par provisório EF×0–14 extinto é rejeitado fora do catálogo', () => {
   const result = validatePair(
     {
       educationalSeriesId: 'matriculas-no-ensino-fundamental',
@@ -261,16 +388,64 @@ test('par provisório é permitido com aproximação e nota declaradas', () => {
     },
     dependencies,
   )
+  assert.equal(result.allowed, false)
+  assert.equal(result.reasonCode, 'fora-do-catalogo')
+})
+
+test('par EF×6–14 é aceito com 12 pontos anuais sobrepostos', () => {
+  const result = validatePair(
+    {
+      educationalSeriesId: 'matriculas-no-ensino-fundamental',
+      territorialSeriesId: 'populacao-de-6-a-14-anos',
+      mechanismId: 'M2-fluxo-fundamental',
+      atendimentoAparente: true,
+    },
+    dependencies,
+  )
   assert.equal(result.allowed, true)
   assert.equal(result.reasonCode, null)
-  assert.ok(result.avisos.includes('aproximacao-declarada'))
-  assert.ok(
-    result.avisos.includes(
-      mecanismos.mecanismos
-        .find(({ id }) => id === 'M2-fluxo-fundamental')
-        .paresProvisorios[0].nota,
-    ),
-  )
+  const registryById = new Map(registro.series.map((series) => [series.seriesId, series]))
+  const educational = registryById.get('matriculas-no-ensino-fundamental')
+  const territorial = registryById.get('populacao-de-6-a-14-anos')
+  assert.equal(Math.min(educational.periodEnd, territorial.periodEnd)
+    - Math.max(educational.periodStart, territorial.periodStart) + 1, 12)
+})
+
+test('pares de trabalho juvenil têm janela suficiente com as séries da Etapa 4', () => {
+  for (const [educationalSeriesId, territorialSeriesId] of [
+    ['matriculas-no-ensino-medio', 'vinculos-formais-de-15-a-17-anos'],
+    ['fluxo_taxa_abandono_medio', 'vinculos-formais-de-15-a-17-anos'],
+    ['fluxo_taxa_abandono_medio', 'vinculos-formais-de-18-a-24-anos'],
+  ]) {
+    const result = validatePair(
+      {
+        educationalSeriesId,
+        territorialSeriesId,
+        mechanismId: 'M2-trabalho-juvenil',
+      },
+      dependencies,
+    )
+    assert.equal(result.allowed, true, `${educationalSeriesId}×${territorialSeriesId}`)
+    assert.equal(result.reasonCode, null)
+  }
+})
+
+test('pares de EJA são validados e barrados pela janela censitária de um ponto', () => {
+  for (const territorialSeriesId of [
+    'adultos-sem-fundamental-completo',
+    'adultos-sem-medio-completo',
+  ]) {
+    const result = validatePair(
+      {
+        educationalSeriesId: 'matriculas-na-educacao-de-jovens-e-adultos',
+        territorialSeriesId,
+        mechanismId: 'M3-eja-publico',
+      },
+      dependencies,
+    )
+    assert.equal(result.allowed, false, territorialSeriesId)
+    assert.equal(result.reasonCode, 'janela-insuficiente', territorialSeriesId)
+  }
 })
 
 test('gerador confirma que o registro versionado está atualizado', async () => {
@@ -280,5 +455,5 @@ test('gerador confirma que o registro versionado está atualizado', async () => 
     { cwd: repositoryRoot, encoding: 'utf8' },
   )
   assert.equal(stderr, '')
-  assert.match(stdout, /OK: registro-series\.json está atualizado \(101 séries\)\./u)
+  assert.match(stdout, /OK: registro-series\.json está atualizado \(102 séries\)\./u)
 })

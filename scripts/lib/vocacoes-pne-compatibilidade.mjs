@@ -128,7 +128,12 @@ export function validatePair(
     regras,
   )
   if (
-    territorialSeries?.universo === 'populacao_residente'
+    (
+      listedPair
+      || !mechanism.variaveisTerritoriaisAceitas
+        ?.includes(territorialSeriesId)
+    )
+    && territorialSeries?.universo === 'populacao_residente'
     && isAgeRange(territorialSeries.faixaEtaria)
     && isAgeRange(referenceRange)
     && !containsAgeRange(referenceRange, territorialSeries.faixaEtaria)

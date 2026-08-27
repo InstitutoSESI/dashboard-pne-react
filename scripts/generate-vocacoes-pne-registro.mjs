@@ -22,6 +22,10 @@ const FLUXO_PATH = new URL(
   './checks/fixtures/vocacoes-pne/fluxo-series-pesquisa.json',
   import.meta.url,
 )
+const ETAPA4_PATH = new URL(
+  './checks/fixtures/vocacoes-pne/etapa4-series-pesquisa.json',
+  import.meta.url,
+)
 const OUTPUT_PATH = new URL(
   './checks/fixtures/vocacoes-pne/registro-series.json',
   import.meta.url,
@@ -36,6 +40,124 @@ const PLATFORM_METADATA_FIELDS = [
   'aggregationLabel',
   'ratioOf',
   'periodGranularity',
+]
+
+const ETAPA4_SHARED_METADATA_FIELDS = [
+  'unit',
+  'source',
+  'evidenceClass',
+  'periodStart',
+  'periodEnd',
+  'periodGranularity',
+  'preliminaryPeriods',
+]
+
+const ETAPA4_ENTRY_SPECS = [
+  {
+    seriesId: 'populacao-de-0-a-3-anos',
+    seriesKey: 'populacao_0_a_3_anos',
+    universo: 'populacao_residente',
+    faixaEtaria: [0, 3],
+  },
+  {
+    seriesId: 'populacao-de-4-e-5-anos',
+    seriesKey: 'populacao_4_e_5_anos',
+    universo: 'populacao_residente',
+    faixaEtaria: [4, 5],
+  },
+  {
+    seriesId: 'populacao-de-6-a-14-anos',
+    seriesKey: 'populacao_6_a_14_anos',
+    universo: 'populacao_residente',
+    faixaEtaria: [6, 14],
+  },
+  {
+    seriesId: 'populacao-de-15-a-17-anos',
+    seriesKey: 'populacao_15_a_17_anos',
+    universo: 'populacao_residente',
+    faixaEtaria: [15, 17],
+  },
+  {
+    seriesId: 'populacao-de-18-a-24-anos',
+    seriesKey: 'populacao_18_a_24_anos',
+    universo: 'populacao_residente',
+    faixaEtaria: [18, 24],
+  },
+  {
+    seriesId: 'populacao-rural',
+    seriesKey: 'populacao_rural',
+    universo: 'populacao_residente',
+    faixaEtaria: null,
+  },
+  {
+    seriesId: 'adultos-sem-fundamental-completo',
+    seriesKey: 'adultos_sem_fundamental_completo',
+    universo: 'populacao_residente',
+    faixaEtaria: [18, null],
+    nota: 'universo da fonte: 18 anos ou mais (D-R3-2)',
+  },
+  {
+    seriesId: 'adultos-sem-medio-completo',
+    seriesKey: 'adultos_sem_medio_completo',
+    universo: 'populacao_residente',
+    faixaEtaria: [18, null],
+    nota: 'universo da fonte: 18 anos ou mais (D-R3-2)',
+  },
+  {
+    seriesId: 'vinculos-formais-de-15-a-17-anos',
+    seriesKey: 'vinculos_formais_15_a_17_anos',
+    universo: 'trabalho_formal_local',
+    faixaEtaria: [15, 17],
+  },
+  {
+    seriesId: 'vinculos-formais-de-18-a-24-anos',
+    seriesKey: 'vinculos_formais_18_a_24_anos',
+    universo: 'trabalho_formal_local',
+    faixaEtaria: [18, 24],
+  },
+  {
+    seriesId: 'matriculas-em-tempo-integral',
+    label: 'Matrículas em tempo integral',
+    componentes: [
+      'tempo_integral_creche',
+      'tempo_integral_pre_escola',
+      'tempo_integral_anos_iniciais',
+      'tempo_integral_anos_finais',
+      'tempo_integral_ensino_medio',
+    ],
+    universo: 'matriculas_localizadas',
+    faixaEtaria: null,
+    nota: 'componentes por etapa; total não é somado (D-R3-13)',
+  },
+  {
+    seriesId: 'matriculas-educacao-profissional-por-modalidade',
+    label: 'Matrículas de educação profissional por modalidade',
+    componentes: [
+      'ep_tecnica',
+      'ep_tecnico_concomitante',
+      'ep_tecnico_subsequente',
+      'ep_em_com_curso_tecnico',
+      'ep_itinerario_ftp',
+      'ep_eja_fundamental_fic',
+      'ep_eja_medio_fic',
+      'ep_eja_medio_tecnico',
+    ],
+    universo: 'matriculas_localizadas',
+    faixaEtaria: null,
+    nota: 'categorias da fonte podem se sobrepor; não somar (D-R3-5)',
+  },
+  {
+    seriesId: 'matriculas-na-educacao-basica-por-rede',
+    label: 'Matrículas na educação básica por rede',
+    componentes: [
+      'matriculas_eb_rede_federal',
+      'matriculas_eb_rede_estadual',
+      'matriculas_eb_rede_municipal',
+      'matriculas_eb_rede_privada',
+    ],
+    universo: 'matriculas_localizadas',
+    faixaEtaria: null,
+  },
 ]
 
 function fail(message) {
@@ -107,6 +229,12 @@ function requireArray(value, label) {
 function requireIntegerOrNull(value, label) {
   if (value !== null && !Number.isInteger(value)) {
     fail(label + ' deve ser inteiro ou null')
+  }
+}
+
+function requireNonEmptyString(value, label) {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    fail(label + ' deve ser string não vazia')
   }
 }
 
@@ -428,10 +556,116 @@ function createResearchEntries(regras, classifiers) {
   })
 }
 
+function etapa4SeriesByKey() {
+  const snapshot = readJson(ETAPA4_PATH, 'snapshot de séries da Etapa 4')
+  if (snapshot?.status !== 'disponivel_pesquisa') {
+    fail('etapa4-series-pesquisa.json deve ter status disponivel_pesquisa')
+  }
+  const series = requireArray(snapshot.series, 'etapa4-series-pesquisa.json.series')
+  if (series.length !== 27) {
+    fail('esperadas 27 séries no snapshot da Etapa 4, encontradas ' + series.length)
+  }
+
+  const byKey = new Map()
+  for (const [index, item] of series.entries()) {
+    const field = 'etapa4-series-pesquisa.json.series[' + index + ']'
+    if (!isRecord(item)) fail(field + ' deve ser objeto')
+    requireNonEmptyString(item.seriesKey, field + '.seriesKey')
+    if (byKey.has(item.seriesKey)) {
+      fail('seriesKey duplicada no snapshot da Etapa 4: ' + item.seriesKey)
+    }
+    for (const stringField of [
+      'label',
+      'unit',
+      'source',
+      'evidenceClass',
+      'periodGranularity',
+    ]) {
+      requireNonEmptyString(item[stringField], field + '.' + stringField)
+    }
+    requireIntegerOrNull(item.periodStart, field + '.periodStart')
+    requireIntegerOrNull(item.periodEnd, field + '.periodEnd')
+    if (item.periodStart === null || item.periodEnd === null) {
+      fail(field + ' deve ter período inicial e final')
+    }
+    const preliminaryPeriods = requireArray(
+      item.preliminaryPeriods,
+      field + '.preliminaryPeriods',
+    )
+    if (!preliminaryPeriods.every(Number.isInteger)) {
+      fail(field + '.preliminaryPeriods deve conter inteiros')
+    }
+    if (Object.hasOwn(item, 'points')) {
+      fail(field + ' não pode conter pontos')
+    }
+    byKey.set(item.seriesKey, item)
+  }
+  return byKey
+}
+
+function etapa4Metadata(spec, byKey) {
+  const componentKeys = spec.componentes ?? [spec.seriesKey]
+  const components = componentKeys.map((seriesKey) => {
+    const component = byKey.get(seriesKey)
+    if (!component) {
+      fail(spec.seriesId + ' referencia componente ausente na Etapa 4: ' + seriesKey)
+    }
+    return component
+  })
+  const reference = components[0]
+
+  for (const component of components.slice(1)) {
+    for (const field of ETAPA4_SHARED_METADATA_FIELDS) {
+      if (!isDeepStrictEqual(component[field], reference[field])) {
+        fail(
+          spec.seriesId
+          + ' tem metadado divergente entre componentes em '
+          + field
+          + ': '
+          + component.seriesKey,
+        )
+      }
+    }
+  }
+  return reference
+}
+
+function createEtapa4Entries(regras) {
+  const byKey = etapa4SeriesByKey()
+  return ETAPA4_ENTRY_SPECS.map((spec) => {
+    const metadata = etapa4Metadata(spec, byKey)
+    const universe = regras.universos?.[spec.universo]
+    if (!isRecord(universe) || typeof universe.lente !== 'string') {
+      fail(spec.seriesId + ' referencia universo inválido: ' + spec.universo)
+    }
+
+    return {
+      seriesId: spec.seriesId,
+      label: spec.label ?? metadata.label,
+      unit: metadata.unit,
+      source: metadata.source,
+      evidenceClass: metadata.evidenceClass,
+      universo: spec.universo,
+      lente: universe.lente,
+      faixaEtaria: clone(spec.faixaEtaria),
+      populacaoReferencia: populationReferenceFor(spec.seriesId, regras),
+      ratioOf: null,
+      periodStart: metadata.periodStart,
+      periodEnd: metadata.periodEnd,
+      periodGranularity: metadata.periodGranularity,
+      preliminaryPeriods: clone(metadata.preliminaryPeriods),
+      rede: 'todas',
+      status: 'disponivel_pesquisa',
+      ...(spec.componentes ? { componentes: clone(spec.componentes) } : {}),
+      ...(spec.nota ? { nota: spec.nota } : {}),
+    }
+  })
+}
+
 function createPendingEntries(regras) {
   const pending = requireArray(regras.seriesPendentes, 'regras.seriesPendentes')
-  if (pending.length !== 14) {
-    fail('esperadas 14 séries pendentes, encontradas ' + pending.length)
+  if (pending.length !== 2) {
+    fail('esperadas 2 séries pendentes da R4, encontradas ' + pending.length)
   }
 
   const seen = new Set()
@@ -447,7 +681,7 @@ function createPendingEntries(regras) {
       fail('série pendente duplicada: ' + item.seriesId)
     }
     seen.add(item.seriesId)
-    if (!['pendente_r3', 'pendente_r4'].includes(item.status)) {
+    if (item.status !== 'pendente_r4') {
       fail(item.seriesId + ' tem status pendente inválido: ' + item.status)
     }
     const universe = regras.universos?.[item.universo]
@@ -493,22 +727,25 @@ export function buildRegistro() {
   const entries = [
     ...createPlatformEntries(regras, classifiers),
     ...createResearchEntries(regras, classifiers),
+    ...createEtapa4Entries(regras),
     ...createPendingEntries(regras),
   ]
   assertUniqueSeries(entries)
 
-  if (entries.length !== 101) {
-    fail('esperadas 101 entradas no registro, encontradas ' + entries.length)
+  if (entries.length !== 102) {
+    fail('esperadas 102 entradas no registro, encontradas ' + entries.length)
   }
   entries.sort((left, right) => (
     left.seriesId < right.seriesId ? -1 : left.seriesId > right.seriesId ? 1 : 0
   ))
 
   return {
-    version: '1.0.0',
+    version: '1.1.0',
     generatedFrom: {
       plataforma: 'public/data/vocacoes-regiao/regioes/*.json',
       pesquisa: 'scripts/checks/fixtures/vocacoes-pne/fluxo-series-pesquisa.json',
+      pesquisaEtapa4: 'scripts/checks/fixtures/vocacoes-pne/etapa4-series-pesquisa.json',
+      componentes: 'scripts/checks/fixtures/vocacoes-pne/etapa4-series-pesquisa.json#series[].seriesKey',
       pendentes: 'scripts/checks/fixtures/vocacoes-pne/regras-universo.json#seriesPendentes',
       note: 'Registro gerado deterministicamente, sem timestamp.',
     },

@@ -47,7 +47,12 @@ test('catálogo contém os 16 mecanismos e as sete famílias com forma completa'
     ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'],
   )
 
-  const availability = new Set(['disponivel', 'parcial', 'pendente'])
+  const availability = new Set([
+    'disponivel',
+    'disponivel_pesquisa',
+    'parcial',
+    'pendente',
+  ])
   for (const mechanism of entries) {
     for (const field of [
       'utilidadePlanejamento',
@@ -67,6 +72,31 @@ test('catálogo contém os 16 mecanismos e as sete famílias com forma completa'
       )
     }
   }
+})
+
+test('mecanismos destravados estão disponíveis na pesquisa e R4 segue pendente', () => {
+  const availabilityById = new Map(
+    mecanismos.mecanismos.map(({ id, disponibilidade }) => [id, disponibilidade]),
+  )
+  for (const mechanismId of [
+    'M2-trabalho-juvenil',
+    'M3-eja-publico',
+    'M6-tempo-integral',
+  ]) {
+    assert.equal(
+      availabilityById.get(mechanismId),
+      'disponivel_pesquisa',
+      mechanismId,
+    )
+  }
+  assert.equal(availabilityById.get('M4-ocupacoes'), 'pendente')
+  assert.equal(availabilityById.get('M5-deslocamento-estudo'), 'pendente')
+  assert.match(
+    mecanismos.mecanismos
+      .find(({ id }) => id === 'M3-eja-publico')
+      .observacaoDisponibilidade,
+    /18 anos ou mais \(D-R3-2\)/u,
+  )
 })
 
 test('corpus usa mecanismos conhecidos e direções permitidas nos cinco aprovados', () => {
