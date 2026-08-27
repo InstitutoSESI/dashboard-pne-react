@@ -89,7 +89,7 @@ Transformação do território
 → grupos, municípios e atividades mais expostos
 → situação educacional atual relacionada
 → implicação para os próximos anos
-→ temas e metas do PNE/PME que entram na agenda
+→ temas e metas do PNE que entram na agenda
 ```
 
 A página pública deve deixar de ser um catálogo de relações e passar a ser uma **leitura editorialmente curada do território, da educação e do futuro**.
@@ -122,7 +122,7 @@ Deve partir de transformações territoriais já observadas, tendências sustent
 - quais municípios, faixas etárias, setores ou ocupações são mais afetados;
 - qual é o ponto de partida educacional da região;
 - o que essa transformação coloca na agenda da educação;
-- quais temas e metas do PNE/PME se relacionam à questão;
+- quais temas e metas do PNE se relacionam à questão;
 - quais indicadores devem ser acompanhados nos próximos anos.
 
 A página deverá publicar **de duas a cinco questões de agenda**, sempre ancoradas em dados.
@@ -428,7 +428,7 @@ Criar um catálogo versionado. Cada mecanismo deverá registrar:
 - decomposição que deve ocorrer antes do cruzamento;
 - leitura pública máxima permitida;
 - afirmações proibidas;
-- temas do PNE/PME relacionados;
+- temas do PNE relacionados;
 - fontes atuais;
 - fontes desejáveis;
 - status de disponibilidade.
@@ -833,7 +833,7 @@ Gerar leituras integradas a partir de resultados educacionais prioritários.
 
 A seleção deve ocorrer nesta ordem:
 
-1. indicador ligado a tema prioritário do PNE/PME;
+1. indicador ligado a tema prioritário do PNE;
 2. mudança relevante ao longo do tempo ou posição relevante frente ao estado;
 3. mecanismo territorial disponível;
 4. dados compatíveis;
@@ -999,7 +999,7 @@ Nenhum desses nomes deverá aparecer no cartão público.
 
 Cada leitura deverá passar por oito gates:
 
-1. relevância para o PNE/PME;
+1. relevância para o PNE;
 2. mecanismo válido;
 3. universo compatível;
 4. tempo coerente;
@@ -1082,7 +1082,7 @@ Uma transformação só gera cartão quando houver:
 2. indicador educacional que descreva o ponto de partida;
 3. grupo, etapa ou território afetado;
 4. implicação concreta para o planejamento;
-5. tema do PNE/PME relacionado;
+5. tema do PNE relacionado;
 6. indicador que possa ser acompanhado.
 
 ### 7.4 Estrutura pública do cartão
@@ -1153,7 +1153,7 @@ Quando ainda não houver cenários, a página não exibirá uma mensagem de aus�
 - registro de transformações territoriais;
 - mapa transformação × educação;
 - duas a cinco questões de agenda para o Vale do Sinos;
-- ligação com PNE/PME;
+- ligação com PNE;
 - indicadores de acompanhamento;
 - integração com cenários quando disponíveis.
 
@@ -1917,7 +1917,7 @@ Os campos internos não deverão chegar ao documento público.
 
 ## G1 — Relevância
 
-O conteúdo responde a uma questão do PNE, PME ou planejamento educacional?
+O conteúdo responde a uma questão do PNE ou planejamento educacional?
 
 ## G2 — Mecanismo
 
@@ -2172,7 +2172,7 @@ leitura. Relate em .tmp/vocacoes-pne/rodada-05/. Não inicie a rodada seguinte.
 
 Registro de transformações, mapa transformação×educação, duas a cinco questões
 de agenda do Vale do Sinos ancoradas em dados observados e tendências
-sustentadas (V6-D3: sem cenários no piloto), ligação PNE/PME, indicadores de
+sustentadas (V6-D3: sem cenários no piloto), ligação PNE, indicadores de
 acompanhamento.
 
 Saída: Gate 7 (e 8 para a segunda direção) aprovado no piloto.
