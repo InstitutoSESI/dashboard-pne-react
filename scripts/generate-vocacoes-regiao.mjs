@@ -4,7 +4,7 @@
  * O gerador atravessa a fronteira uma vez, em tempo de publicação: lê o pacote
  * regional aprovado na camada de pesquisa, reconfere o resumo de cada arquivo
  * contra o manifesto da origem, transpõe para o contrato público
- * `vocacoes-regiao-2.7.0` e escreve. Depois disso a plataforma não sabe mais
+ * `vocacoes-regiao-2.8.0` e escreve. Depois disso a plataforma não sabe mais
  * que a camada de pesquisa existe — ela valida o artefato publicado, e só ele.
  *
  * Nada aqui inventa cenário nem transpõe o pacote municipal para a região. Duas
@@ -47,8 +47,16 @@ import {
   AGGREGATION_LABELS,
   ASSOCIATIVE_GRAMMAR_VERSION,
   ASSOCIATIVE_METHOD_NOTE,
+  DECOMPOSITION_CRITERIA,
+  DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL,
+  DECOMPOSITION_FRAMING,
+  DECOMPOSITION_REASON_CODES,
+  DECOMPOSITION_STAGE_CONFIG,
+  DECOMPOSITION_STAGES,
   EDITORIAL_CRITERIA_STATEMENT,
   EDITORIAL_READING_CRITERIA,
+  E2_EMPLOYMENT_METHOD_STATEMENT,
+  E2_ENROLLMENT_METHOD_STATEMENT,
   EVIDENCE_CLASS_LABELS,
   MUNICIPAL_KIND_LABELS,
   PROHIBITED_CLAIM_OPENER,
@@ -78,6 +86,9 @@ import {
   renderContrastStatement,
   renderCorrelationStatement,
   renderEditorialNoteStatement,
+  renderE2AbsenceStatement,
+  renderE2EmploymentStatement,
+  renderE2EnrollmentStatement,
   renderLaggedStatement,
   roundHalfAwayFromZero,
   slugify,
@@ -94,11 +105,11 @@ const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const OUTPUT_ROOT = new URL('public/data/vocacoes-regiao/', REPOSITORY_ROOT)
 
 /*
- * Changelog do gerador: v5 → v6 acompanha o contrato público 2.6.0 → 2.7.0.
- * Mudança aditiva motivada pela curadoria por força da V5 R1: nenhum campo
- * 2.6.0 é removido ou reinterpretado.
+ * Changelog do gerador: v6 → v7 acompanha o contrato público 2.7.0 → 2.8.0.
+ * Mudança aditiva da V5 R2: nenhum campo 2.7.0 é removido ou reinterpretado;
+ * o bloco E2 nasce de recomputação independente e pode ser rebaixado a E1.
  */
-export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v6'
+export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v7'
 export const STATE_CODE = 'RS'
 export const VOCACOES_PUBLICATION_SCOPE = 'estadual'
 
@@ -119,12 +130,43 @@ export const DEFAULT_SOURCE_ROOT = 'C:/Users/rnbirck/PROJETOS/SESI/PNE/foresight
 
 export const PUBLIC_CONTRACT_APPROVAL_FILE = 'CONTRATO_PUBLICO_APROVADO.json'
 export const ORIGIN_MANIFEST_FILE = 'MANIFESTO_ORIGEM.json'
-export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_5.json'
+export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_6.json'
 export const REGISTRY_FILE = 'registro/registro_regioes_rs_v0_1.json'
 
-export const RESEARCH_CONTRACT_VERSION = 'vocacoes-regiao-pesquisa-v0.5'
-export const RESEARCH_ROUND = 'v5-rodada-01'
-export const ASSOCIATIVE_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.2'
+export const RESEARCH_CONTRACT_VERSION = 'vocacoes-regiao-pesquisa-v0.6'
+export const RESEARCH_ROUND = 'v5-rodada-02'
+export const ASSOCIATIVE_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.3'
+export const EDITORIAL_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.2'
+
+const DECOMPOSITION_SOURCE_CONFIG = Object.freeze({
+  educacao_infantil: Object.freeze({
+    outcomeSeriesKey: 'matriculas_educacao_infantil',
+    cohortSeriesKey: 'nascidos_vivos_residencia_mae',
+  }),
+  ensino_fundamental: Object.freeze({
+    outcomeSeriesKey: 'matriculas_ensino_fundamental',
+    cohortSeriesKey: 'nascidos_vivos_residencia_mae',
+  }),
+  ensino_medio: Object.freeze({
+    outcomeSeriesKey: 'matriculas_ensino_medio',
+    cohortSeriesKey: 'nascidos_vivos_residencia_mae',
+  }),
+})
+
+const RESEARCH_STAGES_WITHOUT_COHORT = Object.freeze([
+  'matriculas_educacao_jovens_adultos',
+  'matriculas_educacao_profissional',
+])
+
+const RESEARCH_DECOMPOSITION_CRITERIA = Object.freeze({
+  cohortAges: DECOMPOSITION_CRITERIA.cohortAges,
+  stagesWithoutCohort: RESEARCH_STAGES_WITHOUT_COHORT,
+  minIntervals: DECOMPOSITION_CRITERIA.minIntervals,
+  sectors: DECOMPOSITION_CRITERIA.sectors,
+  reference: DECOMPOSITION_CRITERIA.reference,
+  rounding: DECOMPOSITION_CRITERIA.rounding,
+  closureToleranceAbs: DECOMPOSITION_CRITERIA.closureToleranceAbs,
+})
 
 /** Pacote de cenários promovido na Rodada 9. Existe só nas regiões da Fase B. */
 export const SCENARIO_PACKAGE_PATTERN = 'pacotes/cenarios/{regionSlug}.json'
@@ -460,8 +502,8 @@ function validateEditorialLayer(layer, label) {
     `${label}.editorialLayer.gradeEnum`,
   )
   invariant(
-    layer.associativeSchemaVersion === ASSOCIATIVE_PACKAGE_SCHEMA,
-    `${label}.editorialLayer.associativeSchemaVersion deve ser "${ASSOCIATIVE_PACKAGE_SCHEMA}".`,
+    layer.associativeSchemaVersion === EDITORIAL_PACKAGE_SCHEMA,
+    `${label}.editorialLayer.associativeSchemaVersion deve ser "${EDITORIAL_PACKAGE_SCHEMA}".`,
   )
   assertExactKeys(layer.screeningCriteria, [
     'minIntervals',
@@ -493,14 +535,54 @@ function validateEditorialLayer(layer, label) {
   return layer
 }
 
+function validateDecompositionLayer(layer, label) {
+  invariant(isRecord(layer), `${label} não declara decompositionLayer.`)
+  assertExactKeys(layer, [
+    'cohortAges',
+    'stagesWithoutCohort',
+    'minIntervals',
+    'sectors',
+    'reference',
+    'rounding',
+    'closureToleranceAbs',
+    'reasonCodes',
+    'associativeSchemaVersion',
+  ], `${label}.decompositionLayer`)
+  const criteria = {
+    cohortAges: layer.cohortAges,
+    stagesWithoutCohort: layer.stagesWithoutCohort,
+    minIntervals: layer.minIntervals,
+    sectors: layer.sectors,
+    reference: layer.reference,
+    rounding: layer.rounding,
+    closureToleranceAbs: layer.closureToleranceAbs,
+  }
+  assertCanonicalEqual(
+    criteria,
+    RESEARCH_DECOMPOSITION_CRITERIA,
+    `${label}.decompositionLayer.criteria`,
+  )
+  assertSameArray(
+    layer.reasonCodes,
+    DECOMPOSITION_REASON_CODES,
+    `${label}.decompositionLayer.reasonCodes`,
+  )
+  invariant(
+    layer.associativeSchemaVersion === ASSOCIATIVE_PACKAGE_SCHEMA,
+    `${label}.decompositionLayer.associativeSchemaVersion deve ser `
+    + `"${ASSOCIATIVE_PACKAGE_SCHEMA}".`,
+  )
+  return layer
+}
+
 function validateAssociativeResearchContract(researchContract) {
   const layer = researchContract.associativeReadingLayer
-  invariant(isRecord(layer), 'o contrato de pesquisa v0.5 não declara associativeReadingLayer.')
+  invariant(isRecord(layer), 'o contrato de pesquisa v0.6 não declara associativeReadingLayer.')
   invariant(
     layer.packagePattern === ASSOCIATIVE_LAYER_PACKAGE_PATTERN
       && layer.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1'
       && layer.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
-    'o contrato de pesquisa v0.5 diverge da camada associativa herdada.',
+    'o contrato de pesquisa v0.6 diverge da camada associativa herdada.',
   )
   assertCanonicalEqual(
     layer.criteria,
@@ -516,7 +598,11 @@ function validateAssociativeResearchContract(researchContract) {
     'o contrato de pesquisa não fecha a gramática da correlação ou permite p-valor.',
   )
   const editorialLayer = validateEditorialLayer(researchContract.editorialLayer, 'contrato de pesquisa')
-  return { layer, editorialLayer }
+  const decompositionLayer = validateDecompositionLayer(
+    researchContract.decompositionLayer,
+    'contrato de pesquisa',
+  )
+  return { layer, editorialLayer, decompositionLayer }
 }
 
 const MONTH_NAMES = Object.freeze([
@@ -920,7 +1006,7 @@ function transposeTemporalPair(sourcePair, sourceReading, seriesIdByKey, labelBy
 /* ------------------------------------------------------------------ *
  * Leitura associativa quantificada — reverificação da origem.
  *
- * O parser 2.7.0 fará a mesma conferência sobre o documento público. Esta
+ * O parser 2.8.0 fará a mesma conferência sobre o documento público. Esta
  * primeira passagem trabalha ainda com as seriesKeys do pacote de pesquisa e
  * impede que um statement ou um rank divergente atravesse a transposição.
  * ------------------------------------------------------------------ */
@@ -936,6 +1022,504 @@ function sourceSeriesByKey(sourcePackage, label) {
   const byKey = new Map(sourcePackage.series.map((serie) => [serie.seriesKey, serie]))
   invariant(byKey.size === sourcePackage.series.length, `${label} repete seriesKey.`)
   return byKey
+}
+
+const SOURCE_DECOMPOSITIONS_FIELDS = Object.freeze(['criteria', 'enrollment', 'employment'])
+const SOURCE_ENROLLMENT_FIELDS = Object.freeze(['items', 'absences'])
+const SOURCE_ENROLLMENT_ITEM_FIELDS = Object.freeze([
+  'stage',
+  'outcomeSeriesKey',
+  'cohortSeriesKey',
+  'cohortAges',
+  'window',
+  'terms',
+  'contributions',
+  'grade',
+])
+const SOURCE_ENROLLMENT_ABSENCE_FIELDS = Object.freeze(['stage', 'reasonCode'])
+const SOURCE_EMPLOYMENT_FIELDS = Object.freeze(['item', 'absence'])
+const SOURCE_EMPLOYMENT_ITEM_FIELDS = Object.freeze([
+  'window',
+  'sectors',
+  'totals',
+  'excludedSectorLinks',
+  'contributions',
+  'grade',
+])
+const SOURCE_EMPLOYMENT_ABSENCE_FIELDS = Object.freeze(['reasonCode'])
+const DECOMPOSITION_WINDOW_FIELDS = Object.freeze(['start', 'end', 'intervals'])
+const ENROLLMENT_TERMS_FIELDS = Object.freeze([
+  'enrollmentStart',
+  'enrollmentEnd',
+  'cohortStart',
+  'cohortEnd',
+  'ratioStartPerHundred',
+  'ratioEndPerHundred',
+])
+const ENROLLMENT_CONTRIBUTION_FIELDS = Object.freeze([
+  'totalPct',
+  'demographicPp',
+  'ratioPp',
+])
+const EMPLOYMENT_COUNT_FIELDS = Object.freeze([
+  'regionStart',
+  'regionEnd',
+  'stateStart',
+  'stateEnd',
+])
+const EMPLOYMENT_SECTOR_FIELDS = Object.freeze(['sectorLabel', ...EMPLOYMENT_COUNT_FIELDS])
+const EMPLOYMENT_CONTRIBUTION_FIELDS = Object.freeze([
+  'totalPct',
+  'statePp',
+  'mixPp',
+  'ownPp',
+])
+
+function canonicalEquals(actual, expected) {
+  return JSON.stringify(canonicalize(actual)) === JSON.stringify(canonicalize(expected))
+}
+
+function assertFinite(value, label) {
+  invariant(typeof value === 'number' && Number.isFinite(value), `${label} deve ser número finito.`)
+}
+
+function assertCount(value, label) {
+  invariant(Number.isInteger(value) && value >= 0, `${label} deve ser contagem inteira não negativa.`)
+}
+
+function validateSourceDecompositionWindow(window, label) {
+  assertExactKeys(window, DECOMPOSITION_WINDOW_FIELDS, label)
+  for (const field of DECOMPOSITION_WINDOW_FIELDS) {
+    invariant(Number.isInteger(window[field]), `${label}.${field} deve ser inteiro.`)
+  }
+  invariant(window.end > window.start, `${label}.end deve ser posterior a start.`)
+  invariant(window.intervals === window.end - window.start, `${label}.intervals deve ser end - start.`)
+}
+
+function validateSourceEnrollmentItem(item, label) {
+  assertExactKeys(item, SOURCE_ENROLLMENT_ITEM_FIELDS, label)
+  invariant(DECOMPOSITION_STAGES.includes(item.stage), `${label}.stage fora do contrato E2.`)
+  const publicConfig = DECOMPOSITION_STAGE_CONFIG[item.stage]
+  const sourceConfig = DECOMPOSITION_SOURCE_CONFIG[item.stage]
+  invariant(
+    item.outcomeSeriesKey === sourceConfig.outcomeSeriesKey
+      && item.cohortSeriesKey === sourceConfig.cohortSeriesKey,
+    `${label} referencia séries diferentes das séries fechadas da etapa.`,
+  )
+  assertExactKeys(item.cohortAges, ['min', 'max'], `${label}.cohortAges`)
+  invariant(
+    item.cohortAges.min === publicConfig.cohortAges.min
+      && item.cohortAges.max === publicConfig.cohortAges.max,
+    `${label}.cohortAges diverge da faixa fechada da etapa.`,
+  )
+  validateSourceDecompositionWindow(item.window, `${label}.window`)
+  assertExactKeys(item.terms, ENROLLMENT_TERMS_FIELDS, `${label}.terms`)
+  for (const field of ['enrollmentStart', 'enrollmentEnd', 'cohortStart', 'cohortEnd']) {
+    assertCount(item.terms[field], `${label}.terms.${field}`)
+  }
+  for (const field of ['ratioStartPerHundred', 'ratioEndPerHundred']) {
+    assertFinite(item.terms[field], `${label}.terms.${field}`)
+  }
+  assertExactKeys(item.contributions, ENROLLMENT_CONTRIBUTION_FIELDS, `${label}.contributions`)
+  for (const field of ENROLLMENT_CONTRIBUTION_FIELDS) {
+    assertFinite(item.contributions[field], `${label}.contributions.${field}`)
+  }
+  invariant(item.grade === 'E2', `${label}.grade deve ser "E2".`)
+}
+
+function validateSourceEnrollmentAbsence(absence, label) {
+  assertExactKeys(absence, SOURCE_ENROLLMENT_ABSENCE_FIELDS, label)
+  invariant(DECOMPOSITION_STAGES.includes(absence.stage), `${label}.stage fora do contrato E2.`)
+  invariant(
+    DECOMPOSITION_REASON_CODES.includes(absence.reasonCode),
+    `${label}.reasonCode fora do contrato E2.`,
+  )
+}
+
+function validateSourceEmploymentItem(item, label) {
+  assertExactKeys(item, SOURCE_EMPLOYMENT_ITEM_FIELDS, label)
+  validateSourceDecompositionWindow(item.window, `${label}.window`)
+  invariant(
+    Array.isArray(item.sectors) && item.sectors.length === DECOMPOSITION_CRITERIA.sectors.length,
+    `${label}.sectors deve trazer os cinco setores E2.`,
+  )
+  item.sectors.forEach((sector, index) => {
+    const sectorLabel = `${label}.sectors[${index}]`
+    assertExactKeys(sector, EMPLOYMENT_SECTOR_FIELDS, sectorLabel)
+    invariant(
+      sector.sectorLabel === DECOMPOSITION_CRITERIA.sectors[index],
+      `${sectorLabel}.sectorLabel diverge do enum ou da ordem fechada.`,
+    )
+    for (const field of EMPLOYMENT_COUNT_FIELDS) assertCount(sector[field], `${sectorLabel}.${field}`)
+  })
+  for (const [name, counts] of [
+    ['totals', item.totals],
+    ['excludedSectorLinks', item.excludedSectorLinks],
+  ]) {
+    assertExactKeys(counts, EMPLOYMENT_COUNT_FIELDS, `${label}.${name}`)
+    for (const field of EMPLOYMENT_COUNT_FIELDS) assertCount(counts[field], `${label}.${name}.${field}`)
+  }
+  assertExactKeys(item.contributions, EMPLOYMENT_CONTRIBUTION_FIELDS, `${label}.contributions`)
+  for (const field of EMPLOYMENT_CONTRIBUTION_FIELDS) {
+    assertFinite(item.contributions[field], `${label}.contributions.${field}`)
+  }
+  invariant(item.grade === 'E2', `${label}.grade deve ser "E2".`)
+}
+
+function validateSourceDecompositions(decompositions, label) {
+  assertExactKeys(decompositions, SOURCE_DECOMPOSITIONS_FIELDS, label)
+  assertCanonicalEqual(decompositions.criteria, RESEARCH_DECOMPOSITION_CRITERIA, `${label}.criteria`)
+  assertExactKeys(decompositions.enrollment, SOURCE_ENROLLMENT_FIELDS, `${label}.enrollment`)
+  invariant(Array.isArray(decompositions.enrollment.items), `${label}.enrollment.items deve ser lista.`)
+  invariant(
+    Array.isArray(decompositions.enrollment.absences),
+    `${label}.enrollment.absences deve ser lista.`,
+  )
+  const seenStages = new Set()
+  for (const [name, validator] of [
+    ['items', validateSourceEnrollmentItem],
+    ['absences', validateSourceEnrollmentAbsence],
+  ]) {
+    let previousOrder = -1
+    decompositions.enrollment[name].forEach((entry, index) => {
+      const entryLabel = `${label}.enrollment.${name}[${index}]`
+      validator(entry, entryLabel)
+      const order = DECOMPOSITION_STAGES.indexOf(entry.stage)
+      invariant(order > previousOrder, `${entryLabel}.stage está fora da ordem fechada.`)
+      invariant(!seenStages.has(entry.stage), `${entryLabel}.stage está repetida.`)
+      previousOrder = order
+      seenStages.add(entry.stage)
+    })
+  }
+  invariant(
+    seenStages.size === DECOMPOSITION_STAGES.length,
+    `${label}.enrollment deve declarar item ou ausência para cada etapa com coorte.`,
+  )
+
+  assertExactKeys(decompositions.employment, SOURCE_EMPLOYMENT_FIELDS, `${label}.employment`)
+  const hasEmploymentItem = decompositions.employment.item !== null
+  const hasEmploymentAbsence = decompositions.employment.absence !== null
+  invariant(
+    hasEmploymentItem !== hasEmploymentAbsence,
+    `${label}.employment deve declarar exatamente um item ou uma ausência.`,
+  )
+  if (hasEmploymentItem) {
+    validateSourceEmploymentItem(decompositions.employment.item, `${label}.employment.item`)
+  } else {
+    assertExactKeys(
+      decompositions.employment.absence,
+      SOURCE_EMPLOYMENT_ABSENCE_FIELDS,
+      `${label}.employment.absence`,
+    )
+    invariant(
+      DECOMPOSITION_REASON_CODES.includes(decompositions.employment.absence.reasonCode),
+      `${label}.employment.absence.reasonCode fora do contrato E2.`,
+    )
+  }
+  return decompositions
+}
+
+function observedNonPreliminarySourcePoints(serie) {
+  const preliminary = new Set(serie.preliminaryPeriods)
+  return serie.points
+    .filter((point) => point.evidenceClass === 'observed' && !preliminary.has(point.period))
+    .sort((left, right) => left.period - right.period)
+}
+
+function recomputeEnrollmentFromSource(stage, sourceSeriesMap, label) {
+  const publicConfig = DECOMPOSITION_STAGE_CONFIG[stage]
+  const sourceConfig = DECOMPOSITION_SOURCE_CONFIG[stage]
+  const outcomeSerie = sourceSeriesMap.get(sourceConfig.outcomeSeriesKey)
+  const cohortSerie = sourceSeriesMap.get(sourceConfig.cohortSeriesKey)
+  if (outcomeSerie === undefined || cohortSerie === undefined) {
+    return { kind: 'absence', stage, reasonCode: 'serie_ausente' }
+  }
+  invariant(outcomeSerie.periodGranularity === 'annual', `${label}: matrícula E2 deve ser anual.`)
+  invariant(cohortSerie.periodGranularity === 'annual', `${label}: coorte E2 deve ser anual.`)
+
+  const outcomes = observedNonPreliminarySourcePoints(outcomeSerie)
+  const cohortPreliminary = new Set(cohortSerie.preliminaryPeriods)
+  const cohortByPeriod = new Map(cohortSerie.points.map((point) => [point.period, point]))
+  const computable = []
+  let cohortFailures = 0
+  for (const outcome of outcomes) {
+    let cohort = 0
+    let complete = true
+    for (let age = publicConfig.cohortAges.min; age <= publicConfig.cohortAges.max; age += 1) {
+      const birthPeriod = outcome.period - age
+      const point = cohortByPeriod.get(birthPeriod)
+      if (
+        point === undefined
+        || cohortPreliminary.has(birthPeriod)
+        || point.evidenceClass !== 'observed'
+      ) {
+        complete = false
+        break
+      }
+      cohort += point.value
+    }
+    if (complete) computable.push({ period: outcome.period, enrollment: outcome.value, cohort })
+    else cohortFailures += 1
+  }
+
+  if (computable.length === 0) {
+    return {
+      kind: 'absence',
+      stage,
+      reasonCode: outcomes.length > 0 && cohortFailures === outcomes.length
+        ? 'coorte_incompleta'
+        : 'janela_insuficiente',
+    }
+  }
+  const first = computable[0]
+  const last = computable[computable.length - 1]
+  const intervals = last.period - first.period
+  if (intervals < DECOMPOSITION_CRITERIA.minIntervals) {
+    return { kind: 'absence', stage, reasonCode: 'janela_insuficiente' }
+  }
+  for (const [field, value] of Object.entries({
+    enrollmentStart: first.enrollment,
+    enrollmentEnd: last.enrollment,
+    cohortStart: first.cohort,
+    cohortEnd: last.cohort,
+  })) assertCount(value, `${label}.${field} recomputado`)
+  if (first.enrollment === 0 || first.cohort === 0 || last.cohort === 0) {
+    return { kind: 'absence', stage, reasonCode: 'termo_nulo' }
+  }
+
+  const ratioStart = first.enrollment / first.cohort
+  const ratioEnd = last.enrollment / last.cohort
+  const totalPctRaw = 100 * (last.enrollment - first.enrollment) / first.enrollment
+  const demographicPpRaw = 100
+    * (last.cohort - first.cohort)
+    * ((ratioStart + ratioEnd) / 2)
+    / first.enrollment
+  const ratioPpRaw = 100
+    * (ratioEnd - ratioStart)
+    * ((first.cohort + last.cohort) / 2)
+    / first.enrollment
+  invariant(
+    Math.abs(totalPctRaw - demographicPpRaw - ratioPpRaw)
+      <= DECOMPOSITION_CRITERIA.closureToleranceAbs,
+    `${label}: a identidade de Bennet não fecha no valor cru.`,
+  )
+  const decimals = DECOMPOSITION_CRITERIA.rounding.published
+  return {
+    kind: 'item',
+    stage,
+    outcomeSeriesKey: sourceConfig.outcomeSeriesKey,
+    cohortSeriesKey: sourceConfig.cohortSeriesKey,
+    cohortAges: { min: publicConfig.cohortAges.min, max: publicConfig.cohortAges.max },
+    window: { start: first.period, end: last.period, intervals },
+    terms: {
+      enrollmentStart: first.enrollment,
+      enrollmentEnd: last.enrollment,
+      cohortStart: first.cohort,
+      cohortEnd: last.cohort,
+      ratioStartPerHundred: roundHalfAwayFromZero(ratioStart * 100, decimals),
+      ratioEndPerHundred: roundHalfAwayFromZero(ratioEnd * 100, decimals),
+    },
+    contributions: {
+      totalPct: roundHalfAwayFromZero(totalPctRaw, decimals),
+      demographicPp: roundHalfAwayFromZero(demographicPpRaw, decimals),
+      ratioPp: roundHalfAwayFromZero(ratioPpRaw, decimals),
+    },
+    grade: 'E2',
+  }
+}
+
+function publicEnrollmentAbsence(stage, reasonCode) {
+  const absence = {
+    stage,
+    stageLabel: DECOMPOSITION_STAGE_CONFIG[stage].stageLabel,
+    reasonCode,
+  }
+  return { ...absence, statement: renderE2AbsenceStatement(absence) }
+}
+
+function publicEnrollmentItem(sourceItem) {
+  const config = DECOMPOSITION_STAGE_CONFIG[sourceItem.stage]
+  const item = {
+    stage: sourceItem.stage,
+    stageLabel: config.stageLabel,
+    outcomeSeriesId: config.outcomeSeriesId,
+    cohortSeriesId: config.cohortSeriesId,
+    cohortAges: { ...sourceItem.cohortAges },
+    window: { ...sourceItem.window },
+    terms: { ...sourceItem.terms },
+    contributions: { ...sourceItem.contributions },
+    grade: 'E2',
+    pneThemes: resolvePneThemes(
+      [config.outcomeSeriesId],
+      `decomposição de matrícula ${sourceItem.stage}`,
+    ),
+  }
+  return { ...item, statement: renderE2EnrollmentStatement(item) }
+}
+
+function recomputeEmploymentFromSource(sourceItem, label) {
+  if (sourceItem.window.intervals < DECOMPOSITION_CRITERIA.minIntervals) {
+    return { kind: 'absence', reasonCode: 'janela_insuficiente' }
+  }
+  const totals = Object.fromEntries(EMPLOYMENT_COUNT_FIELDS.map((field) => [
+    field,
+    sourceItem.sectors.reduce((sum, sector) => sum + sector[field], 0),
+  ]))
+  if (
+    totals.regionStart === 0
+    || totals.stateStart === 0
+    || sourceItem.sectors.some((sector) => sector.stateStart === 0)
+  ) return { kind: 'absence', reasonCode: 'termo_nulo' }
+
+  const stateGrowth = (totals.stateEnd - totals.stateStart) / totals.stateStart
+  const stateTerm = totals.regionStart * stateGrowth
+  let mixTerm = 0
+  let ownTerm = 0
+  for (const sector of sourceItem.sectors) {
+    const sectorStateGrowth = (sector.stateEnd - sector.stateStart) / sector.stateStart
+    mixTerm += sector.regionStart * (sectorStateGrowth - stateGrowth)
+    ownTerm += (sector.regionEnd - sector.regionStart) - sector.regionStart * sectorStateGrowth
+  }
+  const totalTerm = totals.regionEnd - totals.regionStart
+  const totalPctRaw = 100 * totalTerm / totals.regionStart
+  const statePpRaw = 100 * stateTerm / totals.regionStart
+  const mixPpRaw = 100 * mixTerm / totals.regionStart
+  const ownPpRaw = 100 * ownTerm / totals.regionStart
+  invariant(
+    Math.abs(totalPctRaw - statePpRaw - mixPpRaw - ownPpRaw)
+      <= DECOMPOSITION_CRITERIA.closureToleranceAbs,
+    `${label}: a identidade shift-share não fecha no valor cru.`,
+  )
+  const decimals = DECOMPOSITION_CRITERIA.rounding.published
+  return {
+    kind: 'item',
+    window: { ...sourceItem.window },
+    sectors: sourceItem.sectors.map((sector) => ({ ...sector })),
+    totals,
+    excludedSectorLinks: { ...sourceItem.excludedSectorLinks },
+    contributions: {
+      totalPct: roundHalfAwayFromZero(totalPctRaw, decimals),
+      statePp: roundHalfAwayFromZero(statePpRaw, decimals),
+      mixPp: roundHalfAwayFromZero(mixPpRaw, decimals),
+      ownPp: roundHalfAwayFromZero(ownPpRaw, decimals),
+    },
+    grade: 'E2',
+  }
+}
+
+function publicEmploymentAbsence(reasonCode) {
+  const absence = { reasonCode }
+  return { ...absence, statement: renderE2AbsenceStatement(absence) }
+}
+
+function publicEmploymentItem(sourceItem) {
+  const item = {
+    window: { ...sourceItem.window },
+    sectors: sourceItem.sectors.map((sector) => ({ ...sector })),
+    totals: { ...sourceItem.totals },
+    excludedSectorLinks: { ...sourceItem.excludedSectorLinks },
+    contributions: { ...sourceItem.contributions },
+    grade: 'E2',
+    sourceLabel: DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL,
+  }
+  return { ...item, statement: renderE2EmploymentStatement(item) }
+}
+
+function publicDecompositionCriteria() {
+  return {
+    cohortAges: Object.fromEntries(Object.entries(DECOMPOSITION_CRITERIA.cohortAges)
+      .map(([stage, ages]) => [stage, [...ages]])),
+    stagesWithoutCohort: [...DECOMPOSITION_CRITERIA.stagesWithoutCohort],
+    minIntervals: DECOMPOSITION_CRITERIA.minIntervals,
+    sectors: [...DECOMPOSITION_CRITERIA.sectors],
+    reference: DECOMPOSITION_CRITERIA.reference,
+    rounding: { ...DECOMPOSITION_CRITERIA.rounding },
+    closureToleranceAbs: DECOMPOSITION_CRITERIA.closureToleranceAbs,
+  }
+}
+
+/**
+ * Transpõe E2 somente depois de recomputar. Divergência não vaza o item:
+ * produz ausência `conta_nao_fecha`, deixando as leituras associativas E1 no
+ * restante do documento exatamente como estavam.
+ */
+export function transposeDecompositions({ associativePackage, sourcePackage }) {
+  const source = validateSourceDecompositions(
+    associativePackage.decompositions,
+    `pacote associativo de "${sourcePackage.region.slug}".decompositions`,
+  )
+  const sourceSeriesMap = sourceSeriesByKey(
+    sourcePackage,
+    `pacote regional de "${sourcePackage.region.slug}"`,
+  )
+  const sourceEnrollmentByStage = new Map([
+    ...source.enrollment.items.map((item) => [item.stage, { kind: 'item', value: item }]),
+    ...source.enrollment.absences.map((absence) => [
+      absence.stage,
+      { kind: 'absence', value: absence },
+    ]),
+  ])
+  const items = []
+  const absences = []
+  for (const stage of DECOMPOSITION_STAGES) {
+    const published = sourceEnrollmentByStage.get(stage)
+    const recomputed = recomputeEnrollmentFromSource(
+      stage,
+      sourceSeriesMap,
+      `decomposição de matrícula ${stage}`,
+    )
+    const { kind: _kind, ...recomputedValue } = recomputed
+    if (
+      published.kind === 'item'
+      && recomputed.kind === 'item'
+      && canonicalEquals(published.value, recomputedValue)
+    ) {
+      items.push(publicEnrollmentItem(recomputed))
+      continue
+    }
+    if (
+      published.kind === 'absence'
+      && recomputed.kind === 'absence'
+      && published.value.reasonCode === recomputed.reasonCode
+    ) {
+      absences.push(publicEnrollmentAbsence(stage, recomputed.reasonCode))
+      continue
+    }
+    absences.push(publicEnrollmentAbsence(stage, 'conta_nao_fecha'))
+  }
+
+  let employmentItem = null
+  let employmentAbsence = null
+  if (source.employment.item === null) {
+    employmentAbsence = publicEmploymentAbsence(source.employment.absence.reasonCode)
+  } else {
+    const recomputed = recomputeEmploymentFromSource(
+      source.employment.item,
+      'decomposição de vínculos formais',
+    )
+    const { kind: _kind, ...recomputedValue } = recomputed
+    if (recomputed.kind === 'item' && canonicalEquals(source.employment.item, recomputedValue)) {
+      employmentItem = publicEmploymentItem(recomputed)
+    } else {
+      employmentAbsence = publicEmploymentAbsence('conta_nao_fecha')
+    }
+  }
+
+  return {
+    ...DECOMPOSITION_FRAMING,
+    enrollment: {
+      methodStatement: E2_ENROLLMENT_METHOD_STATEMENT,
+      criteria: publicDecompositionCriteria(),
+      items,
+      absences,
+    },
+    employment: {
+      methodStatement: E2_EMPLOYMENT_METHOD_STATEMENT,
+      criteria: publicDecompositionCriteria(),
+      item: employmentItem,
+      absence: employmentAbsence,
+    },
+  }
 }
 
 function validateResearchScreeningCriteria(criteria, sourceSeriesMap, label) {
@@ -1331,6 +1915,7 @@ export function verifyAssociativePackage({
 }) {
   assertExactKeys(associativePackage, [
     'associations',
+    'decompositions',
     'editorial',
     'generation',
     'grammarVersion',
@@ -1385,6 +1970,15 @@ export function verifyAssociativePackage({
   )
 
   const sourceSeriesMap = sourceSeriesByKey(sourcePackage, `pacote regional de "${registryRegion.slug}"`)
+  validateSourceDecompositions(
+    associativePackage.decompositions,
+    `pacote associativo de "${registryRegion.slug}".decompositions`,
+  )
+  assertCanonicalEqual(
+    associativePackage.method?.decompositionCriteria,
+    RESEARCH_DECOMPOSITION_CRITERIA,
+    `pacote associativo de "${registryRegion.slug}".method.decompositionCriteria`,
+  )
   const screeningLabel = `pacote associativo de "${registryRegion.slug}".screenedRelations.criteria`
   const excludedSeries = validateResearchScreeningCriteria(
     associativePackage.screenedRelations?.criteria,
@@ -2564,6 +3158,7 @@ export function transposeRegion({
 
   const series = sourcePackage.series.map((serie) =>
     transposeSeries(serie, researchContract, seriesIdByKey, labelByKey))
+  const decompositions = transposeDecompositions({ associativePackage, sourcePackage })
   const framing = buildFraming(registryRegion.name)
   const publishesScenarios = scenarioPackage !== null
   const associations = sourcePackage.associations.map((association, index) =>
@@ -2642,6 +3237,7 @@ export function transposeRegion({
     howToRead: framing.howToRead,
     synthesis,
     territoryPortrait: { ...framing.territoryPortrait, series },
+    decompositions,
     associations: {
       ...framing.associations,
       items: associations,
@@ -2714,10 +3310,10 @@ export function buildPublication({ sourceRoot } = {}) {
     'o contrato público lido no handshake diverge do contrato sha-verificado pelo manifesto.',
   )
   invariant(
-    verifiedApproval.supersedes === 'vocacoes-regiao-2.6.0'
+    verifiedApproval.supersedes === 'vocacoes-regiao-2.7.0'
       && verifiedApproval.approvedInRound === RESEARCH_ROUND
       && verifiedApproval.researchContractVersion === RESEARCH_CONTRACT_VERSION,
-    'a aprovação do contrato público 2.7.0 não declara a sucessão e a rodada V5 R1 esperadas.',
+    'a aprovação do contrato público 2.8.0 não declara a sucessão e a rodada V5 R2 esperadas.',
   )
   const researchContract = verified.readVerifiedJson(RESEARCH_CONTRACT_FILE)
   invariant(
@@ -2758,6 +3354,15 @@ export function buildPublication({ sourceRoot } = {}) {
     approvedEditorial,
     researchContract.editorialLayer,
     'aprovação pública.editorialLayer',
+  )
+  const approvedDecomposition = validateDecompositionLayer(
+    verifiedApproval.decompositionLayer,
+    'aprovação pública',
+  )
+  assertCanonicalEqual(
+    approvedDecomposition,
+    researchContract.decompositionLayer,
+    'aprovação pública.decompositionLayer',
   )
 
   const parseDocument = createVocacoesDocumentParser({

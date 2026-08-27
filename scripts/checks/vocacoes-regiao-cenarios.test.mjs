@@ -162,6 +162,7 @@ test('o contrato é aditivo sobre o 2.0.0: nenhum campo dos blocos 1–3 sumiu n
       assert.throws(
         () => parseDocument(candidate),
         (error) => {
+          if (field === 'schemaVersion') return error.message === 'esquema do pacote desconhecido.'
           /* A recusa precisa nomear o campo removido. Sem isso, o teste
            * aceitaria uma recusa por outro motivo e não provaria nada sobre
            * este campo em particular. */
@@ -177,13 +178,13 @@ test('o contrato é aditivo sobre o 2.0.0: nenhum campo dos blocos 1–3 sumiu n
   }
 })
 
-test('os campos aditivos do documento incluem curadoria editorial, cenários, triagem e síntese', () => {
+test('os campos aditivos do documento incluem decomposição contábil, curadoria editorial, cenários, triagem e síntese', () => {
   const publicados = Object.keys(withScenarios).sort()
   const congelados = [...FIELDS_2_0_0.documento].sort()
   const novos = publicados.filter((field) => !congelados.includes(field))
   const perdidos = congelados.filter((field) => !publicados.includes(field))
-  /* 2.7.0 (V5 R1): a leitura editorial é o quarto aditivo declarado. */
-  assert.deepEqual(novos, ['editorialReading', 'scenarios', 'screenedRelations', 'synthesis'])
+  /* 2.8.0 (V5 R2): as decomposições são o quinto aditivo declarado. */
+  assert.deepEqual(novos, ['decompositions', 'editorialReading', 'scenarios', 'screenedRelations', 'synthesis'])
   assert.deepEqual(perdidos, [])
 
   /* A procedência é o outro conjunto que cresceu, e o acréscimo é declarado: os

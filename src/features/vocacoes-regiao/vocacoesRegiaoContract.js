@@ -1,5 +1,5 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.7.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.8.0`.
  *
  * Quatro blocos por região: retrato e transformações do território (Bloco 1),
  * leitura associativa entre educação e território (Bloco 2), comparação
@@ -53,6 +53,11 @@
  *     **aditivo**. Leituras publicáveis ganham saliência e grau, os itens passam
  *     a declarar os temas do PNE resolvidos das séries educacionais, e o
  *     documento traz a ordem editorial recomputável dos destaques.
+ *   - `2.7.0` → `2.8.0` (Rodada 2 do V5, decisão `V5-D5`): **aditivo**.
+ *     O documento ganha duas decomposições contábeis E2. Matrícula é
+ *     reconstruída dos pontos e das prévias do próprio documento; emprego é
+ *     reconstruído dos cinco setores publicados. Termos, contribuições e
+ *     statements são reverificados de forma fechada pelo leitor.
  *
  * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
  * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
@@ -78,7 +83,7 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.7.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.8.0'
 
 export const ASSOCIATIVE_GRAMMAR_VERSION = 'vocacoes-regiao-associativo-v0.1'
 
@@ -115,6 +120,122 @@ export const ASSOCIATIVE_REASON_CODES = Object.freeze([
   'defasagem_sem_janela_suficiente',
   'serie_ausente',
 ])
+
+/*
+ * Grau E2 — decomposições contábeis (V5 R2).
+ *
+ * A gramática é parte do contrato, não texto do gerador. Os cinco templates
+ * abaixo reproduzem byte a byte a GRAMATICA_E2 §3; o gerador os importa e o
+ * parser remonta cada statement com os mesmos formatadores públicos.
+ */
+export const E2_ENROLLMENT_STATEMENT_TEMPLATE =
+  'Entre {anoInicio} e {anoFim}, as matrículas {etapaLocucao} da região foram de '
+  + '{matIni} para {matFim} (variação de {totalPct}%). Na conta decomposta, a coorte '
+  + 'de nascimentos correspondente às idades de {idadeMin} a {idadeMax} anos foi de '
+  + '{coorteIni} para {coorteFim} e explica {contribDemo} pontos percentuais dessa '
+  + 'variação; a taxa de atendimento aparente (matrículas por cem pessoas da coorte) '
+  + 'foi de {taxaIni} para {taxaFim} e explica {contribTaxa} pontos percentuais. Os '
+  + 'dois termos somam a variação total; valores exibidos arredondados a uma casa decimal.'
+
+export const E2_ENROLLMENT_METHOD_STATEMENT =
+  'A decomposição é contábil: matrículas = coorte de nascimentos defasada × taxa de '
+  + 'atendimento aparente. A taxa de atendimento aparente absorve, sem distinguir, '
+  + 'atendimento escolar, fluxo (aprovação, reprovação e abandono), migração e matrícula '
+  + 'fora da região de residência; a conta não afirma causa. A coorte soma os nascidos '
+  + 'vivos dos anos que correspondem às idades da etapa; anos com registro preliminar não '
+  + 'entram na conta.'
+
+export const E2_EMPLOYMENT_STATEMENT_TEMPLATE =
+  'Entre {anoInicio} e {anoFim}, os vínculos formais nos cinco setores classificados da '
+  + 'região foram de {vinIni} para {vinFim} (variação de {totalPct}%). Na conta decomposta, '
+  + 'o ritmo comum do estado explica {contribEstado} pontos percentuais dessa variação; a '
+  + 'composição setorial de partida da região explica {contribComposicao} pontos '
+  + 'percentuais; a dinâmica própria dos setores na região explica {contribDinamica} '
+  + 'pontos percentuais. Os três termos somam a variação total; valores exibidos '
+  + 'arredondados a uma casa decimal.'
+
+export const E2_EMPLOYMENT_METHOD_STATEMENT =
+  'A decomposição é contábil, do tipo composição e ritmo: a variação dos vínculos '
+  + 'separa-se em ritmo comum do estado, composição setorial de partida e dinâmica própria '
+  + 'dos setores na região. A conta cobre os cinco setores classificados da fonte; vínculos '
+  + 'sem setor classificado ficam fora dela e estão declarados nos termos publicados; a '
+  + 'dinâmica própria absorve, sem distinguir, os fatores locais de cada setor; a conta não '
+  + 'afirma causa.'
+
+export const E2_ABSENCE_STATEMENT_TEMPLATE =
+  'A decomposição não é publicada para {alvoLocucao}: {motivoLocucao}.'
+
+export const DECOMPOSITION_FRAMING = Object.freeze({
+  label: 'Contas decompostas',
+  description:
+    'Duas decomposições contábeis com os termos publicados: a variação das matrículas '
+    + 'separada em coorte de nascimentos e taxa de atendimento aparente, e a variação dos '
+    + 'vínculos formais separada em ritmo estadual, composição setorial e dinâmica própria.',
+})
+
+export const DECOMPOSITION_STAGE_CONFIG = Object.freeze({
+  educacao_infantil: Object.freeze({
+    stageLabel: 'na educação infantil',
+    outcomeSeriesId: 'matriculas-na-educacao-infantil',
+    cohortSeriesId: 'nascidos-vivos-por-residencia-da-mae',
+    cohortAges: Object.freeze({ min: 0, max: 5 }),
+  }),
+  ensino_fundamental: Object.freeze({
+    stageLabel: 'no ensino fundamental',
+    outcomeSeriesId: 'matriculas-no-ensino-fundamental',
+    cohortSeriesId: 'nascidos-vivos-por-residencia-da-mae',
+    cohortAges: Object.freeze({ min: 6, max: 14 }),
+  }),
+  ensino_medio: Object.freeze({
+    stageLabel: 'no ensino médio',
+    outcomeSeriesId: 'matriculas-no-ensino-medio',
+    cohortSeriesId: 'nascidos-vivos-por-residencia-da-mae',
+    cohortAges: Object.freeze({ min: 15, max: 17 }),
+  }),
+})
+
+export const DECOMPOSITION_STAGES = Object.freeze(Object.keys(DECOMPOSITION_STAGE_CONFIG))
+
+export const DECOMPOSITION_REASON_LABELS = Object.freeze({
+  janela_insuficiente: 'a janela comum das séries tem menos de 8 intervalos anuais',
+  serie_ausente: 'uma das séries da conta não está disponível para a região',
+  coorte_incompleta:
+    'a coorte exigiria anos de nascimento com registro preliminar ou ausente',
+  termo_nulo: 'um termo da conta é zero no ponto de partida e a divisão não está definida',
+  conta_nao_fecha:
+    'a conta não fechou na reconstrução desta publicação e a leitura permanece associativa',
+})
+
+export const DECOMPOSITION_REASON_CODES = Object.freeze(
+  Object.keys(DECOMPOSITION_REASON_LABELS),
+)
+
+export const DECOMPOSITION_CRITERIA = Object.freeze({
+  cohortAges: Object.freeze(Object.fromEntries(
+    Object.entries(DECOMPOSITION_STAGE_CONFIG).map(([stage, config]) => [
+      stage,
+      Object.freeze([config.cohortAges.min, config.cohortAges.max]),
+    ]),
+  )),
+  stagesWithoutCohort: Object.freeze([
+    'matriculas-na-educacao-de-jovens-e-adultos',
+    'matriculas-na-educacao-profissional',
+  ]),
+  minIntervals: 8,
+  sectors: Object.freeze([
+    'Agropecuária',
+    'Comércio',
+    'Construção civil',
+    'Indústria',
+    'Serviços',
+  ]),
+  reference: 'Rio Grande do Sul',
+  rounding: Object.freeze({ published: 4, displayed: 1 }),
+  closureToleranceAbs: 1e-9,
+})
+
+export const DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL =
+  'Relação Anual de Informações Sociais'
 
 export const SCREENED_RELATIONS_CRITERIA = Object.freeze({
   minIntervals: 8,
@@ -245,6 +366,92 @@ export function formatPublicNumber(value) {
   const integer = decimals === 0 ? digits : digits.slice(0, splitAt)
   const fraction = decimals === 0 ? '' : `,${digits.slice(splitAt)}`
   return `${rounded.negative ? '-' : ''}${groupIntegerDigits(integer)}${fraction}`
+}
+
+function renderE2Template(template, replacements, label) {
+  const rendered = template.replace(/\{([a-zA-Z]+)\}/gu, (placeholder, key) => {
+    invariant(
+      Object.hasOwn(replacements, key),
+      `${label} não recebeu valor para o placeholder ${placeholder}.`,
+    )
+    return String(replacements[key])
+  })
+  invariant(!/[{}]/u.test(rendered), `${label} deixou placeholder sem resolver.`)
+  return rendered
+}
+
+/** Reconstrói T-E2-MAT a partir dos termos publicados já reverificados. */
+export function renderE2EnrollmentStatement({ stage, window, terms, contributions }) {
+  const config = DECOMPOSITION_STAGE_CONFIG[stage]
+  invariant(config !== undefined, `etapa E2 fora do contrato: ${stage}.`)
+  return renderE2Template(E2_ENROLLMENT_STATEMENT_TEMPLATE, {
+    anoInicio: window.start,
+    anoFim: window.end,
+    etapaLocucao: config.stageLabel,
+    matIni: formatPublicNumber(terms.enrollmentStart),
+    matFim: formatPublicNumber(terms.enrollmentEnd),
+    totalPct: formatDecimalComma(contributions.totalPct, DECOMPOSITION_CRITERIA.rounding.displayed),
+    idadeMin: config.cohortAges.min,
+    idadeMax: config.cohortAges.max,
+    coorteIni: formatPublicNumber(terms.cohortStart),
+    coorteFim: formatPublicNumber(terms.cohortEnd),
+    contribDemo: formatDecimalComma(
+      contributions.demographicPp,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+    taxaIni: formatDecimalComma(
+      terms.ratioStartPerHundred,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+    taxaFim: formatDecimalComma(
+      terms.ratioEndPerHundred,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+    contribTaxa: formatDecimalComma(
+      contributions.ratioPp,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+  }, 'template T-E2-MAT')
+}
+
+/** Reconstrói T-E2-EMP a partir dos termos publicados já reverificados. */
+export function renderE2EmploymentStatement({ window, totals, contributions }) {
+  return renderE2Template(E2_EMPLOYMENT_STATEMENT_TEMPLATE, {
+    anoInicio: window.start,
+    anoFim: window.end,
+    vinIni: formatPublicNumber(totals.regionStart),
+    vinFim: formatPublicNumber(totals.regionEnd),
+    totalPct: formatDecimalComma(contributions.totalPct, DECOMPOSITION_CRITERIA.rounding.displayed),
+    contribEstado: formatDecimalComma(
+      contributions.statePp,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+    contribComposicao: formatDecimalComma(
+      contributions.mixPp,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+    contribDinamica: formatDecimalComma(
+      contributions.ownPp,
+      DECOMPOSITION_CRITERIA.rounding.displayed,
+    ),
+  }, 'template T-E2-EMP')
+}
+
+/** Reconstrói T-E2-ABS para uma etapa ou para os vínculos formais. */
+export function renderE2AbsenceStatement({ stage = null, reasonCode }) {
+  const reasonLabel = DECOMPOSITION_REASON_LABELS[reasonCode]
+  invariant(reasonLabel !== undefined, `reasonCode E2 fora do contrato: ${reasonCode}.`)
+  const targetLabel = stage === null
+    ? 'os vínculos formais'
+    : `as matrículas ${DECOMPOSITION_STAGE_CONFIG[stage]?.stageLabel ?? ''}`
+  invariant(
+    stage === null || DECOMPOSITION_STAGE_CONFIG[stage] !== undefined,
+    `etapa E2 fora do contrato: ${stage}.`,
+  )
+  return renderE2Template(E2_ABSENCE_STATEMENT_TEMPLATE, {
+    alvoLocucao: targetLabel,
+    motivoLocucao: reasonLabel,
+  }, 'template T-E2-ABS')
 }
 
 function pointValueMap(points) {
@@ -735,6 +942,7 @@ const DOCUMENT_FIELDS = new Set([
   'howToRead',
   'synthesis',
   'territoryPortrait',
+  'decompositions',
   'associations',
   'temporalPairs',
   'screenedRelations',
@@ -956,6 +1164,94 @@ const SCREENED_RELATION_FIELDS = new Set([
 ])
 
 const PNE_THEME_FIELDS = new Set(['theme', 'themeLabel'])
+const DECOMPOSITIONS_FIELDS = new Set(['label', 'description', 'enrollment', 'employment'])
+const DECOMPOSITION_ENROLLMENT_FIELDS = new Set([
+  'methodStatement',
+  'criteria',
+  'items',
+  'absences',
+])
+const DECOMPOSITION_EMPLOYMENT_FIELDS = new Set([
+  'methodStatement',
+  'criteria',
+  'item',
+  'absence',
+])
+const DECOMPOSITION_CRITERIA_FIELDS = new Set([
+  'cohortAges',
+  'stagesWithoutCohort',
+  'minIntervals',
+  'sectors',
+  'reference',
+  'rounding',
+  'closureToleranceAbs',
+])
+const DECOMPOSITION_ROUNDING_FIELDS = new Set(['published', 'displayed'])
+const DECOMPOSITION_COHORT_AGES_FIELDS = new Set(DECOMPOSITION_STAGES)
+const DECOMPOSITION_ITEM_COHORT_AGES_FIELDS = new Set(['min', 'max'])
+const DECOMPOSITION_WINDOW_FIELDS = new Set(['start', 'end', 'intervals'])
+const DECOMPOSITION_ENROLLMENT_ITEM_FIELDS = new Set([
+  'stage',
+  'stageLabel',
+  'outcomeSeriesId',
+  'cohortSeriesId',
+  'cohortAges',
+  'window',
+  'terms',
+  'contributions',
+  'grade',
+  'pneThemes',
+  'statement',
+])
+const DECOMPOSITION_ENROLLMENT_TERMS_FIELDS = new Set([
+  'enrollmentStart',
+  'enrollmentEnd',
+  'cohortStart',
+  'cohortEnd',
+  'ratioStartPerHundred',
+  'ratioEndPerHundred',
+])
+const DECOMPOSITION_ENROLLMENT_CONTRIBUTIONS_FIELDS = new Set([
+  'totalPct',
+  'demographicPp',
+  'ratioPp',
+])
+const DECOMPOSITION_ENROLLMENT_ABSENCE_FIELDS = new Set([
+  'stage',
+  'stageLabel',
+  'reasonCode',
+  'statement',
+])
+const DECOMPOSITION_EMPLOYMENT_ITEM_FIELDS = new Set([
+  'window',
+  'sectors',
+  'totals',
+  'excludedSectorLinks',
+  'contributions',
+  'grade',
+  'statement',
+  'sourceLabel',
+])
+const DECOMPOSITION_EMPLOYMENT_SECTOR_FIELDS = new Set([
+  'sectorLabel',
+  'regionStart',
+  'regionEnd',
+  'stateStart',
+  'stateEnd',
+])
+const DECOMPOSITION_EMPLOYMENT_TOTAL_FIELDS = new Set([
+  'regionStart',
+  'regionEnd',
+  'stateStart',
+  'stateEnd',
+])
+const DECOMPOSITION_EMPLOYMENT_CONTRIBUTIONS_FIELDS = new Set([
+  'totalPct',
+  'statePp',
+  'mixPp',
+  'ownPp',
+])
+const DECOMPOSITION_EMPLOYMENT_ABSENCE_FIELDS = new Set(['reasonCode', 'statement'])
 const EDITORIAL_READING_FIELDS = new Set([
   'criteria',
   'criteriaStatement',
@@ -1505,6 +1801,524 @@ function validatePneThemes(candidate, label, seriesIds) {
       `${itemLabel}.themeLabel diverge do rótulo público do tema.`,
     )
   })
+  return candidate
+}
+
+function validateExactPrimitiveList(candidate, expected, label) {
+  invariant(Array.isArray(candidate), `${label} deve ser uma lista.`)
+  invariant(
+    candidate.length === expected.length
+      && candidate.every((value, index) => value === expected[index]),
+    `${label} diverge do enum ou da ordem fechada do contrato.`,
+  )
+  return candidate
+}
+
+function validateDecompositionCriteria(candidate, label) {
+  validateExactFields(candidate, DECOMPOSITION_CRITERIA_FIELDS, label)
+  validateExactFields(
+    candidate.cohortAges,
+    DECOMPOSITION_COHORT_AGES_FIELDS,
+    `${label}.cohortAges`,
+  )
+  DECOMPOSITION_STAGES.forEach((stage) => {
+    validateExactPrimitiveList(
+      candidate.cohortAges[stage],
+      DECOMPOSITION_CRITERIA.cohortAges[stage],
+      `${label}.cohortAges.${stage}`,
+    )
+  })
+  validateExactPrimitiveList(
+    candidate.stagesWithoutCohort,
+    DECOMPOSITION_CRITERIA.stagesWithoutCohort,
+    `${label}.stagesWithoutCohort`,
+  )
+  invariant(
+    candidate.minIntervals === DECOMPOSITION_CRITERIA.minIntervals,
+    `${label}.minIntervals diverge do critério E2.`,
+  )
+  validateExactPrimitiveList(
+    candidate.sectors,
+    DECOMPOSITION_CRITERIA.sectors,
+    `${label}.sectors`,
+  )
+  invariant(
+    candidate.reference === DECOMPOSITION_CRITERIA.reference,
+    `${label}.reference diverge da referência E2.`,
+  )
+  validateExactFields(
+    candidate.rounding,
+    DECOMPOSITION_ROUNDING_FIELDS,
+    `${label}.rounding`,
+  )
+  invariant(
+    candidate.rounding.published === DECOMPOSITION_CRITERIA.rounding.published,
+    `${label}.rounding.published diverge do contrato.`,
+  )
+  invariant(
+    candidate.rounding.displayed === DECOMPOSITION_CRITERIA.rounding.displayed,
+    `${label}.rounding.displayed diverge do contrato.`,
+  )
+  invariant(
+    candidate.closureToleranceAbs === DECOMPOSITION_CRITERIA.closureToleranceAbs,
+    `${label}.closureToleranceAbs diverge do contrato.`,
+  )
+  return candidate
+}
+
+function validateDecompositionWindow(candidate, label, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITION_WINDOW_FIELDS, label)
+  for (const field of ['start', 'end', 'intervals']) {
+    invariant(Number.isInteger(candidate[field]), `${label}.${field} deve ser inteiro.`)
+  }
+  invariant(candidate.end > candidate.start, `${label}.end deve ser posterior a start.`)
+  invariant(
+    candidate.intervals === candidate.end - candidate.start,
+    `${label}.intervals deve ser end - start.`,
+  )
+  invariant(
+    candidate.intervals >= DECOMPOSITION_CRITERIA.minIntervals,
+    `${label}.intervals deve respeitar o mínimo E2.`,
+  )
+  invariant(
+    candidate.end <= referenceYear,
+    `${label}.end ultrapassa o ano de referência do documento.`,
+  )
+  return candidate
+}
+
+function validateFiniteNumber(value, label) {
+  invariant(typeof value === 'number' && Number.isFinite(value), `${label} deve ser número finito.`)
+  return value
+}
+
+function validateCount(value, label) {
+  invariant(Number.isInteger(value) && value >= 0, `${label} deve ser contagem inteira não negativa.`)
+  return value
+}
+
+function validatePublishedValue(actual, expected, label) {
+  validateFiniteNumber(actual, label)
+  invariant(actual === expected, `${label} diverge do valor recomputado a quatro casas.`)
+}
+
+function observedNonPreliminaryPoints(serie) {
+  const preliminary = new Set(serie.preliminaryPeriods)
+  return serie.points.filter((point) =>
+    point.evidenceClass === 'observed' && !preliminary.has(point.period))
+}
+
+function recomputeEnrollmentDecomposition(stage, seriesById, label) {
+  const config = DECOMPOSITION_STAGE_CONFIG[stage]
+  const outcomeSerie = seriesById.get(config.outcomeSeriesId)
+  const cohortSerie = seriesById.get(config.cohortSeriesId)
+  if (outcomeSerie === undefined || cohortSerie === undefined) {
+    return { kind: 'absence', reasonCode: 'serie_ausente' }
+  }
+  invariant(
+    outcomeSerie.periodGranularity === 'annual',
+    `${label}: a série de matrícula E2 deve ser anual.`,
+  )
+  invariant(
+    cohortSerie.periodGranularity === 'annual',
+    `${label}: a série de coorte E2 deve ser anual.`,
+  )
+
+  const outcomes = observedNonPreliminaryPoints(outcomeSerie)
+  const cohortPreliminary = new Set(cohortSerie.preliminaryPeriods)
+  const cohortByPeriod = new Map(cohortSerie.points.map((point) => [point.period, point]))
+  let cohortFailures = 0
+  const computable = []
+  for (const outcome of outcomes) {
+    let cohort = 0
+    let complete = true
+    for (let age = config.cohortAges.min; age <= config.cohortAges.max; age += 1) {
+      const birthPeriod = outcome.period - age
+      const point = cohortByPeriod.get(birthPeriod)
+      if (
+        point === undefined
+        || cohortPreliminary.has(birthPeriod)
+        || point.evidenceClass !== 'observed'
+      ) {
+        complete = false
+        break
+      }
+      cohort += point.value
+    }
+    if (complete) computable.push({ period: outcome.period, enrollment: outcome.value, cohort })
+    else cohortFailures += 1
+  }
+
+  if (computable.length === 0) {
+    return {
+      kind: 'absence',
+      reasonCode: outcomes.length > 0 && cohortFailures === outcomes.length
+        ? 'coorte_incompleta'
+        : 'janela_insuficiente',
+    }
+  }
+  const first = computable[0]
+  const last = computable[computable.length - 1]
+  const intervals = last.period - first.period
+  if (intervals < DECOMPOSITION_CRITERIA.minIntervals) {
+    return { kind: 'absence', reasonCode: 'janela_insuficiente' }
+  }
+
+  for (const [field, value] of Object.entries({
+    enrollmentStart: first.enrollment,
+    enrollmentEnd: last.enrollment,
+    cohortStart: first.cohort,
+    cohortEnd: last.cohort,
+  })) {
+    validateCount(value, `${label}.${field} recomputado`)
+  }
+  if (first.enrollment === 0 || first.cohort === 0 || last.cohort === 0) {
+    return { kind: 'absence', reasonCode: 'termo_nulo' }
+  }
+
+  const ratioStart = first.enrollment / first.cohort
+  const ratioEnd = last.enrollment / last.cohort
+  const totalPctRaw = 100 * (last.enrollment - first.enrollment) / first.enrollment
+  const demographicPpRaw = 100
+    * (last.cohort - first.cohort)
+    * ((ratioStart + ratioEnd) / 2)
+    / first.enrollment
+  const ratioPpRaw = 100
+    * (ratioEnd - ratioStart)
+    * ((first.cohort + last.cohort) / 2)
+    / first.enrollment
+  invariant(
+    Math.abs(totalPctRaw - demographicPpRaw - ratioPpRaw)
+      <= DECOMPOSITION_CRITERIA.closureToleranceAbs,
+    `${label}: a identidade de Bennet não fecha no valor cru.`,
+  )
+
+  const publishedDecimals = DECOMPOSITION_CRITERIA.rounding.published
+  return {
+    kind: 'item',
+    window: { start: first.period, end: last.period, intervals },
+    terms: {
+      enrollmentStart: first.enrollment,
+      enrollmentEnd: last.enrollment,
+      cohortStart: first.cohort,
+      cohortEnd: last.cohort,
+      ratioStartPerHundred: roundHalfAwayFromZero(ratioStart * 100, publishedDecimals),
+      ratioEndPerHundred: roundHalfAwayFromZero(ratioEnd * 100, publishedDecimals),
+    },
+    contributions: {
+      totalPct: roundHalfAwayFromZero(totalPctRaw, publishedDecimals),
+      demographicPp: roundHalfAwayFromZero(demographicPpRaw, publishedDecimals),
+      ratioPp: roundHalfAwayFromZero(ratioPpRaw, publishedDecimals),
+    },
+  }
+}
+
+function validateEnrollmentItem(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITION_ENROLLMENT_ITEM_FIELDS, label)
+  invariant(DECOMPOSITION_STAGES.includes(candidate.stage), `${label}.stage fora do contrato.`)
+  const config = DECOMPOSITION_STAGE_CONFIG[candidate.stage]
+  invariant(candidate.stageLabel === config.stageLabel, `${label}.stageLabel diverge da etapa.`)
+  invariant(
+    candidate.outcomeSeriesId === config.outcomeSeriesId,
+    `${label}.outcomeSeriesId diverge da etapa.`,
+  )
+  invariant(
+    candidate.cohortSeriesId === config.cohortSeriesId,
+    `${label}.cohortSeriesId diverge da série de nascidos vivos.`,
+  )
+  validateExactFields(
+    candidate.cohortAges,
+    DECOMPOSITION_ITEM_COHORT_AGES_FIELDS,
+    `${label}.cohortAges`,
+  )
+  invariant(
+    candidate.cohortAges.min === config.cohortAges.min
+      && candidate.cohortAges.max === config.cohortAges.max,
+    `${label}.cohortAges diverge da faixa fechada da etapa.`,
+  )
+  validateDecompositionWindow(candidate.window, `${label}.window`, referenceYear)
+  validateExactFields(candidate.terms, DECOMPOSITION_ENROLLMENT_TERMS_FIELDS, `${label}.terms`)
+  for (const field of ['enrollmentStart', 'enrollmentEnd', 'cohortStart', 'cohortEnd']) {
+    validateCount(candidate.terms[field], `${label}.terms.${field}`)
+  }
+  for (const field of ['ratioStartPerHundred', 'ratioEndPerHundred']) {
+    validateFiniteNumber(candidate.terms[field], `${label}.terms.${field}`)
+  }
+  validateExactFields(
+    candidate.contributions,
+    DECOMPOSITION_ENROLLMENT_CONTRIBUTIONS_FIELDS,
+    `${label}.contributions`,
+  )
+  for (const field of DECOMPOSITION_ENROLLMENT_CONTRIBUTIONS_FIELDS) {
+    validateFiniteNumber(candidate.contributions[field], `${label}.contributions.${field}`)
+  }
+  invariant(candidate.grade === 'E2', `${label}.grade deve ser "E2".`)
+  validatePneThemes(candidate.pneThemes, `${label}.pneThemes`, [candidate.outcomeSeriesId])
+  validateText(candidate.statement, `${label}.statement`)
+
+  const expected = recomputeEnrollmentDecomposition(candidate.stage, seriesById, label)
+  invariant(
+    expected.kind === 'item',
+    `${label} publica item, mas a reconstrução exige ausência ${expected.reasonCode}.`,
+  )
+  for (const field of DECOMPOSITION_WINDOW_FIELDS) {
+    invariant(
+      candidate.window[field] === expected.window[field],
+      `${label}.window.${field} diverge da janela recomputada sem prévias.`,
+    )
+  }
+  for (const field of ['enrollmentStart', 'enrollmentEnd', 'cohortStart', 'cohortEnd']) {
+    invariant(
+      candidate.terms[field] === expected.terms[field],
+      `${label}.terms.${field} diverge dos pontos do documento.`,
+    )
+  }
+  for (const field of ['ratioStartPerHundred', 'ratioEndPerHundred']) {
+    validatePublishedValue(
+      candidate.terms[field],
+      expected.terms[field],
+      `${label}.terms.${field}`,
+    )
+  }
+  for (const field of DECOMPOSITION_ENROLLMENT_CONTRIBUTIONS_FIELDS) {
+    validatePublishedValue(
+      candidate.contributions[field],
+      expected.contributions[field],
+      `${label}.contributions.${field}`,
+    )
+  }
+  invariant(
+    candidate.statement === renderE2EnrollmentStatement({
+      stage: candidate.stage,
+      window: expected.window,
+      terms: expected.terms,
+      contributions: expected.contributions,
+    }),
+    `${label}.statement diverge do template T-E2-MAT byte a byte.`,
+  )
+  return candidate
+}
+
+function validateEnrollmentAbsence(candidate, label, seriesById) {
+  validateExactFields(candidate, DECOMPOSITION_ENROLLMENT_ABSENCE_FIELDS, label)
+  invariant(DECOMPOSITION_STAGES.includes(candidate.stage), `${label}.stage fora do contrato.`)
+  const config = DECOMPOSITION_STAGE_CONFIG[candidate.stage]
+  invariant(candidate.stageLabel === config.stageLabel, `${label}.stageLabel diverge da etapa.`)
+  invariant(
+    DECOMPOSITION_REASON_CODES.includes(candidate.reasonCode),
+    `${label}.reasonCode fora do contrato E2.`,
+  )
+  validateText(candidate.statement, `${label}.statement`)
+  invariant(
+    candidate.statement === renderE2AbsenceStatement(candidate),
+    `${label}.statement diverge do template T-E2-ABS byte a byte.`,
+  )
+  if (candidate.reasonCode !== 'conta_nao_fecha') {
+    const expected = recomputeEnrollmentDecomposition(candidate.stage, seriesById, label)
+    invariant(
+      expected.kind === 'absence' && expected.reasonCode === candidate.reasonCode,
+      `${label}.reasonCode não corresponde à reconstrução dos pontos do documento.`,
+    )
+  }
+  return candidate
+}
+
+function validateEnrollmentDecompositions(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITION_ENROLLMENT_FIELDS, label)
+  invariant(
+    candidate.methodStatement === E2_ENROLLMENT_METHOD_STATEMENT,
+    `${label}.methodStatement diverge de T-E2-MAT-DEF byte a byte.`,
+  )
+  validateDecompositionCriteria(candidate.criteria, `${label}.criteria`)
+  invariant(Array.isArray(candidate.items), `${label}.items deve ser uma lista.`)
+  invariant(Array.isArray(candidate.absences), `${label}.absences deve ser uma lista.`)
+
+  const seenStages = new Set()
+  let previousItemOrder = -1
+  candidate.items.forEach((item, index) => {
+    const itemLabel = `${label}.items[${index}]`
+    validateEnrollmentItem(item, itemLabel, seriesById, referenceYear)
+    const order = DECOMPOSITION_STAGES.indexOf(item.stage)
+    invariant(order > previousItemOrder, `${itemLabel}.stage está fora da ordem fechada.`)
+    invariant(!seenStages.has(item.stage), `${itemLabel}.stage está repetida.`)
+    previousItemOrder = order
+    seenStages.add(item.stage)
+  })
+
+  let previousAbsenceOrder = -1
+  candidate.absences.forEach((absence, index) => {
+    const absenceLabel = `${label}.absences[${index}]`
+    validateEnrollmentAbsence(absence, absenceLabel, seriesById)
+    const order = DECOMPOSITION_STAGES.indexOf(absence.stage)
+    invariant(order > previousAbsenceOrder, `${absenceLabel}.stage está fora da ordem fechada.`)
+    invariant(!seenStages.has(absence.stage), `${absenceLabel}.stage está repetida.`)
+    previousAbsenceOrder = order
+    seenStages.add(absence.stage)
+  })
+  invariant(
+    seenStages.size === DECOMPOSITION_STAGES.length,
+    `${label} deve declarar item ou ausência para cada etapa com coorte.`,
+  )
+  return candidate
+}
+
+function validateEmploymentCountObject(candidate, fields, label) {
+  validateExactFields(candidate, fields, label)
+  for (const field of fields) validateCount(candidate[field], `${label}.${field}`)
+  return candidate
+}
+
+function validateEmploymentItem(candidate, label, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITION_EMPLOYMENT_ITEM_FIELDS, label)
+  validateDecompositionWindow(candidate.window, `${label}.window`, referenceYear)
+  invariant(
+    Array.isArray(candidate.sectors)
+      && candidate.sectors.length === DECOMPOSITION_CRITERIA.sectors.length,
+    `${label}.sectors deve trazer exatamente os cinco setores E2.`,
+  )
+  candidate.sectors.forEach((sector, index) => {
+    const sectorLabel = `${label}.sectors[${index}]`
+    validateExactFields(sector, DECOMPOSITION_EMPLOYMENT_SECTOR_FIELDS, sectorLabel)
+    invariant(
+      sector.sectorLabel === DECOMPOSITION_CRITERIA.sectors[index],
+      `${sectorLabel}.sectorLabel diverge do enum ou da ordem fechada.`,
+    )
+    for (const field of ['regionStart', 'regionEnd', 'stateStart', 'stateEnd']) {
+      validateCount(sector[field], `${sectorLabel}.${field}`)
+    }
+    invariant(
+      sector.stateStart > 0,
+      `${sectorLabel}.stateStart não pode ser zero num item E2 publicado.`,
+    )
+  })
+  validateEmploymentCountObject(
+    candidate.totals,
+    DECOMPOSITION_EMPLOYMENT_TOTAL_FIELDS,
+    `${label}.totals`,
+  )
+  validateEmploymentCountObject(
+    candidate.excludedSectorLinks,
+    DECOMPOSITION_EMPLOYMENT_TOTAL_FIELDS,
+    `${label}.excludedSectorLinks`,
+  )
+
+  for (const field of DECOMPOSITION_EMPLOYMENT_TOTAL_FIELDS) {
+    const summed = candidate.sectors.reduce((total, sector) => total + sector[field], 0)
+    invariant(
+      candidate.totals[field] === summed,
+      `${label}.totals.${field} diverge da soma dos cinco setores.`,
+    )
+  }
+  invariant(candidate.totals.regionStart > 0, `${label}.totals.regionStart não pode ser zero.`)
+  invariant(candidate.totals.stateStart > 0, `${label}.totals.stateStart não pode ser zero.`)
+
+  validateExactFields(
+    candidate.contributions,
+    DECOMPOSITION_EMPLOYMENT_CONTRIBUTIONS_FIELDS,
+    `${label}.contributions`,
+  )
+  for (const field of DECOMPOSITION_EMPLOYMENT_CONTRIBUTIONS_FIELDS) {
+    validateFiniteNumber(candidate.contributions[field], `${label}.contributions.${field}`)
+  }
+  invariant(candidate.grade === 'E2', `${label}.grade deve ser "E2".`)
+  invariant(
+    candidate.sourceLabel === DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL,
+    `${label}.sourceLabel diverge do rótulo público da fonte.`,
+  )
+  validateText(candidate.statement, `${label}.statement`)
+
+  const stateGrowth = (candidate.totals.stateEnd - candidate.totals.stateStart)
+    / candidate.totals.stateStart
+  const stateTerm = candidate.totals.regionStart * stateGrowth
+  let mixTerm = 0
+  let ownTerm = 0
+  for (const sector of candidate.sectors) {
+    const sectorStateGrowth = (sector.stateEnd - sector.stateStart) / sector.stateStart
+    mixTerm += sector.regionStart * (sectorStateGrowth - stateGrowth)
+    ownTerm += (sector.regionEnd - sector.regionStart) - sector.regionStart * sectorStateGrowth
+  }
+  const totalTerm = candidate.totals.regionEnd - candidate.totals.regionStart
+  const totalPctRaw = 100 * totalTerm / candidate.totals.regionStart
+  const statePpRaw = 100 * stateTerm / candidate.totals.regionStart
+  const mixPpRaw = 100 * mixTerm / candidate.totals.regionStart
+  const ownPpRaw = 100 * ownTerm / candidate.totals.regionStart
+  invariant(
+    Math.abs(totalPctRaw - statePpRaw - mixPpRaw - ownPpRaw)
+      <= DECOMPOSITION_CRITERIA.closureToleranceAbs,
+    `${label}: a identidade shift-share não fecha no valor cru.`,
+  )
+
+  const decimals = DECOMPOSITION_CRITERIA.rounding.published
+  const expected = {
+    totalPct: roundHalfAwayFromZero(totalPctRaw, decimals),
+    statePp: roundHalfAwayFromZero(statePpRaw, decimals),
+    mixPp: roundHalfAwayFromZero(mixPpRaw, decimals),
+    ownPp: roundHalfAwayFromZero(ownPpRaw, decimals),
+  }
+  for (const field of DECOMPOSITION_EMPLOYMENT_CONTRIBUTIONS_FIELDS) {
+    validatePublishedValue(
+      candidate.contributions[field],
+      expected[field],
+      `${label}.contributions.${field}`,
+    )
+  }
+  invariant(
+    candidate.statement === renderE2EmploymentStatement({
+      window: candidate.window,
+      totals: candidate.totals,
+      contributions: expected,
+    }),
+    `${label}.statement diverge do template T-E2-EMP byte a byte.`,
+  )
+  return candidate
+}
+
+function validateEmploymentAbsence(candidate, label) {
+  validateExactFields(candidate, DECOMPOSITION_EMPLOYMENT_ABSENCE_FIELDS, label)
+  invariant(
+    DECOMPOSITION_REASON_CODES.includes(candidate.reasonCode),
+    `${label}.reasonCode fora do contrato E2.`,
+  )
+  validateText(candidate.statement, `${label}.statement`)
+  invariant(
+    candidate.statement === renderE2AbsenceStatement(candidate),
+    `${label}.statement diverge do template T-E2-ABS byte a byte.`,
+  )
+  return candidate
+}
+
+function validateEmploymentDecomposition(candidate, label, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITION_EMPLOYMENT_FIELDS, label)
+  invariant(
+    candidate.methodStatement === E2_EMPLOYMENT_METHOD_STATEMENT,
+    `${label}.methodStatement diverge de T-E2-EMP-DEF byte a byte.`,
+  )
+  validateDecompositionCriteria(candidate.criteria, `${label}.criteria`)
+  const hasItem = candidate.item !== null
+  const hasAbsence = candidate.absence !== null
+  invariant(
+    hasItem !== hasAbsence,
+    `${label} deve publicar exatamente um item ou uma ausência.`,
+  )
+  if (hasItem) validateEmploymentItem(candidate.item, `${label}.item`, referenceYear)
+  else validateEmploymentAbsence(candidate.absence, `${label}.absence`)
+  return candidate
+}
+
+function validateDecompositions(candidate, label, seriesById, referenceYear) {
+  validateExactFields(candidate, DECOMPOSITIONS_FIELDS, label)
+  invariant(candidate.label === DECOMPOSITION_FRAMING.label, `${label}.label diverge da moldura E2.`)
+  invariant(
+    candidate.description === DECOMPOSITION_FRAMING.description,
+    `${label}.description diverge da moldura E2.`,
+  )
+  validateEnrollmentDecompositions(
+    candidate.enrollment,
+    `${label}.enrollment`,
+    seriesById,
+    referenceYear,
+  )
+  validateEmploymentDecomposition(candidate.employment, `${label}.employment`, referenceYear)
   return candidate
 }
 
@@ -3198,8 +4012,9 @@ export function createVocacoesDocumentParser({
   )
 
   return function parseVocacoesDocument(candidate) {
-    validateExactFields(candidate, DOCUMENT_FIELDS, 'pacote')
+    invariant(isRecord(candidate), 'pacote deve ser um objeto.')
     invariant(candidate.schemaVersion === documentSchema, 'esquema do pacote desconhecido.')
+    validateExactFields(candidate, DOCUMENT_FIELDS, 'pacote')
     invariant(candidate.sourceVersion === sourceVersion, 'versão de origem inesperada.')
     invariant(candidate.publicationScope === publicationScope, 'escopo de publicação inesperado.')
     validateText(candidate.sourceMethodologyStatus, 'pacote.sourceMethodologyStatus')
@@ -3250,6 +4065,14 @@ export function createVocacoesDocumentParser({
       seriesById.set(serie.seriesId, serie)
       seriesLabels.add(serie.label)
     })
+
+    /* Grau E2 — contas reconstruídas dos termos publicados e das séries locais. */
+    validateDecompositions(
+      candidate.decompositions,
+      'pacote.decompositions',
+      seriesById,
+      referenceYear,
+    )
 
     /* Bloco 2 — leitura associativa educação ↔ território. */
     validateExactFields(candidate.associations, TEXT_BLOCK_FIELDS, 'pacote.associations')

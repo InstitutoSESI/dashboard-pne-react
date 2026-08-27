@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
@@ -30,8 +31,12 @@ import {
   roundHalfAwayFromZero,
 } from '../../src/features/vocacoes-regiao/vocacoesRegiaoContract.js'
 import {
+  ASSOCIATIVE_PACKAGE_SCHEMA,
   DEFAULT_SOURCE_ROOT,
   RESEARCH_CONTRACT_FILE,
+  RESEARCH_CONTRACT_VERSION,
+  transposeDecompositions,
+  transposeRegion,
 } from '../generate-vocacoes-regiao.mjs'
 import {
   CAUSAL_FLOOR,
@@ -49,27 +54,114 @@ import {
 
 const PUBLIC_ROOT = new URL('../../public/data/vocacoes-regiao/', import.meta.url)
 const manifest = JSON.parse(fs.readFileSync(new URL('manifest.json', PUBLIC_ROOT), 'utf8'))
-const PREPUBLICATION_SCHEMA = 'vocacoes-regiao-2.6.0'
+const documents = manifest.regions.map((entry) => ({
+  entry,
+  document: JSON.parse(fs.readFileSync(new URL(entry.path, PUBLIC_ROOT), 'utf8')),
+}))
+const researchContract = JSON.parse(fs.readFileSync(
+  path.join(DEFAULT_SOURCE_ROOT, RESEARCH_CONTRACT_FILE),
+  'utf8',
+))
+const PREPUBLICATION_SCHEMA = 'vocacoes-regiao-2.7.0'
 const PREPUBLICATION_SKIP =
-  'publicação V5 R1 2.7.0 ainda não promovida: public/data permanece em vocacoes-regiao-2.6.0'
+  'publicação V5 R2 2.8.0 ainda não promovida: public/data permanece em vocacoes-regiao-2.7.0'
+
+test('gerador exige contrato de pesquisa v0.6 e pacote associativo v0.3', () => {
+  assert.equal(RESEARCH_CONTRACT_VERSION, 'vocacoes-regiao-pesquisa-v0.6')
+  assert.equal(researchContract.schemaVersion, 'vocacoes-regiao-pesquisa-contrato-v0.6')
+  assert.equal(researchContract.contractVersion, 'v0.6')
+  assert.equal(
+    researchContract.decompositionLayer.associativeSchemaVersion,
+    ASSOCIATIVE_PACKAGE_SCHEMA,
+  )
+  assert.equal(assertResearchContractCoversFloor(researchContract), true)
+})
+
+test('H-V5R2-03: guarda v0.6 preserva os dez documentos 2.7.0 vigentes', () => {
+  const guard = createPublicLanguageGuard(researchContract)
+  guard.cadastralUniverseLabel = UNIVERSE_LABELS.cadastral_registry
+  for (const { entry, document } of documents) {
+    assert.doesNotThrow(() => scanPublicDocument(document, guard), entry.slug)
+  }
+})
+
+test('gerador rebaixa demographicPp divergente sem remover a leitura E1', () => {
+  const sourceBytes = fs.readFileSync(path.join(
+    DEFAULT_SOURCE_ROOT,
+    'pacotes',
+    'regioes',
+    'vale-do-sinos.json',
+  ))
+  const sourcePackage = JSON.parse(sourceBytes.toString('utf8'))
+  const associativePackage = JSON.parse(fs.readFileSync(path.join(
+    DEFAULT_SOURCE_ROOT,
+    'pacotes',
+    'associativo',
+    'vale-do-sinos.json',
+  ), 'utf8'))
+  const stage = associativePackage.decompositions.enrollment.items[0].stage
+  const valid = transposeDecompositions({ associativePackage, sourcePackage })
+  assert.ok(valid.enrollment.items.some((item) => item.stage === stage))
+
+  const tampered = structuredClone(associativePackage)
+  tampered.decompositions.enrollment.items[0].contributions.demographicPp += 2
+  const downgraded = transposeDecompositions({
+    associativePackage: tampered,
+    sourcePackage,
+  })
+  assert.ok(!downgraded.enrollment.items.some((item) => item.stage === stage))
+  assert.ok(downgraded.enrollment.absences.some((absence) =>
+    absence.stage === stage && absence.reasonCode === 'conta_nao_fecha'))
+
+  const synthesisBytes = fs.readFileSync(path.join(
+    DEFAULT_SOURCE_ROOT,
+    'pacotes',
+    'conclusoes',
+    'vale-do-sinos.json',
+  ))
+  const synthesisPackage = JSON.parse(synthesisBytes.toString('utf8'))
+  const registry = JSON.parse(fs.readFileSync(path.join(
+    DEFAULT_SOURCE_ROOT,
+    'registro',
+    'registro_regioes_rs_v0_1.json',
+  ), 'utf8'))
+  const registryRegion = registry.regions.find((region) => region.slug === 'vale-do-sinos')
+  const guard = createPublicLanguageGuard(researchContract)
+  guard.cadastralUniverseLabel = UNIVERSE_LABELS.cadastral_registry
+  const common = {
+    registryRegion,
+    sourcePackage,
+    sourcePackageSha256: createHash('sha256').update(sourceBytes).digest('hex'),
+    synthesisPackage,
+    synthesisPackageSha256: createHash('sha256').update(synthesisBytes).digest('hex'),
+    researchContract,
+    guard,
+  }
+  const validDocument = transposeRegion({ ...common, associativePackage })
+  const downgradedDocument = transposeRegion({ ...common, associativePackage: tampered })
+  const parseGenerated = createVocacoesDocumentParser({
+    sourceVersion: researchContract.schemaVersion,
+    publicationScope: 'estadual',
+    referenceYear: researchContract.referenceYear,
+    referenceMonth: researchContract.referenceMonth,
+  })
+  assert.doesNotThrow(() => parseGenerated(structuredClone(downgradedDocument)))
+  assert.ok(!downgradedDocument.decompositions.enrollment.items.some((item) =>
+    item.stage === stage))
+  assert.ok(downgradedDocument.decompositions.enrollment.absences.some((absence) =>
+    absence.stage === stage && absence.reasonCode === 'conta_nao_fecha'))
+  assert.deepEqual(downgradedDocument.associations, validDocument.associations)
+})
 
 if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
-  test('publicação associativa V5 R1', { skip: PREPUBLICATION_SKIP }, () => {})
+  test('publicação associativa V5 R2', { skip: PREPUBLICATION_SKIP }, () => {})
 } else {
-  test('manifesto publicado usa o contrato associativo 2.7.0', () => {
+  test('manifesto publicado usa o contrato associativo 2.8.0', () => {
     assert.equal(manifest.documentSchemaVersion, VOCACOES_DOCUMENT_SCHEMA)
     assert.equal(manifest.regions.length, 10)
   })
 
-  const documents = manifest.regions.map((entry) => ({
-    entry,
-    document: JSON.parse(fs.readFileSync(new URL(entry.path, PUBLIC_ROOT), 'utf8')),
-  }))
   const documentBySlug = new Map(documents.map(({ document }) => [document.region.slug, document]))
-  const researchContract = JSON.parse(fs.readFileSync(
-    path.join(DEFAULT_SOURCE_ROOT, RESEARCH_CONTRACT_FILE),
-    'utf8',
-  ))
   const parseDocument = createVocacoesDocumentParser({
     sourceVersion: manifest.sourceVersion,
     publicationScope: manifest.publicationScope,
@@ -286,8 +378,8 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
     assert.deepEqual(item.pneThemes, expectedPneThemes(item.bSeriesId))
   }
 
-  test('piso da plataforma é subconjunto do contrato de pesquisa v0.5', () => {
-    assert.equal(researchContract.contractVersion, 'v0.5')
+  test('piso da plataforma é subconjunto do contrato de pesquisa v0.6', () => {
+    assert.equal(researchContract.contractVersion, 'v0.6')
     assert.equal(assertResearchContractCoversFloor(researchContract), true)
     const causal = new Set(researchContract.causalLanguagePatterns)
     for (const pattern of CAUSAL_FLOOR) assert.ok(causal.has(pattern), pattern)
@@ -599,9 +691,9 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
     assert.ok(shared > 0, 'nenhuma associação compartilhada foi exercitada')
   })
 
-  test('corpus bilateral V3 R1 + V5 R1 tem 100% dos casos contabilizados', () => {
-    assert.equal(ATTACK_COUNT, 16)
-    assert.equal(HONEST_COUNT, 8)
+  test('corpus bilateral V3 R1 + V5 R1 + V5 R2 tem 100% dos casos contabilizados', () => {
+    assert.equal(ATTACK_COUNT, 25)
+    assert.equal(HONEST_COUNT, 12)
     assert.deepEqual(DECLARED_GAPS, ['A-V3R1-07'])
     const base = documentBySlug.get('vale-do-sinos')
     assert.ok(base, 'Vale do Sinos não está na publicação')

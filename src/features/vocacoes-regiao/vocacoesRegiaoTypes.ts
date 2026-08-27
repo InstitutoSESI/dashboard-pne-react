@@ -1,5 +1,5 @@
 /*
- * A forma do pacote público `vocacoes-regiao-2.7.0`, do lado de quem renderiza.
+ * A forma do pacote público `vocacoes-regiao-2.8.0`, do lado de quem renderiza.
  *
  * Estes tipos descrevem o que o validador já garantiu. Eles não repetem a
  * validação — repetir daria a ilusão de duas camadas onde há uma: em runtime só
@@ -68,6 +68,128 @@ export type VocacoesAgendaThemeId =
 export interface VocacoesPneTheme {
   readonly theme: VocacoesAgendaThemeId
   readonly themeLabel: string
+}
+
+export type VocacoesDecompositionStage =
+  | 'educacao_infantil'
+  | 'ensino_fundamental'
+  | 'ensino_medio'
+
+export type VocacoesDecompositionReasonCode =
+  | 'janela_insuficiente'
+  | 'serie_ausente'
+  | 'coorte_incompleta'
+  | 'termo_nulo'
+  | 'conta_nao_fecha'
+
+export interface VocacoesDecompositionCriteria {
+  readonly cohortAges: Readonly<Record<VocacoesDecompositionStage, readonly [number, number]>>
+  readonly stagesWithoutCohort: readonly string[]
+  readonly minIntervals: number
+  readonly sectors: readonly string[]
+  readonly reference: string
+  readonly rounding: {
+    readonly published: number
+    readonly displayed: number
+  }
+  readonly closureToleranceAbs: number
+}
+
+export interface VocacoesDecompositionWindow extends VocacoesWindow {
+  readonly intervals: number
+}
+
+export interface VocacoesEnrollmentDecompositionTerms {
+  readonly enrollmentStart: number
+  readonly enrollmentEnd: number
+  readonly cohortStart: number
+  readonly cohortEnd: number
+  readonly ratioStartPerHundred: number
+  readonly ratioEndPerHundred: number
+}
+
+export interface VocacoesEnrollmentDecompositionContributions {
+  readonly totalPct: number
+  readonly demographicPp: number
+  readonly ratioPp: number
+}
+
+export interface VocacoesEnrollmentDecompositionItem {
+  readonly stage: VocacoesDecompositionStage
+  readonly stageLabel: string
+  readonly outcomeSeriesId: string
+  readonly cohortSeriesId: string
+  readonly cohortAges: { readonly min: number; readonly max: number }
+  readonly window: VocacoesDecompositionWindow
+  readonly terms: VocacoesEnrollmentDecompositionTerms
+  readonly contributions: VocacoesEnrollmentDecompositionContributions
+  readonly grade: 'E2'
+  readonly pneThemes: readonly VocacoesPneTheme[]
+  readonly statement: string
+}
+
+export interface VocacoesEnrollmentDecompositionAbsence {
+  readonly stage: VocacoesDecompositionStage
+  readonly stageLabel: string
+  readonly reasonCode: VocacoesDecompositionReasonCode
+  readonly statement: string
+}
+
+export interface VocacoesEnrollmentDecomposition {
+  readonly methodStatement: string
+  readonly criteria: VocacoesDecompositionCriteria
+  readonly items: readonly VocacoesEnrollmentDecompositionItem[]
+  readonly absences: readonly VocacoesEnrollmentDecompositionAbsence[]
+}
+
+export interface VocacoesEmploymentDecompositionSector {
+  readonly sectorLabel: string
+  readonly regionStart: number
+  readonly regionEnd: number
+  readonly stateStart: number
+  readonly stateEnd: number
+}
+
+export interface VocacoesEmploymentDecompositionCounts {
+  readonly regionStart: number
+  readonly regionEnd: number
+  readonly stateStart: number
+  readonly stateEnd: number
+}
+
+export interface VocacoesEmploymentDecompositionItem {
+  readonly window: VocacoesDecompositionWindow
+  readonly sectors: readonly VocacoesEmploymentDecompositionSector[]
+  readonly totals: VocacoesEmploymentDecompositionCounts
+  readonly excludedSectorLinks: VocacoesEmploymentDecompositionCounts
+  readonly contributions: {
+    readonly totalPct: number
+    readonly statePp: number
+    readonly mixPp: number
+    readonly ownPp: number
+  }
+  readonly grade: 'E2'
+  readonly statement: string
+  readonly sourceLabel: string
+}
+
+export interface VocacoesEmploymentDecompositionAbsence {
+  readonly reasonCode: VocacoesDecompositionReasonCode
+  readonly statement: string
+}
+
+export interface VocacoesEmploymentDecomposition {
+  readonly methodStatement: string
+  readonly criteria: VocacoesDecompositionCriteria
+  readonly item: VocacoesEmploymentDecompositionItem | null
+  readonly absence: VocacoesEmploymentDecompositionAbsence | null
+}
+
+export interface VocacoesDecompositions {
+  readonly label: string
+  readonly description: string
+  readonly enrollment: VocacoesEnrollmentDecomposition
+  readonly employment: VocacoesEmploymentDecomposition
 }
 
 export type VocacoesAssociativeReasonCode =
@@ -474,6 +596,7 @@ export interface VocacoesDocument {
     readonly description: string
     readonly series: readonly VocacoesSeries[]
   }
+  readonly decompositions: VocacoesDecompositions
   readonly associations: TextBlock<VocacoesAssociation>
   readonly temporalPairs: TextBlock<VocacoesTemporalPair> & {
     readonly laggedItems: readonly (VocacoesLaggedReading | VocacoesLaggedAbsence)[]

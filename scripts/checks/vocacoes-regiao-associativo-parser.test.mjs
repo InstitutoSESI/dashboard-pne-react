@@ -7,8 +7,14 @@ import {
   AGGREGATION_LABELS,
   ASSOCIATIVE_GRAMMAR_VERSION,
   ASSOCIATIVE_METHOD_NOTE,
+  DECOMPOSITION_CRITERIA,
+  DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL,
+  DECOMPOSITION_FRAMING,
+  DECOMPOSITION_STAGE_CONFIG,
   EDITORIAL_CRITERIA_STATEMENT,
   EDITORIAL_READING_CRITERIA,
+  E2_EMPLOYMENT_METHOD_STATEMENT,
+  E2_ENROLLMENT_METHOD_STATEMENT,
   EVIDENCE_CLASS_LABELS,
   PNE_SERIES_THEME_MAP,
   SCENARIO_FRAMING,
@@ -30,10 +36,20 @@ import {
   renderContrastStatement,
   renderCorrelationStatement,
   renderEditorialNoteStatement,
+  renderE2AbsenceStatement,
+  renderE2EmploymentStatement,
+  renderE2EnrollmentStatement,
   renderLaggedStatement,
   roundHalfAwayFromZero,
 } from '../../src/features/vocacoes-regiao/vocacoesRegiaoContract.js'
-import { assertNoPublicMetaNumber } from '../lib/vocacoes-public-language.mjs'
+import {
+  CAUSAL_FLOOR,
+  LOOSE_COEFFICIENT_FLOOR,
+  TOKEN_FLOOR,
+  assertNoPublicMetaNumber,
+  createPublicLanguageGuard,
+  scanPublicDocument,
+} from '../lib/vocacoes-public-language.mjs'
 import {
   ATAQUES,
   ATTACK_COUNT,
@@ -41,7 +57,7 @@ import {
   HONEST_COUNT,
 } from './fixtures/vocacoes-associativo-corpus.mjs'
 
-const SOURCE_VERSION = 'vocacoes-regiao-pesquisa-v0.5'
+const SOURCE_VERSION = 'vocacoes-regiao-pesquisa-v0.6'
 const PUBLICATION_SCOPE = 'estadual'
 const REFERENCE_YEAR = 2025
 const REFERENCE_MONTH = 12
@@ -57,6 +73,22 @@ const STRONG_SCREENED_ID = 'vinculos-formais-ativos'
 const EDUCATION_DELTAS = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6])
 const MODERATE_DELTAS = Object.freeze([4, 6, 3, 2, 5, 1, 7, 8, 9, 2, 4, 6, 8, 3, 5])
 const WEAK_DELTAS = Object.freeze([7, 6, 3, 5, 2, 1, 4, 8, 9, 3, 1, 5, 2, 6, 4])
+
+const languageGuard = createPublicLanguageGuard({
+  causalLanguagePatterns: [...CAUSAL_FLOOR],
+  causalConnectivePatterns: [],
+  forbiddenPublicTokens: [...TOKEN_FLOOR],
+  associativeReadingLayer: {
+    looseCoefficientPatterns: [...LOOSE_COEFFICIENT_FLOOR],
+    closedGrammarForbiddenPatterns: [],
+  },
+  cadastralSeriesForbiddenTerms: [],
+  futureYearAssertionVerbs: [],
+  futureYearNegationMarkers: [],
+  futureYearNumberWords: [],
+  spelledYearPrefixes: {},
+  referenceYear: REFERENCE_YEAR,
+})
 
 const parseDocument = createVocacoesDocumentParser({
   sourceVersion: SOURCE_VERSION,
@@ -89,6 +121,177 @@ function makeSeries({ seriesId, label, deltas }) {
     preliminaryPeriods: [],
     limitations: [],
     points,
+  }
+}
+
+function makeBirthSeries() {
+  const config = DECOMPOSITION_STAGE_CONFIG.ensino_fundamental
+  const points = []
+  for (let period = 1996; period <= 2019; period += 1) {
+    points.push({ period, value: 100 + period - 1996, evidenceClass: 'observed' })
+  }
+  return {
+    seriesId: config.cohortSeriesId,
+    label: 'Nascidos vivos por residência da mãe',
+    unitLabel: 'pessoas',
+    sourceLabel: 'Fonte sintética determinística',
+    evidenceClass: 'observed',
+    evidenceLabel: EVIDENCE_CLASS_LABELS.observed,
+    universeLabel: null,
+    aggregationLabel: AGGREGATION_LABELS.sum,
+    ratioOf: null,
+    periodGranularity: 'annual',
+    periodStart: 1996,
+    periodEnd: 2019,
+    periodLabel: '1996 a 2019',
+    preliminaryPeriods: [],
+    limitations: [],
+    points,
+  }
+}
+
+function decompositionCriteria() {
+  return {
+    cohortAges: Object.fromEntries(Object.entries(DECOMPOSITION_CRITERIA.cohortAges)
+      .map(([stage, ages]) => [stage, [...ages]])),
+    stagesWithoutCohort: [...DECOMPOSITION_CRITERIA.stagesWithoutCohort],
+    minIntervals: DECOMPOSITION_CRITERIA.minIntervals,
+    sectors: [...DECOMPOSITION_CRITERIA.sectors],
+    reference: DECOMPOSITION_CRITERIA.reference,
+    rounding: { ...DECOMPOSITION_CRITERIA.rounding },
+    closureToleranceAbs: DECOMPOSITION_CRITERIA.closureToleranceAbs,
+  }
+}
+
+function makeEnrollmentDecomposition(education, births) {
+  const stage = 'ensino_fundamental'
+  const config = DECOMPOSITION_STAGE_CONFIG[stage]
+  const birthByPeriod = new Map(births.points.map((point) => [point.period, point.value]))
+  const cohortAt = (period) => {
+    let total = 0
+    for (let age = config.cohortAges.min; age <= config.cohortAges.max; age += 1) {
+      total += birthByPeriod.get(period - age)
+    }
+    return total
+  }
+  const first = education.points[0]
+  const last = education.points[education.points.length - 1]
+  const cohortStart = cohortAt(first.period)
+  const cohortEnd = cohortAt(last.period)
+  const ratioStart = first.value / cohortStart
+  const ratioEnd = last.value / cohortEnd
+  const totalPctRaw = 100 * (last.value - first.value) / first.value
+  const demographicPpRaw = 100
+    * (cohortEnd - cohortStart)
+    * ((ratioStart + ratioEnd) / 2)
+    / first.value
+  const ratioPpRaw = 100
+    * (ratioEnd - ratioStart)
+    * ((cohortStart + cohortEnd) / 2)
+    / first.value
+  const decimals = DECOMPOSITION_CRITERIA.rounding.published
+  const item = {
+    stage,
+    stageLabel: config.stageLabel,
+    outcomeSeriesId: config.outcomeSeriesId,
+    cohortSeriesId: config.cohortSeriesId,
+    cohortAges: { ...config.cohortAges },
+    window: {
+      start: first.period,
+      end: last.period,
+      intervals: last.period - first.period,
+    },
+    terms: {
+      enrollmentStart: first.value,
+      enrollmentEnd: last.value,
+      cohortStart,
+      cohortEnd,
+      ratioStartPerHundred: roundHalfAwayFromZero(ratioStart * 100, decimals),
+      ratioEndPerHundred: roundHalfAwayFromZero(ratioEnd * 100, decimals),
+    },
+    contributions: {
+      totalPct: roundHalfAwayFromZero(totalPctRaw, decimals),
+      demographicPp: roundHalfAwayFromZero(demographicPpRaw, decimals),
+      ratioPp: roundHalfAwayFromZero(ratioPpRaw, decimals),
+    },
+    grade: 'E2',
+    pneThemes: pneThemesFor(config.outcomeSeriesId),
+  }
+  const absences = ['educacao_infantil', 'ensino_medio'].map((absenceStage) => {
+    const absence = {
+      stage: absenceStage,
+      stageLabel: DECOMPOSITION_STAGE_CONFIG[absenceStage].stageLabel,
+      reasonCode: 'serie_ausente',
+    }
+    return { ...absence, statement: renderE2AbsenceStatement(absence) }
+  })
+  return {
+    methodStatement: E2_ENROLLMENT_METHOD_STATEMENT,
+    criteria: decompositionCriteria(),
+    items: [{ ...item, statement: renderE2EnrollmentStatement(item) }],
+    absences,
+  }
+}
+
+function makeEmploymentDecomposition() {
+  const sectorCounts = [
+    [100, 120, 1_000, 1_100],
+    [200, 210, 2_000, 2_300],
+    [50, 55, 500, 600],
+    [300, 280, 3_000, 3_300],
+    [350, 420, 3_500, 4_200],
+  ]
+  const sectors = DECOMPOSITION_CRITERIA.sectors.map((sectorLabel, index) => ({
+    sectorLabel,
+    regionStart: sectorCounts[index][0],
+    regionEnd: sectorCounts[index][1],
+    stateStart: sectorCounts[index][2],
+    stateEnd: sectorCounts[index][3],
+  }))
+  const totals = Object.fromEntries(
+    ['regionStart', 'regionEnd', 'stateStart', 'stateEnd'].map((field) => [
+      field,
+      sectors.reduce((sum, sector) => sum + sector[field], 0),
+    ]),
+  )
+  const stateGrowth = (totals.stateEnd - totals.stateStart) / totals.stateStart
+  const stateTerm = totals.regionStart * stateGrowth
+  let mixTerm = 0
+  let ownTerm = 0
+  for (const sector of sectors) {
+    const sectorStateGrowth = (sector.stateEnd - sector.stateStart) / sector.stateStart
+    mixTerm += sector.regionStart * (sectorStateGrowth - stateGrowth)
+    ownTerm += (sector.regionEnd - sector.regionStart) - sector.regionStart * sectorStateGrowth
+  }
+  const totalTerm = totals.regionEnd - totals.regionStart
+  const decimals = DECOMPOSITION_CRITERIA.rounding.published
+  const item = {
+    window: { start: 2010, end: 2019, intervals: 9 },
+    sectors,
+    totals,
+    excludedSectorLinks: { regionStart: 0, regionEnd: 0, stateStart: 0, stateEnd: 0 },
+    contributions: {
+      totalPct: roundHalfAwayFromZero(100 * totalTerm / totals.regionStart, decimals),
+      statePp: roundHalfAwayFromZero(100 * stateTerm / totals.regionStart, decimals),
+      mixPp: roundHalfAwayFromZero(100 * mixTerm / totals.regionStart, decimals),
+      ownPp: roundHalfAwayFromZero(100 * ownTerm / totals.regionStart, decimals),
+    },
+    grade: 'E2',
+    sourceLabel: DECOMPOSITION_EMPLOYMENT_SOURCE_LABEL,
+  }
+  return {
+    methodStatement: E2_EMPLOYMENT_METHOD_STATEMENT,
+    criteria: decompositionCriteria(),
+    item: { ...item, statement: renderE2EmploymentStatement(item) },
+    absence: null,
+  }
+}
+
+function makeDecompositions(education, births) {
+  return {
+    ...DECOMPOSITION_FRAMING,
+    enrollment: makeEnrollmentDecomposition(education, births),
+    employment: makeEmploymentDecomposition(),
   }
 }
 
@@ -353,6 +556,7 @@ function buildDocument() {
     label: 'Matrículas no ensino fundamental',
     deltas: EDUCATION_DELTAS,
   })
+  const births = makeBirthSeries()
   const moderate = makeSeries({
     seriesId: MODERATE_ID,
     label: 'População estimada',
@@ -414,7 +618,7 @@ function buildDocument() {
     pneThemes: pneThemesFor(education.seriesId),
   }
   const lagged = makeLaggedReading(strongScreened, education)
-  const series = [education, moderate, weak, strongCurated, strongScreened]
+  const series = [education, births, moderate, weak, strongCurated, strongScreened]
   const seriesById = new Map(series.map((serie) => [serie.seriesId, serie]))
   const associationSynthesisStatement = observedSynthesisStatement(education, ...factors)
   const temporalSynthesisStatement = observedSynthesisStatement(moderate, education)
@@ -429,7 +633,7 @@ function buildDocument() {
     schemaVersion: VOCACOES_DOCUMENT_SCHEMA,
     contentVersion: '0'.repeat(64),
     generatedAt: '2025-12-31',
-    generatorVersion: 'vocacoes-regiao-generator-test-v6',
+    generatorVersion: 'vocacoes-regiao-generator-test-v7',
     sourceVersion: SOURCE_VERSION,
     sourceMethodologyStatus: 'piloto sintético',
     publicationScope: PUBLICATION_SCOPE,
@@ -472,9 +676,10 @@ function buildDocument() {
     },
     territoryPortrait: {
       label: 'Retrato do território',
-      description: 'Cinco séries anuais sintéticas.',
+      description: 'Seis séries anuais sintéticas.',
       series,
     },
+    decompositions: makeDecompositions(education, births),
     associations: {
       label: 'Associações',
       description: 'Uma associação sintética.',
@@ -517,7 +722,7 @@ function buildDocument() {
     },
     provenance: {
       sourcePackageSha256: '1'.repeat(64),
-      sourceContractVersion: 'v0.5',
+      sourceContractVersion: 'v0.6',
       sourceBuilderVersion: 'builder-test-v1',
       sourceGeneratedAt: '2025-12-31',
       registrySha256: '2'.repeat(64),
@@ -535,9 +740,11 @@ function refuses(mutate, pattern) {
   assert.throws(() => parseDocument(candidate), pattern)
 }
 
-test('parser 2.7.0 aceita documento associativo sintético válido', () => {
+test('parser 2.8.0 aceita documento associativo sintético válido', () => {
   const parsed = parseDocument(buildDocument())
   assert.equal(parsed.schemaVersion, VOCACOES_DOCUMENT_SCHEMA)
+  assert.equal(parsed.decompositions.enrollment.items.length, 1)
+  assert.notEqual(parsed.decompositions.employment.item, null)
   assert.equal(parsed.temporalPairs.laggedItems.length, 1)
   assert.equal(parsed.screenedRelations.items.length, 1)
   assert.deepEqual(parsed.screenedRelations.criteria, {
@@ -558,8 +765,8 @@ test('parser 2.7.0 aceita documento associativo sintético válido', () => {
   )
 })
 
-test('parser 2.7.0 recusa documento 2.6.0', () => {
-  refuses((candidate) => { candidate.schemaVersion = 'vocacoes-regiao-2.6.0' }, /esquema/u)
+test('parser 2.8.0 recusa documento 2.7.0', () => {
+  refuses((candidate) => { candidate.schemaVersion = 'vocacoes-regiao-2.7.0' }, /esquema/u)
 })
 
 test('parser recusa associativeReading ausente', () => {
@@ -621,7 +828,7 @@ test('parser recusa campo desconhecido na leitura associativa', () => {
 })
 
 test('corpus V5 R1 recusa A-V5R1-01..09 no parser', () => {
-  assert.equal(ATTACK_COUNT, 16)
+  assert.equal(ATTACK_COUNT, 25)
   const attacks = ATAQUES.filter(([id]) => id.startsWith('A-V5R1-'))
   assert.equal(attacks.length, 9)
   for (const [id, _vector, mutate] of attacks) {
@@ -632,13 +839,45 @@ test('corpus V5 R1 recusa A-V5R1-01..09 no parser', () => {
 })
 
 test('corpus V5 R1 aceita H-V5R1-01..04 no parser', () => {
-  assert.equal(HONEST_COUNT, 8)
+  assert.equal(HONEST_COUNT, 12)
   const honest = HONESTOS.filter(([id]) => id.startsWith('H-V5R1-'))
   assert.equal(honest.length, 4)
   for (const [id, mutate] of honest) {
     const candidate = buildDocument()
     mutate(candidate)
     assert.doesNotThrow(() => parseDocument(candidate), `${id} foi recusado pelo parser`)
+  }
+})
+
+test('corpus V5 R2 recusa A-V5R2-01..09 entre guarda e parser', () => {
+  const attacks = ATAQUES.filter(([id]) => id.startsWith('A-V5R2-'))
+  assert.equal(attacks.length, 9)
+  for (const [id, _vector, mutate] of attacks) {
+    const candidate = buildDocument()
+    mutate(candidate)
+    let caught = false
+    try { scanPublicDocument(candidate, languageGuard) } catch { caught = true }
+    if (!caught) {
+      try { parseDocument(candidate) } catch { caught = true }
+    }
+    assert.equal(caught, true, `${id} atravessou a guarda e o parser`)
+  }
+})
+
+test('corpus V5 R2 aceita H-V5R2-01..04 e preserva E1 no rebaixamento', () => {
+  const honest = HONESTOS.filter(([id]) => id.startsWith('H-V5R2-'))
+  assert.equal(honest.length, 4)
+  for (const [id, mutate] of honest) {
+    const candidate = buildDocument()
+    const e1Before = structuredClone(candidate.associations)
+    mutate(candidate)
+    assert.doesNotThrow(() => scanPublicDocument(candidate, languageGuard), `${id} barrado pela guarda`)
+    assert.doesNotThrow(() => parseDocument(candidate), `${id} barrado pelo parser`)
+    if (id === 'H-V5R2-02') {
+      assert.deepEqual(candidate.associations, e1Before, 'o rebaixamento E2 alterou a leitura E1')
+      assert.ok(candidate.decompositions.enrollment.absences.some((absence) =>
+        absence.reasonCode === 'conta_nao_fecha'))
+    }
   }
 })
 

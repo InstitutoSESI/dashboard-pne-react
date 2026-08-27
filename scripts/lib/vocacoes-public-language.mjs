@@ -25,6 +25,11 @@
  * (§8.1, §8.7, §8.8, §8.9). Cada entrada aqui é uma promessa que a plataforma
  * faz por conta própria.
  */
+export const EXPLAIN_CAUSAL_PATTERN =
+  '\\bexplic(?:a|am|ou|ara|arao|ar|aria|ava|avam|ado|ada|ados|adas)\\b'
+
+const EXPLAIN_CAUSAL_PATTERN_SOURCE = new RegExp(EXPLAIN_CAUSAL_PATTERN, 'iu').source
+
 export const CAUSAL_FLOOR = Object.freeze([
   '\\bcausou\\b',
   '\\bprovoc',
@@ -37,6 +42,7 @@ export const CAUSAL_FLOOR = Object.freeze([
   '\\bimpactou\\b',
   '\\bp[- ]?valor',
   '\\bcomprova\\w*\\b[^.;]{0,40}\\b(?:rela[çc]|correla|efeito|causa|liga[çc])',
+  EXPLAIN_CAUSAL_PATTERN,
 ])
 
 export const LOOSE_COEFFICIENT_FLOOR = Object.freeze([
@@ -576,9 +582,14 @@ export function createPublicLanguageGuard(researchContract) {
     }
   }
 
-  function checkCausal(text, field, { exemptCausal = false, exemptConnective = false } = {}) {
+  function checkCausal(
+    text,
+    field,
+    { exemptCausal = false, exemptConnective = false, exemptExplain = false } = {},
+  ) {
     if (!exemptCausal) {
       for (const pattern of causal) {
+        if (exemptExplain && pattern.source === EXPLAIN_CAUSAL_PATTERN_SOURCE) continue
         const found = findAsserted(text, pattern)
         if (found !== null) {
           fail('CAUSAL_LANGUAGE_IN_PUBLIC_TEXT', field, `o texto público afirma causalidade: "${found}"`, text)
@@ -1038,6 +1049,15 @@ export function scanPublicDocument(document, guard) {
       guard.checkText(item.themeLabel, `${field}[${index}].themeLabel`)
     })
   }
+  const scanDecompositionCriteria = (criteria, field) => {
+    criteria.stagesWithoutCohort.forEach((seriesId, index) => {
+      guard.checkTokens(seriesId, `${field}.stagesWithoutCohort[${index}]`)
+    })
+    criteria.sectors.forEach((sector, index) => {
+      guard.checkText(sector, `${field}.sectors[${index}]`)
+    })
+    guard.checkText(criteria.reference, `${field}.reference`)
+  }
 
   guard.checkText(document.region.name, 'region.name')
   for (const key of ['eyebrow', 'title', 'description', 'neutralityNote']) {
@@ -1104,6 +1124,57 @@ export function scanPublicDocument(document, guard) {
   )
   const citesCadastral = (...references) =>
     references.some((reference) => cadastralSeriesIds.has(reference.seriesId))
+
+  /*
+   * E2 é a única exceção para o padrão verbal amplo de "explicar". A isenção
+   * fica nos statements reconstruídos byte a byte pelo parser e não desativa
+   * token, futuro, meta-número, conectivo nem qualquer outro padrão causal.
+   * A condição mantém a varredura aplicável ao corpus 2.7.0 de regressão; no
+   * contrato 2.8.0 a presença do bloco é exigida pelo parser.
+   */
+  if (document.decompositions !== undefined) {
+    const decomposition = document.decompositions
+    guard.checkText(decomposition.label, 'decompositions.label')
+    guard.checkText(decomposition.description, 'decompositions.description')
+
+    const enrollment = decomposition.enrollment
+    guard.checkText(enrollment.methodStatement, 'decompositions.enrollment.methodStatement')
+    scanDecompositionCriteria(enrollment.criteria, 'decompositions.enrollment.criteria')
+    enrollment.items.forEach((item, index) => {
+      const field = `decompositions.enrollment.items[${index}]`
+      guard.checkText(item.stageLabel, `${field}.stageLabel`)
+      guard.checkTokens(item.outcomeSeriesId, `${field}.outcomeSeriesId`)
+      guard.checkTokens(item.cohortSeriesId, `${field}.cohortSeriesId`)
+      scanPneThemes(item.pneThemes, `${field}.pneThemes`)
+      guard.checkText(item.statement, `${field}.statement`, { exemptExplain: true })
+      guard.checkSentenceComplete(item.statement, `${field}.statement`)
+    })
+    enrollment.absences.forEach((absence, index) => {
+      const field = `decompositions.enrollment.absences[${index}]`
+      guard.checkText(absence.stageLabel, `${field}.stageLabel`)
+      guard.checkText(absence.statement, `${field}.statement`)
+      guard.checkSentenceComplete(absence.statement, `${field}.statement`)
+    })
+
+    const employment = decomposition.employment
+    guard.checkText(employment.methodStatement, 'decompositions.employment.methodStatement')
+    scanDecompositionCriteria(employment.criteria, 'decompositions.employment.criteria')
+    if (employment.item !== null) {
+      const field = 'decompositions.employment.item'
+      employment.item.sectors.forEach((sector, index) => {
+        guard.checkText(sector.sectorLabel, `${field}.sectors[${index}].sectorLabel`)
+      })
+      guard.checkText(employment.item.sourceLabel, `${field}.sourceLabel`)
+      guard.checkText(employment.item.statement, `${field}.statement`, { exemptExplain: true })
+      guard.checkSentenceComplete(employment.item.statement, `${field}.statement`)
+    } else {
+      guard.checkText(employment.absence.statement, 'decompositions.employment.absence.statement')
+      guard.checkSentenceComplete(
+        employment.absence.statement,
+        'decompositions.employment.absence.statement',
+      )
+    }
+  }
 
   guard.checkText(document.associations.label, 'associations.label')
   guard.checkText(document.associations.description, 'associations.description')

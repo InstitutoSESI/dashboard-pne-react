@@ -1,5 +1,5 @@
 /*
- * Corpus bilateral permanente da leitura associativa — V3 R1 + V5 R1.
+ * Corpus bilateral permanente da leitura associativa — V3 R1 + V5 R1 + V5 R2.
  *
  * Como no corpus histórico do Vocações, cada caso é uma mutação sobre um
  * documento público real. A plataforma exercita a guarda lexical e o parser
@@ -22,10 +22,28 @@ import {
   renderConcordanceStatement,
   renderCorrelationStatement,
   renderEditorialNoteStatement,
+  renderE2AbsenceStatement,
   roundHalfAwayFromZero,
 } from '../../../src/features/vocacoes-regiao/vocacoesRegiaoContract.js'
 
 const primeiraAssociacao = (document) => document.associations.items[0]
+const STAGE_ORDER = Object.freeze([
+  'educacao_infantil',
+  'ensino_fundamental',
+  'ensino_medio',
+])
+
+function primeiroItemMatriculaE2(document) {
+  const item = document.decompositions.enrollment.items[0]
+  if (item === undefined) throw new Error('fixture não traz decomposição E2 de matrícula')
+  return item
+}
+
+function itemEmpregoE2(document) {
+  const item = document.decompositions.employment.item
+  if (item === null) throw new Error('fixture não traz decomposição E2 de emprego')
+  return item
+}
 
 function primeiraCorrelacaoAssociativa(document) {
   for (const association of document.associations.items) {
@@ -264,7 +282,48 @@ const ATAQUES_V5 = [
   }],
 ]
 
-const ATAQUES = [...ATAQUES_V3, ...ATAQUES_V5]
+const ATAQUES_V5_R2 = [
+  ['A-V5R2-01', 10, (document) => {
+    primeiraAssociacao(document).observedStatement =
+      'A relação observada explica 12 pontos percentuais da variação.'
+  }],
+  ['A-V5R2-02', 10, (document) => {
+    primeiroItemMatriculaE2(document).statement =
+      'Até 2031 a coorte explicará 12 pontos percentuais da variação.'
+  }],
+  ['A-V5R2-03', 10, (document) => {
+    const item = primeiroItemMatriculaE2(document)
+    item.statement = `${item.statement}; o restante decorre do abandono escolar.`
+  }],
+  ['A-V5R2-04', 10, (document) => {
+    primeiroItemMatriculaE2(document).contributions.demographicPp += 2
+  }],
+  ['A-V5R2-05', 10, (document) => {
+    delete primeiroItemMatriculaE2(document).terms
+  }],
+  ['A-V5R2-06', 10, (document) => {
+    const item = primeiroItemMatriculaE2(document)
+    const cohort = seriePorId(document, item.cohortSeriesId)
+    const birthPeriod = item.window.end - item.cohortAges.min
+    cohort.preliminaryPeriods = [...new Set([...cohort.preliminaryPeriods, birthPeriod])]
+      .sort((left, right) => left - right)
+  }],
+  ['A-V5R2-07', 10, (document) => {
+    itemEmpregoE2(document).sectors.pop()
+  }],
+  ['A-V5R2-08', 10, (document) => {
+    const item = primeiroItemMatriculaE2(document)
+    item.statement = item.statement.replace(
+      'taxa de atendimento aparente',
+      'taxa de atendimento',
+    )
+  }],
+  ['A-V5R2-09', 10, (document) => {
+    primeiroItemMatriculaE2(document).grade = 'E1'
+  }],
+]
+
+const ATAQUES = [...ATAQUES_V3, ...ATAQUES_V5, ...ATAQUES_V5_R2]
 
 const CORRELATION_HONESTA =
   'Na janela de 2014 a 2025, a correlação entre as variações anuais das duas séries é de -0,72 — forte e negativa.'
@@ -315,7 +374,40 @@ const HONESTOS_V5 = [
   }],
 ]
 
-const HONESTOS = [...HONESTOS_V3, ...HONESTOS_V5]
+const HONESTOS_V5_R2 = [
+  ['H-V5R2-01', (document) => {
+    primeiroItemMatriculaE2(document)
+    itemEmpregoE2(document)
+  }],
+  ['H-V5R2-02', (document) => {
+    const item = document.decompositions.enrollment.items.shift()
+    if (item === undefined) throw new Error('fixture não traz item E2 para rebaixamento')
+    const absence = {
+      stage: item.stage,
+      stageLabel: item.stageLabel,
+      reasonCode: 'conta_nao_fecha',
+    }
+    document.decompositions.enrollment.absences.push({
+      ...absence,
+      statement: renderE2AbsenceStatement(absence),
+    })
+    document.decompositions.enrollment.absences.sort((left, right) =>
+      STAGE_ORDER.indexOf(left.stage) - STAGE_ORDER.indexOf(right.stage))
+  }],
+  ['H-V5R2-03', (document) => {
+    document.limitations.items.push(
+      'As hipóteses explicativas são limitações porque esta leitura não afirma causa.',
+    )
+  }],
+  ['H-V5R2-04', (document) => {
+    const item = primeiroItemMatriculaE2(document)
+    if ((item.statement.match(/\bexplica\b/gu) ?? []).length !== 2) {
+      throw new Error('fixture E2 honesto não contém as duas ocorrências de "explica"')
+    }
+  }],
+]
+
+const HONESTOS = [...HONESTOS_V3, ...HONESTOS_V5, ...HONESTOS_V5_R2]
 
 export const ATTACK_COUNT = ATAQUES.length
 export const HONEST_COUNT = HONESTOS.length
