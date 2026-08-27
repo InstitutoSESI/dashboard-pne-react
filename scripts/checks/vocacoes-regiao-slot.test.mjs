@@ -461,7 +461,7 @@ test('referência de série que não resolve, ou que renomeia a série, é recus
 
   refuses((candidate) => {
     const first = candidate.temporalPairs.items[0]
-    first.seriesB = { ...first.seriesA }
+    first.seriesA = { ...first.seriesB }
   }, /compara uma série com ela mesma/)
 })
 

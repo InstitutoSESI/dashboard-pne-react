@@ -1,5 +1,5 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.6.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.7.0`.
  *
  * Quatro blocos por região: retrato e transformações do território (Bloco 1),
  * leitura associativa entre educação e território (Bloco 2), comparação
@@ -49,6 +49,10 @@
  *     associações e os pares ganham leitura associativa quantificada; entram a
  *     leitura defasada e a triagem estatística. Coeficientes, bins e frases são
  *     recomputados a partir das séries do próprio documento.
+ *   - `2.6.0` → `2.7.0` (Rodada 1 do V5, decisões `V5-D2`–`V5-D4`):
+ *     **aditivo**. Leituras publicáveis ganham saliência e grau, os itens passam
+ *     a declarar os temas do PNE resolvidos das séries educacionais, e o
+ *     documento traz a ordem editorial recomputável dos destaques.
  *
  * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
  * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
@@ -74,7 +78,7 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.6.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.7.0'
 
 export const ASSOCIATIVE_GRAMMAR_VERSION = 'vocacoes-regiao-associativo-v0.1'
 
@@ -85,6 +89,22 @@ export const ASSOCIATIVE_METHOD_NOTE =
 export const SCREENED_ORIGIN_STATEMENT =
   'Relação observada por triagem estatística entre as séries da região; não integra a curadoria '
   + 'e não traz hipóteses.'
+
+export const EDITORIAL_CRITERIA_STATEMENT =
+  'Entram na leitura da região as relações de força moderada ou forte e as relações estruturais '
+  + 'com defasagem declarada; as leituras sem essa força permanecem publicadas nos dados da página.'
+
+export const EDITORIAL_READING_CRITERIA = Object.freeze({
+  leadStrengths: Object.freeze(['moderada', 'forte']),
+  structuralAlwaysLead: true,
+  gradeEnum: Object.freeze(['E1']),
+  orderedBy: 'estrutural primeiro; depois abs(pearson) bruto desc; empate refId asc',
+})
+
+export function renderEditorialNoteStatement(noteCount) {
+  return `Leituras computadas sem força de publicação nesta região: ${noteCount}; `
+    + 'o cálculo completo permanece publicado nos dados da página.'
+}
 
 export const ASSOCIATIVE_REASON_CODES = Object.freeze([
   'sem_intervalos_comparaveis',
@@ -99,8 +119,24 @@ export const ASSOCIATIVE_REASON_CODES = Object.freeze([
 export const SCREENED_RELATIONS_CRITERIA = Object.freeze({
   minIntervals: 8,
   minAbsPearson: 0.6,
-  maxItems: 5,
+  maxItems: 8,
 })
+
+export const SCREENING_EXCLUDED_SERIES_IDS = Object.freeze([
+  'obitos-por-residencia-10-a-14-anos',
+  'obitos-por-residencia-15-a-19-anos',
+  'obitos-por-residencia-1-a-4-anos',
+  'obitos-por-residencia-20-a-29-anos',
+  'obitos-por-residencia-30-a-39-anos',
+  'obitos-por-residencia-40-a-49-anos',
+  'obitos-por-residencia-50-a-59-anos',
+  'obitos-por-residencia-5-a-9-anos',
+  'obitos-por-residencia-60-a-69-anos',
+  'obitos-por-residencia-70-a-79-anos',
+  'obitos-por-residencia-80-anos-e-mais',
+  'obitos-por-residencia-idade-ignorada',
+  'obitos-por-residencia-menor-1-ano',
+])
 
 const ASSOCIATIVE_REASON_CODE_SET = new Set(ASSOCIATIVE_REASON_CODES)
 const COMPARISON_REASON_CODES = new Set(['sem_intervalos_comparaveis'])
@@ -115,6 +151,8 @@ const LAGGED_REASON_CODES = new Set([
 ])
 const ASSOCIATIVE_STRENGTHS = new Set(['fraca', 'moderada', 'forte'])
 const ASSOCIATIVE_DIRECTIONS = new Set(['positiva', 'negativa', 'nula'])
+const READING_SALIENCES = new Set(['lead', 'note'])
+const READING_GRADES = new Set(['E1'])
 const COMOVEMENT_DELTA_KINDS = new Set(['nivel', 'pontos'])
 const CONTRAST_DIRECTIONS = new Set(['alta', 'queda'])
 const CONTRAST_STATISTICS = new Set(['variacao_percentual', 'variacao_em_pontos'])
@@ -510,6 +548,8 @@ export const SCENARIO_STATUTES = Object.freeze(Object.keys(SCENARIO_STATUTE_LABE
  * é, por natureza, editorial desta camada — como a moldura de `buildFraming`.
  */
 export const AGENDA_THEME_LABELS = Object.freeze({
+  educacao_infantil: 'Acesso à creche e à pré-escola',
+  ensino_fundamental: 'Conclusão do ensino fundamental na idade certa',
   ensino_medio: 'Universalização e permanência no ensino médio',
   educacao_profissional: 'Educação profissional e técnica',
   eja: 'Educação de jovens e adultos',
@@ -520,6 +560,17 @@ export const AGENDA_THEME_LABELS = Object.freeze({
 })
 
 export const AGENDA_THEMES = Object.freeze(Object.keys(AGENDA_THEME_LABELS))
+
+export const PNE_SERIES_THEME_MAP = Object.freeze({
+  'matriculas-na-educacao-infantil': ['educacao_infantil'],
+  'matriculas-no-ensino-fundamental': ['ensino_fundamental'],
+  'matriculas-no-ensino-medio': ['ensino_medio'],
+  'matriculas-na-educacao-profissional': ['educacao_profissional'],
+  'matriculas-na-educacao-profissional-tecnica': ['educacao_profissional'],
+  'matriculas-na-educacao-de-jovens-e-adultos': ['eja'],
+  'escolas-com-matriculas-na-educacao-basica': ['oferta_e_rede'],
+  'escolas-rurais-com-matriculas-na-educacao-basica': ['oferta_e_rede'],
+})
 
 /*
  * Camada de conclusões (V2-D8). O enum da pesquisa morre na fronteira: o
@@ -687,6 +738,7 @@ const DOCUMENT_FIELDS = new Set([
   'associations',
   'temporalPairs',
   'screenedRelations',
+  'editorialReading',
   'scenarios',
   'sources',
   'limitations',
@@ -760,6 +812,7 @@ const ASSOCIATION_FIELDS = new Set([
   'prohibitedClaim',
   'hypotheses',
   'associativeReading',
+  'pneThemes',
 ])
 const SERIES_REF_FIELDS = new Set(['seriesId', 'label'])
 
@@ -773,6 +826,7 @@ const TEMPORAL_PAIR_FIELDS = new Set([
   'observedStatement',
   'prohibitedClaim',
   'associativeReading',
+  'pneThemes',
 ])
 
 const TEMPORAL_PAIRS_BLOCK_FIELDS = new Set(['label', 'description', 'items', 'laggedItems'])
@@ -788,6 +842,8 @@ const FACTOR_READING_FIELDS = new Set([
   'directionConcordance',
   'comovement',
   'correlation',
+  'salience',
+  'grade',
 ])
 const TEMPORAL_READING_FIELDS = new Set([
   'grammarVersion',
@@ -796,6 +852,8 @@ const TEMPORAL_READING_FIELDS = new Set([
   'comovement',
   'correlation',
   'stateContrast',
+  'salience',
+  'grade',
 ])
 const REASON_FIELDS = new Set(['reasonCode'])
 const DIRECTION_CONCORDANCE_FIELDS = new Set([
@@ -859,6 +917,9 @@ const LAGGED_ITEM_FIELDS = new Set([
   'ties',
   'correlation',
   'statement',
+  'salience',
+  'grade',
+  'pneThemes',
 ])
 const LAGGED_ABSENCE_FIELDS = new Set([
   'aSeriesId',
@@ -874,7 +935,12 @@ const SCREENED_RELATIONS_FIELDS = new Set([
   'criteria',
   'items',
 ])
-const SCREENED_CRITERIA_FIELDS = new Set(['minIntervals', 'minAbsPearson', 'maxItems'])
+const SCREENED_CRITERIA_FIELDS = new Set([
+  'minIntervals',
+  'minAbsPearson',
+  'maxItems',
+  'excludedSeries',
+])
 const SCREENED_RELATION_FIELDS = new Set([
   'relationId',
   'seriesAId',
@@ -884,7 +950,31 @@ const SCREENED_RELATION_FIELDS = new Set([
   'comovement',
   'correlation',
   'originStatement',
+  'salience',
+  'grade',
+  'pneThemes',
 ])
+
+const PNE_THEME_FIELDS = new Set(['theme', 'themeLabel'])
+const EDITORIAL_READING_FIELDS = new Set([
+  'criteria',
+  'criteriaStatement',
+  'leads',
+  'noteCount',
+  'noteStatement',
+])
+const EDITORIAL_CRITERIA_FIELDS = new Set([
+  'leadStrengths',
+  'structuralAlwaysLead',
+  'gradeEnum',
+  'orderedBy',
+])
+const EDITORIAL_LEAD_FIELDS_BY_KIND = Object.freeze({
+  structural: new Set(['kind', 'aSeriesId', 'bSeriesId', 'lagYears']),
+  curated_association: new Set(['kind', 'associationId', 'factorSeriesId']),
+  curated_pair: new Set(['kind', 'pairId']),
+  screened: new Set(['kind', 'relationId']),
+})
 
 const SOURCE_ITEM_FIELDS = new Set(['label', 'periodLabel'])
 
@@ -1382,6 +1472,42 @@ function validateProhibitedClaim(value, label) {
   return value
 }
 
+function expectedPneThemes(seriesIds, label) {
+  const resolved = new Set()
+  for (const seriesId of seriesIds) {
+    for (const theme of PNE_SERIES_THEME_MAP[seriesId] ?? []) resolved.add(theme)
+  }
+  const themes = AGENDA_THEMES.filter((theme) => resolved.has(theme))
+  invariant(
+    themes.length > 0,
+    `${label} não resolve nenhum tema do PNE para as séries educacionais declaradas.`,
+  )
+  return themes.map((theme) => ({ theme, themeLabel: AGENDA_THEME_LABELS[theme] }))
+}
+
+function validatePneThemes(candidate, label, seriesIds) {
+  const expected = expectedPneThemes(seriesIds, label)
+  invariant(Array.isArray(candidate), `${label} deve ser uma lista.`)
+  invariant(
+    candidate.length === expected.length,
+    `${label} não corresponde exatamente aos temas do mapa das séries.`,
+  )
+  candidate.forEach((item, index) => {
+    const itemLabel = `${label}[${index}]`
+    validateExactFields(item, PNE_THEME_FIELDS, itemLabel)
+    invariant(AGENDA_THEMES.includes(item.theme), `${itemLabel}.theme fora do contrato.`)
+    invariant(
+      item.theme === expected[index].theme,
+      `${itemLabel}.theme diverge do mapa ou da ordem editorial dos temas.`,
+    )
+    invariant(
+      item.themeLabel === AGENDA_THEME_LABELS[item.theme],
+      `${itemLabel}.themeLabel diverge do rótulo público do tema.`,
+    )
+  })
+  return candidate
+}
+
 /*
  * A janela precisa **caber** na série, não apenas encostar nela.
  *
@@ -1540,6 +1666,28 @@ function correlationFromPairs(pairs) {
     strength: correlationStrength(Math.abs(pearsonDelta)),
     direction: pearsonDelta > 0 ? 'positiva' : pearsonDelta < 0 ? 'negativa' : 'nula',
   }
+}
+
+function salienceFromPairs(pairs) {
+  const correlation = correlationFromPairs(pairs)
+  return correlation.reasonCode === undefined
+    && EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlation.strength)
+    ? 'lead'
+    : 'note'
+}
+
+function validateReadingClassification(candidate, label, expectedSalience) {
+  invariant(
+    READING_SALIENCES.has(candidate.salience),
+    `${label}.salience fora do contrato: ${candidate.salience}.`,
+  )
+  invariant(
+    candidate.salience === expectedSalience,
+    `${label}.salience diverge da recomputação: esperado ${expectedSalience}, `
+    + `recebido ${candidate.salience}.`,
+  )
+  invariant(READING_GRADES.has(candidate.grade), `${label}.grade fora do contrato: ${candidate.grade}.`)
+  return candidate
 }
 
 function validateCorrelationFromPairs(
@@ -1722,6 +1870,11 @@ function validateAssociationReading(candidate, label, association, seriesById) {
       factorSerie,
       association.window,
     )
+    validateReadingClassification(
+      reading,
+      readingLabel,
+      salienceFromPairs(computeDeltaPairs(outcomeSerie.points, factorSerie.points, association.window)),
+    )
   })
   validateStateContrast(candidate.stateContrast, `${label}.stateContrast`, outcomeSerie)
   return candidate
@@ -1757,6 +1910,11 @@ function validateTemporalReading(candidate, label, pair, seriesById) {
     serieA,
     serieB,
     pair.window,
+  )
+  validateReadingClassification(
+    candidate,
+    label,
+    salienceFromPairs(computeDeltaPairs(serieA.points, serieB.points, pair.window)),
   )
   validateStateContrast(candidate.stateContrast, `${label}.stateContrast`, serieB)
   return candidate
@@ -1834,6 +1992,8 @@ function validateLaggedItem(candidate, label, seriesById, referenceYear) {
   validateCorrelationFromPairs(candidate.correlation, `${label}.correlation`, pairs, {
     statement: false,
   })
+  validateReadingClassification(candidate, label, 'lead')
+  validatePneThemes(candidate.pneThemes, `${label}.pneThemes`, [candidate.bSeriesId])
   validateText(candidate.statement, `${label}.statement`)
   const statement = renderLaggedStatement({
     aSeriesLabel: serieA.label,
@@ -1859,6 +2019,14 @@ function validateScreenedRelations(candidate, label, seriesById, referenceYear) 
   for (const [field, expected] of Object.entries(SCREENED_RELATIONS_CRITERIA)) {
     invariant(candidate.criteria[field] === expected, `${label}.criteria.${field} fora do contrato.`)
   }
+  invariant(
+    Array.isArray(candidate.criteria.excludedSeries)
+      && candidate.criteria.excludedSeries.length === SCREENING_EXCLUDED_SERIES_IDS.length
+      && candidate.criteria.excludedSeries.every(
+        (seriesId, index) => seriesId === SCREENING_EXCLUDED_SERIES_IDS[index],
+      ),
+    `${label}.criteria.excludedSeries diverge da lista fechada de elegibilidade da triagem.`,
+  )
   invariant(Array.isArray(candidate.items), `${label}.items deve ser uma lista.`)
   invariant(
     candidate.items.length <= SCREENED_RELATIONS_CRITERIA.maxItems,
@@ -1869,6 +2037,10 @@ function validateScreenedRelations(candidate, label, seriesById, referenceYear) 
   candidate.items.forEach((item, index) => {
     const itemLabel = `${label}.items[${index}]`
     validateExactFields(item, SCREENED_RELATION_FIELDS, itemLabel)
+    invariant(
+      !SCREENING_EXCLUDED_SERIES_IDS.includes(item.seriesAId),
+      `${itemLabel}.seriesAId usa série excluída da elegibilidade da triagem: ${item.seriesAId}.`,
+    )
     const serieA = validateAssociativeSeries(item.seriesAId, `${itemLabel}.seriesAId`, seriesById)
     const serieB = validateAssociativeSeries(item.seriesBId, `${itemLabel}.seriesBId`, seriesById)
     invariant(serieA.seriesId !== serieB.seriesId, `${itemLabel} compara uma série com ela mesma.`)
@@ -1908,6 +2080,12 @@ function validateScreenedRelations(candidate, label, seriesById, referenceYear) 
         && Math.abs(pearsonDelta) >= SCREENED_RELATIONS_CRITERIA.minAbsPearson,
       `${itemLabel} não alcança o limiar de correlação da triagem.`,
     )
+    validateReadingClassification(
+      item,
+      itemLabel,
+      salienceFromPairs(computeDeltaPairs(serieA.points, serieB.points, item.window)),
+    )
+    validatePneThemes(item.pneThemes, `${itemLabel}.pneThemes`, [item.seriesBId])
     validateText(item.originStatement, `${itemLabel}.originStatement`)
     invariant(
       item.originStatement === SCREENED_ORIGIN_STATEMENT,
@@ -1924,6 +2102,163 @@ function validateScreenedRelations(candidate, label, seriesById, referenceYear) 
     }
     previous = ordering
   })
+  return candidate
+}
+
+function editorialRefId(reference) {
+  if (reference.kind === 'structural') {
+    return `${reference.kind}/${reference.aSeriesId}/${reference.bSeriesId}/${reference.lagYears}`
+  }
+  if (reference.kind === 'curated_association') {
+    return `${reference.kind}/${reference.associationId}/${reference.factorSeriesId}`
+  }
+  if (reference.kind === 'curated_pair') return `${reference.kind}/${reference.pairId}`
+  return `${reference.kind}/${reference.relationId}`
+}
+
+function recomputeEditorialReading(document, seriesById) {
+  const structuralLeads = []
+  const rankedLeads = []
+  let noteCount = 0
+
+  for (const item of document.temporalPairs.laggedItems) {
+    if (!Object.prototype.hasOwnProperty.call(item, 'reasonCode')) {
+      structuralLeads.push({
+        kind: 'structural',
+        aSeriesId: item.aSeriesId,
+        bSeriesId: item.bSeriesId,
+        lagYears: item.lagYears,
+      })
+    }
+  }
+
+  for (const association of document.associations.items) {
+    const outcome = seriesById.get(association.educationOutcome.seriesId)
+    for (const reading of association.associativeReading.factorReadings) {
+      const factor = seriesById.get(reading.factorSeriesId)
+      const correlation = correlationFromPairs(
+        computeDeltaPairs(outcome.points, factor.points, association.window),
+      )
+      if (correlation.reasonCode !== undefined
+        || !EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlation.strength)) {
+        noteCount += 1
+      } else {
+        const reference = {
+          kind: 'curated_association',
+          associationId: association.associationId,
+          factorSeriesId: reading.factorSeriesId,
+        }
+        rankedLeads.push({
+          reference,
+          absPearson: Math.abs(correlation.pearsonDelta),
+          refId: editorialRefId(reference),
+        })
+      }
+    }
+  }
+
+  for (const pair of document.temporalPairs.items) {
+    const serieA = seriesById.get(pair.seriesA.seriesId)
+    const serieB = seriesById.get(pair.seriesB.seriesId)
+    const correlation = correlationFromPairs(computeDeltaPairs(serieA.points, serieB.points, pair.window))
+    if (correlation.reasonCode !== undefined
+      || !EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlation.strength)) {
+      noteCount += 1
+    } else {
+      const reference = { kind: 'curated_pair', pairId: pair.pairId }
+      rankedLeads.push({
+        reference,
+        absPearson: Math.abs(correlation.pearsonDelta),
+        refId: editorialRefId(reference),
+      })
+    }
+  }
+
+  for (const item of document.screenedRelations.items) {
+    const serieA = seriesById.get(item.seriesAId)
+    const serieB = seriesById.get(item.seriesBId)
+    const correlation = correlationFromPairs(computeDeltaPairs(serieA.points, serieB.points, item.window))
+    if (correlation.reasonCode !== undefined
+      || !EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlation.strength)) {
+      noteCount += 1
+    } else {
+      const reference = { kind: 'screened', relationId: item.relationId }
+      rankedLeads.push({
+        reference,
+        absPearson: Math.abs(correlation.pearsonDelta),
+        refId: editorialRefId(reference),
+      })
+    }
+  }
+
+  rankedLeads.sort((left, right) => {
+    if (left.absPearson !== right.absPearson) return right.absPearson - left.absPearson
+    return left.refId === right.refId ? 0 : left.refId < right.refId ? -1 : 1
+  })
+
+  return {
+    leads: [...structuralLeads, ...rankedLeads.map((entry) => entry.reference)],
+    noteCount,
+  }
+}
+
+function validateEditorialReading(candidate, label, document, seriesById) {
+  validateExactFields(candidate, EDITORIAL_READING_FIELDS, label)
+  validateExactFields(candidate.criteria, EDITORIAL_CRITERIA_FIELDS, `${label}.criteria`)
+
+  for (const field of ['leadStrengths', 'gradeEnum']) {
+    const expected = EDITORIAL_READING_CRITERIA[field]
+    invariant(Array.isArray(candidate.criteria[field]), `${label}.criteria.${field} deve ser uma lista.`)
+    invariant(
+      candidate.criteria[field].length === expected.length
+        && candidate.criteria[field].every((value, index) => value === expected[index]),
+      `${label}.criteria.${field} fora do contrato.`,
+    )
+  }
+  invariant(
+    candidate.criteria.structuralAlwaysLead === EDITORIAL_READING_CRITERIA.structuralAlwaysLead,
+    `${label}.criteria.structuralAlwaysLead fora do contrato.`,
+  )
+  invariant(
+    candidate.criteria.orderedBy === EDITORIAL_READING_CRITERIA.orderedBy,
+    `${label}.criteria.orderedBy fora do contrato.`,
+  )
+  invariant(
+    candidate.criteriaStatement === EDITORIAL_CRITERIA_STATEMENT,
+    `${label}.criteriaStatement diverge do template T-CRIT.`,
+  )
+
+  const expected = recomputeEditorialReading(document, seriesById)
+  invariant(Array.isArray(candidate.leads), `${label}.leads deve ser uma lista.`)
+  invariant(
+    candidate.leads.length === expected.leads.length,
+    `${label}.leads diverge do conjunto de destaques recomputado.`,
+  )
+  candidate.leads.forEach((reference, index) => {
+    const referenceLabel = `${label}.leads[${index}]`
+    const expectedReference = expected.leads[index]
+    validateExactFields(reference, EDITORIAL_LEAD_FIELDS_BY_KIND[expectedReference.kind], referenceLabel)
+    for (const field of EDITORIAL_LEAD_FIELDS_BY_KIND[expectedReference.kind]) {
+      invariant(
+        reference[field] === expectedReference[field],
+        `${referenceLabel}.${field} diverge da ordem editorial recomputada.`,
+      )
+    }
+  })
+
+  invariant(
+    Number.isInteger(candidate.noteCount) && candidate.noteCount >= 0,
+    `${label}.noteCount deve ser inteiro não negativo.`,
+  )
+  invariant(
+    candidate.noteCount === expected.noteCount,
+    `${label}.noteCount diverge da contagem recomputada: esperado ${expected.noteCount}, `
+    + `recebido ${candidate.noteCount}.`,
+  )
+  invariant(
+    candidate.noteStatement === renderEditorialNoteStatement(expected.noteCount),
+    `${label}.noteStatement diverge do template T-NOTE.`,
+  )
   return candidate
 }
 
@@ -1981,6 +2316,7 @@ function validateAssociation(candidate, label, seriesById, referenceYear) {
     candidate,
     seriesById,
   )
+  validatePneThemes(candidate.pneThemes, `${label}.pneThemes`, [outcome.seriesId])
   return candidate
 }
 
@@ -1992,6 +2328,7 @@ function validateTemporalPair(candidate, label, seriesById, referenceYear) {
   validateWindow(candidate.window, `${label}.window`, referenceYear)
   const first = validateSeriesReference(candidate.seriesA, `${label}.seriesA`, seriesById)
   const second = validateSeriesReference(candidate.seriesB, `${label}.seriesB`, seriesById)
+  validatePneThemes(candidate.pneThemes, `${label}.pneThemes`, [first.seriesId, second.seriesId])
   invariant(
     first.seriesId !== second.seriesId,
     `${label} compara uma série com ela mesma.`,
@@ -2969,6 +3306,9 @@ export function createVocacoesDocumentParser({
       seriesById,
       referenceYear,
     )
+
+    /* Curadoria por força — ordem e contagem reconstruídas dos pontos do documento. */
+    validateEditorialReading(candidate.editorialReading, 'pacote.editorialReading', candidate, seriesById)
 
     /* Bloco 4 — cenários da região, publicados ou declaradamente ausentes. */
     validateScenarios(candidate.scenarios, 'pacote.scenarios', seriesById, referenceYear)

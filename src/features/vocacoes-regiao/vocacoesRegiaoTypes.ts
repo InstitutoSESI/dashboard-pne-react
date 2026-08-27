@@ -1,5 +1,5 @@
 /*
- * A forma do pacote público `vocacoes-regiao-2.6.0`, do lado de quem renderiza.
+ * A forma do pacote público `vocacoes-regiao-2.7.0`, do lado de quem renderiza.
  *
  * Estes tipos descrevem o que o validador já garantiu. Eles não repetem a
  * validação — repetir daria a ilusão de duas camadas onde há uma: em runtime só
@@ -48,6 +48,26 @@ export interface VocacoesSeriesReference {
 export interface VocacoesWindow {
   readonly start: number
   readonly end: number
+}
+
+export type VocacoesReadingSalience = 'lead' | 'note'
+
+export type VocacoesReadingGrade = 'E1'
+
+export type VocacoesAgendaThemeId =
+  | 'educacao_infantil'
+  | 'ensino_fundamental'
+  | 'ensino_medio'
+  | 'educacao_profissional'
+  | 'eja'
+  | 'alfabetizacao'
+  | 'formacao_docente'
+  | 'oferta_e_rede'
+  | 'gestao_e_planejamento'
+
+export interface VocacoesPneTheme {
+  readonly theme: VocacoesAgendaThemeId
+  readonly themeLabel: string
 }
 
 export type VocacoesAssociativeReasonCode =
@@ -129,6 +149,8 @@ export interface VocacoesFactorReading {
   readonly directionConcordance: VocacoesDirectionConcordance | VocacoesAssociativeAbsence
   readonly comovement: VocacoesAssociationComovement | VocacoesAssociativeAbsence
   readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
+  readonly salience: VocacoesReadingSalience
+  readonly grade: VocacoesReadingGrade
 }
 
 export interface VocacoesAssociationReading {
@@ -145,6 +167,8 @@ export interface VocacoesTemporalReading {
   readonly comovement: VocacoesPairComovement | VocacoesAssociativeAbsence
   readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
   readonly stateContrast: VocacoesStateContrast | VocacoesAssociativeAbsence
+  readonly salience: VocacoesReadingSalience
+  readonly grade: VocacoesReadingGrade
 }
 
 export interface VocacoesLaggedReading {
@@ -160,6 +184,9 @@ export interface VocacoesLaggedReading {
   readonly ties: number
   readonly correlation: VocacoesLaggedCorrelation | VocacoesAssociativeAbsence
   readonly statement: string
+  readonly salience: 'lead'
+  readonly grade: VocacoesReadingGrade
+  readonly pneThemes: readonly VocacoesPneTheme[]
 }
 
 export interface VocacoesLaggedAbsence {
@@ -179,6 +206,9 @@ export interface VocacoesScreenedRelation {
   readonly comovement: VocacoesPairComovement | VocacoesAssociativeAbsence
   readonly correlation: VocacoesCorrelation | VocacoesAssociativeAbsence
   readonly originStatement: string
+  readonly salience: VocacoesReadingSalience
+  readonly grade: VocacoesReadingGrade
+  readonly pneThemes: readonly VocacoesPneTheme[]
 }
 
 export interface VocacoesScreenedRelations {
@@ -189,6 +219,7 @@ export interface VocacoesScreenedRelations {
     readonly minIntervals: number
     readonly minAbsPearson: number
     readonly maxItems: number
+    readonly excludedSeries: readonly string[]
   }
   readonly items: readonly VocacoesScreenedRelation[]
 }
@@ -205,6 +236,7 @@ export interface VocacoesAssociation {
   readonly prohibitedClaim: string
   readonly hypotheses: readonly string[]
   readonly associativeReading: VocacoesAssociationReading
+  readonly pneThemes: readonly VocacoesPneTheme[]
 }
 
 export interface VocacoesTemporalPair {
@@ -217,6 +249,37 @@ export interface VocacoesTemporalPair {
   readonly observedStatement: string
   readonly prohibitedClaim: string
   readonly associativeReading: VocacoesTemporalReading
+  readonly pneThemes: readonly VocacoesPneTheme[]
+}
+
+export interface VocacoesEditorialCriteria {
+  readonly leadStrengths: readonly ['moderada', 'forte']
+  readonly structuralAlwaysLead: true
+  readonly gradeEnum: readonly ['E1']
+  readonly orderedBy: 'estrutural primeiro; depois abs(pearson) bruto desc; empate refId asc'
+}
+
+export type VocacoesEditorialLead =
+  | {
+      readonly kind: 'structural'
+      readonly aSeriesId: string
+      readonly bSeriesId: string
+      readonly lagYears: number
+    }
+  | {
+      readonly kind: 'curated_association'
+      readonly associationId: string
+      readonly factorSeriesId: string
+    }
+  | { readonly kind: 'curated_pair'; readonly pairId: string }
+  | { readonly kind: 'screened'; readonly relationId: string }
+
+export interface VocacoesEditorialReading {
+  readonly criteria: VocacoesEditorialCriteria
+  readonly criteriaStatement: string
+  readonly leads: readonly VocacoesEditorialLead[]
+  readonly noteCount: number
+  readonly noteStatement: string
 }
 
 export type VocacoesScenarioStatute = 'exploratory' | 'normative'
@@ -243,7 +306,7 @@ export interface VocacoesScenarioImplication {
  * o sustenta, não escreve prosa nova.
  */
 export interface VocacoesAgendaTheme {
-  readonly theme: string
+  readonly theme: VocacoesAgendaThemeId
   readonly themeLabel: string
   readonly statement: string
 }
@@ -416,6 +479,7 @@ export interface VocacoesDocument {
     readonly laggedItems: readonly (VocacoesLaggedReading | VocacoesLaggedAbsence)[]
   }
   readonly screenedRelations: VocacoesScreenedRelations
+  readonly editorialReading: VocacoesEditorialReading
   readonly scenarios: VocacoesScenarios
   readonly sources: TextBlock<{ readonly label: string; readonly periodLabel: string }>
   readonly limitations: TextBlock<string>

@@ -251,6 +251,9 @@ const GOAL_NUMBER_PATTERNS = Object.freeze([
   /\b(?:primeir[ao]|segund[ao]|terceir[ao]|quart[ao]|quint[ao]|sext[ao]|setim[ao]|oitav[ao]|non[ao]|decim[ao]|\d+[ao])\s+(?:metas?|estrategias?)\b/u,
 ])
 
+/* Piso V5 R1: vale para qualquer texto público, inclusive `pneThemes` fora da ponte. */
+export const PUBLIC_META_NUMBER_PATTERN = /\bmeta\s+\d/u
+
 const REGION_EXPLAINS_MUNICIPALITY_PATTERNS = Object.freeze([
   /\bexplica(?:m)?\s+o\s+(?:resultado\s+d[eo]\s+)?municipio\b/u,
   /\bexplica(?:m)?\s+o\s+(?:desempenho|indicador)\s+d[eo]\s+municipio\b/u,
@@ -386,6 +389,21 @@ function fail(code, field, message, excerpt) {
     `Vocações da Região — ${message}${field ? ` (campo ${field})` : ''}.`,
     { code, field, excerpt },
   )
+}
+
+export function assertNoPublicMetaNumber(text, field) {
+  const normalized = normalize(text).normalize('NFKC').toLocaleLowerCase('pt-BR')
+  const found = PUBLIC_META_NUMBER_PATTERN.exec(normalized)
+  if (found !== null) {
+    fail(
+      'GOAL_NUMBER_IN_PUBLIC_TEXT',
+      field,
+      `o texto público cita o número de uma meta do PNE ("${found[0]}"); a leitura nomeia o `
+      + 'tema da meta, não o número dela',
+      text,
+    )
+  }
+  return text
 }
 
 function normalize(text) {
@@ -793,6 +811,10 @@ export function createPublicLanguageGuard(researchContract) {
     return text
   }
 
+  function checkPublicMetaNumber(text, field) {
+    return assertNoPublicMetaNumber(text, field)
+  }
+
   /*
    * Um tema de agenda: o rótulo e a frase que o sustenta. A frase é uma
    * implicação já varrida no cenário — repeti-la aqui não custa e fecha o caso
@@ -969,6 +991,7 @@ export function createPublicLanguageGuard(researchContract) {
   function checkText(text, field, options = {}) {
     checkTokens(text, field)
     checkFutureYear(text, field)
+    checkPublicMetaNumber(text, field)
     checkCausal(text, field, options)
     checkLooseCoefficient(text, field)
     checkAssociativeClosedGrammar(text, field)
@@ -990,6 +1013,7 @@ export function createPublicLanguageGuard(researchContract) {
     checkProhibitedClaim,
     checkSentenceComplete,
     checkGoalNumber,
+    checkPublicMetaNumber,
     checkAgendaTheme,
     checkBridgeText,
     checkProbability,
@@ -1009,6 +1033,11 @@ export function createPublicLanguageGuard(researchContract) {
  */
 export function scanPublicDocument(document, guard) {
   const cadastralUniverse = guard.cadastralUniverseLabel
+  const scanPneThemes = (themes, field) => {
+    themes.forEach((item, index) => {
+      guard.checkText(item.themeLabel, `${field}[${index}].themeLabel`)
+    })
+  }
 
   guard.checkText(document.region.name, 'region.name')
   for (const key of ['eyebrow', 'title', 'description', 'neutralityNote']) {
@@ -1115,6 +1144,7 @@ export function scanPublicDocument(document, guard) {
       guard,
       `${field}.associativeReading.stateContrast`,
     )
+    scanPneThemes(association.pneThemes, `${field}.pneThemes`)
     /*
      * A frase partida entre dois campos. Um dos vetores da Rodada 4 escrevia
      * "A retração do emprego levou" num campo e "à evasão escolar." no
@@ -1166,6 +1196,7 @@ export function scanPublicDocument(document, guard) {
       guard,
       `${field}.associativeReading.stateContrast`,
     )
+    scanPneThemes(pair.pneThemes, `${field}.pneThemes`)
     guard.checkCausal(
       [pair.label, pair.observedStatement].join(' '),
       `${field} (texto corrido)`,
@@ -1182,6 +1213,7 @@ export function scanPublicDocument(document, guard) {
     const field = `temporalPairs.laggedItems[${index}]`
     if (item.rationale !== undefined) guard.checkText(item.rationale, `${field}.rationale`)
     scanAssociativeStatement(item, guard, field)
+    if (item.pneThemes !== undefined) scanPneThemes(item.pneThemes, `${field}.pneThemes`)
   })
 
   guard.checkText(document.screenedRelations.label, 'screenedRelations.label')
@@ -1192,7 +1224,16 @@ export function scanPublicDocument(document, guard) {
     scanAssociativeComparison(item, guard, field)
     guard.checkText(item.originStatement, `${field}.originStatement`)
     guard.checkSentenceComplete(item.originStatement, `${field}.originStatement`)
+    scanPneThemes(item.pneThemes, `${field}.pneThemes`)
   })
+
+  guard.checkText(document.editorialReading.criteriaStatement, 'editorialReading.criteriaStatement')
+  guard.checkSentenceComplete(
+    document.editorialReading.criteriaStatement,
+    'editorialReading.criteriaStatement',
+  )
+  guard.checkText(document.editorialReading.noteStatement, 'editorialReading.noteStatement')
+  guard.checkSentenceComplete(document.editorialReading.noteStatement, 'editorialReading.noteStatement')
 
   scanScenarios(document, guard, { citesCadastral })
 

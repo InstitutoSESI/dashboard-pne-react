@@ -4,7 +4,7 @@
  * O gerador atravessa a fronteira uma vez, em tempo de publicação: lê o pacote
  * regional aprovado na camada de pesquisa, reconfere o resumo de cada arquivo
  * contra o manifesto da origem, transpõe para o contrato público
- * `vocacoes-regiao-2.6.0` e escreve. Depois disso a plataforma não sabe mais
+ * `vocacoes-regiao-2.7.0` e escreve. Depois disso a plataforma não sabe mais
  * que a camada de pesquisa existe — ela valida o artefato publicado, e só ele.
  *
  * Nada aqui inventa cenário nem transpõe o pacote municipal para a região. Duas
@@ -47,9 +47,12 @@ import {
   AGGREGATION_LABELS,
   ASSOCIATIVE_GRAMMAR_VERSION,
   ASSOCIATIVE_METHOD_NOTE,
+  EDITORIAL_CRITERIA_STATEMENT,
+  EDITORIAL_READING_CRITERIA,
   EVIDENCE_CLASS_LABELS,
   MUNICIPAL_KIND_LABELS,
   PROHIBITED_CLAIM_OPENER,
+  PNE_SERIES_THEME_MAP,
   SCENARIO_FRAMING,
   SCENARIO_DIRECTION_LABELS,
   SCENARIO_STATUTES,
@@ -59,6 +62,7 @@ import {
   SYNTHESIS_REQUIRED_OPENERS,
   SCREENED_ORIGIN_STATEMENT,
   SCREENED_RELATIONS_CRITERIA,
+  SCREENING_EXCLUDED_SERIES_IDS,
   UNIVERSE_LABELS,
   VOCACOES_DOCUMENT_SCHEMA,
   commonScenarioAgendaThemes,
@@ -73,6 +77,7 @@ import {
   renderConcordanceStatement,
   renderContrastStatement,
   renderCorrelationStatement,
+  renderEditorialNoteStatement,
   renderLaggedStatement,
   roundHalfAwayFromZero,
   slugify,
@@ -89,11 +94,11 @@ const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const OUTPUT_ROOT = new URL('public/data/vocacoes-regiao/', REPOSITORY_ROOT)
 
 /*
- * Changelog do gerador: v4 → v5 acompanha o contrato público 2.5.0 → 2.6.0.
- * Mudança aditiva motivada pela leitura associativa quantificada da V3 R1
- * (V3-D8): nenhum campo 2.5.0 é removido ou reinterpretado.
+ * Changelog do gerador: v5 → v6 acompanha o contrato público 2.6.0 → 2.7.0.
+ * Mudança aditiva motivada pela curadoria por força da V5 R1: nenhum campo
+ * 2.6.0 é removido ou reinterpretado.
  */
-export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v5'
+export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v6'
 export const STATE_CODE = 'RS'
 export const VOCACOES_PUBLICATION_SCOPE = 'estadual'
 
@@ -114,8 +119,12 @@ export const DEFAULT_SOURCE_ROOT = 'C:/Users/rnbirck/PROJETOS/SESI/PNE/foresight
 
 export const PUBLIC_CONTRACT_APPROVAL_FILE = 'CONTRATO_PUBLICO_APROVADO.json'
 export const ORIGIN_MANIFEST_FILE = 'MANIFESTO_ORIGEM.json'
-export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_4.json'
+export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquisa_v0_5.json'
 export const REGISTRY_FILE = 'registro/registro_regioes_rs_v0_1.json'
+
+export const RESEARCH_CONTRACT_VERSION = 'vocacoes-regiao-pesquisa-v0.5'
+export const RESEARCH_ROUND = 'v5-rodada-01'
+export const ASSOCIATIVE_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.2'
 
 /** Pacote de cenários promovido na Rodada 9. Existe só nas regiões da Fase B. */
 export const SCENARIO_PACKAGE_PATTERN = 'pacotes/cenarios/{regionSlug}.json'
@@ -397,7 +406,7 @@ function validateSynthesisApproval(approval, registry) {
 
 function validateAssociativeApproval(approval, registry) {
   const layer = approval.associativeReadingLayer
-  invariant(isRecord(layer), 'o contrato público 2.6.0 não declara associativeReadingLayer.')
+  invariant(isRecord(layer), 'o contrato público 2.7.0 não declara associativeReadingLayer.')
   const expectedRegions = registry.regions
     .map((region) => region.slug)
     .sort((left, right) => left.localeCompare(right, 'en'))
@@ -425,25 +434,89 @@ function validateAssociativeApproval(approval, registry) {
   return layer
 }
 
+function validateEditorialLayer(layer, label) {
+  invariant(isRecord(layer), `${label} não declara editorialLayer.`)
+  assertExactKeys(layer, [
+    'saliences',
+    'leadStrengths',
+    'structuralAlwaysLead',
+    'gradeEnum',
+    'screeningCriteria',
+    'associativeSchemaVersion',
+  ], `${label}.editorialLayer`)
+  assertSameArray(layer.saliences, ['lead', 'note'], `${label}.editorialLayer.saliences`)
+  assertSameArray(
+    layer.leadStrengths,
+    EDITORIAL_READING_CRITERIA.leadStrengths,
+    `${label}.editorialLayer.leadStrengths`,
+  )
+  invariant(
+    layer.structuralAlwaysLead === EDITORIAL_READING_CRITERIA.structuralAlwaysLead,
+    `${label}.editorialLayer.structuralAlwaysLead diverge do contrato público.`,
+  )
+  assertSameArray(
+    layer.gradeEnum,
+    EDITORIAL_READING_CRITERIA.gradeEnum,
+    `${label}.editorialLayer.gradeEnum`,
+  )
+  invariant(
+    layer.associativeSchemaVersion === ASSOCIATIVE_PACKAGE_SCHEMA,
+    `${label}.editorialLayer.associativeSchemaVersion deve ser "${ASSOCIATIVE_PACKAGE_SCHEMA}".`,
+  )
+  assertExactKeys(layer.screeningCriteria, [
+    'minIntervals',
+    'minAbsPearson',
+    'maxItems',
+    'excludedSeries',
+  ], `${label}.editorialLayer.screeningCriteria`)
+  for (const [field, expected] of Object.entries(SCREENED_RELATIONS_CRITERIA)) {
+    invariant(
+      layer.screeningCriteria[field] === expected,
+      `${label}.editorialLayer.screeningCriteria.${field} diverge do contrato público.`,
+    )
+  }
+  invariant(
+    Array.isArray(layer.screeningCriteria.excludedSeries)
+      && layer.screeningCriteria.excludedSeries.length === SCREENING_EXCLUDED_SERIES_IDS.length,
+    `${label}.editorialLayer.screeningCriteria.excludedSeries deve declarar as 13 exclusões.`,
+  )
+  const ordered = [...layer.screeningCriteria.excludedSeries].sort()
+  assertSameArray(
+    layer.screeningCriteria.excludedSeries,
+    ordered,
+    `${label}.editorialLayer.screeningCriteria.excludedSeries`,
+  )
+  invariant(
+    new Set(ordered).size === ordered.length,
+    `${label}.editorialLayer.screeningCriteria.excludedSeries repete série.`,
+  )
+  return layer
+}
+
 function validateAssociativeResearchContract(researchContract) {
   const layer = researchContract.associativeReadingLayer
-  invariant(isRecord(layer), 'o contrato de pesquisa v0.4 não declara associativeReadingLayer.')
+  invariant(isRecord(layer), 'o contrato de pesquisa v0.5 não declara associativeReadingLayer.')
   invariant(
     layer.packagePattern === ASSOCIATIVE_LAYER_PACKAGE_PATTERN
       && layer.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1'
       && layer.grammarVersion === ASSOCIATIVE_GRAMMAR_VERSION,
-    'o contrato de pesquisa v0.4 diverge da camada associativa implementada.',
+    'o contrato de pesquisa v0.5 diverge da camada associativa herdada.',
   )
   assertCanonicalEqual(
     layer.criteria,
-    SCREENED_RELATIONS_CRITERIA,
+    {
+      minIntervals: SCREENED_RELATIONS_CRITERIA.minIntervals,
+      minAbsPearson: SCREENED_RELATIONS_CRITERIA.minAbsPearson,
+      maxItems: 5,
+    },
     'contrato de pesquisa.associativeReadingLayer.criteria',
   )
   invariant(
     layer.correlationClosedGrammarOnly === true && layer.pValueForbidden === true,
     'o contrato de pesquisa não fecha a gramática da correlação ou permite p-valor.',
   )
-  return layer
+  const editorialLayer = validateEditorialLayer(researchContract.editorialLayer, 'contrato de pesquisa')
+  return { layer, editorialLayer }
 }
 
 const MONTH_NAMES = Object.freeze([
@@ -639,6 +712,16 @@ function resolveAssociativeSeriesId(seriesKey, seriesIdByKey, label) {
   return seriesId
 }
 
+function resolvePneThemes(seriesIds, label) {
+  const resolved = new Set()
+  for (const seriesId of seriesIds) {
+    for (const theme of PNE_SERIES_THEME_MAP[seriesId] ?? []) resolved.add(theme)
+  }
+  const themes = AGENDA_THEMES.filter((theme) => resolved.has(theme))
+  invariant(themes.length > 0, `${label} não resolve nenhum tema do PNE.`)
+  return themes.map((theme) => ({ theme, themeLabel: AGENDA_THEME_LABELS[theme] }))
+}
+
 function transposeDirectionConcordance(block) {
   if (Object.prototype.hasOwnProperty.call(block, 'reasonCode')) return { reasonCode: block.reasonCode }
   return {
@@ -722,6 +805,8 @@ function transposeAssociationReading(sourceReading, seriesIdByKey, associationLa
         `${associationLabel}.factorReadings[${index}].comovement`,
       ),
       correlation: transposeCorrelation(reading.correlation),
+      salience: reading.salience,
+      grade: reading.grade,
     })),
     stateContrast: transposeStateContrast(
       sourceReading.stateContrast,
@@ -748,6 +833,8 @@ function transposeTemporalReading(sourceReading, seriesIdByKey, pairLabel) {
       seriesIdByKey,
       `${pairLabel}.stateContrast`,
     ),
+    salience: sourceReading.salience,
+    grade: sourceReading.grade,
   }
 }
 
@@ -797,6 +884,7 @@ function transposeAssociation(sourceAssociation, sourceReading, seriesIdByKey) {
       seriesIdByKey,
       `associação "${sourceAssociation.associationKey}"`,
     ),
+    pneThemes: resolvePneThemes([outcomeId], `associação "${sourceAssociation.associationKey}"`),
   }
 }
 
@@ -806,18 +894,24 @@ function transposeTemporalPair(sourcePair, sourceReading, seriesIdByKey, labelBy
     invariant(seriesId !== undefined, `o par temporal referencia série ausente do pacote: "${key}".`)
     return { seriesId, label: labelByKey.get(key) ?? label }
   }
+  const seriesA = build(sourcePair.seriesKeyA)
+  const seriesB = build(sourcePair.seriesKeyB)
   return {
     pairId: slugify(sourcePair.publicLabel),
     label: sourcePair.publicLabel,
     window: { start: sourcePair.window.start, end: sourcePair.window.end },
     periodLabel: formatWindowLabel(sourcePair.window),
-    seriesA: build(sourcePair.seriesKeyA),
-    seriesB: build(sourcePair.seriesKeyB),
+    seriesA,
+    seriesB,
     observedStatement: sourcePair.observedStatement,
     prohibitedClaim: composeProhibitedClaim(sourcePair.forbiddenInterpretation.prohibitedClaim),
     associativeReading: transposeTemporalReading(
       sourceReading,
       seriesIdByKey,
+      `par temporal "${sourcePair.pairKey}"`,
+    ),
+    pneThemes: resolvePneThemes(
+      [seriesA.seriesId, seriesB.seriesId],
       `par temporal "${sourcePair.pairKey}"`,
     ),
   }
@@ -826,7 +920,7 @@ function transposeTemporalPair(sourcePair, sourceReading, seriesIdByKey, labelBy
 /* ------------------------------------------------------------------ *
  * Leitura associativa quantificada — reverificação da origem.
  *
- * O parser 2.6.0 fará a mesma conferência sobre o documento público. Esta
+ * O parser 2.7.0 fará a mesma conferência sobre o documento público. Esta
  * primeira passagem trabalha ainda com as seriesKeys do pacote de pesquisa e
  * impede que um statement ou um rank divergente atravesse a transposição.
  * ------------------------------------------------------------------ */
@@ -842,6 +936,35 @@ function sourceSeriesByKey(sourcePackage, label) {
   const byKey = new Map(sourcePackage.series.map((serie) => [serie.seriesKey, serie]))
   invariant(byKey.size === sourcePackage.series.length, `${label} repete seriesKey.`)
   return byKey
+}
+
+function validateResearchScreeningCriteria(criteria, sourceSeriesMap, label) {
+  assertExactKeys(criteria, [
+    'minIntervals',
+    'minAbsPearson',
+    'maxItems',
+    'excludedSeries',
+  ], label)
+  for (const [field, expected] of Object.entries(SCREENED_RELATIONS_CRITERIA)) {
+    invariant(criteria[field] === expected, `${label}.${field} diverge do contrato público.`)
+  }
+  invariant(
+    Array.isArray(criteria.excludedSeries)
+      && criteria.excludedSeries.length === SCREENING_EXCLUDED_SERIES_IDS.length,
+    `${label}.excludedSeries deve declarar as 13 exclusões da triagem.`,
+  )
+  assertSameArray(criteria.excludedSeries, [...criteria.excludedSeries].sort(), `${label}.excludedSeries`)
+  invariant(
+    new Set(criteria.excludedSeries).size === criteria.excludedSeries.length,
+    `${label}.excludedSeries repete seriesKey.`,
+  )
+  const translated = criteria.excludedSeries.map((seriesKey) => {
+    const serie = sourceSeriesMap.get(seriesKey)
+    invariant(serie !== undefined, `${label}.excludedSeries referencia série ausente: "${seriesKey}".`)
+    return slugify(serie.publicLabel)
+  })
+  assertSameArray(translated, SCREENING_EXCLUDED_SERIES_IDS, `${label}.excludedSeries traduzida`)
+  return new Set(criteria.excludedSeries)
 }
 
 function deltaKindOf(sourceSeries) {
@@ -909,6 +1032,26 @@ function expectedCorrelation(serieA, serieB, window, { statement = true } = {}) 
     })
   }
   return result
+}
+
+function expectedSalience(serieA, serieB, window) {
+  const correlation = expectedCorrelation(serieA, serieB, window, { statement: false })
+  return correlation.reasonCode === undefined
+    && EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlation.strength)
+    ? 'lead'
+    : 'note'
+}
+
+function verifyReadingClassification(reading, serieA, serieB, window, label) {
+  const salience = expectedSalience(serieA, serieB, window)
+  invariant(
+    reading.salience === salience,
+    `${label}.salience diverge da recomputação: esperado ${salience}, recebido ${reading.salience}.`,
+  )
+  invariant(
+    EDITORIAL_READING_CRITERIA.gradeEnum.includes(reading.grade),
+    `${label}.grade fora do enum editorial.`,
+  )
 }
 
 function comparableStateMovements(seriesKey, window, allSourcePackagesBySlug) {
@@ -991,6 +1134,7 @@ function verifyComparisonReading({
     expectedCorrelation(serieA, serieB, window),
     `${label}.correlation`,
   )
+  verifyReadingClassification(reading, serieA, serieB, window, label)
 }
 
 function lagComparablePeriods(serieA, serieB, lagYears) {
@@ -1064,6 +1208,8 @@ function expectedLaggedPair(sourcePair, sourceSeriesMap) {
     opposite: concordance.opposite,
     ties: concordance.ties,
     correlation,
+    salience: 'lead',
+    grade: EDITORIAL_READING_CRITERIA.gradeEnum[0],
   }
   return {
     ...result,
@@ -1081,6 +1227,99 @@ function expectedLaggedPair(sourcePair, sourceSeriesMap) {
   }
 }
 
+function researchEditorialRefId(reference) {
+  if (reference.kind === 'structural') {
+    return `${reference.kind}/${reference.aSeriesKey}/${reference.bSeriesKey}/${reference.lagYears}`
+  }
+  if (reference.kind === 'curated_association') {
+    return `${reference.kind}/${reference.associationKey}/${reference.factorSeriesKey}`
+  }
+  if (reference.kind === 'curated_pair') return `${reference.kind}/${reference.pairKey}`
+  return `${reference.kind}/${reference.relationId}`
+}
+
+function recomputeResearchEditorial(associativePackage, sourcePackage, sourceSeriesMap) {
+  const structural = []
+  const ranked = []
+  let noteCount = 0
+
+  for (const pair of associativePackage.laggedPairs) {
+    if (!Object.prototype.hasOwnProperty.call(pair, 'reasonCode')) {
+      structural.push({
+        kind: 'structural',
+        aSeriesKey: pair.aSeriesKey,
+        bSeriesKey: pair.bSeriesKey,
+        lagYears: pair.lagYears,
+      })
+    }
+  }
+
+  for (const association of associativePackage.associations) {
+    for (const reading of association.factorReadings) {
+      const outcome = sourceSeriesMap.get(reading.outcomeSeriesKey)
+      const factor = sourceSeriesMap.get(reading.factorSeriesKey)
+      invariant(outcome !== undefined && factor !== undefined, 'editorial referencia série curada ausente.')
+      if (expectedSalience(outcome, factor, association.window) === 'note') {
+        noteCount += 1
+        continue
+      }
+      const reference = {
+        kind: 'curated_association',
+        associationKey: association.associationKey,
+        factorSeriesKey: reading.factorSeriesKey,
+      }
+      ranked.push({
+        reference,
+        absPearson: Math.abs(computePearsonDelta(outcome.points, factor.points, association.window)),
+        refId: researchEditorialRefId(reference),
+      })
+    }
+  }
+
+  for (const pair of associativePackage.temporalPairs) {
+    const regionalPair = sourcePackage.temporalPairs.find((candidate) => candidate.pairKey === pair.pairKey)
+    invariant(regionalPair !== undefined, `editorial referencia pairKey ausente: "${pair.pairKey}".`)
+    const a = sourceSeriesMap.get(regionalPair.seriesKeyA)
+    const b = sourceSeriesMap.get(regionalPair.seriesKeyB)
+    invariant(a !== undefined && b !== undefined, `editorial referencia par curado ausente: "${pair.pairKey}".`)
+    if (expectedSalience(a, b, pair.window) === 'note') {
+      noteCount += 1
+      continue
+    }
+    const reference = { kind: 'curated_pair', pairKey: pair.pairKey }
+    ranked.push({
+      reference,
+      absPearson: Math.abs(computePearsonDelta(a.points, b.points, pair.window)),
+      refId: researchEditorialRefId(reference),
+    })
+  }
+
+  for (const item of associativePackage.screenedRelations.items) {
+    const serieA = sourceSeriesMap.get(item.aSeriesKey)
+    const serieB = sourceSeriesMap.get(item.bSeriesKey)
+    invariant(serieA !== undefined && serieB !== undefined, 'editorial referencia relação triada ausente.')
+    if (expectedSalience(serieA, serieB, item.window) === 'note') {
+      noteCount += 1
+      continue
+    }
+    const reference = { kind: 'screened', relationId: item.relationId }
+    ranked.push({
+      reference,
+      absPearson: Math.abs(computePearsonDelta(serieA.points, serieB.points, item.window)),
+      refId: researchEditorialRefId(reference),
+    })
+  }
+
+  ranked.sort((left, right) => {
+    if (left.absPearson !== right.absPearson) return right.absPearson - left.absPearson
+    return left.refId === right.refId ? 0 : left.refId < right.refId ? -1 : 1
+  })
+  return {
+    leads: [...structural, ...ranked.map((entry) => entry.reference)],
+    noteCount,
+  }
+}
+
 export function verifyAssociativePackage({
   associativePackage,
   sourcePackage,
@@ -1092,6 +1331,7 @@ export function verifyAssociativePackage({
 }) {
   assertExactKeys(associativePackage, [
     'associations',
+    'editorial',
     'generation',
     'grammarVersion',
     'laggedPairs',
@@ -1103,7 +1343,7 @@ export function verifyAssociativePackage({
     'temporalPairs',
   ], `pacote associativo de "${registryRegion.slug}"`)
   invariant(
-    associativePackage.schemaVersion === 'vocacoes-regiao-pesquisa-associativo-v0.1',
+    associativePackage.schemaVersion === ASSOCIATIVE_PACKAGE_SCHEMA,
     `o pacote associativo de "${registryRegion.slug}" traz schema desconhecido.`,
   )
   invariant(
@@ -1113,11 +1353,6 @@ export function verifyAssociativePackage({
   invariant(
     associativePackage.method?.methodNote === ASSOCIATIVE_METHOD_NOTE,
     `o pacote associativo de "${registryRegion.slug}" altera a nota metodológica fechada.`,
-  )
-  assertCanonicalEqual(
-    associativePackage.screenedRelations?.criteria,
-    SCREENED_RELATIONS_CRITERIA,
-    `pacote associativo de "${registryRegion.slug}".screenedRelations.criteria`,
   )
   invariant(
     associativePackage.generation?.deterministic === true
@@ -1150,6 +1385,27 @@ export function verifyAssociativePackage({
   )
 
   const sourceSeriesMap = sourceSeriesByKey(sourcePackage, `pacote regional de "${registryRegion.slug}"`)
+  const screeningLabel = `pacote associativo de "${registryRegion.slug}".screenedRelations.criteria`
+  const excludedSeries = validateResearchScreeningCriteria(
+    associativePackage.screenedRelations?.criteria,
+    sourceSeriesMap,
+    screeningLabel,
+  )
+  assertCanonicalEqual(
+    associativePackage.method?.screeningCriteria,
+    associativePackage.screenedRelations.criteria,
+    `pacote associativo de "${registryRegion.slug}".method.screeningCriteria`,
+  )
+  assertCanonicalEqual(
+    associativePackage.method?.editorialCriteria,
+    EDITORIAL_READING_CRITERIA,
+    `pacote associativo de "${registryRegion.slug}".method.editorialCriteria`,
+  )
+  assertCanonicalEqual(
+    associativePackage.editorial?.criteria,
+    EDITORIAL_READING_CRITERIA,
+    `pacote associativo de "${registryRegion.slug}".editorial.criteria`,
+  )
   invariant(
     associativePackage.associations.length === sourcePackage.associations.length,
     `o pacote associativo de "${registryRegion.slug}" não cobre todas as associações.`,
@@ -1241,11 +1497,19 @@ export function verifyAssociativePackage({
 
   invariant(Array.isArray(associativePackage.screenedRelations.items),
     'pacote associativo.screenedRelations.items deve ser lista.')
+  invariant(
+    associativePackage.screenedRelations.items.length <= SCREENED_RELATIONS_CRITERIA.maxItems,
+    `pacote associativo.screenedRelations.items excede o teto de ${SCREENED_RELATIONS_CRITERIA.maxItems}.`,
+  )
   associativePackage.screenedRelations.items.forEach((item, index) => {
     const label = `pacote associativo.screenedRelations.items[${index}]`
     const serieA = sourceSeriesMap.get(item.aSeriesKey)
     const serieB = sourceSeriesMap.get(item.bSeriesKey)
     invariant(serieA !== undefined && serieB !== undefined, `${label} referencia série ausente.`)
+    invariant(
+      !excludedSeries.has(item.aSeriesKey),
+      `${label}.aSeriesKey usa série excluída da elegibilidade da triagem: "${item.aSeriesKey}".`,
+    )
     invariant(item.relationId === `${slugify(serieA.publicLabel)}--${slugify(serieB.publicLabel)}`,
       `${label}.relationId não deriva dos rótulos públicos.`)
     invariant(item.originStatement === SCREENED_ORIGIN_STATEMENT,
@@ -1258,7 +1522,26 @@ export function verifyAssociativePackage({
       roles: ['a', 'b'],
       label,
     })
+    const direction = computeDirectionConcordance(serieA.points, serieB.points, item.window)
+    const pearson = computePearsonDelta(serieA.points, serieB.points, item.window)
+    invariant(
+      !Object.prototype.hasOwnProperty.call(direction, 'reasonCode')
+        && direction.intervals >= SCREENED_RELATIONS_CRITERIA.minIntervals,
+      `${label} não alcança o mínimo de intervalos da triagem.`,
+    )
+    invariant(
+      pearson !== null && Math.abs(pearson) >= SCREENED_RELATIONS_CRITERIA.minAbsPearson,
+      `${label} não alcança o piso de correlação da triagem.`,
+    )
   })
+  assertCanonicalEqual(
+    associativePackage.editorial,
+    {
+      criteria: EDITORIAL_READING_CRITERIA,
+      ...recomputeResearchEditorial(associativePackage, sourcePackage, sourceSeriesMap),
+    },
+    `pacote associativo de "${registryRegion.slug}".editorial`,
+  )
   return associativePackage
 }
 
@@ -1285,6 +1568,12 @@ function transposeLaggedItems(laggedPairs, seriesIdByKey) {
       ties: pair.ties,
       correlation: transposeCorrelation(pair.correlation),
       statement: pair.statement,
+      salience: pair.salience,
+      grade: pair.grade,
+      pneThemes: resolvePneThemes(
+        [base.bSeriesId],
+        `laggedPairs[${index}]`,
+      ),
     }
   })
 }
@@ -1293,24 +1582,90 @@ function transposeScreenedRelations(screenedRelations, seriesIdByKey) {
   return {
     ...SCREENED_RELATIONS_FRAMING,
     methodNote: ASSOCIATIVE_METHOD_NOTE,
-    criteria: { ...SCREENED_RELATIONS_CRITERIA },
-    items: screenedRelations.items.map((item, index) => ({
-      relationId: item.relationId,
-      seriesAId: resolveAssociativeSeriesId(
-        item.aSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].aSeriesKey`),
-      seriesBId: resolveAssociativeSeriesId(
-        item.bSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].bSeriesKey`),
-      window: { start: item.window.start, end: item.window.end },
-      directionConcordance: transposeDirectionConcordance(item.directionConcordance),
-      comovement: transposeComovement(
-        item.comovement,
-        ['a', 'b'],
-        seriesIdByKey,
-        `screenedRelations.items[${index}].comovement`,
-      ),
-      correlation: transposeCorrelation(item.correlation),
-      originStatement: item.originStatement,
-    })),
+    criteria: {
+      ...SCREENED_RELATIONS_CRITERIA,
+      excludedSeries: [...SCREENING_EXCLUDED_SERIES_IDS],
+    },
+    items: screenedRelations.items.map((item, index) => {
+      const seriesAId = resolveAssociativeSeriesId(
+        item.aSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].aSeriesKey`)
+      const seriesBId = resolveAssociativeSeriesId(
+        item.bSeriesKey, seriesIdByKey, `screenedRelations.items[${index}].bSeriesKey`)
+      return {
+        relationId: item.relationId,
+        seriesAId,
+        seriesBId,
+        window: { start: item.window.start, end: item.window.end },
+        directionConcordance: transposeDirectionConcordance(item.directionConcordance),
+        comovement: transposeComovement(
+          item.comovement,
+          ['a', 'b'],
+          seriesIdByKey,
+          `screenedRelations.items[${index}].comovement`,
+        ),
+        correlation: transposeCorrelation(item.correlation),
+        originStatement: item.originStatement,
+        salience: item.salience,
+        grade: item.grade,
+        pneThemes: resolvePneThemes([seriesBId], `screenedRelations.items[${index}]`),
+      }
+    }),
+  }
+}
+
+function transposeEditorialReading({
+  editorial,
+  sourcePackage,
+  associations,
+  temporalPairs,
+  seriesIdByKey,
+}) {
+  const associationIdByKey = new Map(sourcePackage.associations.map((association, index) => [
+    association.associationKey,
+    associations[index].associationId,
+  ]))
+  const pairIdByKey = new Map(sourcePackage.temporalPairs.map((pair, index) => [
+    pair.pairKey,
+    temporalPairs[index].pairId,
+  ]))
+  const leads = editorial.leads.map((reference, index) => {
+    const label = `editorial.leads[${index}]`
+    if (reference.kind === 'structural') {
+      return {
+        kind: reference.kind,
+        aSeriesId: resolveAssociativeSeriesId(reference.aSeriesKey, seriesIdByKey, label),
+        bSeriesId: resolveAssociativeSeriesId(reference.bSeriesKey, seriesIdByKey, label),
+        lagYears: reference.lagYears,
+      }
+    }
+    if (reference.kind === 'curated_association') {
+      const associationId = associationIdByKey.get(reference.associationKey)
+      invariant(associationId !== undefined, `${label} referencia associationKey ausente.`)
+      return {
+        kind: reference.kind,
+        associationId,
+        factorSeriesId: resolveAssociativeSeriesId(reference.factorSeriesKey, seriesIdByKey, label),
+      }
+    }
+    if (reference.kind === 'curated_pair') {
+      const pairId = pairIdByKey.get(reference.pairKey)
+      invariant(pairId !== undefined, `${label} referencia pairKey ausente.`)
+      return { kind: reference.kind, pairId }
+    }
+    invariant(reference.kind === 'screened', `${label}.kind fora do contrato editorial.`)
+    return { kind: reference.kind, relationId: reference.relationId }
+  })
+  return {
+    criteria: {
+      leadStrengths: [...EDITORIAL_READING_CRITERIA.leadStrengths],
+      structuralAlwaysLead: EDITORIAL_READING_CRITERIA.structuralAlwaysLead,
+      gradeEnum: [...EDITORIAL_READING_CRITERIA.gradeEnum],
+      orderedBy: EDITORIAL_READING_CRITERIA.orderedBy,
+    },
+    criteriaStatement: EDITORIAL_CRITERIA_STATEMENT,
+    leads,
+    noteCount: editorial.noteCount,
+    noteStatement: renderEditorialNoteStatement(editorial.noteCount),
   }
 }
 
@@ -2220,6 +2575,18 @@ export function transposeRegion({
       seriesIdByKey,
       labelByKey,
     ))
+  const laggedItems = transposeLaggedItems(associativePackage.laggedPairs, seriesIdByKey)
+  const screenedRelations = transposeScreenedRelations(
+    associativePackage.screenedRelations,
+    seriesIdByKey,
+  )
+  const editorialReading = transposeEditorialReading({
+    editorial: associativePackage.editorial,
+    sourcePackage,
+    associations,
+    temporalPairs,
+    seriesIdByKey,
+  })
   const scenarios = publishesScenarios
     ? {
       label: SCENARIO_FRAMING.label,
@@ -2282,12 +2649,10 @@ export function transposeRegion({
     temporalPairs: {
       ...framing.temporalPairs,
       items: temporalPairs,
-      laggedItems: transposeLaggedItems(associativePackage.laggedPairs, seriesIdByKey),
+      laggedItems,
     },
-    screenedRelations: transposeScreenedRelations(
-      associativePackage.screenedRelations,
-      seriesIdByKey,
-    ),
+    screenedRelations,
+    editorialReading,
     scenarios,
     sources: { ...framing.sources, items: buildSources(series) },
     limitations: {
@@ -2338,9 +2703,10 @@ export function buildPublication({ sourceRoot } = {}) {
 
   const verified = openVerifiedSource(source.root)
   invariant(
-    verified.manifest.contractVersion === 'vocacoes-regiao-pesquisa-v0.4'
-      && verified.manifest.round === 'v3-rodada-01',
-    'o manifesto da origem não declara o contrato v0.4 e a rodada v3-rodada-01.',
+    verified.manifest.contractVersion === RESEARCH_CONTRACT_VERSION
+      && verified.manifest.round === RESEARCH_ROUND,
+    `o manifesto da origem não declara o contrato ${RESEARCH_CONTRACT_VERSION} e a rodada `
+    + `${RESEARCH_ROUND}.`,
   )
   const verifiedApproval = verified.readVerifiedJson(PUBLIC_CONTRACT_APPROVAL_FILE)
   invariant(
@@ -2348,10 +2714,10 @@ export function buildPublication({ sourceRoot } = {}) {
     'o contrato público lido no handshake diverge do contrato sha-verificado pelo manifesto.',
   )
   invariant(
-    verifiedApproval.supersedes === 'vocacoes-regiao-2.5.0'
-      && verifiedApproval.approvedInRound === 'v3-rodada-01'
-      && verifiedApproval.researchContractVersion === 'vocacoes-regiao-pesquisa-v0.4',
-    'a aprovação do contrato público 2.6.0 não declara a sucessão e a rodada V3 R1 esperadas.',
+    verifiedApproval.supersedes === 'vocacoes-regiao-2.6.0'
+      && verifiedApproval.approvedInRound === RESEARCH_ROUND
+      && verifiedApproval.researchContractVersion === RESEARCH_CONTRACT_VERSION,
+    'a aprovação do contrato público 2.7.0 não declara a sucessão e a rodada V5 R1 esperadas.',
   )
   const researchContract = verified.readVerifiedJson(RESEARCH_CONTRACT_FILE)
   invariant(
@@ -2387,6 +2753,12 @@ export function buildPublication({ sourceRoot } = {}) {
   )
   validateSynthesisApproval(verifiedApproval, registry)
   validateAssociativeApproval(verifiedApproval, registry)
+  const approvedEditorial = validateEditorialLayer(verifiedApproval.editorialLayer, 'aprovação pública')
+  assertCanonicalEqual(
+    approvedEditorial,
+    researchContract.editorialLayer,
+    'aprovação pública.editorialLayer',
+  )
 
   const parseDocument = createVocacoesDocumentParser({
     sourceVersion: researchContract.schemaVersion,

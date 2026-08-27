@@ -4,9 +4,15 @@ import path from 'node:path'
 import test from 'node:test'
 
 import {
+  AGENDA_THEME_LABELS,
+  AGENDA_THEMES,
   ASSOCIATIVE_METHOD_NOTE,
+  EDITORIAL_CRITERIA_STATEMENT,
+  EDITORIAL_READING_CRITERIA,
+  PNE_SERIES_THEME_MAP,
   SCREENED_ORIGIN_STATEMENT,
   SCREENED_RELATIONS_CRITERIA,
+  SCREENING_EXCLUDED_SERIES_IDS,
   UNIVERSE_LABELS,
   VOCACOES_DOCUMENT_SCHEMA,
   computeComovement,
@@ -19,6 +25,7 @@ import {
   renderConcordanceStatement,
   renderContrastStatement,
   renderCorrelationStatement,
+  renderEditorialNoteStatement,
   renderLaggedStatement,
   roundHalfAwayFromZero,
 } from '../../src/features/vocacoes-regiao/vocacoesRegiaoContract.js'
@@ -42,14 +49,14 @@ import {
 
 const PUBLIC_ROOT = new URL('../../public/data/vocacoes-regiao/', import.meta.url)
 const manifest = JSON.parse(fs.readFileSync(new URL('manifest.json', PUBLIC_ROOT), 'utf8'))
-const PREPUBLICATION_SCHEMA = 'vocacoes-regiao-2.5.0'
+const PREPUBLICATION_SCHEMA = 'vocacoes-regiao-2.6.0'
 const PREPUBLICATION_SKIP =
-  'publicação associativa 2.6.0 ainda não promovida: public/data permanece em vocacoes-regiao-2.5.0'
+  'publicação V5 R1 2.7.0 ainda não promovida: public/data permanece em vocacoes-regiao-2.6.0'
 
 if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
-  test('publicação associativa V3 R1', { skip: PREPUBLICATION_SKIP }, () => {})
+  test('publicação associativa V5 R1', { skip: PREPUBLICATION_SKIP }, () => {})
 } else {
-  test('manifesto publicado usa o contrato associativo 2.6.0', () => {
+  test('manifesto publicado usa o contrato associativo 2.7.0', () => {
     assert.equal(manifest.documentSchemaVersion, VOCACOES_DOCUMENT_SCHEMA)
     assert.equal(manifest.regions.length, 10)
   })
@@ -136,6 +143,22 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
     return result
   }
 
+  function expectedSalience(serieA, serieB, window) {
+    const pearson = computePearsonDelta(serieA.points, serieB.points, window)
+    return pearson !== null
+      && EDITORIAL_READING_CRITERIA.leadStrengths.includes(correlationStrength(Math.abs(pearson)))
+      ? 'lead'
+      : 'note'
+  }
+
+  function expectedPneThemes(...seriesIds) {
+    const resolved = new Set(seriesIds.flatMap((seriesId) => PNE_SERIES_THEME_MAP[seriesId] ?? []))
+    return AGENDA_THEMES.filter((theme) => resolved.has(theme)).map((theme) => ({
+      theme,
+      themeLabel: AGENDA_THEME_LABELS[theme],
+    }))
+  }
+
   function assertComparison(reading, serieA, serieB, window, roles, label) {
     assert.deepEqual(reading.directionConcordance, expectedDirection(serieA, serieB, window),
       `${label}.directionConcordance`)
@@ -143,6 +166,8 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       `${label}.comovement`)
     assert.deepEqual(reading.correlation, expectedCorrelation(serieA, serieB, window),
       `${label}.correlation`)
+    assert.equal(reading.salience, expectedSalience(serieA, serieB, window), `${label}.salience`)
+    assert.equal(reading.grade, EDITORIAL_READING_CRITERIA.gradeEnum[0], `${label}.grade`)
   }
 
   function comparableStateMovements(seriesId, window) {
@@ -256,10 +281,13 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       intervals: item.intervals,
       correlation: item.correlation,
     }))
+    assert.equal(item.salience, 'lead')
+    assert.equal(item.grade, EDITORIAL_READING_CRITERIA.gradeEnum[0])
+    assert.deepEqual(item.pneThemes, expectedPneThemes(item.bSeriesId))
   }
 
-  test('piso da plataforma é subconjunto do contrato de pesquisa v0.4', () => {
-    assert.equal(researchContract.contractVersion, 'v0.4')
+  test('piso da plataforma é subconjunto do contrato de pesquisa v0.5', () => {
+    assert.equal(researchContract.contractVersion, 'v0.5')
     assert.equal(assertResearchContractCoversFloor(researchContract), true)
     const causal = new Set(researchContract.causalLanguagePatterns)
     for (const pattern of CAUSAL_FLOOR) assert.ok(causal.has(pattern), pattern)
@@ -281,6 +309,10 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       const byId = seriesById(document)
       document.associations.items.forEach((association, associationIndex) => {
         assert.equal(association.associativeReading.methodNote, ASSOCIATIVE_METHOD_NOTE)
+        assert.deepEqual(
+          association.pneThemes,
+          expectedPneThemes(association.educationOutcome.seriesId),
+        )
         const outcome = byId.get(association.educationOutcome.seriesId)
         association.associativeReading.factorReadings.forEach((reading, factorIndex) => {
           const factor = byId.get(reading.factorSeriesId)
@@ -301,6 +333,7 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       document.temporalPairs.items.forEach((pair, pairIndex) => {
         const serieA = byId.get(pair.seriesA.seriesId)
         const serieB = byId.get(pair.seriesB.seriesId)
+        assert.deepEqual(pair.pneThemes, expectedPneThemes(pair.seriesA.seriesId, pair.seriesB.seriesId))
         assertComparison(
           pair.associativeReading,
           serieA,
@@ -334,7 +367,9 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
     const education = document.territoryPortrait.series.filter((serie) =>
       EDUCATION_SERIES_IDS.has(serie.seriesId) && serie.periodGranularity === 'annual')
     const territorial = document.territoryPortrait.series.filter((serie) =>
-      !EDUCATION_SERIES_IDS.has(serie.seriesId) && serie.periodGranularity === 'annual')
+      !EDUCATION_SERIES_IDS.has(serie.seriesId)
+      && !SCREENING_EXCLUDED_SERIES_IDS.includes(serie.seriesId)
+      && serie.periodGranularity === 'annual')
     const curated = new Set()
     const unordered = (left, right) => [left, right].sort().join('|')
     for (const association of document.associations.items) {
@@ -381,7 +416,10 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
 
   test('triagem respeita limiar, teto, ordem e exclusão dos pares curados', () => {
     for (const { document } of documents) {
-      assert.deepEqual(document.screenedRelations.criteria, SCREENED_RELATIONS_CRITERIA)
+      assert.deepEqual(document.screenedRelations.criteria, {
+        ...SCREENED_RELATIONS_CRITERIA,
+        excludedSeries: [...SCREENING_EXCLUDED_SERIES_IDS],
+      })
       const expected = screenedCandidates(document)
       assert.deepEqual(
         document.screenedRelations.items.map((item) => item.relationId),
@@ -391,6 +429,8 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       document.screenedRelations.items.forEach((item, index) => {
         const candidate = expected[index]
         assert.equal(item.originStatement, SCREENED_ORIGIN_STATEMENT)
+        assert.ok(!SCREENING_EXCLUDED_SERIES_IDS.includes(item.seriesAId))
+        assert.deepEqual(item.pneThemes, expectedPneThemes(item.seriesBId))
         assert.deepEqual(item.window, candidate.window)
         assertComparison(
           item,
@@ -401,6 +441,85 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
           `${document.region.slug}.screenedRelations.items[${index}]`,
         )
       })
+    }
+  })
+
+  function editorialRefId(reference) {
+    if (reference.kind === 'structural') {
+      return `${reference.kind}/${reference.aSeriesId}/${reference.bSeriesId}/${reference.lagYears}`
+    }
+    if (reference.kind === 'curated_association') {
+      return `${reference.kind}/${reference.associationId}/${reference.factorSeriesId}`
+    }
+    if (reference.kind === 'curated_pair') return `${reference.kind}/${reference.pairId}`
+    return `${reference.kind}/${reference.relationId}`
+  }
+
+  function expectedEditorial(document) {
+    const byId = seriesById(document)
+    const structural = document.temporalPairs.laggedItems
+      .filter((item) => item.reasonCode === undefined)
+      .map((item) => ({
+        kind: 'structural',
+        aSeriesId: item.aSeriesId,
+        bSeriesId: item.bSeriesId,
+        lagYears: item.lagYears,
+      }))
+    const ranked = []
+    let noteCount = 0
+    const add = (reference, serieA, serieB, window) => {
+      if (expectedSalience(serieA, serieB, window) === 'note') {
+        noteCount += 1
+        return
+      }
+      ranked.push({
+        reference,
+        absPearson: Math.abs(computePearsonDelta(serieA.points, serieB.points, window)),
+        refId: editorialRefId(reference),
+      })
+    }
+    for (const association of document.associations.items) {
+      const outcome = byId.get(association.educationOutcome.seriesId)
+      for (const reading of association.associativeReading.factorReadings) {
+        add({
+          kind: 'curated_association',
+          associationId: association.associationId,
+          factorSeriesId: reading.factorSeriesId,
+        }, outcome, byId.get(reading.factorSeriesId), association.window)
+      }
+    }
+    for (const pair of document.temporalPairs.items) {
+      add(
+        { kind: 'curated_pair', pairId: pair.pairId },
+        byId.get(pair.seriesA.seriesId),
+        byId.get(pair.seriesB.seriesId),
+        pair.window,
+      )
+    }
+    for (const item of document.screenedRelations.items) {
+      add(
+        { kind: 'screened', relationId: item.relationId },
+        byId.get(item.seriesAId),
+        byId.get(item.seriesBId),
+        item.window,
+      )
+    }
+    ranked.sort((left, right) => right.absPearson - left.absPearson
+      || (left.refId < right.refId ? -1 : left.refId > right.refId ? 1 : 0))
+    return { leads: [...structural, ...ranked.map((entry) => entry.reference)], noteCount }
+  }
+
+  test('ordem editorial, saliência, grau, temas e templates são derivados byte a byte', () => {
+    for (const { document } of documents) {
+      const expected = expectedEditorial(document)
+      assert.deepEqual(document.editorialReading.criteria, EDITORIAL_READING_CRITERIA)
+      assert.equal(document.editorialReading.criteriaStatement, EDITORIAL_CRITERIA_STATEMENT)
+      assert.deepEqual(document.editorialReading.leads, expected.leads)
+      assert.equal(document.editorialReading.noteCount, expected.noteCount)
+      assert.equal(
+        document.editorialReading.noteStatement,
+        renderEditorialNoteStatement(expected.noteCount),
+      )
     }
   })
 
@@ -480,9 +599,9 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
     assert.ok(shared > 0, 'nenhuma associação compartilhada foi exercitada')
   })
 
-  test('corpus bilateral V3 R1 tem 100% dos casos contabilizados', () => {
-    assert.equal(ATTACK_COUNT, 7)
-    assert.equal(HONEST_COUNT, 4)
+  test('corpus bilateral V3 R1 + V5 R1 tem 100% dos casos contabilizados', () => {
+    assert.equal(ATTACK_COUNT, 16)
+    assert.equal(HONEST_COUNT, 8)
     assert.deepEqual(DECLARED_GAPS, ['A-V3R1-07'])
     const base = documentBySlug.get('vale-do-sinos')
     assert.ok(base, 'Vale do Sinos não está na publicação')
