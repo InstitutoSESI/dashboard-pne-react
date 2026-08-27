@@ -8,14 +8,20 @@ import type {
   VocacoesAssociation,
   VocacoesAssociationReading,
   VocacoesAssociativeReasonCode,
+  VocacoesCorrelation,
   VocacoesDocument,
+  VocacoesEditorialLead,
+  VocacoesEnrollmentDecompositionItem,
+  VocacoesFactorReading,
+  VocacoesLaggedReading,
   VocacoesMunicipalLayer,
   VocacoesScenario,
   VocacoesScenarioBlock,
   VocacoesScenarios,
-  VocacoesScreenedRelations,
+  VocacoesScreenedRelation,
   VocacoesSeries,
   VocacoesSeriesReference,
+  VocacoesStateContrast,
   VocacoesSynthesis,
   VocacoesSynthesisItem,
   VocacoesTemporalPair,
@@ -57,6 +63,10 @@ const decimalFormatter = new Intl.NumberFormat(ACTIVE_STATE_CONFIG.locale, {
   maximumFractionDigits: 1,
   minimumFractionDigits: 1,
 })
+const correlationFormatter = new Intl.NumberFormat(ACTIVE_STATE_CONFIG.locale, {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+})
 
 const ABSENCE_STATEMENTS: Readonly<Record<VocacoesAssociativeReasonCode, string>> = Object.freeze({
   sem_intervalos_comparaveis: 'Sem intervalos anuais comparáveis entre as duas séries nesta janela.',
@@ -71,6 +81,32 @@ const ABSENCE_STATEMENTS: Readonly<Record<VocacoesAssociativeReasonCode, string>
 type VocacoesAssociativeBlock =
   | { readonly statement: string }
   | { readonly reasonCode: VocacoesAssociativeReasonCode }
+
+type PublishedStatement = { readonly statement: string }
+
+const EVIDENCE_LADDER = [
+  'E1 · associação quantificada — no ar',
+  'E2 · relação contábil — no ar',
+  'E3 · precedência temporal — não publicado',
+  'E4 · efeito estimado em painel — não publicado',
+  'E5 · quase-experimento — não publicado',
+] as const
+
+const NON_SCREENED_LEAD_KINDS = new Set<VocacoesEditorialLead['kind']>([
+  'structural',
+  'curated_association',
+  'curated_pair',
+])
+
+const STRENGTH_LEVELS: Readonly<Record<VocacoesCorrelation['strength'], number>> = Object.freeze({
+  fraca: 1,
+  moderada: 2,
+  forte: 3,
+})
+
+function hasStatement(block: VocacoesAssociativeBlock): block is PublishedStatement {
+  return 'statement' in block
+}
 
 function formatValue(value: number): string {
   return Number.isInteger(value) ? integerFormatter.format(value) : decimalFormatter.format(value)
@@ -133,10 +169,12 @@ function SeriesSparkline({
   serie,
   points = serie.points,
   compact = false,
+  entity,
 }: {
   serie: VocacoesSeries
   points?: VocacoesSeries['points']
   compact?: boolean
+  entity?: 'education' | 'territory'
 }) {
   const model = useMemo(
     () => buildSparklineModel(points.map((point) => ({ ano: point.period, valor: point.value }))),
@@ -144,7 +182,14 @@ function SeriesSparkline({
   )
   if (!model) return <span className="vocacoes-spark vocacoes-spark--empty">série curta demais para uma linha</span>
   return (
-    <span aria-hidden="true" className={`vocacoes-spark${compact ? ' vocacoes-spark--compact' : ''}`}>
+    <span
+      aria-hidden="true"
+      className={[
+        'vocacoes-spark',
+        compact ? 'vocacoes-spark--compact' : '',
+        entity === undefined ? '' : `vocacoes-spark--${entity}`,
+      ].filter(Boolean).join(' ')}
+    >
       <svg viewBox="0 0 320 56">
         <path className="vocacoes-spark__area" d={model.areaPath} />
         <path className="vocacoes-spark__line" d={model.linePath} />
@@ -283,11 +328,13 @@ function SupportingSeries({
   series,
   window,
   role,
+  entity,
 }: {
   reference: VocacoesSeriesReference
   series: ReadonlyMap<string, VocacoesSeries>
   window: VocacoesWindow
-  role: string
+  role?: string
+  entity?: 'education' | 'territory'
 }) {
   const serie = series.get(reference.seriesId)
   if (serie === undefined) return null
@@ -297,10 +344,10 @@ function SupportingSeries({
   const last = closed[closed.length - 1]
 
   return (
-    <div className="vocacoes-support">
-      <p className="vocacoes-support__role">{role}</p>
+    <div className={`vocacoes-support${entity === undefined ? '' : ` vocacoes-support--${entity}`}`}>
+      {role === undefined ? null : <p className="vocacoes-support__role">{role}</p>}
       <p className="vocacoes-support__label">{serie.label}</p>
-      <SeriesSparkline compact points={inWindow} serie={serie} />
+      <SeriesSparkline compact entity={entity} points={inWindow} serie={serie} />
       {first === undefined || last === undefined ? (
         <p className="vocacoes-chip vocacoes-chip--value">Sem valor fechado dentro da janela.</p>
       ) : (
@@ -327,6 +374,375 @@ function ProhibitedClaim({ claim }: { claim: string }) {
       </summary>
       <p>{claim}</p>
     </details>
+  )
+}
+
+function visibleRelationStatement(
+  comovement: VocacoesAssociativeBlock,
+  correlation: VocacoesAssociativeBlock,
+): string {
+  if (hasStatement(comovement)) return comovement.statement
+  if (hasStatement(correlation)) return correlation.statement
+  return ABSENCE_STATEMENTS[comovement.reasonCode]
+}
+
+function StrengthBar({ correlation }: { correlation: Pick<VocacoesCorrelation, 'strength'> }) {
+  const level = STRENGTH_LEVELS[correlation.strength]
+  return (
+    <span aria-hidden="true" className="vocacoes-strength" data-strength={correlation.strength}>
+      {[1, 2, 3].map((step) => (
+        <i className={step <= level ? 'is-active' : ''} key={step} />
+      ))}
+    </span>
+  )
+}
+
+function ConcordanceSegments({
+  concordant,
+  intervals,
+}: {
+  concordant: number
+  intervals: number
+}) {
+  return (
+    <span aria-hidden="true" className="vocacoes-concordance">
+      {Array.from({ length: intervals }, (_, index) => (
+        <i className={index < concordant ? 'is-active' : ''} key={index} />
+      ))}
+    </span>
+  )
+}
+
+function RankStrip({ contrast }: { contrast: VocacoesStateContrast }) {
+  return (
+    <span aria-hidden="true" className="vocacoes-rank-strip">
+      {Array.from({ length: contrast.totalComparable }, (_, index) => (
+        <i className={index + 1 === contrast.rank ? 'is-current' : ''} key={index} />
+      ))}
+    </span>
+  )
+}
+
+function RelationFacts({
+  correlation,
+  directionConcordance,
+  stateContrast,
+}: {
+  correlation: VocacoesFactorReading['correlation']
+  directionConcordance: VocacoesFactorReading['directionConcordance']
+  stateContrast: VocacoesAssociationReading['stateContrast']
+}) {
+  return (
+    <div className="vocacoes-relation-facts">
+      {hasStatement(correlation) ? (
+        <span className="vocacoes-relation-fact">
+          <span className="vocacoes-relation-fact__label">Pearson</span>
+          <StrengthBar correlation={correlation} />
+          <strong>{correlationFormatter.format(correlation.pearsonDelta)}</strong>
+          <span>{correlation.strength}</span>
+        </span>
+      ) : null}
+      {hasStatement(directionConcordance) ? (
+        <span className="vocacoes-relation-fact">
+          <span className="vocacoes-relation-fact__label">Concordância</span>
+          <ConcordanceSegments
+            concordant={directionConcordance.concordant}
+            intervals={directionConcordance.intervals}
+          />
+          <strong>{`${directionConcordance.concordant} de ${directionConcordance.intervals}`}</strong>
+        </span>
+      ) : null}
+      {hasStatement(stateContrast) ? (
+        <span className="vocacoes-relation-fact">
+          <span className="vocacoes-relation-fact__label">Entre as regiões</span>
+          <RankStrip contrast={stateContrast} />
+          <strong>{`${stateContrast.rank}ª de ${stateContrast.totalComparable}`}</strong>
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function HeroPanel({
+  document,
+  series,
+}: {
+  document: VocacoesDocument
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  return (
+    <section aria-labelledby="vocacoes-hero-title" className="vocacoes-hero" id="vocacoes-hero">
+      <div className="vocacoes-hero__copy">
+        <h2 id="vocacoes-hero-title">{document.hero.title}</h2>
+        <p>{document.hero.lede}</p>
+      </div>
+
+      <div className="vocacoes-hero-tiles">
+        {document.hero.tiles.map((tile) => {
+          const serie = series.get(tile.seriesId)
+          const points = serie === undefined
+            ? []
+            : pointsInWindow(serie, tile.window)
+              .filter((point) => point.evidenceClass !== 'preliminary')
+          return (
+            <article
+              aria-label={`${tile.label}: ${tile.valueStatement}. ${tile.deltaStatement}`}
+              className={`vocacoes-hero-tile vocacoes-hero-tile--${tile.entity}`}
+              data-tile-id={tile.tileId}
+              key={tile.tileId}
+            >
+              <p className="vocacoes-hero-tile__label">
+                <i aria-hidden="true" />
+                {tile.label}
+              </p>
+              <p className="vocacoes-hero-tile__value">{tile.valueStatement}</p>
+              <p className="vocacoes-hero-tile__delta">{tile.deltaStatement}</p>
+              {serie === undefined ? null : (
+                <SeriesSparkline compact entity={tile.entity} points={points} serie={serie} />
+              )}
+              {tile.contrastStatement === null ? null : (
+                <p className="vocacoes-hero-tile__contrast">{tile.contrastStatement}</p>
+              )}
+            </article>
+          )
+        })}
+      </div>
+
+      <p className="vocacoes-neutrality vocacoes-hero__neutrality">
+        {document.page.neutralityNote}
+      </p>
+      <p className="vocacoes-hero__method">{document.hero.methodNote}</p>
+    </section>
+  )
+}
+
+function EvidenceLadder() {
+  return (
+    <aside aria-label="Grau de evidência das leituras" className="vocacoes-evidence-ladder">
+      <strong>Grau de evidência das leituras:</strong>
+      <div className="vocacoes-evidence-ladder__steps">
+        {EVIDENCE_LADDER.map((step, index) => (
+          <span
+            className={index < 2 ? 'is-published' : 'is-unpublished'}
+            key={step}
+          >
+            {step}
+          </span>
+        ))}
+      </div>
+      <p>
+        Cada leitura carrega o grau mais alto que o dado sustenta. Nada nesta página afirma causa além do grau declarado.
+      </p>
+    </aside>
+  )
+}
+
+function AnalysisGuard({ claim }: { claim: string }) {
+  return (
+    <div className="vocacoes-prohibited">
+      <span className="vocacoes-prohibited__mark">Nota metodológica — o que não se conclui</span>
+      <p>{claim}</p>
+    </div>
+  )
+}
+
+function AssociationLeadCard({
+  association,
+  conclusion,
+  factorReading,
+  series,
+  storyTitle,
+}: {
+  association: VocacoesAssociation
+  conclusion: VocacoesSynthesisItem
+  factorReading: VocacoesFactorReading
+  series: ReadonlyMap<string, VocacoesSeries>
+  storyTitle: string
+}) {
+  const factor = association.territorialFactors.find(
+    (candidate) => candidate.seriesId === factorReading.factorSeriesId,
+  )
+  if (factor === undefined) return null
+
+  return (
+    <article className="vocacoes-card vocacoes-relation-card" data-lead-kind="curated_association">
+      <header className="vocacoes-relation-card__head">
+        <h3>{storyTitle}</h3>
+        <span className="vocacoes-grade">E1 · associação</span>
+      </header>
+      <p className="vocacoes-relation-card__reading">
+        {visibleRelationStatement(factorReading.comovement, factorReading.correlation)}
+      </p>
+      <div className="vocacoes-supports vocacoes-supports--paired">
+        <SupportingSeries
+          entity="territory"
+          reference={factor}
+          series={series}
+          window={association.window}
+        />
+        <SupportingSeries
+          entity="education"
+          reference={association.educationOutcome}
+          series={series}
+          window={association.window}
+        />
+      </div>
+      <RelationFacts
+        correlation={factorReading.correlation}
+        directionConcordance={factorReading.directionConcordance}
+        stateContrast={association.associativeReading.stateContrast}
+      />
+      <details className="vocacoes-analysis-detail">
+        <summary>Análise completa — hipóteses, método e o que não se conclui</summary>
+        <div className="vocacoes-analysis-detail__body">
+          {association.associativeReading.factorReadings.map((reading) => (
+            <div
+              className="vocacoes-associative-reading__factor"
+              key={`${reading.outcomeSeriesId}:${reading.factorSeriesId}`}
+            >
+              <AssociativeStatement block={reading.correlation} />
+              <AssociativeStatement block={reading.directionConcordance} />
+              <AssociativeStatement block={reading.comovement} />
+            </div>
+          ))}
+          <AssociativeStatement block={association.associativeReading.stateContrast} />
+          <ConclusionVerdict item={conclusion} />
+          <p className="vocacoes-allowed">
+            <span className="vocacoes-allowed__mark">O que se pode ler</span>
+            {association.allowedInterpretation}
+          </p>
+          <p className="vocacoes-card__statement">{association.observedStatement}</p>
+          <ul className="vocacoes-list">
+            {association.hypotheses.map((hypothesis) => <li key={hypothesis}>{hypothesis}</li>)}
+          </ul>
+          <p>{association.associativeReading.methodNote}</p>
+          <AnalysisGuard claim={association.prohibitedClaim} />
+        </div>
+      </details>
+    </article>
+  )
+}
+
+function PairLeadCard({
+  conclusion,
+  pair,
+  series,
+  storyTitle,
+}: {
+  conclusion: VocacoesSynthesisItem
+  pair: VocacoesTemporalPair
+  series: ReadonlyMap<string, VocacoesSeries>
+  storyTitle: string
+}) {
+  const reading = pair.associativeReading
+  return (
+    <article className="vocacoes-card vocacoes-relation-card" data-lead-kind="curated_pair">
+      <header className="vocacoes-relation-card__head">
+        <h3>{storyTitle}</h3>
+        <span className="vocacoes-grade">E1 · associação</span>
+      </header>
+      <p className="vocacoes-relation-card__reading">
+        {visibleRelationStatement(reading.comovement, reading.correlation)}
+      </p>
+      <div className="vocacoes-supports vocacoes-supports--paired">
+        <SupportingSeries
+          entity="territory"
+          reference={pair.seriesA}
+          series={series}
+          window={pair.window}
+        />
+        <SupportingSeries
+          entity="education"
+          reference={pair.seriesB}
+          series={series}
+          window={pair.window}
+        />
+      </div>
+      <RelationFacts
+        correlation={reading.correlation}
+        directionConcordance={reading.directionConcordance}
+        stateContrast={reading.stateContrast}
+      />
+      <details className="vocacoes-analysis-detail">
+        <summary>Análise completa — hipóteses, método e o que não se conclui</summary>
+        <div className="vocacoes-analysis-detail__body">
+          <AssociativeStatement block={reading.correlation} />
+          <AssociativeStatement block={reading.directionConcordance} />
+          <AssociativeStatement block={reading.comovement} />
+          <AssociativeStatement block={reading.stateContrast} />
+          <ConclusionVerdict item={conclusion} />
+          <p className="vocacoes-card__statement">{pair.observedStatement}</p>
+          <p>{reading.methodNote}</p>
+          <AnalysisGuard claim={pair.prohibitedClaim} />
+        </div>
+      </details>
+    </article>
+  )
+}
+
+function StructuralLeadCard({
+  reading,
+  series,
+  storyTitle,
+}: {
+  reading: VocacoesLaggedReading
+  series: ReadonlyMap<string, VocacoesSeries>
+  storyTitle: string
+}) {
+  const first = series.get(reading.aSeriesId)
+  const second = series.get(reading.bSeriesId)
+  return (
+    <article className="vocacoes-card vocacoes-relation-card" data-lead-kind="structural">
+      <header className="vocacoes-relation-card__head">
+        <h3>{storyTitle}</h3>
+        <span className="vocacoes-grade">E1 · defasagem declarada</span>
+      </header>
+      <p className="vocacoes-relation-card__reading">{reading.statement}</p>
+      <div className="vocacoes-supports vocacoes-supports--paired">
+        {first === undefined ? null : (
+          <SupportingSeries
+            entity="territory"
+            reference={{ label: first.label, seriesId: first.seriesId }}
+            series={series}
+            window={reading.windowA}
+          />
+        )}
+        {second === undefined ? null : (
+          <SupportingSeries
+            entity="education"
+            reference={{ label: second.label, seriesId: second.seriesId }}
+            series={series}
+            window={reading.windowB}
+          />
+        )}
+      </div>
+      <div className="vocacoes-relation-facts">
+        <span className="vocacoes-relation-fact">
+          <span className="vocacoes-relation-fact__label">Defasagem</span>
+          <strong>{`${reading.lagYears} anos`}</strong>
+        </span>
+        <span className="vocacoes-relation-fact">
+          <span className="vocacoes-relation-fact__label">Concordância</span>
+          <ConcordanceSegments concordant={reading.concordant} intervals={reading.intervals} />
+          <strong>{`${reading.concordant} de ${reading.intervals}`}</strong>
+        </span>
+        {'reasonCode' in reading.correlation ? null : (
+          <span className="vocacoes-relation-fact">
+            <span className="vocacoes-relation-fact__label">Pearson</span>
+            <StrengthBar correlation={reading.correlation} />
+            <strong>{correlationFormatter.format(reading.correlation.pearsonDelta)}</strong>
+            <span>{reading.correlation.strength}</span>
+          </span>
+        )}
+      </div>
+      <details className="vocacoes-analysis-detail">
+        <summary>Análise completa — hipóteses, método e o que não se conclui</summary>
+        <div className="vocacoes-analysis-detail__body">
+          <p>{reading.statement}</p>
+          <p>{reading.rationale}</p>
+        </div>
+      </details>
+    </article>
   )
 }
 
@@ -363,9 +779,9 @@ function SynthesisPanel({ synthesis }: { synthesis: VocacoesSynthesis }) {
   }, new Map())
 
   return (
-    <section aria-labelledby="vocacoes-conclusoes" className="vocacoes-panel vocacoes-synthesis">
+    <section aria-labelledby="vocacoes-conclusoes-title" className="vocacoes-panel vocacoes-synthesis">
       <div className="vocacoes-panel__head">
-        <h2 className="vocacoes-panel__title" id="vocacoes-conclusoes">{synthesis.label}</h2>
+        <h2 className="vocacoes-panel__title" id="vocacoes-conclusoes-title">{synthesis.label}</h2>
         <p className="vocacoes-panel__text">{synthesis.description}</p>
       </div>
 
@@ -665,6 +1081,336 @@ function ScenarioComparison({ scenarios }: { scenarios: readonly VocacoesScenari
   )
 }
 
+function EditorialLeadCard({
+  document,
+  lead,
+  observedConclusionByBasis,
+  series,
+}: {
+  document: VocacoesDocument
+  lead: VocacoesEditorialLead
+  observedConclusionByBasis: ReadonlyMap<string | undefined, VocacoesSynthesisItem>
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  if (lead.kind === 'screened') return null
+  if (lead.kind === 'structural') {
+    const reading = document.temporalPairs.laggedItems.find((item) => (
+      'rationale' in item
+      && item.aSeriesId === lead.aSeriesId
+      && item.bSeriesId === lead.bSeriesId
+      && item.lagYears === lead.lagYears
+    ))
+    return reading === undefined || !('rationale' in reading) ? null : (
+      <StructuralLeadCard reading={reading} series={series} storyTitle={lead.storyTitle} />
+    )
+  }
+  if (lead.kind === 'curated_association') {
+    const association = document.associations.items.find(
+      (item) => item.associationId === lead.associationId,
+    )
+    const factorReading = association?.associativeReading.factorReadings.find(
+      (reading) => reading.factorSeriesId === lead.factorSeriesId,
+    )
+    const conclusion = association === undefined
+      ? undefined
+      : observedConclusionByBasis.get(associationSynthesisBasisLabel(association))
+    return association === undefined || factorReading === undefined || conclusion === undefined
+      ? null
+      : (
+        <AssociationLeadCard
+          association={association}
+          conclusion={conclusion}
+          factorReading={factorReading}
+          series={series}
+          storyTitle={lead.storyTitle}
+        />
+      )
+  }
+  const pair = document.temporalPairs.items.find((item) => item.pairId === lead.pairId)
+  const conclusion = pair === undefined ? undefined : observedConclusionByBasis.get(pair.label)
+  return pair === undefined || conclusion === undefined ? null : (
+    <PairLeadCard
+      conclusion={conclusion}
+      pair={pair}
+      series={series}
+      storyTitle={lead.storyTitle}
+    />
+  )
+}
+
+function SupportingReadingsArchive({
+  document,
+  observedConclusionByBasis,
+  series,
+}: {
+  document: VocacoesDocument
+  observedConclusionByBasis: ReadonlyMap<string | undefined, VocacoesSynthesisItem>
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  const associationIds = new Set(
+    document.editorialReading.leads
+      .filter((lead) => lead.kind === 'curated_association')
+      .map((lead) => lead.associationId),
+  )
+  const pairIds = new Set(
+    document.editorialReading.leads
+      .filter((lead) => lead.kind === 'curated_pair')
+      .map((lead) => lead.pairId),
+  )
+  const structuralKeys = new Set(
+    document.editorialReading.leads
+      .filter((lead) => lead.kind === 'structural')
+      .map((lead) => `${lead.aSeriesId}:${lead.bSeriesId}:${lead.lagYears}`),
+  )
+  const associations = document.associations.items.filter(
+    (association) => !associationIds.has(association.associationId),
+  )
+  const pairs = document.temporalPairs.items.filter((pair) => !pairIds.has(pair.pairId))
+  const laggedItems = document.temporalPairs.laggedItems.filter((item) => (
+    !structuralKeys.has(`${item.aSeriesId}:${item.bSeriesId}:${item.lagYears}`)
+  ))
+
+  return (
+    <div className="vocacoes-supporting-archive">
+      {associations.length === 0 ? null : (
+        <details>
+          <summary>{document.associations.label}</summary>
+          <p>{document.associations.description}</p>
+          <div className="vocacoes-card-stack">
+            {associations.map((association) => (
+              <AssociationCard
+                association={association}
+                conclusion={observedConclusionByBasis.get(
+                  associationSynthesisBasisLabel(association),
+                )!}
+                key={association.associationId}
+                series={series}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+      {pairs.length === 0 && laggedItems.length === 0 ? null : (
+        <details>
+          <summary>{document.temporalPairs.label}</summary>
+          <p>{document.temporalPairs.description}</p>
+          <div className="vocacoes-card-stack">
+            {pairs.map((pair) => (
+              <TemporalPairCard
+                conclusion={observedConclusionByBasis.get(pair.label)!}
+                key={pair.pairId}
+                pair={pair}
+                series={series}
+              />
+            ))}
+          </div>
+          <LaggedReadings items={laggedItems} />
+        </details>
+      )}
+    </div>
+  )
+}
+
+function proportionalWidths(values: readonly number[]): number[] {
+  const total = values.reduce((sum, value) => sum + Math.abs(value), 0)
+  return values.map((value) => total === 0 ? 0 : Math.abs(value) / total * 100)
+}
+
+function DecompositionBar({
+  terms,
+}: {
+  terms: readonly {
+    readonly className: string
+    readonly label: string
+    readonly value: number
+  }[]
+}) {
+  const widths = proportionalWidths(terms.map((term) => term.value))
+  return (
+    <div className="vocacoes-decomposition">
+      <div aria-hidden="true" className="vocacoes-decomposition__bar">
+        {terms.map((term, index) => (
+          <i
+            className={term.className}
+            key={term.label}
+            style={{ width: `${widths[index]}%` }}
+          />
+        ))}
+      </div>
+      <div className="vocacoes-decomposition__legend">
+        {terms.map((term) => (
+          <span key={term.label}>
+            <i aria-hidden="true" className={term.className} />
+            {term.label}
+            <strong>{`${formatValue(term.value)} p.p.`}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EnrollmentDecompositionCard({
+  item,
+  methodStatement,
+  series,
+}: {
+  item: VocacoesEnrollmentDecompositionItem
+  methodStatement: string
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  const outcome = series.get(item.outcomeSeriesId)
+  const cohort = series.get(item.cohortSeriesId)
+  const terms = [
+    {
+      className: 'is-territory',
+      label: cohort?.label ?? item.stageLabel,
+      value: item.contributions.demographicPp,
+    },
+    {
+      className: 'is-education',
+      label: outcome?.label ?? item.stageLabel,
+      value: item.contributions.ratioPp,
+    },
+  ]
+  return (
+    <article className="vocacoes-e2-card">
+      <header className="vocacoes-relation-card__head">
+        <h4>{item.stageLabel}</h4>
+        <span className="vocacoes-grade vocacoes-grade--e2">E2 · relação contábil</span>
+      </header>
+      <p>{item.statement}</p>
+      <DecompositionBar terms={terms} />
+      <details className="vocacoes-analysis-detail">
+        <summary>{item.stageLabel}</summary>
+        <p>{methodStatement}</p>
+        <dl className="vocacoes-meta">
+          <div>
+            <dt>{outcome?.label ?? item.stageLabel}</dt>
+            <dd>{`${formatValue(item.terms.enrollmentStart)} → ${formatValue(item.terms.enrollmentEnd)}`}</dd>
+          </div>
+          <div>
+            <dt>{cohort?.label ?? item.stageLabel}</dt>
+            <dd>{`${formatValue(item.terms.cohortStart)} → ${formatValue(item.terms.cohortEnd)}`}</dd>
+          </div>
+          <div>
+            <dt>Taxa de atendimento aparente</dt>
+            <dd>{`${formatValue(item.terms.ratioStartPerHundred)} → ${formatValue(item.terms.ratioEndPerHundred)}`}</dd>
+          </div>
+        </dl>
+      </details>
+    </article>
+  )
+}
+
+function EmploymentDecompositionCard({
+  document,
+}: {
+  document: VocacoesDocument
+}) {
+  const item = document.decompositions.employment.item
+  if (item === null) return null
+  const terms = [
+    {
+      className: 'is-territory',
+      label: 'ritmo comum do estado',
+      value: item.contributions.statePp,
+    },
+    {
+      className: 'is-territory-soft',
+      label: 'composição setorial de partida',
+      value: item.contributions.mixPp,
+    },
+    {
+      className: 'is-territory-deep',
+      label: 'dinâmica própria dos setores',
+      value: item.contributions.ownPp,
+    },
+  ]
+  return (
+    <article className="vocacoes-e2-card">
+      <header className="vocacoes-relation-card__head">
+        <h4>{item.sourceLabel}</h4>
+        <span className="vocacoes-grade vocacoes-grade--e2">E2 · relação contábil</span>
+      </header>
+      <p>{item.statement}</p>
+      <DecompositionBar terms={terms} />
+      <details className="vocacoes-analysis-detail">
+        <summary>{item.sourceLabel}</summary>
+        <p>{document.decompositions.employment.methodStatement}</p>
+        <dl className="vocacoes-meta">
+          <div>
+            <dt>{item.sourceLabel}</dt>
+            <dd>{`${formatValue(item.totals.regionStart)} → ${formatValue(item.totals.regionEnd)}`}</dd>
+          </div>
+          <div>
+            <dt>{document.decompositions.employment.criteria.reference}</dt>
+            <dd>{`${formatValue(item.totals.stateStart)} → ${formatValue(item.totals.stateEnd)}`}</dd>
+          </div>
+        </dl>
+        <div className="vocacoes-table-scroll">
+          <table className="vocacoes-table">
+            <thead>
+              <tr>
+                <th scope="col">Setor</th>
+                <th scope="col">Região</th>
+                <th scope="col">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {item.sectors.map((sector) => (
+                <tr key={sector.sectorLabel}>
+                  <th scope="row">{sector.sectorLabel}</th>
+                  <td>{`${formatValue(sector.regionStart)} → ${formatValue(sector.regionEnd)}`}</td>
+                  <td>{`${formatValue(sector.stateStart)} → ${formatValue(sector.stateEnd)}`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </article>
+  )
+}
+
+function DecompositionsPanel({
+  document,
+  series,
+}: {
+  document: VocacoesDocument
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  const { decompositions } = document
+  return (
+    <section aria-labelledby="vocacoes-e2-title" className="vocacoes-e2" id="vocacoes-e2">
+      <header className="vocacoes-section__head">
+        <p className="vocacoes-section__kicker">Relação contábil · grau E2</p>
+        <h3 id="vocacoes-e2-title">{decompositions.label}</h3>
+        <p>{decompositions.description}</p>
+      </header>
+      <div className="vocacoes-e2__grid">
+        {decompositions.enrollment.items.map((item) => (
+          <EnrollmentDecompositionCard
+            item={item}
+            key={item.stage}
+            methodStatement={decompositions.enrollment.methodStatement}
+            series={series}
+          />
+        ))}
+        <EmploymentDecompositionCard document={document} />
+      </div>
+      <div className="vocacoes-e2__absences">
+        {decompositions.enrollment.absences.map((absence) => (
+          <p key={absence.stage}>{absence.statement}</p>
+        ))}
+        {decompositions.employment.absence === null ? null : (
+          <p>{decompositions.employment.absence.statement}</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function LaggedReadings({
   items,
 }: {
@@ -695,52 +1441,70 @@ function LaggedReadings({
   )
 }
 
-function ScreenedRelationsPanel({
-  screenedRelations,
+function ScreenedRelationRow({
+  relation,
   series,
 }: {
-  screenedRelations: VocacoesScreenedRelations
+  relation: VocacoesScreenedRelation
   series: ReadonlyMap<string, VocacoesSeries>
 }) {
+  const correlation = hasStatement(relation.correlation) ? relation.correlation : null
   return (
-    <section aria-labelledby="vocacoes-triagem" className="vocacoes-panel">
-      <div className="vocacoes-panel__head">
-        <h2 className="vocacoes-panel__title" id="vocacoes-triagem">
-          {screenedRelations.label}
-        </h2>
-        <p className="vocacoes-panel__text">{screenedRelations.description}</p>
+    <details className="vocacoes-screened-row">
+      <summary>
+        <span className="vocacoes-screened-row__pair">
+          <strong>{series.get(relation.seriesAId)?.label}</strong>
+          {' × '}
+          <span>{series.get(relation.seriesBId)?.label}</span>
+        </span>
+        {correlation === null ? null : (
+          <>
+            <span className="vocacoes-screened-row__correlation">
+              {`r = ${correlationFormatter.format(correlation.pearsonDelta)} · ${correlation.strength}`}
+            </span>
+            <StrengthBar correlation={correlation} />
+          </>
+        )}
+      </summary>
+      <div className="vocacoes-screened-row__detail">
+        <p>{relation.originStatement}</p>
+        <AssociativeStatement block={relation.correlation} />
+        <AssociativeStatement block={relation.directionConcordance} />
+        <AssociativeStatement block={relation.comovement} />
       </div>
+    </details>
+  )
+}
+
+function ScreenedRelationsPanel({
+  document,
+  series,
+}: {
+  document: VocacoesDocument
+  series: ReadonlyMap<string, VocacoesSeries>
+}) {
+  const { screenedRelations } = document
+  return (
+    <section aria-labelledby="vocacoes-triagem" className="vocacoes-section vocacoes-screening">
+      <header className="vocacoes-section__head">
+        <p className="vocacoes-section__kicker">Varredura automática</p>
+        <h2 id="vocacoes-triagem">
+          Relações que a triagem encontrou
+          <span className="u-sr-only"> · {screenedRelations.label}</span>
+        </h2>
+      </header>
 
       <div className="vocacoes-screened-relations">
         {screenedRelations.items.map((relation) => (
-          <article className="vocacoes-screened-relation" key={relation.relationId}>
-            <header className="vocacoes-card__head">
-              <h3 className="vocacoes-card__title">
-                <span>{series.get(relation.seriesAId)?.label}</span>
-                {' · '}
-                <span>{series.get(relation.seriesBId)?.label}</span>
-              </h3>
-              <p className="vocacoes-card__period">
-                {`Janela: ${relation.window.start} a ${relation.window.end}`}
-              </p>
-            </header>
-
-            <div className="vocacoes-associative-reading__statements">
-              <AssociativeStatement block={relation.correlation} />
-              <AssociativeStatement block={relation.directionConcordance} />
-              <AssociativeStatement block={relation.comovement} />
-            </div>
-            <p className="vocacoes-screened-relation__origin">{relation.originStatement}</p>
-          </article>
+          <ScreenedRelationRow key={relation.relationId} relation={relation} series={series} />
         ))}
       </div>
 
-      <details className="vocacoes-reading-detail vocacoes-screened-relations__method">
-        <summary>Como a triagem funciona</summary>
+      <details className="vocacoes-screening__method">
+        <summary>{screenedRelations.description}</summary>
+        <p>{document.editorialReading.criteriaStatement}</p>
+        <p>{document.editorialReading.noteStatement}</p>
         <p>{screenedRelations.methodNote}</p>
-        <p>
-          {`Critérios fixos: correlação absoluta mínima de ${formatValue(screenedRelations.criteria.minAbsPearson)}, pelo menos ${formatValue(screenedRelations.criteria.minIntervals)} intervalos anuais, no máximo ${formatValue(screenedRelations.criteria.maxItems)} relações por região.`}
-        </p>
       </details>
     </section>
   )
@@ -1010,11 +1774,13 @@ function MunicipalLayerPanel({
 }
 
 function ScenariosPanel({
+  absenceThemes,
   conclusions,
   scenarios,
   series,
   regionName,
 }: {
+  absenceThemes: readonly string[]
   conclusions: readonly VocacoesSynthesisItem[]
   scenarios: VocacoesScenarios
   series: Map<string, VocacoesSeries>
@@ -1023,11 +1789,15 @@ function ScenariosPanel({
   const block = scenarios.block
 
   return (
-    <section aria-labelledby="vocacoes-cenarios" className="vocacoes-panel">
-      <div className="vocacoes-panel__head">
-        <h2 className="vocacoes-panel__title" id="vocacoes-cenarios">{scenarios.label}</h2>
+    <section aria-labelledby="vocacoes-cenarios" className="vocacoes-section vocacoes-p2">
+      <header className="vocacoes-section__head">
+        <p className="vocacoes-section__kicker vocacoes-section__kicker--territory">
+          Pergunta 2 · Território → Educação
+        </p>
+        <h2 id="vocacoes-cenarios">O que o futuro do território pede da educação?</h2>
+        <p className="vocacoes-section__document-label">{scenarios.label}</p>
         <p className="vocacoes-panel__text">{scenarios.description}</p>
-      </div>
+      </header>
 
       {/*
         * A região sem cenário não recebe seção vazia nem seção escondida: recebe
@@ -1036,7 +1806,14 @@ function ScenariosPanel({
         * faria parecer um erro de carregamento.
         */}
       {block === null ? (
-        <p className="vocacoes-scenarios__absence">{scenarios.absenceStatement}</p>
+        <>
+          <p className="vocacoes-scenarios__absence">{scenarios.absenceStatement}</p>
+          <div className="vocacoes-scenarios__themes">
+            {absenceThemes.map((theme) => (
+              <span className="vocacoes-chip vocacoes-chip--theme" key={theme}>{theme}</span>
+            ))}
+          </div>
+        </>
       ) : (
         <>
           <p className="vocacoes-neutrality vocacoes-scenarios__statute-note">
@@ -1215,9 +1992,9 @@ function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
         .includes(normalized))
 
   return (
-    <section aria-labelledby="vocacoes-retrato" className="vocacoes-panel">
+    <section aria-labelledby="vocacoes-retrato-title" className="vocacoes-panel">
       <div className="vocacoes-panel__head">
-        <h2 className="vocacoes-panel__title" id="vocacoes-retrato">
+        <h2 className="vocacoes-panel__title" id="vocacoes-retrato-title">
           {document.territoryPortrait.label}
         </h2>
         <p className="vocacoes-panel__text">{document.territoryPortrait.description}</p>
@@ -1286,15 +2063,48 @@ function TerritoryPortrait({ document }: { document: VocacoesDocument }) {
   )
 }
 
+function editorialLeadKey(lead: VocacoesEditorialLead): string {
+  if (lead.kind === 'structural') {
+    return `${lead.kind}:${lead.aSeriesId}:${lead.bSeriesId}:${lead.lagYears}`
+  }
+  if (lead.kind === 'curated_association') {
+    return `${lead.kind}:${lead.associationId}:${lead.factorSeriesId}`
+  }
+  if (lead.kind === 'curated_pair') return `${lead.kind}:${lead.pairId}`
+  return `${lead.kind}:${lead.relationId}`
+}
+
+function leadThemes(document: VocacoesDocument, lead: VocacoesEditorialLead) {
+  if (lead.kind === 'structural') {
+    const reading = document.temporalPairs.laggedItems.find((item) => (
+      'pneThemes' in item
+      && item.aSeriesId === lead.aSeriesId
+      && item.bSeriesId === lead.bSeriesId
+      && item.lagYears === lead.lagYears
+    ))
+    return reading !== undefined && 'pneThemes' in reading ? reading.pneThemes : []
+  }
+  if (lead.kind === 'curated_association') {
+    return document.associations.items.find(
+      (association) => association.associationId === lead.associationId,
+    )?.pneThemes ?? []
+  }
+  if (lead.kind === 'curated_pair') {
+    return document.temporalPairs.items.find((pair) => pair.pairId === lead.pairId)?.pneThemes ?? []
+  }
+  return []
+}
+
 function PageSectionNav({ hasMunicipalLayer }: { hasMunicipalLayer: boolean }) {
   const items = [
+    { id: 'vocacoes-hero', label: 'Síntese' },
+    { id: 'vocacoes-p1', label: 'Pergunta 1' },
+    { id: 'vocacoes-e2', label: 'E2' },
+    { id: 'vocacoes-triagem', label: 'Triagem' },
+    { id: 'vocacoes-cenarios', label: 'Pergunta 2' },
+    ...(hasMunicipalLayer ? [{ id: 'vocacoes-municipios', label: 'Municípios' }] : []),
     { id: 'vocacoes-conclusoes', label: 'Conclusões' },
     { id: 'vocacoes-retrato', label: 'Retrato' },
-    { id: 'vocacoes-associacoes', label: 'Território e educação' },
-    { id: 'vocacoes-pares', label: 'Simultâneas' },
-    { id: 'vocacoes-triagem', label: 'Triagem' },
-    { id: 'vocacoes-cenarios', label: 'Cenários' },
-    ...(hasMunicipalLayer ? [{ id: 'vocacoes-municipios', label: 'Municípios' }] : []),
     { id: 'vocacoes-fontes', label: 'Fontes' },
   ]
 
@@ -1338,6 +2148,24 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
       CROSS_SCENARIO_SYNTHESIS_LABELS.has(item.kindLabel)),
     [document.synthesis.items],
   )
+  const visibleLeads = useMemo(
+    () => document.editorialReading.leads.filter((lead) => (
+      NON_SCREENED_LEAD_KINDS.has(lead.kind)
+    )),
+    [document.editorialReading.leads],
+  )
+  const absenceThemes = useMemo(() => {
+    const themes: string[] = []
+    const seen = new Set<string>()
+    for (const lead of visibleLeads) {
+      for (const theme of leadThemes(document, lead)) {
+        if (seen.has(theme.theme)) continue
+        seen.add(theme.theme)
+        themes.push(theme.themeLabel)
+      }
+    }
+    return themes
+  }, [document, visibleLeads])
 
   return (
     <div className="page-stack vocacoes-page">
@@ -1354,110 +2182,108 @@ export function VocacoesReport({ document }: { document: VocacoesDocument }) {
 
       <PageSectionNav hasMunicipalLayer={document.scenarios.block !== null} />
 
-      <p className="vocacoes-neutrality">{document.page.neutralityNote}</p>
+      <HeroPanel document={document} series={seriesById} />
 
-      <section aria-labelledby="vocacoes-como-ler" className="vocacoes-panel">
-        <div className="vocacoes-panel__head">
-          <h2 className="vocacoes-panel__title" id="vocacoes-como-ler">{document.howToRead.label}</h2>
-          <p className="vocacoes-panel__text">{document.howToRead.description}</p>
-        </div>
-        <ul className="vocacoes-list">
-          {document.howToRead.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+      <EvidenceLadder />
 
-      <SynthesisPanel synthesis={document.synthesis} />
+      <section aria-labelledby="vocacoes-p1-title" className="vocacoes-section vocacoes-p1" id="vocacoes-p1">
+        <header className="vocacoes-section__head">
+          <p className="vocacoes-section__kicker">Pergunta 1 · Educação × Território</p>
+          <h2 id="vocacoes-p1-title">O que anda junto com a educação no território?</h2>
+          <p>
+            As relações mais fortes desta região, na ordem da força medida. Em cada cartão: as duas séries lado a lado, a força do co-movimento e a posição da região entre as 10 do estado. A análise completa — hipóteses, método e o que não se conclui — abre sob demanda.
+          </p>
+        </header>
 
-      <TerritoryPortrait document={document} />
-
-      <section aria-labelledby="vocacoes-associacoes" className="vocacoes-panel">
-        <div className="vocacoes-panel__head">
-          <h2 className="vocacoes-panel__title" id="vocacoes-associacoes">{document.associations.label}</h2>
-          <p className="vocacoes-panel__text">{document.associations.description}</p>
-        </div>
-        <div className="vocacoes-card-stack">
-          {document.associations.items.map((association) => (
-            <AssociationCard
-              association={association}
-              conclusion={observedConclusionByBasis.get(
-                associationSynthesisBasisLabel(association),
-              )!}
-              key={association.associationId}
+        <div className="vocacoes-relations-grid">
+          {visibleLeads.map((lead) => (
+            <EditorialLeadCard
+              document={document}
+              key={editorialLeadKey(lead)}
+              lead={lead}
+              observedConclusionByBasis={observedConclusionByBasis}
               series={seriesById}
             />
           ))}
         </div>
-      </section>
 
-      <section aria-labelledby="vocacoes-pares" className="vocacoes-panel">
-        <div className="vocacoes-panel__head">
-          <h2 className="vocacoes-panel__title" id="vocacoes-pares">{document.temporalPairs.label}</h2>
-          <p className="vocacoes-panel__text">{document.temporalPairs.description}</p>
-        </div>
-        <div className="vocacoes-card-stack">
-          {document.temporalPairs.items.map((pair) => (
-            <TemporalPairCard
-              conclusion={observedConclusionByBasis.get(pair.label)!}
-              key={pair.pairId}
-              pair={pair}
-              series={seriesById}
-            />
-          ))}
-        </div>
-        <LaggedReadings items={document.temporalPairs.laggedItems} />
+        <SupportingReadingsArchive
+          document={document}
+          observedConclusionByBasis={observedConclusionByBasis}
+          series={seriesById}
+        />
+
+        <DecompositionsPanel document={document} series={seriesById} />
       </section>
 
       <ScreenedRelationsPanel
-        screenedRelations={document.screenedRelations}
+        document={document}
         series={seriesById}
       />
 
       <ScenariosPanel
+        absenceThemes={absenceThemes}
         conclusions={crossScenarioConclusions}
         regionName={document.region.name}
         scenarios={document.scenarios}
         series={seriesById}
       />
 
-      <section aria-labelledby="vocacoes-fontes" className="vocacoes-panel">
-        <div className="vocacoes-panel__head">
-          <h2 className="vocacoes-panel__title" id="vocacoes-fontes">{document.sources.label}</h2>
-          <p className="vocacoes-panel__text">{document.sources.description}</p>
+      <details className="vocacoes-consultation" id="vocacoes-conclusoes">
+        <summary>{document.synthesis.label}</summary>
+        <div className="vocacoes-consultation__body">
+          <SynthesisPanel synthesis={document.synthesis} />
         </div>
-        <div className="vocacoes-table-scroll">
-          <table className="vocacoes-table">
-            <caption className="u-sr-only">{`Fontes usadas na região ${document.region.name}`}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Fonte</th>
-                <th scope="col">Período</th>
-              </tr>
-            </thead>
-            <tbody>
-              {document.sources.items.map((item) => (
-                <tr key={item.label}>
-                  <th scope="row">{item.label}</th>
-                  <td>{item.periodLabel}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </details>
 
-      <section aria-labelledby="vocacoes-limites" className="vocacoes-panel">
-        <div className="vocacoes-panel__head">
-          <h2 className="vocacoes-panel__title" id="vocacoes-limites">{document.limitations.label}</h2>
-          <p className="vocacoes-panel__text">{document.limitations.description}</p>
+      <details className="vocacoes-consultation" id="vocacoes-retrato">
+        <summary>Explorar as séries do território</summary>
+        <div className="vocacoes-consultation__body">
+          <TerritoryPortrait document={document} />
         </div>
-        <ul className="vocacoes-list">
-          {document.limitations.items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+      </details>
+
+      <footer className="vocacoes-footer" id="vocacoes-fontes">
+        <section className="vocacoes-footer__panel">
+          <h2>Fontes</h2>
+          <p>{document.sources.description}</p>
+          <div className="vocacoes-table-scroll">
+            <table className="vocacoes-table">
+              <caption className="u-sr-only">{`Fontes usadas na região ${document.region.name}`}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Fonte</th>
+                  <th scope="col">Período</th>
+                </tr>
+              </thead>
+              <tbody>
+                {document.sources.items.map((item) => (
+                  <tr key={item.label}>
+                    <th scope="row">{item.label}</th>
+                    <td>{item.periodLabel}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="vocacoes-footer__panel">
+          <h2>Como ler · o que não se conclui</h2>
+          <p>{document.howToRead.description}</p>
+          <details>
+            <summary>{document.howToRead.label}</summary>
+            <ul className="vocacoes-list">
+              {document.howToRead.items.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+            <h3>{document.limitations.label}</h3>
+            <p>{document.limitations.description}</p>
+            <ul className="vocacoes-list">
+              {document.limitations.items.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </details>
+        </section>
+      </footer>
     </div>
   )
 }

@@ -606,7 +606,20 @@ if (manifest.documentSchemaVersion === PREPUBLICATION_SCHEMA) {
       const expected = expectedEditorial(document)
       assert.deepEqual(document.editorialReading.criteria, EDITORIAL_READING_CRITERIA)
       assert.equal(document.editorialReading.criteriaStatement, EDITORIAL_CRITERIA_STATEMENT)
-      assert.deepEqual(document.editorialReading.leads, expected.leads)
+      /* 2.9.0 (V5 R3): cada lead não-screened carrega um storyTitle de template
+       * fechado, verificado byte a byte pelo parser. Aqui a recomputação
+       * independente segue provando ordem, referências e saliência; a presença
+       * do título obedece à regra por kind. */
+      const publishedLeads = document.editorialReading.leads.map((lead) => {
+        if (lead.kind === 'screened') {
+          assert.equal(Object.hasOwn(lead, 'storyTitle'), false)
+          return lead
+        }
+        assert.equal(typeof lead.storyTitle, 'string')
+        const { storyTitle, ...withoutTitle } = lead
+        return withoutTitle
+      })
+      assert.deepEqual(publishedLeads, expected.leads)
       assert.equal(document.editorialReading.noteCount, expected.noteCount)
       assert.equal(
         document.editorialReading.noteStatement,

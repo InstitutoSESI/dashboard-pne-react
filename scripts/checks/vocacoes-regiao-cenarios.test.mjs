@@ -183,8 +183,9 @@ test('os campos aditivos do documento incluem decomposição contábil, curadori
   const congelados = [...FIELDS_2_0_0.documento].sort()
   const novos = publicados.filter((field) => !congelados.includes(field))
   const perdidos = congelados.filter((field) => !publicados.includes(field))
-  /* 2.8.0 (V5 R2): as decomposições são o quinto aditivo declarado. */
-  assert.deepEqual(novos, ['decompositions', 'editorialReading', 'scenarios', 'screenedRelations', 'synthesis'])
+  /* 2.8.0 (V5 R2): as decomposições são o quinto aditivo declarado.
+   * 2.9.0 (V5 R3): o hero de números-síntese é o sexto. */
+  assert.deepEqual(novos, ['decompositions', 'editorialReading', 'hero', 'scenarios', 'screenedRelations', 'synthesis'])
   assert.deepEqual(perdidos, [])
 
   /* A procedência é o outro conjunto que cresceu, e o acréscimo é declarado: os

@@ -61,11 +61,11 @@ const ABSENCE_REASON_CODES = [
   'serie_ausente',
 ]
 
-test('as dez regiões publicam síntese 2.8.0 sha-verificada e válida', () => {
-  assert.equal(manifest.documentSchemaVersion, 'vocacoes-regiao-2.8.0')
+test('as dez regiões publicam síntese 2.9.0 sha-verificada e válida', () => {
+  assert.equal(manifest.documentSchemaVersion, 'vocacoes-regiao-2.9.0')
   assert.equal(manifest.regions.length, 10)
   for (const [slug, document] of Object.entries(documents)) {
-    assert.equal(document.schemaVersion, 'vocacoes-regiao-2.8.0', slug)
+    assert.equal(document.schemaVersion, 'vocacoes-regiao-2.9.0', slug)
     assert.doesNotThrow(() => parseDocument(structuredClone(document)), slug)
     assert.doesNotThrow(() => scanPublicDocument(structuredClone(document), guard), slug)
     const originEntry = originManifest.files.find((entry) =>
@@ -144,6 +144,31 @@ const { VocacoesReport } = await vite.ssrLoadModule(
 )
 const render = (document) => renderToStaticMarkup(createElement(VocacoesReport, { document }))
 
+function expectedRelationCardCount(document) {
+  const associationLeadIds = new Set()
+  const pairLeadIds = new Set()
+  let editorialCards = 0
+  for (const lead of document.editorialReading.leads) {
+    if (lead.kind === 'curated_association') {
+      associationLeadIds.add(lead.associationId)
+      editorialCards += 1
+    }
+    if (lead.kind === 'curated_pair') {
+      pairLeadIds.add(lead.pairId)
+      editorialCards += 1
+    }
+  }
+  return editorialCards
+    + document.associations.items.filter((item) => !associationLeadIds.has(item.associationId)).length
+    + document.temporalPairs.items.filter((item) => !pairLeadIds.has(item.pairId)).length
+}
+
+function assertPublishedStatement(markup, block, context) {
+  if (Object.prototype.hasOwnProperty.call(block, 'statement')) {
+    assert.ok(markup.includes(block.statement), context)
+  }
+}
+
 test('o SSR mantém toda a síntese no markup, com nav, destaques e sem enum interno', () => {
   for (const [slug, document] of Object.entries(documents)) {
     const markup = render(document)
@@ -159,7 +184,7 @@ test('o SSR mantém toda a síntese no markup, com nav, destaques e sem enum int
     const highlighted = markup.match(/Conclusão observada/gu) ?? []
     assert.equal(
       highlighted.length,
-      document.associations.items.length + document.temporalPairs.items.length,
+      expectedRelationCardCount(document),
       `${slug}: um destaque por associação e par`,
     )
     assert.ok(!markup.includes('state_position'), `${slug}: sem enum T2`)
@@ -168,6 +193,80 @@ test('o SSR mantém toda a síntese no markup, com nav, destaques e sem enum int
 
   assert.ok(render(documents.noroeste).includes('O que vale em qualquer cenário'))
   assert.ok(render(documents['vale-do-rio-pardo']).includes('O que vale em qualquer cenário'))
+})
+
+test('o SSR publica os quatro tiles, os storyTitles e toda frase quantificada ou de guarda', () => {
+  for (const [slug, document] of Object.entries(documents)) {
+    const markup = render(document)
+    assert.equal(markup.match(/data-tile-id=/gu)?.length ?? 0, 4, `${slug}: quatro tiles no hero`)
+    assert.ok(markup.includes(document.hero.title), `${slug}: título do hero`)
+    assert.ok(markup.includes(document.hero.lede), `${slug}: lede do hero`)
+    assert.ok(markup.includes(document.hero.methodNote), `${slug}: método do hero`)
+    for (const tile of document.hero.tiles) {
+      assert.ok(markup.includes(tile.valueStatement), `${slug}: valor do tile ${tile.tileId}`)
+      assert.ok(markup.includes(tile.deltaStatement), `${slug}: delta do tile ${tile.tileId}`)
+      if (tile.contrastStatement !== null) {
+        assert.ok(markup.includes(tile.contrastStatement), `${slug}: contraste do tile ${tile.tileId}`)
+      }
+    }
+
+    for (const lead of document.editorialReading.leads) {
+      if (lead.kind !== 'screened') {
+        assert.ok(markup.includes(lead.storyTitle), `${slug}: storyTitle ${lead.kind}`)
+      }
+    }
+
+    for (const association of document.associations.items) {
+      assert.ok(markup.includes(association.observedStatement), `${slug}: observado ${association.associationId}`)
+      assert.ok(markup.includes(association.allowedInterpretation), `${slug}: permitido ${association.associationId}`)
+      assert.ok(markup.includes(association.prohibitedClaim), `${slug}: guarda ${association.associationId}`)
+      assert.ok(markup.includes(association.associativeReading.methodNote), `${slug}: método ${association.associationId}`)
+      for (const reading of association.associativeReading.factorReadings) {
+        assertPublishedStatement(markup, reading.correlation, `${slug}: correlação ${reading.factorSeriesId}`)
+        assertPublishedStatement(markup, reading.directionConcordance, `${slug}: concordância ${reading.factorSeriesId}`)
+        assertPublishedStatement(markup, reading.comovement, `${slug}: co-movimento ${reading.factorSeriesId}`)
+      }
+      assertPublishedStatement(markup, association.associativeReading.stateContrast, `${slug}: contraste ${association.associationId}`)
+    }
+
+    for (const pair of document.temporalPairs.items) {
+      assert.ok(markup.includes(pair.observedStatement), `${slug}: observado ${pair.pairId}`)
+      assert.ok(markup.includes(pair.prohibitedClaim), `${slug}: guarda ${pair.pairId}`)
+      assert.ok(markup.includes(pair.associativeReading.methodNote), `${slug}: método ${pair.pairId}`)
+      assertPublishedStatement(markup, pair.associativeReading.correlation, `${slug}: correlação ${pair.pairId}`)
+      assertPublishedStatement(markup, pair.associativeReading.directionConcordance, `${slug}: concordância ${pair.pairId}`)
+      assertPublishedStatement(markup, pair.associativeReading.comovement, `${slug}: co-movimento ${pair.pairId}`)
+      assertPublishedStatement(markup, pair.associativeReading.stateContrast, `${slug}: contraste ${pair.pairId}`)
+    }
+
+    for (const item of document.temporalPairs.laggedItems) {
+      assert.ok(markup.includes(item.statement), `${slug}: leitura defasada`)
+    }
+    for (const relation of document.screenedRelations.items) {
+      assert.ok(markup.includes(relation.originStatement), `${slug}: origem ${relation.relationId}`)
+      assertPublishedStatement(markup, relation.correlation, `${slug}: correlação triada ${relation.relationId}`)
+      assertPublishedStatement(markup, relation.directionConcordance, `${slug}: concordância triada ${relation.relationId}`)
+      assertPublishedStatement(markup, relation.comovement, `${slug}: co-movimento triado ${relation.relationId}`)
+    }
+    assert.ok(markup.includes(document.screenedRelations.methodNote), `${slug}: método da triagem`)
+    assert.ok(markup.includes(document.editorialReading.criteriaStatement), `${slug}: critérios editoriais`)
+    assert.ok(markup.includes(document.editorialReading.noteStatement), `${slug}: notas editoriais`)
+
+    assert.ok(markup.includes(document.decompositions.enrollment.methodStatement), `${slug}: método E2 matrícula`)
+    for (const item of document.decompositions.enrollment.items) {
+      assert.ok(markup.includes(item.statement), `${slug}: E2 ${item.stage}`)
+    }
+    for (const absence of document.decompositions.enrollment.absences) {
+      assert.ok(markup.includes(absence.statement), `${slug}: ausência E2 ${absence.stage}`)
+    }
+    if (document.decompositions.employment.item !== null) {
+      assert.ok(markup.includes(document.decompositions.employment.item.statement), `${slug}: E2 emprego`)
+      assert.ok(markup.includes(document.decompositions.employment.methodStatement), `${slug}: método E2 emprego`)
+    }
+    if (document.decompositions.employment.absence !== null) {
+      assert.ok(markup.includes(document.decompositions.employment.absence.statement), `${slug}: ausência E2 emprego`)
+    }
+  }
 })
 
 function cardContaining(markup, marker, context) {
@@ -200,18 +299,22 @@ function assertMethodologicalClaim(card, claim, context) {
 test('a leitura quantificada lidera e a negação fecha o cartão', () => {
   for (const [slug, document] of Object.entries(documents)) {
     const markup = render(document)
-    const association = document.associations.items.find((item) =>
-      item.associativeReading.factorReadings.some((reading) =>
-        Object.prototype.hasOwnProperty.call(reading.correlation, 'statement')))
-    assert.ok(association, `${slug}: associação com correlação declarada`)
+    const lead = document.editorialReading.leads.find((item) => item.kind === 'curated_association')
+    assert.ok(lead, `${slug}: associação editorial declarada`)
+    const association = document.associations.items.find((item) => item.associationId === lead.associationId)
+    assert.ok(association, `${slug}: associação editorial resolvida`)
     const factorReading = association.associativeReading.factorReadings.find((reading) =>
-      Object.prototype.hasOwnProperty.call(reading.correlation, 'statement'))
+      reading.factorSeriesId === lead.factorSeriesId)
+    assert.ok(factorReading, `${slug}: leitura editorial resolvida`)
     const associationCard = cardContaining(
       markup,
       association.observedStatement,
       `${slug}: primeira associação quantificada`,
     )
-    const correlationPosition = associationCard.indexOf(factorReading.correlation.statement)
+    const visibleStatement = Object.prototype.hasOwnProperty.call(factorReading.comovement, 'statement')
+      ? factorReading.comovement.statement
+      : factorReading.correlation.statement
+    const readingPosition = associationCard.indexOf(visibleStatement)
     const supportLabelStart = associationCard.indexOf('vocacoes-support__label')
     const supportLabelPosition = associationCard.indexOf(
       association.educationOutcome.label,
@@ -219,10 +322,10 @@ test('a leitura quantificada lidera e a negação fecha o cartão', () => {
     )
     const prohibitedPosition = associationCard.indexOf(association.prohibitedClaim)
     assert.ok(
-      correlationPosition >= 0
-        && correlationPosition < supportLabelPosition
-        && correlationPosition < prohibitedPosition,
-      `${slug}: correlação antes da sustentação e da negação`,
+      readingPosition >= 0
+        && readingPosition < supportLabelPosition
+        && readingPosition < prohibitedPosition,
+      `${slug}: leitura antes da sustentação e da negação`,
     )
 
     for (const item of document.associations.items) {
@@ -235,8 +338,7 @@ test('a leitura quantificada lidera e a negação fecha o cartão', () => {
     }
 
     const scenarioBlock = document.scenarios.block
-    const expectedMethodologicalNotes = document.associations.items.length
-      + document.temporalPairs.items.length
+    const expectedMethodologicalNotes = expectedRelationCardCount(document)
       + (scenarioBlock === null
         ? 0
         : scenarioBlock.items.length

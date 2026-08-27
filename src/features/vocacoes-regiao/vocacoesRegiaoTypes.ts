@@ -1,5 +1,5 @@
 /*
- * A forma do pacote público `vocacoes-regiao-2.8.0`, do lado de quem renderiza.
+ * A forma do pacote público `vocacoes-regiao-2.9.0`, do lado de quem renderiza.
  *
  * Estes tipos descrevem o que o validador já garantiu. Eles não repetem a
  * validação — repetir daria a ilusão de duas camadas onde há uma: em runtime só
@@ -48,6 +48,37 @@ export interface VocacoesSeriesReference {
 export interface VocacoesWindow {
   readonly start: number
   readonly end: number
+}
+
+export interface VocacoesHeroTile {
+  readonly tileId:
+    | 'ensino-medio'
+    | 'educacao-tecnica'
+    | 'escolaridade-do-emprego'
+    | 'nascimentos'
+  readonly seriesId: string
+  readonly entity: 'education' | 'territory'
+  readonly label: string
+  readonly window: VocacoesWindow
+  readonly startValue: number
+  readonly endValue: number
+  readonly valueStatement: string
+  readonly deltaKind: 'percentual' | 'nivel'
+  readonly deltaValue: number | null
+  readonly deltaStatement: string
+  readonly contrastStatement: string | null
+}
+
+export interface VocacoesHero {
+  readonly title: string
+  readonly lede: string
+  readonly methodNote: string
+  readonly tiles: readonly [
+    VocacoesHeroTile,
+    VocacoesHeroTile,
+    VocacoesHeroTile,
+    VocacoesHeroTile,
+  ]
 }
 
 export type VocacoesReadingSalience = 'lead' | 'note'
@@ -387,13 +418,15 @@ export type VocacoesEditorialLead =
       readonly aSeriesId: string
       readonly bSeriesId: string
       readonly lagYears: number
+      readonly storyTitle: string
     }
   | {
       readonly kind: 'curated_association'
       readonly associationId: string
       readonly factorSeriesId: string
+      readonly storyTitle: string
     }
-  | { readonly kind: 'curated_pair'; readonly pairId: string }
+  | { readonly kind: 'curated_pair'; readonly pairId: string; readonly storyTitle: string }
   | { readonly kind: 'screened'; readonly relationId: string }
 
 export interface VocacoesEditorialReading {
@@ -590,6 +623,7 @@ export interface VocacoesDocument {
     readonly neutralityNote: string
   }
   readonly howToRead: TextBlock<string>
+  readonly hero: VocacoesHero
   readonly synthesis: VocacoesSynthesis
   readonly territoryPortrait: {
     readonly label: string

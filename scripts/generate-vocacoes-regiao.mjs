@@ -4,7 +4,7 @@
  * O gerador atravessa a fronteira uma vez, em tempo de publicação: lê o pacote
  * regional aprovado na camada de pesquisa, reconfere o resumo de cada arquivo
  * contra o manifesto da origem, transpõe para o contrato público
- * `vocacoes-regiao-2.8.0` e escreve. Depois disso a plataforma não sabe mais
+ * `vocacoes-regiao-2.9.0` e escreve. Depois disso a plataforma não sabe mais
  * que a camada de pesquisa existe — ela valida o artefato publicado, e só ele.
  *
  * Nada aqui inventa cenário nem transpõe o pacote municipal para a região. Duas
@@ -80,6 +80,8 @@ import {
   computeSpearmanDelta,
   correlationStrength,
   createVocacoesDocumentParser,
+  formatDecimalComma,
+  formatPublicNumber,
   renderAgendaSynthesis,
   renderComovementStatement,
   renderConcordanceStatement,
@@ -105,11 +107,11 @@ const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const OUTPUT_ROOT = new URL('public/data/vocacoes-regiao/', REPOSITORY_ROOT)
 
 /*
- * Changelog do gerador: v6 → v7 acompanha o contrato público 2.7.0 → 2.8.0.
- * Mudança aditiva da V5 R2: nenhum campo 2.7.0 é removido ou reinterpretado;
- * o bloco E2 nasce de recomputação independente e pode ser rebaixado a E1.
+ * Changelog do gerador: v7 → v8 acompanha o contrato público 2.8.0 → 2.9.0.
+ * V5 R3: hero + títulos-história; aditivo. Nenhum campo 2.8.0 é removido ou
+ * reinterpretado; os novos valores e statements nascem das séries públicas.
  */
-export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v7'
+export const VOCACOES_GENERATOR_VERSION = 'vocacoes-regiao-generator-v8'
 export const STATE_CODE = 'RS'
 export const VOCACOES_PUBLICATION_SCOPE = 'estadual'
 
@@ -134,9 +136,96 @@ export const RESEARCH_CONTRACT_FILE = 'contrato/contrato_vocacoes_regiao_pesquis
 export const REGISTRY_FILE = 'registro/registro_regioes_rs_v0_1.json'
 
 export const RESEARCH_CONTRACT_VERSION = 'vocacoes-regiao-pesquisa-v0.6'
-export const RESEARCH_ROUND = 'v5-rodada-02'
+export const RESEARCH_ROUND = 'v5-rodada-03'
 export const ASSOCIATIVE_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.3'
 export const EDITORIAL_PACKAGE_SCHEMA = 'vocacoes-regiao-pesquisa-associativo-v0.2'
+
+const T_HERO_TITLE = 'O território mudou de perfil. A educação da região está acompanhando?'
+const T_HERO_LEDE =
+  'Duas perguntas organizam esta página: o que anda junto com a educação no território — e o '
+  + 'que o futuro do território pede da educação. As respostas vêm de séries longas de emprego, '
+  + 'demografia e matrícula, lidas lado a lado. Nenhuma leitura afirma causa além do grau '
+  + 'declarado em cada cartão.'
+const T_HERO_METHOD =
+  'Os quatro números-síntese usam as mesmas séries do retrato do território: o valor mais '
+  + 'recente fechado de cada série, a variação desde o primeiro ano fechado e, quando a leitura '
+  + 'existe no pacote, a posição da região entre as 10 do estado. Prévia não entra no '
+  + 'número-síntese.'
+
+const T_TILE_VALUE = '{endValue} {unidadeCurta} · {endYear}'
+const T_TILE_DELTA_PERCENTUAL = '{sinal}{pct}% desde {startYear}'
+const T_TILE_DELTA_NIVEL = 'eram {startValue} em {startYear}'
+
+const HERO_TILE_CONFIG = Object.freeze([
+  Object.freeze({
+    tileId: 'ensino-medio',
+    seriesId: 'matriculas-no-ensino-medio',
+    entity: 'education',
+    label: 'Ensino médio',
+    shortUnit: 'matrículas',
+    deltaKind: 'percentual',
+  }),
+  Object.freeze({
+    tileId: 'educacao-tecnica',
+    seriesId: 'matriculas-na-educacao-profissional-tecnica',
+    entity: 'education',
+    label: 'Educação técnica',
+    shortUnit: 'matrículas',
+    deltaKind: 'percentual',
+  }),
+  Object.freeze({
+    tileId: 'escolaridade-do-emprego',
+    seriesId: 'vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais',
+    entity: 'territory',
+    label: 'Escolaridade do emprego',
+    shortUnit: 'de cada 100 vínculos com ensino médio completo',
+    deltaKind: 'nivel',
+  }),
+  Object.freeze({
+    tileId: 'nascimentos',
+    seriesId: 'nascidos-vivos-por-residencia-da-mae',
+    entity: 'territory',
+    label: 'Nascimentos',
+    shortUnit: 'nascidos vivos',
+    deltaKind: 'nivel',
+  }),
+])
+
+const T_TITLE_DEF = 'O que nasce hoje chega à escola {lagYears} anos depois'
+const T_TITLE_DUO =
+  '{Short(primeira)} {verbo(primeira)}, {short(segunda)} {verbo(segunda)}'
+
+const TITLE_VERBS = Object.freeze({
+  positive: Object.freeze({ s: 'cresceu', p: 'cresceram' }),
+  negative: Object.freeze({ s: 'caiu', p: 'caíram' }),
+  zero: Object.freeze({ s: 'não saiu do lugar', p: 'não saíram do lugar' }),
+})
+
+const SHORT_LABELS = Object.freeze({
+  'escolas-com-matriculas-na-educacao-basica': Object.freeze({ short: 'as escolas com matrícula', number: 'plural' }),
+  'escolas-rurais-com-matriculas-na-educacao-basica': Object.freeze({ short: 'as escolas rurais', number: 'plural' }),
+  'familias-inscritas-no-cadastro-social-posicao-de-dezembro': Object.freeze({ short: 'as famílias no cadastro social', number: 'plural' }),
+  'massa-salarial-de-dezembro-a-precos-de-2025': Object.freeze({ short: 'a massa salarial', number: 'singular' }),
+  'matriculas-na-educacao-de-jovens-e-adultos': Object.freeze({ short: 'a matrícula na EJA', number: 'singular' }),
+  'matriculas-na-educacao-infantil': Object.freeze({ short: 'a matrícula na educação infantil', number: 'singular' }),
+  'matriculas-na-educacao-profissional-tecnica': Object.freeze({ short: 'a matrícula técnica', number: 'singular' }),
+  'matriculas-no-ensino-fundamental': Object.freeze({ short: 'a matrícula no fundamental', number: 'singular' }),
+  'matriculas-no-ensino-medio': Object.freeze({ short: 'a matrícula no ensino médio', number: 'singular' }),
+  'nascidos-vivos-por-residencia-da-mae': Object.freeze({ short: 'os nascimentos', number: 'plural' }),
+  'pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos': Object.freeze({ short: 'o índice de envelhecimento', number: 'singular' }),
+  'pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro': Object.freeze({ short: 'as pessoas no perfil de baixa renda', number: 'plural' }),
+  'populacao-de-0-a-14-anos': Object.freeze({ short: 'a população de 0 a 14 anos', number: 'singular' }),
+  'populacao-de-60-anos-ou-mais': Object.freeze({ short: 'a população de 60 anos ou mais', number: 'singular' }),
+  'populacao-estimada': Object.freeze({ short: 'a população estimada', number: 'singular' }),
+  'produto-interno-bruto-da-agropecuaria-a-precos-de-2023': Object.freeze({ short: 'o PIB da agropecuária', number: 'singular' }),
+  'produto-interno-bruto-da-industria-a-precos-de-2023': Object.freeze({ short: 'o PIB da indústria', number: 'singular' }),
+  'produto-interno-bruto-dos-servicos-a-precos-de-2023': Object.freeze({ short: 'o PIB de serviços', number: 'singular' }),
+  'vinculos-formais-ativos': Object.freeze({ short: 'o emprego formal', number: 'singular' }),
+  'vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais': Object.freeze({ short: 'a fatia de vínculos com ensino médio completo', number: 'singular' }),
+  'vinculos-formais-de-pessoas-com-ensino-superior-completo': Object.freeze({ short: 'os vínculos com ensino superior', number: 'plural' }),
+  'vinculos-formais-de-profissionais-do-ensino': Object.freeze({ short: 'os vínculos de profissionais do ensino', number: 'plural' }),
+  'vinculos-formais-na-industria': Object.freeze({ short: 'o emprego na indústria', number: 'singular' }),
+})
 
 const DECOMPOSITION_SOURCE_CONFIG = Object.freeze({
   educacao_infantil: Object.freeze({
@@ -626,6 +715,170 @@ function formatWindowLabel(window) {
   return window.start === window.end ? `${window.start}` : `${window.start} a ${window.end}`
 }
 
+function renderClosedTemplate(template, replacements, label) {
+  const rendered = template.replace(/\{([^{}]+)\}/gu, (placeholder, key) => {
+    invariant(
+      Object.hasOwn(replacements, key),
+      `${label} não recebeu valor para o placeholder ${placeholder}.`,
+    )
+    return String(replacements[key])
+  })
+  invariant(!/[{}]/u.test(rendered), `${label} deixou placeholder sem resolver.`)
+  return rendered
+}
+
+function firstStateContrastStatement(associations, temporalPairs, seriesId) {
+  const readings = [
+    ...associations.map((item) => item.associativeReading.stateContrast),
+    ...temporalPairs.map((item) => item.associativeReading.stateContrast),
+  ]
+  const match = readings.find((reading) =>
+    reading.seriesId === seriesId && typeof reading.statement === 'string')
+  return match?.statement ?? null
+}
+
+function renderTileValueStatement(endValue, endYear, config) {
+  return renderClosedTemplate(T_TILE_VALUE, {
+    endValue: formatPublicNumber(endValue),
+    unidadeCurta: config.shortUnit,
+    endYear,
+  }, 'template T-TILE-VALUE')
+}
+
+function renderTileDeltaStatement(startValue, startYear, deltaValue, config) {
+  if (config.deltaKind === 'nivel') {
+    return renderClosedTemplate(T_TILE_DELTA_NIVEL, {
+      startValue: formatPublicNumber(startValue),
+      startYear,
+    }, 'template T-TILE-DELTA')
+  }
+  const sign = deltaValue > 0 ? '+' : deltaValue < 0 ? '-' : ''
+  return renderClosedTemplate(T_TILE_DELTA_PERCENTUAL, {
+    sinal: sign,
+    pct: formatDecimalComma(Math.abs(deltaValue), 1),
+    startYear,
+  }, 'template T-TILE-DELTA')
+}
+
+export function buildVocacoesHero({ series, associations, temporalPairs }) {
+  const seriesById = new Map(series.map((serie) => [serie.seriesId, serie]))
+  const tiles = HERO_TILE_CONFIG.map((config) => {
+    const serie = seriesById.get(config.seriesId)
+    invariant(
+      serie !== undefined,
+      `hero não pode ser composto: série obrigatória ausente (${config.seriesId}).`,
+    )
+    invariant(
+      serie.periodGranularity === 'annual',
+      `hero não pode usar série não anual (${config.seriesId}).`,
+    )
+    const closed = serie.points.filter((point) => point.evidenceClass !== 'preliminary')
+    invariant(
+      closed.length > 0,
+      `hero não pode ser composto: série sem ponto fechado (${config.seriesId}).`,
+    )
+    const first = closed[0]
+    const last = closed[closed.length - 1]
+    let deltaValue = null
+    if (config.deltaKind === 'percentual') {
+      invariant(
+        first.value !== 0,
+        `hero não pode calcular variação percentual com denominador zero (${config.seriesId}).`,
+      )
+      deltaValue = roundHalfAwayFromZero((last.value - first.value) / first.value * 100, 1)
+    }
+    return {
+      tileId: config.tileId,
+      seriesId: config.seriesId,
+      entity: config.entity,
+      label: config.label,
+      window: { start: first.period, end: last.period },
+      startValue: first.value,
+      endValue: last.value,
+      valueStatement: renderTileValueStatement(last.value, last.period, config),
+      deltaKind: config.deltaKind,
+      deltaValue,
+      deltaStatement: renderTileDeltaStatement(first.value, first.period, deltaValue, config),
+      contrastStatement: firstStateContrastStatement(associations, temporalPairs, config.seriesId),
+    }
+  })
+  return {
+    title: T_HERO_TITLE,
+    lede: T_HERO_LEDE,
+    methodNote: T_HERO_METHOD,
+    tiles,
+  }
+}
+
+function storyMovementVerb(delta, number) {
+  const direction = delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'zero'
+  return TITLE_VERBS[direction][number === 'plural' ? 'p' : 's']
+}
+
+function storySeriesLabel(seriesId, label) {
+  const entry = SHORT_LABELS[seriesId]
+  invariant(entry !== undefined, `${label} cita seriesId fora de SHORT_LABELS: ${seriesId}.`)
+  return entry
+}
+
+function renderStoryDuo(firstSeriesId, firstDelta, secondSeriesId, secondDelta, label) {
+  const first = storySeriesLabel(firstSeriesId, label)
+  const second = storySeriesLabel(secondSeriesId, label)
+  const capitalizedFirst = `${first.short[0].toUpperCase()}${first.short.slice(1)}`
+  return renderClosedTemplate(T_TITLE_DUO, {
+    'Short(primeira)': capitalizedFirst,
+    'verbo(primeira)': storyMovementVerb(firstDelta, first.number),
+    'short(segunda)': second.short,
+    'verbo(segunda)': storyMovementVerb(secondDelta, second.number),
+  }, 'template T-TITLE-DUO')
+}
+
+function renderStoryTitle(reference, { associations, temporalPairs }, label) {
+  if (reference.kind === 'structural') {
+    return renderClosedTemplate(T_TITLE_DEF, {
+      lagYears: reference.lagYears,
+    }, 'template T-TITLE-DEF')
+  }
+  if (reference.kind === 'curated_association') {
+    const association = associations.find((item) => item.associationId === reference.associationId)
+    invariant(association !== undefined, `${label} referencia associação ausente.`)
+    const reading = association.associativeReading.factorReadings.find((item) =>
+      item.factorSeriesId === reference.factorSeriesId)
+    invariant(reading !== undefined, `${label} referencia leitura de fator ausente.`)
+    if (Object.hasOwn(reading.comovement, 'reasonCode')) return association.label
+    return renderStoryDuo(
+      reference.factorSeriesId,
+      reading.comovement.factor.delta,
+      association.educationOutcome.seriesId,
+      reading.comovement.outcome.delta,
+      label,
+    )
+  }
+  invariant(reference.kind === 'curated_pair', `${label}.kind não admite storyTitle.`)
+  const pair = temporalPairs.find((item) => item.pairId === reference.pairId)
+  invariant(pair !== undefined, `${label} referencia par temporal ausente.`)
+  if (Object.hasOwn(pair.associativeReading.comovement, 'reasonCode')) return pair.label
+  return renderStoryDuo(
+    pair.seriesA.seriesId,
+    pair.associativeReading.comovement.a.delta,
+    pair.seriesB.seriesId,
+    pair.associativeReading.comovement.b.delta,
+    label,
+  )
+}
+
+export function addStoryTitlesToEditorialReading(editorialReading, context) {
+  return {
+    ...editorialReading,
+    leads: editorialReading.leads.map((reference, index) => reference.kind === 'screened'
+      ? reference
+      : {
+        ...reference,
+        storyTitle: renderStoryTitle(reference, context, `editorial.leads[${index}]`),
+      }),
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Moldura editorial.
  *
@@ -1006,7 +1259,7 @@ function transposeTemporalPair(sourcePair, sourceReading, seriesIdByKey, labelBy
 /* ------------------------------------------------------------------ *
  * Leitura associativa quantificada — reverificação da origem.
  *
- * O parser 2.8.0 fará a mesma conferência sobre o documento público. Esta
+ * O parser 2.9.0 fará a mesma conferência sobre o documento público. Esta
  * primeira passagem trabalha ainda com as seriesKeys do pacote de pesquisa e
  * impede que um statement ou um rank divergente atravesse a transposição.
  * ------------------------------------------------------------------ */
@@ -2249,6 +2502,10 @@ function transposeEditorialReading({
     invariant(reference.kind === 'screened', `${label}.kind fora do contrato editorial.`)
     return { kind: reference.kind, relationId: reference.relationId }
   })
+  const leadsWithTitles = addStoryTitlesToEditorialReading(
+    { leads },
+    { associations, temporalPairs },
+  ).leads
   return {
     criteria: {
       leadStrengths: [...EDITORIAL_READING_CRITERIA.leadStrengths],
@@ -2257,7 +2514,7 @@ function transposeEditorialReading({
       orderedBy: EDITORIAL_READING_CRITERIA.orderedBy,
     },
     criteriaStatement: EDITORIAL_CRITERIA_STATEMENT,
-    leads,
+    leads: leadsWithTitles,
     noteCount: editorial.noteCount,
     noteStatement: renderEditorialNoteStatement(editorial.noteCount),
   }
@@ -3182,6 +3439,7 @@ export function transposeRegion({
     temporalPairs,
     seriesIdByKey,
   })
+  const hero = buildVocacoesHero({ series, associations, temporalPairs })
   const scenarios = publishesScenarios
     ? {
       label: SCENARIO_FRAMING.label,
@@ -3235,6 +3493,7 @@ export function transposeRegion({
     },
     page: framing.page,
     howToRead: framing.howToRead,
+    hero,
     synthesis,
     territoryPortrait: { ...framing.territoryPortrait, series },
     decompositions,
@@ -3310,10 +3569,10 @@ export function buildPublication({ sourceRoot } = {}) {
     'o contrato público lido no handshake diverge do contrato sha-verificado pelo manifesto.',
   )
   invariant(
-    verifiedApproval.supersedes === 'vocacoes-regiao-2.7.0'
+    verifiedApproval.supersedes === 'vocacoes-regiao-2.8.0'
       && verifiedApproval.approvedInRound === RESEARCH_ROUND
       && verifiedApproval.researchContractVersion === RESEARCH_CONTRACT_VERSION,
-    'a aprovação do contrato público 2.8.0 não declara a sucessão e a rodada V5 R2 esperadas.',
+    'a aprovação do contrato público 2.9.0 não declara a sucessão e a rodada V5 R3 esperadas.',
   )
   const researchContract = verified.readVerifiedJson(RESEARCH_CONTRACT_FILE)
   invariant(

@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
+
+import {
+  addStoryTitlesToEditorialReading,
+  buildVocacoesHero,
+} from '../generate-vocacoes-regiao.mjs'
 
 import {
   AGENDA_THEME_LABELS,
@@ -59,7 +65,7 @@ import {
 
 const SOURCE_VERSION = 'vocacoes-regiao-pesquisa-v0.6'
 const PUBLICATION_SCOPE = 'estadual'
-const REFERENCE_YEAR = 2025
+const REFERENCE_YEAR = 2026
 const REFERENCE_MONTH = 12
 const WINDOW = Object.freeze({ start: 2010, end: 2019 })
 const LAG_YEARS = 6
@@ -68,11 +74,28 @@ const LAGGED_RATIONALE =
 const EDUCATION_ID = 'matriculas-no-ensino-fundamental'
 const MODERATE_ID = 'populacao-estimada'
 const WEAK_ID = 'familias-inscritas-no-cadastro-social-posicao-de-dezembro'
-const STRONG_CURATED_ID = 'vinculos-formais-de-pessoas-com-ensino-medio-completo'
+const STRONG_CURATED_ID = 'vinculos-formais-na-industria'
 const STRONG_SCREENED_ID = 'vinculos-formais-ativos'
 const EDUCATION_DELTAS = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6])
 const MODERATE_DELTAS = Object.freeze([4, 6, 3, 2, 5, 1, 7, 8, 9, 2, 4, 6, 8, 3, 5])
 const WEAK_DELTAS = Object.freeze([7, 6, 3, 5, 2, 1, 4, 8, 9, 3, 1, 5, 2, 6, 4])
+
+const PILOT_MANIFEST = JSON.parse(readFileSync(
+  new URL('../../public/data/vocacoes-regiao/manifest.json', import.meta.url),
+  'utf8',
+))
+const PILOT_DOCUMENT = JSON.parse(readFileSync(
+  new URL('../../public/data/vocacoes-regiao/regioes/vale-do-sinos.json', import.meta.url),
+  'utf8',
+))
+const HERO_SERIES_IDS = new Set([
+  'matriculas-no-ensino-medio',
+  'matriculas-na-educacao-profissional-tecnica',
+  'vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais',
+  'nascidos-vivos-por-residencia-da-mae',
+])
+const PILOT_HERO_SERIES = PILOT_DOCUMENT.territoryPortrait.series
+  .filter((serie) => HERO_SERIES_IDS.has(serie.seriesId))
 
 const languageGuard = createPublicLanguageGuard({
   causalLanguagePatterns: [...CAUSAL_FLOOR],
@@ -95,6 +118,14 @@ const parseDocument = createVocacoesDocumentParser({
   publicationScope: PUBLICATION_SCOPE,
   referenceYear: REFERENCE_YEAR,
   referenceMonth: REFERENCE_MONTH,
+})
+
+const parsePilotDocument = createVocacoesDocumentParser({
+  documentSchema: VOCACOES_DOCUMENT_SCHEMA,
+  sourceVersion: PILOT_MANIFEST.sourceVersion,
+  publicationScope: PILOT_MANIFEST.publicationScope,
+  referenceYear: PILOT_MANIFEST.referenceYear,
+  referenceMonth: PILOT_MANIFEST.referenceMonth,
 })
 
 function makeSeries({ seriesId, label, deltas }) {
@@ -163,8 +194,7 @@ function decompositionCriteria() {
   }
 }
 
-function makeEnrollmentDecomposition(education, births) {
-  const stage = 'ensino_fundamental'
+function makeEnrollmentItem(stage, education, births) {
   const config = DECOMPOSITION_STAGE_CONFIG[stage]
   const birthByPeriod = new Map(births.points.map((point) => [point.period, point.value]))
   const cohortAt = (period) => {
@@ -217,7 +247,16 @@ function makeEnrollmentDecomposition(education, births) {
     grade: 'E2',
     pneThemes: pneThemesFor(config.outcomeSeriesId),
   }
-  const absences = ['educacao_infantil', 'ensino_medio'].map((absenceStage) => {
+  return { ...item, statement: renderE2EnrollmentStatement(item) }
+}
+
+function makeEnrollmentDecomposition(educationByStage, births) {
+  const items = Object.entries(educationByStage).map(([stage, education]) =>
+    makeEnrollmentItem(stage, education, births))
+  const presentStages = new Set(items.map((item) => item.stage))
+  const absences = ['educacao_infantil', 'ensino_fundamental', 'ensino_medio']
+    .filter((stage) => !presentStages.has(stage))
+    .map((absenceStage) => {
     const absence = {
       stage: absenceStage,
       stageLabel: DECOMPOSITION_STAGE_CONFIG[absenceStage].stageLabel,
@@ -228,7 +267,7 @@ function makeEnrollmentDecomposition(education, births) {
   return {
     methodStatement: E2_ENROLLMENT_METHOD_STATEMENT,
     criteria: decompositionCriteria(),
-    items: [{ ...item, statement: renderE2EnrollmentStatement(item) }],
+    items,
     absences,
   }
 }
@@ -287,10 +326,10 @@ function makeEmploymentDecomposition() {
   }
 }
 
-function makeDecompositions(education, births) {
+function makeDecompositions(educationByStage, births) {
   return {
     ...DECOMPOSITION_FRAMING,
-    enrollment: makeEnrollmentDecomposition(education, births),
+    enrollment: makeEnrollmentDecomposition(educationByStage, births),
     employment: makeEmploymentDecomposition(),
   }
 }
@@ -569,7 +608,7 @@ function buildDocument() {
   })
   const strongCurated = makeSeries({
     seriesId: STRONG_CURATED_ID,
-    label: 'Vínculos formais de pessoas com ensino médio completo',
+    label: 'Vínculos formais na indústria',
     deltas: EDUCATION_DELTAS.map((delta) => delta * 2),
   })
   const strongScreened = makeSeries({
@@ -619,15 +658,24 @@ function buildDocument() {
   }
   const lagged = makeLaggedReading(strongScreened, education)
   const series = [education, births, moderate, weak, strongCurated, strongScreened]
+  const seriesIds = new Set(series.map((serie) => serie.seriesId))
+  series.push(...PILOT_HERO_SERIES
+    .filter((serie) => !seriesIds.has(serie.seriesId))
+    .map((serie) => structuredClone(serie)))
   const seriesById = new Map(series.map((serie) => [serie.seriesId, serie]))
   const associationSynthesisStatement = observedSynthesisStatement(education, ...factors)
   const temporalSynthesisStatement = observedSynthesisStatement(moderate, education)
-  const editorialReading = makeEditorialReading({
+  const editorialReading = addStoryTitlesToEditorialReading(makeEditorialReading({
     association,
     temporalPair,
     lagged,
     screenedRelation,
     seriesById,
+  }), { associations: [association], temporalPairs: [temporalPair] })
+  const hero = buildVocacoesHero({
+    series,
+    associations: [association],
+    temporalPairs: [temporalPair],
   })
   return {
     schemaVersion: VOCACOES_DOCUMENT_SCHEMA,
@@ -649,6 +697,7 @@ function buildDocument() {
       description: 'Notas de leitura do documento.',
       items: ['Os valores são observados nas séries sintéticas.'],
     },
+    hero,
     synthesis: {
       ...SYNTHESIS_FRAMING,
       items: [
@@ -679,7 +728,10 @@ function buildDocument() {
       description: 'Seis séries anuais sintéticas.',
       series,
     },
-    decompositions: makeDecompositions(education, births),
+    decompositions: makeDecompositions({
+      ensino_fundamental: education,
+      ensino_medio: seriesById.get('matriculas-no-ensino-medio'),
+    }, births),
     associations: {
       label: 'Associações',
       description: 'Uma associação sintética.',
@@ -740,10 +792,32 @@ function refuses(mutate, pattern) {
   assert.throws(() => parseDocument(candidate), pattern)
 }
 
-test('parser 2.8.0 aceita documento associativo sintético válido', () => {
+function buildPilotDocument() {
+  const candidate = structuredClone(PILOT_DOCUMENT)
+  candidate.schemaVersion = VOCACOES_DOCUMENT_SCHEMA
+  candidate.generatorVersion = 'vocacoes-regiao-generator-v8'
+  candidate.hero = buildVocacoesHero({
+    series: candidate.territoryPortrait.series,
+    associations: candidate.associations.items,
+    temporalPairs: candidate.temporalPairs.items,
+  })
+  candidate.editorialReading = addStoryTitlesToEditorialReading(candidate.editorialReading, {
+    associations: candidate.associations.items,
+    temporalPairs: candidate.temporalPairs.items,
+  })
+  return candidate
+}
+
+function refusesPilot(mutate, pattern) {
+  const candidate = buildPilotDocument()
+  mutate(candidate)
+  assert.throws(() => parsePilotDocument(candidate), pattern)
+}
+
+test('parser 2.9.0 aceita documento associativo sintético válido', () => {
   const parsed = parseDocument(buildDocument())
   assert.equal(parsed.schemaVersion, VOCACOES_DOCUMENT_SCHEMA)
-  assert.equal(parsed.decompositions.enrollment.items.length, 1)
+  assert.equal(parsed.decompositions.enrollment.items.length, 2)
   assert.notEqual(parsed.decompositions.employment.item, null)
   assert.equal(parsed.temporalPairs.laggedItems.length, 1)
   assert.equal(parsed.screenedRelations.items.length, 1)
@@ -765,8 +839,62 @@ test('parser 2.8.0 aceita documento associativo sintético válido', () => {
   )
 })
 
-test('parser 2.8.0 recusa documento 2.7.0', () => {
-  refuses((candidate) => { candidate.schemaVersion = 'vocacoes-regiao-2.7.0' }, /esquema/u)
+test('parser 2.9.0 aceita o documento honesto derivado do piloto Vale do Sinos', () => {
+  const parsed = parsePilotDocument(buildPilotDocument())
+  assert.equal(parsed.hero.tiles.length, 4)
+  assert.ok(parsed.editorialReading.leads.some((lead) => lead.kind === 'screened'))
+  assert.ok(parsed.editorialReading.leads
+    .filter((lead) => lead.kind !== 'screened')
+    .every((lead) => typeof lead.storyTitle === 'string' && lead.storyTitle !== ''))
+  assert.ok(parsed.editorialReading.leads
+    .filter((lead) => lead.kind === 'screened')
+    .every((lead) => !Object.hasOwn(lead, 'storyTitle')))
+})
+
+test('parser recusa hero do piloto adulterado em valor', () => {
+  refusesPilot(
+    (candidate) => { candidate.hero.tiles[0].endValue += 1 },
+    /hero\.tiles\[0\]\.endValue diverge do ponto fechado/u,
+  )
+})
+
+test('parser recusa hero do piloto adulterado em statement', () => {
+  refusesPilot(
+    (candidate) => { candidate.hero.tiles[0].valueStatement += ' ' },
+    /valueStatement diverge do template T-TILE-VALUE byte a byte/u,
+  )
+})
+
+test('parser recusa contraste forjado no hero do piloto', () => {
+  refusesPilot(
+    (candidate) => { candidate.hero.tiles[0].contrastStatement = 'contraste forjado' },
+    /contrastStatement diverge do primeiro stateContrast\.statement/u,
+  )
+})
+
+test('parser recusa storyTitle divergente no piloto', () => {
+  refusesPilot((candidate) => {
+    const lead = candidate.editorialReading.leads.find((item) => item.kind !== 'screened')
+    lead.storyTitle += ' '
+  }, /storyTitle diverge do template T-TITLE byte a byte/u)
+})
+
+test('parser recusa storyTitle em lead screened do piloto', () => {
+  refusesPilot((candidate) => {
+    const lead = candidate.editorialReading.leads.find((item) => item.kind === 'screened')
+    lead.storyTitle = 'campo proibido'
+  }, /storyTitle não é admitido em lead screened/u)
+})
+
+test('parser recusa campo desconhecido no hero do piloto', () => {
+  refusesPilot(
+    (candidate) => { candidate.hero.resumoLivre = 'campo fora do contrato' },
+    /pacote\.hero traz campo desconhecido fora do contrato: resumoLivre/u,
+  )
+})
+
+test('parser 2.9.0 recusa documento 2.8.0', () => {
+  refuses((candidate) => { candidate.schemaVersion = 'vocacoes-regiao-2.8.0' }, /esquema/u)
 })
 
 test('parser recusa associativeReading ausente', () => {

@@ -1,5 +1,5 @@
 /*
- * Contrato público do Vocações da Região — `vocacoes-regiao-2.8.0`.
+ * Contrato público do Vocações da Região — `vocacoes-regiao-2.9.0`.
  *
  * Quatro blocos por região: retrato e transformações do território (Bloco 1),
  * leitura associativa entre educação e território (Bloco 2), comparação
@@ -58,6 +58,9 @@
  *     reconstruída dos pontos e das prévias do próprio documento; emprego é
  *     reconstruído dos cinco setores publicados. Termos, contribuições e
  *     statements são reverificados de forma fechada pelo leitor.
+ *   - `2.8.0` → `2.9.0` (V5 R3): **aditivo**. O documento ganha o hero de
+ *     quatro números-síntese e os títulos-história dos leads não-screened;
+ *     valores, statements e títulos são reconstruídos do próprio documento.
  *
  * O Bloco 4 não é um campo opcional deixado vazio nas regiões sem cenário. Ele
  * é obrigatório em todas as dez, e **declara em qual dos dois estados está**:
@@ -83,7 +86,7 @@
  * artefato mentir é trazer um campo que ninguém valida e alguém renderiza.
  */
 
-export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.8.0'
+export const VOCACOES_DOCUMENT_SCHEMA = 'vocacoes-regiao-2.9.0'
 
 export const ASSOCIATIVE_GRAMMAR_VERSION = 'vocacoes-regiao-associativo-v0.1'
 
@@ -110,6 +113,93 @@ export function renderEditorialNoteStatement(noteCount) {
   return `Leituras computadas sem força de publicação nesta região: ${noteCount}; `
     + 'o cálculo completo permanece publicado nos dados da página.'
 }
+
+const T_HERO_TITLE = 'O território mudou de perfil. A educação da região está acompanhando?'
+const T_HERO_LEDE =
+  'Duas perguntas organizam esta página: o que anda junto com a educação no território — e o '
+  + 'que o futuro do território pede da educação. As respostas vêm de séries longas de emprego, '
+  + 'demografia e matrícula, lidas lado a lado. Nenhuma leitura afirma causa além do grau '
+  + 'declarado em cada cartão.'
+const T_HERO_METHOD =
+  'Os quatro números-síntese usam as mesmas séries do retrato do território: o valor mais '
+  + 'recente fechado de cada série, a variação desde o primeiro ano fechado e, quando a leitura '
+  + 'existe no pacote, a posição da região entre as 10 do estado. Prévia não entra no '
+  + 'número-síntese.'
+
+const T_TILE_VALUE = '{endValue} {unidadeCurta} · {endYear}'
+const T_TILE_DELTA_PERCENTUAL = '{sinal}{pct}% desde {startYear}'
+const T_TILE_DELTA_NIVEL = 'eram {startValue} em {startYear}'
+
+const HERO_TILE_CONFIG = Object.freeze([
+  Object.freeze({
+    tileId: 'ensino-medio',
+    seriesId: 'matriculas-no-ensino-medio',
+    entity: 'education',
+    label: 'Ensino médio',
+    shortUnit: 'matrículas',
+    deltaKind: 'percentual',
+  }),
+  Object.freeze({
+    tileId: 'educacao-tecnica',
+    seriesId: 'matriculas-na-educacao-profissional-tecnica',
+    entity: 'education',
+    label: 'Educação técnica',
+    shortUnit: 'matrículas',
+    deltaKind: 'percentual',
+  }),
+  Object.freeze({
+    tileId: 'escolaridade-do-emprego',
+    seriesId: 'vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais',
+    entity: 'territory',
+    label: 'Escolaridade do emprego',
+    shortUnit: 'de cada 100 vínculos com ensino médio completo',
+    deltaKind: 'nivel',
+  }),
+  Object.freeze({
+    tileId: 'nascimentos',
+    seriesId: 'nascidos-vivos-por-residencia-da-mae',
+    entity: 'territory',
+    label: 'Nascimentos',
+    shortUnit: 'nascidos vivos',
+    deltaKind: 'nivel',
+  }),
+])
+
+const T_TITLE_DEF = 'O que nasce hoje chega à escola {lagYears} anos depois'
+const T_TITLE_DUO =
+  '{Short(primeira)} {verbo(primeira)}, {short(segunda)} {verbo(segunda)}'
+
+const TITLE_VERBS = Object.freeze({
+  positive: Object.freeze({ s: 'cresceu', p: 'cresceram' }),
+  negative: Object.freeze({ s: 'caiu', p: 'caíram' }),
+  zero: Object.freeze({ s: 'não saiu do lugar', p: 'não saíram do lugar' }),
+})
+
+const SHORT_LABELS = Object.freeze({
+  'escolas-com-matriculas-na-educacao-basica': Object.freeze({ short: 'as escolas com matrícula', number: 'plural' }),
+  'escolas-rurais-com-matriculas-na-educacao-basica': Object.freeze({ short: 'as escolas rurais', number: 'plural' }),
+  'familias-inscritas-no-cadastro-social-posicao-de-dezembro': Object.freeze({ short: 'as famílias no cadastro social', number: 'plural' }),
+  'massa-salarial-de-dezembro-a-precos-de-2025': Object.freeze({ short: 'a massa salarial', number: 'singular' }),
+  'matriculas-na-educacao-de-jovens-e-adultos': Object.freeze({ short: 'a matrícula na EJA', number: 'singular' }),
+  'matriculas-na-educacao-infantil': Object.freeze({ short: 'a matrícula na educação infantil', number: 'singular' }),
+  'matriculas-na-educacao-profissional-tecnica': Object.freeze({ short: 'a matrícula técnica', number: 'singular' }),
+  'matriculas-no-ensino-fundamental': Object.freeze({ short: 'a matrícula no fundamental', number: 'singular' }),
+  'matriculas-no-ensino-medio': Object.freeze({ short: 'a matrícula no ensino médio', number: 'singular' }),
+  'nascidos-vivos-por-residencia-da-mae': Object.freeze({ short: 'os nascimentos', number: 'plural' }),
+  'pessoas-de-60-anos-ou-mais-por-cem-pessoas-de-0-a-14-anos': Object.freeze({ short: 'o índice de envelhecimento', number: 'singular' }),
+  'pessoas-inscritas-no-perfil-de-baixa-renda-posicao-de-dezembro': Object.freeze({ short: 'as pessoas no perfil de baixa renda', number: 'plural' }),
+  'populacao-de-0-a-14-anos': Object.freeze({ short: 'a população de 0 a 14 anos', number: 'singular' }),
+  'populacao-de-60-anos-ou-mais': Object.freeze({ short: 'a população de 60 anos ou mais', number: 'singular' }),
+  'populacao-estimada': Object.freeze({ short: 'a população estimada', number: 'singular' }),
+  'produto-interno-bruto-da-agropecuaria-a-precos-de-2023': Object.freeze({ short: 'o PIB da agropecuária', number: 'singular' }),
+  'produto-interno-bruto-da-industria-a-precos-de-2023': Object.freeze({ short: 'o PIB da indústria', number: 'singular' }),
+  'produto-interno-bruto-dos-servicos-a-precos-de-2023': Object.freeze({ short: 'o PIB de serviços', number: 'singular' }),
+  'vinculos-formais-ativos': Object.freeze({ short: 'o emprego formal', number: 'singular' }),
+  'vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais': Object.freeze({ short: 'a fatia de vínculos com ensino médio completo', number: 'singular' }),
+  'vinculos-formais-de-pessoas-com-ensino-superior-completo': Object.freeze({ short: 'os vínculos com ensino superior', number: 'plural' }),
+  'vinculos-formais-de-profissionais-do-ensino': Object.freeze({ short: 'os vínculos de profissionais do ensino', number: 'plural' }),
+  'vinculos-formais-na-industria': Object.freeze({ short: 'o emprego na indústria', number: 'singular' }),
+})
 
 export const ASSOCIATIVE_REASON_CODES = Object.freeze([
   'sem_intervalos_comparaveis',
@@ -366,6 +456,158 @@ export function formatPublicNumber(value) {
   const integer = decimals === 0 ? digits : digits.slice(0, splitAt)
   const fraction = decimals === 0 ? '' : `,${digits.slice(splitAt)}`
   return `${rounded.negative ? '-' : ''}${groupIntegerDigits(integer)}${fraction}`
+}
+
+function renderClosedTemplate(template, replacements, label) {
+  const rendered = template.replace(/\{([^{}]+)\}/gu, (placeholder, key) => {
+    invariant(
+      Object.hasOwn(replacements, key),
+      `${label} não recebeu valor para o placeholder ${placeholder}.`,
+    )
+    return String(replacements[key])
+  })
+  invariant(!/[{}]/u.test(rendered), `${label} deixou placeholder sem resolver.`)
+  return rendered
+}
+
+function firstStateContrastStatement(document, seriesId) {
+  const readings = [
+    ...document.associations.items.map((item) => item.associativeReading.stateContrast),
+    ...document.temporalPairs.items.map((item) => item.associativeReading.stateContrast),
+  ]
+  const match = readings.find((reading) =>
+    reading.seriesId === seriesId && typeof reading.statement === 'string')
+  return match?.statement ?? null
+}
+
+function renderTileValueStatement(endValue, endYear, config) {
+  return renderClosedTemplate(T_TILE_VALUE, {
+    endValue: formatPublicNumber(endValue),
+    unidadeCurta: config.shortUnit,
+    endYear,
+  }, 'template T-TILE-VALUE')
+}
+
+function renderTileDeltaStatement(startValue, startYear, deltaValue, config) {
+  if (config.deltaKind === 'nivel') {
+    return renderClosedTemplate(T_TILE_DELTA_NIVEL, {
+      startValue: formatPublicNumber(startValue),
+      startYear,
+    }, 'template T-TILE-DELTA')
+  }
+  const sign = deltaValue > 0 ? '+' : deltaValue < 0 ? '-' : ''
+  return renderClosedTemplate(T_TILE_DELTA_PERCENTUAL, {
+    sinal: sign,
+    pct: formatDecimalComma(Math.abs(deltaValue), 1),
+    startYear,
+  }, 'template T-TILE-DELTA')
+}
+
+function recomputeHero(document, seriesById) {
+  const tiles = HERO_TILE_CONFIG.map((config) => {
+    const serie = seriesById.get(config.seriesId)
+    invariant(
+      serie !== undefined,
+      `pacote.hero não pode ser recomposto: série obrigatória ausente (${config.seriesId}).`,
+    )
+    invariant(
+      serie.periodGranularity === 'annual',
+      `pacote.hero não pode usar série não anual (${config.seriesId}).`,
+    )
+    const closed = serie.points.filter((point) => point.evidenceClass !== 'preliminary')
+    invariant(
+      closed.length > 0,
+      `pacote.hero não pode ser recomposto: série sem ponto fechado (${config.seriesId}).`,
+    )
+    const first = closed[0]
+    const last = closed[closed.length - 1]
+    let deltaValue = null
+    if (config.deltaKind === 'percentual') {
+      invariant(
+        first.value !== 0,
+        `pacote.hero não pode calcular variação percentual com denominador zero (${config.seriesId}).`,
+      )
+      deltaValue = roundHalfAwayFromZero((last.value - first.value) / first.value * 100, 1)
+    }
+    return {
+      tileId: config.tileId,
+      seriesId: config.seriesId,
+      entity: config.entity,
+      label: config.label,
+      window: { start: first.period, end: last.period },
+      startValue: first.value,
+      endValue: last.value,
+      valueStatement: renderTileValueStatement(last.value, last.period, config),
+      deltaKind: config.deltaKind,
+      deltaValue,
+      deltaStatement: renderTileDeltaStatement(first.value, first.period, deltaValue, config),
+      contrastStatement: firstStateContrastStatement(document, config.seriesId),
+    }
+  })
+  return {
+    title: T_HERO_TITLE,
+    lede: T_HERO_LEDE,
+    methodNote: T_HERO_METHOD,
+    tiles,
+  }
+}
+
+function storyMovementVerb(delta, number) {
+  const direction = delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'zero'
+  return TITLE_VERBS[direction][number === 'plural' ? 'p' : 's']
+}
+
+function storySeriesLabel(seriesId, label) {
+  const entry = SHORT_LABELS[seriesId]
+  invariant(entry !== undefined, `${label} cita seriesId fora de SHORT_LABELS: ${seriesId}.`)
+  return entry
+}
+
+function renderStoryDuo(firstSeriesId, firstDelta, secondSeriesId, secondDelta, label) {
+  const first = storySeriesLabel(firstSeriesId, label)
+  const second = storySeriesLabel(secondSeriesId, label)
+  const capitalizedFirst = `${first.short[0].toUpperCase()}${first.short.slice(1)}`
+  return renderClosedTemplate(T_TITLE_DUO, {
+    'Short(primeira)': capitalizedFirst,
+    'verbo(primeira)': storyMovementVerb(firstDelta, first.number),
+    'short(segunda)': second.short,
+    'verbo(segunda)': storyMovementVerb(secondDelta, second.number),
+  }, 'template T-TITLE-DUO')
+}
+
+function renderStoryTitle(reference, document, label) {
+  if (reference.kind === 'structural') {
+    return renderClosedTemplate(T_TITLE_DEF, {
+      lagYears: reference.lagYears,
+    }, 'template T-TITLE-DEF')
+  }
+  if (reference.kind === 'curated_association') {
+    const association = document.associations.items.find((item) =>
+      item.associationId === reference.associationId)
+    invariant(association !== undefined, `${label} referencia associação ausente.`)
+    const reading = association.associativeReading.factorReadings.find((item) =>
+      item.factorSeriesId === reference.factorSeriesId)
+    invariant(reading !== undefined, `${label} referencia leitura de fator ausente.`)
+    if (Object.hasOwn(reading.comovement, 'reasonCode')) return association.label
+    return renderStoryDuo(
+      reference.factorSeriesId,
+      reading.comovement.factor.delta,
+      association.educationOutcome.seriesId,
+      reading.comovement.outcome.delta,
+      label,
+    )
+  }
+  invariant(reference.kind === 'curated_pair', `${label}.kind não admite storyTitle.`)
+  const pair = document.temporalPairs.items.find((item) => item.pairId === reference.pairId)
+  invariant(pair !== undefined, `${label} referencia par temporal ausente.`)
+  if (Object.hasOwn(pair.associativeReading.comovement, 'reasonCode')) return pair.label
+  return renderStoryDuo(
+    pair.seriesA.seriesId,
+    pair.associativeReading.comovement.a.delta,
+    pair.seriesB.seriesId,
+    pair.associativeReading.comovement.b.delta,
+    label,
+  )
 }
 
 function renderE2Template(template, replacements, label) {
@@ -940,6 +1182,7 @@ const DOCUMENT_FIELDS = new Set([
   'region',
   'page',
   'howToRead',
+  'hero',
   'synthesis',
   'territoryPortrait',
   'decompositions',
@@ -958,6 +1201,21 @@ const PAGE_FIELDS = new Set(['eyebrow', 'title', 'description', 'neutralityNote'
 const TEXT_BLOCK_FIELDS = new Set(['label', 'description', 'items'])
 const PORTRAIT_FIELDS = new Set(['label', 'description', 'series'])
 const WINDOW_FIELDS = new Set(['start', 'end'])
+const HERO_FIELDS = new Set(['title', 'lede', 'methodNote', 'tiles'])
+const HERO_TILE_FIELDS = new Set([
+  'tileId',
+  'seriesId',
+  'entity',
+  'label',
+  'window',
+  'startValue',
+  'endValue',
+  'valueStatement',
+  'deltaKind',
+  'deltaValue',
+  'deltaStatement',
+  'contrastStatement',
+])
 const RATIO_FIELDS = new Set(['numeratorLabel', 'denominatorLabel'])
 /*
  * Os dois campos de cenário fecham a cadeia até o esqueleto congelado da rodada
@@ -1266,9 +1524,14 @@ const EDITORIAL_CRITERIA_FIELDS = new Set([
   'orderedBy',
 ])
 const EDITORIAL_LEAD_FIELDS_BY_KIND = Object.freeze({
-  structural: new Set(['kind', 'aSeriesId', 'bSeriesId', 'lagYears']),
-  curated_association: new Set(['kind', 'associationId', 'factorSeriesId']),
-  curated_pair: new Set(['kind', 'pairId']),
+  structural: new Set(['kind', 'aSeriesId', 'bSeriesId', 'lagYears', 'storyTitle']),
+  curated_association: new Set([
+    'kind',
+    'associationId',
+    'factorSeriesId',
+    'storyTitle',
+  ]),
+  curated_pair: new Set(['kind', 'pairId', 'storyTitle']),
   screened: new Set(['kind', 'relationId']),
 })
 
@@ -1707,6 +1970,64 @@ function validateSeries(candidate, label, referenceYear, referenceMonth) {
     `${label}.periodEnd ultrapassa o período de referência do documento.`,
   )
 
+  return candidate
+}
+
+function validateHero(candidate, label, document, seriesById) {
+  validateExactFields(candidate, HERO_FIELDS, label)
+  invariant(candidate.title === T_HERO_TITLE, `${label}.title diverge de T-HERO-TITLE.`)
+  invariant(candidate.lede === T_HERO_LEDE, `${label}.lede diverge de T-HERO-LEDE.`)
+  invariant(
+    candidate.methodNote === T_HERO_METHOD,
+    `${label}.methodNote diverge de T-HERO-METHOD.`,
+  )
+  invariant(
+    Array.isArray(candidate.tiles) && candidate.tiles.length === HERO_TILE_CONFIG.length,
+    `${label}.tiles deve trazer exatamente quatro tiles na ordem do contrato.`,
+  )
+
+  const expected = recomputeHero(document, seriesById)
+  candidate.tiles.forEach((tile, index) => {
+    const tileLabel = `${label}.tiles[${index}]`
+    const expectedTile = expected.tiles[index]
+    validateExactFields(tile, HERO_TILE_FIELDS, tileLabel)
+    validateExactFields(tile.window, WINDOW_FIELDS, `${tileLabel}.window`)
+    for (const field of ['tileId', 'seriesId', 'entity', 'label', 'deltaKind']) {
+      invariant(
+        tile[field] === expectedTile[field],
+        `${tileLabel}.${field} diverge da tabela fixa do hero.`,
+      )
+    }
+    for (const field of ['start', 'end']) {
+      invariant(
+        tile.window[field] === expectedTile.window[field],
+        `${tileLabel}.window.${field} diverge do primeiro/último ponto fechado da série.`,
+      )
+    }
+    for (const field of ['startValue', 'endValue']) {
+      invariant(
+        Object.is(tile[field], expectedTile[field]),
+        `${tileLabel}.${field} diverge do ponto fechado da própria série.`,
+      )
+    }
+    invariant(
+      Object.is(tile.deltaValue, expectedTile.deltaValue),
+      `${tileLabel}.deltaValue diverge da variação recomputada.`,
+    )
+    invariant(
+      tile.valueStatement === expectedTile.valueStatement,
+      `${tileLabel}.valueStatement diverge do template T-TILE-VALUE byte a byte.`,
+    )
+    invariant(
+      tile.deltaStatement === expectedTile.deltaStatement,
+      `${tileLabel}.deltaStatement diverge do template T-TILE-DELTA byte a byte.`,
+    )
+    invariant(
+      tile.contrastStatement === expectedTile.contrastStatement,
+      `${tileLabel}.contrastStatement diverge do primeiro stateContrast.statement `
+      + 'da mesma série.',
+    )
+  })
   return candidate
 }
 
@@ -3010,10 +3331,14 @@ function recomputeEditorialReading(document, seriesById) {
     return left.refId === right.refId ? 0 : left.refId < right.refId ? -1 : 1
   })
 
-  return {
-    leads: [...structuralLeads, ...rankedLeads.map((entry) => entry.reference)],
-    noteCount,
-  }
+  const leads = [...structuralLeads, ...rankedLeads.map((entry) => entry.reference)]
+    .map((reference, index) => reference.kind === 'screened'
+      ? reference
+      : {
+        ...reference,
+        storyTitle: renderStoryTitle(reference, document, `editorial.leads[${index}]`),
+      })
+  return { leads, noteCount }
 }
 
 function validateEditorialReading(candidate, label, document, seriesById) {
@@ -3051,8 +3376,19 @@ function validateEditorialReading(candidate, label, document, seriesById) {
   candidate.leads.forEach((reference, index) => {
     const referenceLabel = `${label}.leads[${index}]`
     const expectedReference = expected.leads[index]
+    invariant(isRecord(reference), `${referenceLabel} deve ser um objeto.`)
+    if (expectedReference.kind === 'screened' && Object.hasOwn(reference, 'storyTitle')) {
+      invariant(false, `${referenceLabel}.storyTitle não é admitido em lead screened.`)
+    }
     validateExactFields(reference, EDITORIAL_LEAD_FIELDS_BY_KIND[expectedReference.kind], referenceLabel)
     for (const field of EDITORIAL_LEAD_FIELDS_BY_KIND[expectedReference.kind]) {
+      if (field === 'storyTitle') {
+        invariant(
+          reference.storyTitle === expectedReference.storyTitle,
+          `${referenceLabel}.storyTitle diverge do template T-TITLE byte a byte.`,
+        )
+        continue
+      }
       invariant(
         reference[field] === expectedReference[field],
         `${referenceLabel}.${field} diverge da ordem editorial recomputada.`,
@@ -4121,6 +4457,9 @@ export function createVocacoesDocumentParser({
         referenceYear,
       )
     })
+
+    /* Hero — quatro séries fechadas e o primeiro contraste da mesma série. */
+    validateHero(candidate.hero, 'pacote.hero', candidate, seriesById)
 
     /* Relações adicionais aprovadas pela triagem estatística fechada. */
     validateScreenedRelations(
