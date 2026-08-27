@@ -40,6 +40,7 @@ test('loaders e referências cruzadas dos mecanismos são válidos', () => {
 
 test('catálogo contém os 16 mecanismos e as sete famílias com forma completa', () => {
   const entries = mecanismos.mecanismos
+  assert.equal(mecanismos.version, '1.2.0')
   assert.equal(entries.length, 16)
   assert.equal(new Set(entries.map(({ id }) => id)).size, entries.length)
   assert.deepEqual(
@@ -74,13 +75,15 @@ test('catálogo contém os 16 mecanismos e as sete famílias com forma completa'
   }
 })
 
-test('mecanismos destravados estão disponíveis na pesquisa e R4 segue pendente', () => {
+test('mecanismos destravados, inclusive M4 e M5, estão disponíveis na pesquisa', () => {
   const availabilityById = new Map(
     mecanismos.mecanismos.map(({ id, disponibilidade }) => [id, disponibilidade]),
   )
   for (const mechanismId of [
     'M2-trabalho-juvenil',
     'M3-eja-publico',
+    'M4-ocupacoes',
+    'M5-deslocamento-estudo',
     'M6-tempo-integral',
   ]) {
     assert.equal(
@@ -89,8 +92,14 @@ test('mecanismos destravados estão disponíveis na pesquisa e R4 segue pendente
       mechanismId,
     )
   }
-  assert.equal(availabilityById.get('M4-ocupacoes'), 'pendente')
-  assert.equal(availabilityById.get('M5-deslocamento-estudo'), 'pendente')
+  assert.deepEqual(
+    mecanismos.mecanismos.find(({ id }) => id === 'M4-ocupacoes').fontesAtuais,
+    ['rais-por-cbo (base local 058)', 'correspondencia-cursos-cbo-rs-v1'],
+  )
+  assert.deepEqual(
+    mecanismos.mecanismos.find(({ id }) => id === 'M5-deslocamento-estudo').fontesAtuais,
+    ['censo-demografico-2022'],
+  )
   assert.match(
     mecanismos.mecanismos
       .find(({ id }) => id === 'M3-eja-publico')

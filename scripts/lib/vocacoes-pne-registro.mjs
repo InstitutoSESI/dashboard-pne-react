@@ -388,8 +388,8 @@ function assertEtapa4SeriesShape(value, filePath) {
     if (!isNonEmptyString(value.provenance.sourceRoot)) {
       violations.push('provenance.sourceRoot deve ser uma string não vazia')
     }
-    if (value.provenance.sources.length !== 4) {
-      violations.push('provenance.sources deve conter os quatro blocos da Etapa 4')
+    if (value.provenance.sources.length !== 6) {
+      violations.push('provenance.sources deve conter os seis blocos da Etapa 4')
     }
     const blocks = new Set()
     value.provenance.sources.forEach((source, index) => {
@@ -419,8 +419,8 @@ function assertEtapa4SeriesShape(value, filePath) {
     violations.push('series deve ser um array')
     throwShape('Snapshot de séries da Etapa 4', filePath, violations)
   }
-  if (value.series.length !== 27) {
-    violations.push('series deve conter as 27 séries da Etapa 4')
+  if (value.series.length !== 87) {
+    violations.push('series deve conter as 87 séries da Etapa 4')
   }
   const seriesKeys = new Set()
   value.series.forEach((item, index) => {

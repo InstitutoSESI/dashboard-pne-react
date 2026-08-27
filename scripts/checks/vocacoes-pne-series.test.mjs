@@ -55,20 +55,19 @@ function deterministicSample(items, size, seed) {
   return shuffled.slice(0, size)
 }
 
-test('registro tem 102 séries, contagens esperadas e classificação das 71 publicadas', () => {
-  assert.equal(registro.series.length, 102)
+test('registro tem 103 séries, contagens esperadas e classificação das 71 publicadas', () => {
+  assert.equal(registro.version, '1.2.0')
+  assert.equal(regras.version, '1.2.0')
+  assert.equal(registro.series.length, 103)
   const counts = Object.fromEntries(
     [...Map.groupBy(registro.series, ({ status }) => status)]
       .map(([status, items]) => [status, items.length]),
   )
   assert.equal(counts.disponivel_plataforma, 71)
-  assert.equal(counts.disponivel_pesquisa, 29)
+  assert.equal(counts.disponivel_pesquisa, 32)
   assert.equal(counts.pendente_r3 ?? 0, 0)
-  assert.equal(counts.pendente_r4, 2)
-  assert.deepEqual(
-    regras.seriesPendentes.map(({ seriesId }) => seriesId).sort(),
-    ['deslocamento-para-estudo', 'ocupacoes-por-cbo'],
-  )
+  assert.equal(counts.pendente_r4 ?? 0, 0)
+  assert.deepEqual(regras.seriesPendentes, [])
 
   const published = registro.series.filter(
     ({ status }) => status === 'disponivel_plataforma',
@@ -95,20 +94,46 @@ test('registro tem 102 séries, contagens esperadas e classificação das 71 pub
   }
 })
 
-test('snapshot da Etapa 4 contém 27 metadados sem pontos e proveniência dos quatro blocos', () => {
-  assert.equal(etapa4.series.length, 27)
-  assert.equal(new Set(etapa4.series.map(({ seriesKey }) => seriesKey)).size, 27)
-  assert.equal(etapa4.provenance.sources.length, 4)
+test('snapshot da Etapa 4 contém 87 metadados sem pontos e proveniência dos seis blocos', () => {
+  assert.equal(etapa4.series.length, 87)
+  assert.equal(new Set(etapa4.series.map(({ seriesKey }) => seriesKey)).size, 87)
+  assert.equal(etapa4.provenance.sources.length, 6)
+  assert.deepEqual(
+    new Set(etapa4.provenance.sources.map(({ block }) => block)),
+    new Set([
+      'demografia',
+      'censo',
+      'tempo-integral',
+      'bases-locais',
+      'ocupacoes',
+      'deslocamento',
+    ]),
+  )
   for (const source of etapa4.provenance.sources) {
     assert.equal(source.generatedAt, '2026-08-27', source.block)
     assert.equal(source.regionalFilesChecked, 10, source.block)
   }
+  const sourceByBlock = new Map(
+    etapa4.provenance.sources.map((source) => [source.block, source]),
+  )
+  for (const block of ['ocupacoes', 'deslocamento']) {
+    assert.match(sourceByBlock.get(block).reportSha256, /^[0-9a-f]{64}$/u, block)
+    assert.match(sourceByBlock.get(block).reportPath, /relatorio_.*_e4\.json$/u, block)
+  }
+  assert.match(
+    sourceByBlock.get('deslocamento').acquisitionManifestSha256,
+    /^[0-9a-f]{64}$/u,
+  )
+  assert.match(
+    sourceByBlock.get('deslocamento').acquisitionManifestPath,
+    /MANIFESTO_AQUISICAO_E4_DESLOCAMENTO\.json$/u,
+  )
   for (const series of etapa4.series) {
     assert.equal(Object.hasOwn(series, 'points'), false, series.seriesKey)
   }
 })
 
-test('as 12 ex-pendências e a nova série por rede têm faixas e componentes canônicos', () => {
+test('as 16 entradas da Etapa 4 têm faixas e componentes canônicos', () => {
   const expected = new Map([
     ['populacao-de-0-a-3-anos', { faixaEtaria: [0, 3], componentes: [] }],
     ['populacao-de-4-e-5-anos', { faixaEtaria: [4, 5], componentes: [] }],
@@ -164,6 +189,81 @@ test('as 12 ex-pendências e a nova série por rede têm faixas e componentes ca
         'matriculas_eb_rede_privada',
       ],
     }],
+    ['ocupacoes-por-cbo', {
+      faixaEtaria: null,
+      componentes: [
+        'vinculos_cbo_subgrupo_01',
+        'vinculos_cbo_subgrupo_02',
+        'vinculos_cbo_subgrupo_03',
+        'vinculos_cbo_subgrupo_11',
+        'vinculos_cbo_subgrupo_12',
+        'vinculos_cbo_subgrupo_13',
+        'vinculos_cbo_subgrupo_14',
+        'vinculos_cbo_subgrupo_20',
+        'vinculos_cbo_subgrupo_21',
+        'vinculos_cbo_subgrupo_22',
+        'vinculos_cbo_subgrupo_23',
+        'vinculos_cbo_subgrupo_24',
+        'vinculos_cbo_subgrupo_25',
+        'vinculos_cbo_subgrupo_26',
+        'vinculos_cbo_subgrupo_27',
+        'vinculos_cbo_subgrupo_30',
+        'vinculos_cbo_subgrupo_31',
+        'vinculos_cbo_subgrupo_32',
+        'vinculos_cbo_subgrupo_33',
+        'vinculos_cbo_subgrupo_34',
+        'vinculos_cbo_subgrupo_35',
+        'vinculos_cbo_subgrupo_37',
+        'vinculos_cbo_subgrupo_39',
+        'vinculos_cbo_subgrupo_41',
+        'vinculos_cbo_subgrupo_42',
+        'vinculos_cbo_subgrupo_51',
+        'vinculos_cbo_subgrupo_52',
+        'vinculos_cbo_subgrupo_61',
+        'vinculos_cbo_subgrupo_62',
+        'vinculos_cbo_subgrupo_63',
+        'vinculos_cbo_subgrupo_64',
+        'vinculos_cbo_subgrupo_71',
+        'vinculos_cbo_subgrupo_72',
+        'vinculos_cbo_subgrupo_73',
+        'vinculos_cbo_subgrupo_74',
+        'vinculos_cbo_subgrupo_75',
+        'vinculos_cbo_subgrupo_76',
+        'vinculos_cbo_subgrupo_77',
+        'vinculos_cbo_subgrupo_78',
+        'vinculos_cbo_subgrupo_79',
+        'vinculos_cbo_subgrupo_81',
+        'vinculos_cbo_subgrupo_82',
+        'vinculos_cbo_subgrupo_83',
+        'vinculos_cbo_subgrupo_84',
+        'vinculos_cbo_subgrupo_86',
+        'vinculos_cbo_subgrupo_91',
+        'vinculos_cbo_subgrupo_95',
+        'vinculos_cbo_subgrupo_99',
+      ],
+    }],
+    ['deslocamento-para-estudo', {
+      faixaEtaria: null,
+      componentes: [
+        'estuda_no_municipio_de_residencia',
+        'estuda_em_outro_municipio',
+        'estuda_em_pais_estrangeiro',
+        'frequenta_escola_total',
+      ],
+    }],
+    ['deslocamento-para-estudo-por-curso', {
+      faixaEtaria: null,
+      componentes: [
+        'estuda_no_municipio_de_residencia_fundamental',
+        'estuda_em_outro_municipio_fundamental',
+        'estuda_em_pais_estrangeiro_fundamental',
+        'frequenta_escola_total_fundamental',
+        'estuda_no_municipio_de_residencia_medio',
+        'estuda_em_outro_municipio_medio',
+        'estuda_em_pais_estrangeiro_medio',
+        'frequenta_escola_total_medio',
+      ],
+    }],
   ])
   const registryById = new Map(registro.series.map((series) => [series.seriesId, series]))
   const etapa4Keys = new Set(etapa4.series.map(({ seriesKey }) => seriesKey))
@@ -188,6 +288,18 @@ test('as 12 ex-pendências e a nova série por rede têm faixas e componentes ca
       seriesId,
     )
   }
+  assert.equal(
+    registryById.get('ocupacoes-por-cbo').nota,
+    'grão = subgrupo principal CBO-2002; bucket não informado fora; não somar (D-R4-1/D-R4-3)',
+  )
+  assert.equal(
+    registryById.get('deslocamento-para-estudo').nota,
+    'universo literal da variável 13631; total inclui residual não publicado — categorias não fecham (D-R4-4/D-R4-7); fotografia preliminar da amostra 2022',
+  )
+  assert.equal(
+    registryById.get('deslocamento-para-estudo-por-curso').nota,
+    'universo da variável 2021, distinto da tabela 10321 — nunca comparar entre tabelas (D-R4-4)',
+  )
 })
 
 test('loader falha fechado quando componente não resolve no snapshot da Etapa 4', () => {
@@ -455,5 +567,5 @@ test('gerador confirma que o registro versionado está atualizado', async () => 
     { cwd: repositoryRoot, encoding: 'utf8' },
   )
   assert.equal(stderr, '')
-  assert.match(stdout, /OK: registro-series\.json está atualizado \(102 séries\)\./u)
+  assert.match(stdout, /OK: registro-series\.json está atualizado \(103 séries\)\./u)
 })

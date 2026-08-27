@@ -158,6 +158,93 @@ const ETAPA4_ENTRY_SPECS = [
     universo: 'matriculas_localizadas',
     faixaEtaria: null,
   },
+  {
+    seriesId: 'ocupacoes-por-cbo',
+    label: 'Vínculos formais por subgrupo ocupacional',
+    componentes: [
+      'vinculos_cbo_subgrupo_01',
+      'vinculos_cbo_subgrupo_02',
+      'vinculos_cbo_subgrupo_03',
+      'vinculos_cbo_subgrupo_11',
+      'vinculos_cbo_subgrupo_12',
+      'vinculos_cbo_subgrupo_13',
+      'vinculos_cbo_subgrupo_14',
+      'vinculos_cbo_subgrupo_20',
+      'vinculos_cbo_subgrupo_21',
+      'vinculos_cbo_subgrupo_22',
+      'vinculos_cbo_subgrupo_23',
+      'vinculos_cbo_subgrupo_24',
+      'vinculos_cbo_subgrupo_25',
+      'vinculos_cbo_subgrupo_26',
+      'vinculos_cbo_subgrupo_27',
+      'vinculos_cbo_subgrupo_30',
+      'vinculos_cbo_subgrupo_31',
+      'vinculos_cbo_subgrupo_32',
+      'vinculos_cbo_subgrupo_33',
+      'vinculos_cbo_subgrupo_34',
+      'vinculos_cbo_subgrupo_35',
+      'vinculos_cbo_subgrupo_37',
+      'vinculos_cbo_subgrupo_39',
+      'vinculos_cbo_subgrupo_41',
+      'vinculos_cbo_subgrupo_42',
+      'vinculos_cbo_subgrupo_51',
+      'vinculos_cbo_subgrupo_52',
+      'vinculos_cbo_subgrupo_61',
+      'vinculos_cbo_subgrupo_62',
+      'vinculos_cbo_subgrupo_63',
+      'vinculos_cbo_subgrupo_64',
+      'vinculos_cbo_subgrupo_71',
+      'vinculos_cbo_subgrupo_72',
+      'vinculos_cbo_subgrupo_73',
+      'vinculos_cbo_subgrupo_74',
+      'vinculos_cbo_subgrupo_75',
+      'vinculos_cbo_subgrupo_76',
+      'vinculos_cbo_subgrupo_77',
+      'vinculos_cbo_subgrupo_78',
+      'vinculos_cbo_subgrupo_79',
+      'vinculos_cbo_subgrupo_81',
+      'vinculos_cbo_subgrupo_82',
+      'vinculos_cbo_subgrupo_83',
+      'vinculos_cbo_subgrupo_84',
+      'vinculos_cbo_subgrupo_86',
+      'vinculos_cbo_subgrupo_91',
+      'vinculos_cbo_subgrupo_95',
+      'vinculos_cbo_subgrupo_99',
+    ],
+    universo: 'trabalho_formal_local',
+    faixaEtaria: null,
+    nota: 'grão = subgrupo principal CBO-2002; bucket não informado fora; não somar (D-R4-1/D-R4-3)',
+  },
+  {
+    seriesId: 'deslocamento-para-estudo',
+    label: 'Deslocamento para estudo',
+    componentes: [
+      'estuda_no_municipio_de_residencia',
+      'estuda_em_outro_municipio',
+      'estuda_em_pais_estrangeiro',
+      'frequenta_escola_total',
+    ],
+    universo: 'residencia_x_estudo',
+    faixaEtaria: null,
+    nota: 'universo literal da variável 13631; total inclui residual não publicado — categorias não fecham (D-R4-4/D-R4-7); fotografia preliminar da amostra 2022',
+  },
+  {
+    seriesId: 'deslocamento-para-estudo-por-curso',
+    label: 'Deslocamento para estudo por curso frequentado',
+    componentes: [
+      'estuda_no_municipio_de_residencia_fundamental',
+      'estuda_em_outro_municipio_fundamental',
+      'estuda_em_pais_estrangeiro_fundamental',
+      'frequenta_escola_total_fundamental',
+      'estuda_no_municipio_de_residencia_medio',
+      'estuda_em_outro_municipio_medio',
+      'estuda_em_pais_estrangeiro_medio',
+      'frequenta_escola_total_medio',
+    ],
+    universo: 'residencia_x_estudo',
+    faixaEtaria: null,
+    nota: 'universo da variável 2021, distinto da tabela 10321 — nunca comparar entre tabelas (D-R4-4)',
+  },
 ]
 
 function fail(message) {
@@ -562,8 +649,8 @@ function etapa4SeriesByKey() {
     fail('etapa4-series-pesquisa.json deve ter status disponivel_pesquisa')
   }
   const series = requireArray(snapshot.series, 'etapa4-series-pesquisa.json.series')
-  if (series.length !== 27) {
-    fail('esperadas 27 séries no snapshot da Etapa 4, encontradas ' + series.length)
+  if (series.length !== 87) {
+    fail('esperadas 87 séries no snapshot da Etapa 4, encontradas ' + series.length)
   }
 
   const byKey = new Map()
@@ -664,8 +751,8 @@ function createEtapa4Entries(regras) {
 
 function createPendingEntries(regras) {
   const pending = requireArray(regras.seriesPendentes, 'regras.seriesPendentes')
-  if (pending.length !== 2) {
-    fail('esperadas 2 séries pendentes da R4, encontradas ' + pending.length)
+  if (pending.length !== 0) {
+    fail('esperadas 0 séries pendentes da R4, encontradas ' + pending.length)
   }
 
   const seen = new Set()
@@ -732,15 +819,15 @@ export function buildRegistro() {
   ]
   assertUniqueSeries(entries)
 
-  if (entries.length !== 102) {
-    fail('esperadas 102 entradas no registro, encontradas ' + entries.length)
+  if (entries.length !== 103) {
+    fail('esperadas 103 entradas no registro, encontradas ' + entries.length)
   }
   entries.sort((left, right) => (
     left.seriesId < right.seriesId ? -1 : left.seriesId > right.seriesId ? 1 : 0
   ))
 
   return {
-    version: '1.1.0',
+    version: '1.2.0',
     generatedFrom: {
       plataforma: 'public/data/vocacoes-regiao/regioes/*.json',
       pesquisa: 'scripts/checks/fixtures/vocacoes-pne/fluxo-series-pesquisa.json',
