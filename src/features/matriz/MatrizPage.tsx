@@ -379,9 +379,34 @@ function MatrizTerritorialContextBlock({
             className={reading.reading ? 'matriz-territorio__item matriz-territorio__item--with-reading' : 'matriz-territorio__item'}
             key={reading.title}
           >
-            {reading.reading ? <p className="matriz-territorio__reading">{reading.reading}</p> : null}
-            <strong>{reading.title}</strong>
-            {reading.factors ? <span>{reading.factors}</span> : null}
+            {reading.reading ? (
+              <div className="matriz-territorio__reading-row">
+                <p className="matriz-territorio__reading">{reading.reading}</p>
+                {reading.correlationStrength ? (
+                  <span
+                    aria-hidden="true"
+                    className="matriz-territorio__strength"
+                    data-strength={reading.correlationStrength}
+                  >
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="matriz-territorio__entities">
+              <strong className="matriz-territorio__entity matriz-territorio__entity--education">
+                <i aria-hidden="true" className="matriz-territorio__entity-mark" />
+                {reading.title}
+              </strong>
+              {reading.factors ? (
+                <span className="matriz-territorio__entity matriz-territorio__entity--territory">
+                  <i aria-hidden="true" className="matriz-territorio__entity-mark" />
+                  {reading.factors}
+                </span>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>

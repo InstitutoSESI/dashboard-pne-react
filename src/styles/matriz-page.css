@@ -576,9 +576,11 @@
 /* Bloco ponte PNE → Vocações (Rodada 4 do V2). Contexto territorial da região,
  * lido do pacote regional publicado. Some inteiro quando não há região. */
 .matriz-territorio {
+  --matriz-education-color: #0e7b54;
+  --matriz-territory-color: #3d6fd1;
+
   background: var(--surface-card);
   border: 1px solid var(--border-card);
-  border-left: 3px solid var(--green-primary);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   padding: var(--space-4) var(--space-5);
@@ -600,41 +602,87 @@
 .matriz-territorio__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
   list-style: none;
   margin: var(--space-3) 0 0;
   padding: 0;
 }
 
-.matriz-territorio__list li {
+.matriz-territorio__item {
+  border-top: 1px solid var(--border-faint);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  padding: var(--space-3) 0;
+}
+
+.matriz-territorio__reading-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
 }
 
 .matriz-territorio__reading {
   color: var(--text-strong);
-  font-size: var(--type-body-size);
+  flex: 1;
+  font-size: var(--type-support-size);
   margin: 0;
 }
 
-.matriz-territorio__list strong {
-  color: var(--text-strong);
-  font-size: var(--type-body-size);
+.matriz-territorio__strength {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
 }
 
-.matriz-territorio__item--with-reading strong,
-.matriz-territorio__list span {
-  color: var(--text-muted);
+.matriz-territorio__strength i {
+  background: var(--border-faint);
+  border-radius: 2px;
+  height: 9px;
+  width: 9px;
+}
+
+.matriz-territorio__strength[data-strength='fraca'] i:first-child,
+.matriz-territorio__strength[data-strength='moderada'] i:nth-child(-n + 2),
+.matriz-territorio__strength[data-strength='forte'] i {
+  background: var(--text-body);
+}
+
+.matriz-territorio__entities {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.matriz-territorio__entity {
+  align-items: center;
+  display: inline-flex;
   font-size: var(--type-micro-size);
+  gap: var(--space-1);
+}
+
+.matriz-territorio__entity--education {
+  color: var(--matriz-education-color);
+  font-weight: var(--font-weight-semibold);
+}
+
+.matriz-territorio__entity--territory {
+  color: var(--matriz-territory-color);
+}
+
+.matriz-territorio__entity-mark {
+  background: currentColor;
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
 }
 
 .matriz-territorio__link {
-  color: var(--green-primary);
+  color: var(--matriz-territory-color);
   display: inline-block;
   font-size: var(--type-micro-size);
   font-weight: var(--font-weight-semibold);
-  margin-top: var(--space-2);
 }
 
 .matriz-territorio__method {

@@ -20,7 +20,10 @@
  */
 
 import { buildAppHash } from '../../app/appHash'
-import type { VocacoesDocument } from '../vocacoes-regiao/vocacoesRegiaoTypes'
+import type {
+  VocacoesCorrelation,
+  VocacoesDocument,
+} from '../vocacoes-regiao/vocacoesRegiaoTypes'
 
 /** Quantas leituras da região o bloco resume. Um recorte, não a página inteira. */
 const MAX_READINGS = 4
@@ -29,6 +32,7 @@ export interface MatrizTerritorialReading {
   readonly title: string
   readonly factors: string
   readonly reading: string | null
+  readonly correlationStrength: VocacoesCorrelation['strength'] | null
 }
 
 export interface MatrizTerritorialContext {
@@ -75,6 +79,7 @@ export function buildMatrizTerritorialContext(
 ): MatrizTerritorialContext {
   const readings = document.associations.items.slice(0, MAX_READINGS).map((association) => {
     const factorReading = association.associativeReading.factorReadings[0]
+    const correlation = factorReading?.correlation
     const readingCandidates = factorReading
       ? [
           factorReading.correlation,
@@ -89,6 +94,9 @@ export function buildMatrizTerritorialContext(
       factors: association.territorialFactors.map((factor) => factor.label).join(' · '),
       reading: selectedReading && !('reasonCode' in selectedReading)
         ? selectedReading.statement
+        : null,
+      correlationStrength: correlation && !('reasonCode' in correlation)
+        ? correlation.strength
         : null,
     }
   })
