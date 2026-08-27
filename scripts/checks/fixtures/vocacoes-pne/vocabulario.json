@@ -1,0 +1,80 @@
+{
+  "version": "1.1.0",
+  "descricao": "Vocabulário público da página Vocações × PNE. Fonte canônica das regras de linguagem do linter (contrato v1.1.0, plano V6 §9.2–9.4, §3.6–3.7; revisado pelo parecer adversarial da R1). Toda regra se aplica apenas aos campos públicos dos cartões; a camada interna pode usar qualquer vocabulário. Padrões são regex JavaScript com flags iu.",
+  "regras": [
+    { "id": "termo-correlacao", "classe": "metodo", "pattern": "correla[çc]", "exemploBloqueado": "A correlação entre as séries é alta." },
+    { "id": "termo-pearson", "classe": "metodo", "pattern": "\\bpearson\\b", "exemploBloqueado": "Coeficiente de Pearson de 0,8." },
+    { "id": "termo-spearman", "classe": "metodo", "pattern": "\\bspearman\\b", "exemploBloqueado": "Spearman confirma a relação." },
+    { "id": "termo-significancia", "classe": "metodo", "pattern": "signific[âa]ncia\\s+estat[íi]stic|estatisticamente\\s+significat", "exemploBloqueado": "A diferença é estatisticamente significativa." },
+    { "id": "termo-p-valor", "classe": "metodo", "pattern": "\\bp[- ]valor|\\bvalor[- ]p\\b", "exemploBloqueado": "O p-valor foi menor que 0,05." },
+    { "id": "termo-coeficiente", "classe": "metodo", "pattern": "coeficiente", "exemploBloqueado": "O coeficiente indica associação." },
+    { "id": "termo-metodo-estatistico", "classe": "metodo", "pattern": "\\bregress[ãa]o\\b|\\bR\\^?2\\b|R²|intervalo\\s+de\\s+confian[çc]a|\\bteste\\s+(t|F)\\b|desvio[- ]padr[ãa]o|qui[- ]quadrado", "exemploBloqueado": "A regressão linear confirma a associação entre emprego e abandono." },
+    { "id": "forca-relacao", "classe": "grau", "pattern": "(rela[çc][ãa]o|associa[çc][ãa]o|correla[çc][ãa]o|evid[êe]ncia)\\s+(([ée]|foi|era|permanece|parece|segue)\\s+)?(muito\\s+)?(fraca|moderada|forte)|(muito\\s+)?(fraca|moderada|forte)\\s+(rela[çc][ãa]o|associa[çc][ãa]o|correla[çc][ãa]o|evid[êe]ncia)", "exemploBloqueado": "A relação é moderada." },
+    { "id": "escada-evidencia", "classe": "grau", "pattern": "evid[êe]ncia\\s+E[1-5]\\b|\\bE[1-5]\\b\\s+de\\s+evid[êe]ncia|(grau|n[íi]vel|classifica[çc][ãa]o)\\s+de\\s+evid[êe]ncia", "exemploBloqueado": "Leitura com grau de evidência E2." },
+    { "id": "evidencia-insuficiente", "classe": "grau", "pattern": "evid[êe]ncia\\s+insuficiente", "exemploBloqueado": "Há evidência insuficiente." },
+    { "id": "termo-triagem", "classe": "maquinaria", "pattern": "triagem", "exemploBloqueado": "Relação observada por triagem automática." },
+    { "id": "termo-lead", "classe": "maquinaria", "pattern": "\\blead\\b", "exemploBloqueado": "Este é o lead da curadoria." },
+    { "id": "termo-note", "classe": "maquinaria", "pattern": "\\bnote\\b(?!-se)", "exemploBloqueado": "Publicado como note." },
+    { "id": "termo-ausencia-declarada", "classe": "maquinaria", "pattern": "aus[êe]ncia\\s+declarada", "exemploBloqueado": "Ausência declarada de cenários." },
+    { "id": "termo-bennett", "classe": "maquinaria", "pattern": "\\bbennett?\\b", "exemploBloqueado": "Decomposição de Bennett aplicada." },
+    { "id": "termo-shift-share", "classe": "maquinaria", "pattern": "shift[- ]?share", "exemploBloqueado": "Análise shift-share do emprego." },
+    { "id": "termo-efeito-demografico", "classe": "maquinaria", "pattern": "efeito\\s+demogr[áa]fico", "exemploBloqueado": "O efeito demográfico domina." },
+    { "id": "termo-efeito-taxa", "classe": "maquinaria", "pattern": "efeito[- ]taxa|efeito\\s+da\\s+taxa", "exemploBloqueado": "O efeito taxa foi positivo." },
+    { "id": "termo-taxa-atendimento-aparente", "classe": "maquinaria", "pattern": "taxa\\s+de\\s+atendimento\\s+aparente", "exemploBloqueado": "A taxa de atendimento aparente subiu." },
+    { "id": "termo-universo-incompativel", "classe": "maquinaria", "pattern": "universo\\s+incompat[íi]vel", "exemploBloqueado": "Par com universo incompatível." },
+    { "id": "termo-fail-closed", "classe": "maquinaria", "pattern": "fail[- ]?closed", "exemploBloqueado": "Regra fail-closed aplicada." },
+    { "id": "termo-hipotese", "classe": "maquinaria", "pattern": "hip[óo]tese", "exemploBloqueado": "Hipótese a verificar localmente." },
+    { "id": "termo-defasagem", "classe": "maquinaria", "pattern": "defasagem", "exemploBloqueado": "Defasagem de seis anos entre as séries." },
+    { "id": "termo-maquinaria-gates", "classe": "maquinaria", "pattern": "\\bgate\\s+G?\\d+\\b|teste\\s+de\\s+(robustez|sensibilidade)|check\\s+interno|publication_decision", "exemploBloqueado": "O cartão passou pelo gate G5 e pelo teste de robustez." },
+    { "id": "frase-nao-foi-possivel", "classe": "negativa", "pattern": "n[ãa]o\\s+foi\\s+poss[íi]vel\\s+(medir|estabelecer|concluir|calcular|verificar|relacionar)|n[ãa]o\\s+consegu(imos|iram|iu)\\s+(medir|calcular|avaliar|verificar)", "exemploBloqueado": "Não foi possível medir a demanda." },
+    { "id": "frase-dados-insuficientes", "classe": "negativa", "pattern": "dados\\s+(s[ãa]o\\s+)?insuficientes|insufici[êe]ncia\\s+de\\s+dados|faltam?\\s+dados", "exemploBloqueado": "Os dados são insuficientes." },
+    { "id": "frase-inconclusiva", "classe": "negativa", "pattern": "inconclusiv", "exemploBloqueado": "A relação entre as séries é inconclusiva." },
+    { "id": "frase-nao-se-pode", "classe": "negativa", "pattern": "n[ãa]o\\s+se\\s+pode\\s+(concluir|afirmar)|n[ãa]o\\s+[ée]\\s+poss[íi]vel\\s+(concluir|afirmar)|n[ãa]o\\s+permite\\s+concluir", "exemploBloqueado": "Não se pode concluir causalidade." },
+    { "id": "frase-ausencia-cenarios", "classe": "negativa", "pattern": "(n[ãa]o\\s+h[áa]|n[ãa]o\\s+exist(e|em)|ainda\\s+n[ãa]o\\s+(tem|h[áa]|possui|disp[õo]e))[^.]*cen[áa]rios?|cen[áa]rios?\\s+(ausente|indispon[íi]ve|n[ãa]o\\s+publicado)", "exemploBloqueado": "Esta região ainda não tem cenários publicados." },
+    { "id": "frase-plataforma-sem-dados", "classe": "negativa", "pattern": "plataforma\\s+n[ãa]o\\s+(possui|disp[õo]e|tem)", "exemploBloqueado": "A plataforma não possui dados." },
+    { "id": "frase-analise-sugere", "classe": "negativa", "pattern": "(an[áa]lise|dados)\\s+suger(e|em)\\s+(uma\\s+)?(correla[çc][ãa]o|rela[çc][ãa]o|associa[çc][ãa]o|causa|liga[çc][ãa]o|conclus)", "exemploBloqueado": "A análise sugere uma correlação." },
+    { "id": "generico-aprofundar", "classe": "generica", "pattern": "aprofundar\\s+a\\s+an[áa]lise|an[áa]lise\\s+mais\\s+aprofundada", "exemploBloqueado": "É necessário aprofundar a análise." },
+    { "id": "generico-acompanhar-dados", "classe": "generica", "pattern": "deve(m)?\\s+acompanhar\\s+os\\s+dados(?!\\s+d[eoa])", "exemploBloqueado": "O município deve acompanhar os dados." },
+    { "id": "generico-realizar-acoes", "classe": "generica", "pattern": "realizar\\s+a[çc][õo]es(?!\\s+de\\b)", "exemploBloqueado": "É importante realizar ações." },
+    { "id": "generico-investigar", "classe": "generica", "pattern": "investigar\\s+as\\s+causas(?!\\s+d[oa])|deve(m)?\\s+investigar\\s*([.!?;]|$)", "exemploBloqueado": "A gestão deve investigar as causas e melhorar os resultados." },
+    { "id": "generico-recomenda-se", "classe": "generica", "pattern": "recomenda-se\\s+acompanhar\\s+(os\\s+)?(dados|indicadores)(?!\\s+d[eoa])", "exemploBloqueado": "Recomenda-se acompanhar os indicadores." },
+    { "id": "causal-explicito", "classe": "causal", "pattern": "\\bcaus(ou|aram|ando|ada|adas|ado|ados)\\b|\\bcaus(a|am)\\b(?!\\s+d[oa]s?\\b)|\\bprovoc(a|am|ou|aram|ada|ado|ando)\\b|\\bacarret(a|am|ou|aram)\\b|\\bdetermin(a|am|ou|aram|ava|avam|ante)\\b|(^|\\s)([ée]|foi|s[ãa]o|foram|era|eram)\\s+respons[áa]ve(l|is)\\s+p(or|el[oa])|por\\s+causa\\s+d|em\\s+decorr[êe]ncia\\s+de|\\blev(a|am|ou|aram)\\s+(à|ao|às|aos|a)(\\s|$)", "exemploBloqueado": "A queda do emprego causou o abandono escolar." }
+  ],
+  "rotulosPublicosPermitidos": {
+    "transformation_class": {
+      "mudanca_observada": "Mudança já em curso",
+      "tendencia_sustentada": "Tendência para os próximos anos",
+      "estudo_setorial": "Tendência para os próximos anos",
+      "cenario": "Tema presente nos cenários"
+    }
+  },
+  "traducoes": [
+    { "interno": "efeito demográfico", "publico": "parte da mudança ligada ao tamanho da população" },
+    { "interno": "taxa de atendimento aparente", "publico": "matrículas em relação à população da idade" },
+    { "interno": "defasagem de seis anos", "publico": "seis anos depois" },
+    { "interno": "correlação das variações", "publico": "mudanças ocorridas no mesmo período" },
+    { "interno": "contribuição municipal", "publico": "participação de cada município na mudança regional" },
+    { "interno": "público elegível da EJA", "publico": "adultos que ainda não concluíram essa etapa" },
+    { "interno": "shift-share", "publico": "componentes da mudança do emprego" },
+    { "interno": "cenário invariante", "publico": "questão que permanece importante em diferentes futuros" }
+  ],
+  "guardasFalsoPositivo": [
+    "A leitura não atribui automaticamente uma mudança à outra.",
+    "Note-se que a mudança começou antes.",
+    "As mudanças ocorridas no mesmo período ajudam a interpretar o resultado.",
+    "A parte da mudança ligada ao tamanho da população é a maior.",
+    "Em 2025, a região tinha 26.911 matrículas.",
+    "A secretaria responsável pela oferta de EJA deve acompanhar matrículas e conclusão por município.",
+    "A gestão do ensino médio deve investigar as causas do abandono no turno noturno, acompanhando a taxa por escola.",
+    "É necessário realizar ações de busca ativa com estudantes do ensino médio noturno nos municípios em que o abandono supera a mediana estadual.",
+    "A equipe do ensino médio deve acompanhar os dados de abandono por escola e por turno.",
+    "Os dados sugerem que a ampliação se concentrou nos municípios com maior procura por creche.",
+    "A significância cultural da escola do campo orienta a organização da oferta.",
+    "A turma E2 concentrou a redução das matrículas.",
+    "A queda se concentrou nos anos finais da década."
+  ],
+  "limites": {
+    "educacao_para_territorio": { "min": 3, "max": 5 },
+    "territorio_para_educacao": { "min": 2, "max": 5 }
+  }
+}
