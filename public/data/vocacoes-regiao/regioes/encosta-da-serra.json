@@ -1,9 +1,9 @@
 {
-  "schemaVersion": "vocacoes-regiao-2.7.0",
+  "schemaVersion": "vocacoes-regiao-2.8.0",
   "generatedAt": "2026-08-26",
-  "generatorVersion": "vocacoes-regiao-generator-v6",
-  "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.5",
-  "sourceMethodologyStatus": "fase_b_com_curadoria_por_forca",
+  "generatorVersion": "vocacoes-regiao-generator-v7",
+  "sourceVersion": "vocacoes-regiao-pesquisa-contrato-v0.6",
+  "sourceMethodologyStatus": "fase_b_com_decomposicao_contabil",
   "publicationScope": "estadual",
   "region": {
     "slug": "encosta-da-serra",
@@ -14470,6 +14470,261 @@
       }
     ]
   },
+  "decompositions": {
+    "label": "Contas decompostas",
+    "description": "Duas decomposições contábeis com os termos publicados: a variação das matrículas separada em coorte de nascimentos e taxa de atendimento aparente, e a variação dos vínculos formais separada em ritmo estadual, composição setorial e dinâmica própria.",
+    "enrollment": {
+      "methodStatement": "A decomposição é contábil: matrículas = coorte de nascimentos defasada × taxa de atendimento aparente. A taxa de atendimento aparente absorve, sem distinguir, atendimento escolar, fluxo (aprovação, reprovação e abandono), migração e matrícula fora da região de residência; a conta não afirma causa. A coorte soma os nascidos vivos dos anos que correspondem às idades da etapa; anos com registro preliminar não entram na conta.",
+      "criteria": {
+        "cohortAges": {
+          "educacao_infantil": [
+            0,
+            5
+          ],
+          "ensino_fundamental": [
+            6,
+            14
+          ],
+          "ensino_medio": [
+            15,
+            17
+          ]
+        },
+        "stagesWithoutCohort": [
+          "matriculas-na-educacao-de-jovens-e-adultos",
+          "matriculas-na-educacao-profissional"
+        ],
+        "minIntervals": 8,
+        "sectors": [
+          "Agropecuária",
+          "Comércio",
+          "Construção civil",
+          "Indústria",
+          "Serviços"
+        ],
+        "reference": "Rio Grande do Sul",
+        "rounding": {
+          "published": 4,
+          "displayed": 1
+        },
+        "closureToleranceAbs": 1e-9
+      },
+      "items": [
+        {
+          "stage": "educacao_infantil",
+          "stageLabel": "na educação infantil",
+          "outcomeSeriesId": "matriculas-na-educacao-infantil",
+          "cohortSeriesId": "nascidos-vivos-por-residencia-da-mae",
+          "cohortAges": {
+            "min": 0,
+            "max": 5
+          },
+          "window": {
+            "start": 2014,
+            "end": 2024,
+            "intervals": 10
+          },
+          "terms": {
+            "enrollmentStart": 20100,
+            "enrollmentEnd": 27310,
+            "cohortStart": 35788,
+            "cohortEnd": 35486,
+            "ratioStartPerHundred": 56.1641,
+            "ratioEndPerHundred": 76.9599
+          },
+          "contributions": {
+            "totalPct": 35.8706,
+            "demographicPp": -1.0001,
+            "ratioPp": 36.8707
+          },
+          "grade": "E2",
+          "pneThemes": [
+            {
+              "theme": "educacao_infantil",
+              "themeLabel": "Acesso à creche e à pré-escola"
+            }
+          ],
+          "statement": "Entre 2014 e 2024, as matrículas na educação infantil da região foram de 20 100 para 27 310 (variação de 35,9%). Na conta decomposta, a coorte de nascimentos correspondente às idades de 0 a 5 anos foi de 35 788 para 35 486 e explica -1,0 pontos percentuais dessa variação; a taxa de atendimento aparente (matrículas por cem pessoas da coorte) foi de 56,2 para 77,0 e explica 36,9 pontos percentuais. Os dois termos somam a variação total; valores exibidos arredondados a uma casa decimal."
+        },
+        {
+          "stage": "ensino_fundamental",
+          "stageLabel": "no ensino fundamental",
+          "outcomeSeriesId": "matriculas-no-ensino-fundamental",
+          "cohortSeriesId": "nascidos-vivos-por-residencia-da-mae",
+          "cohortAges": {
+            "min": 6,
+            "max": 14
+          },
+          "window": {
+            "start": 2014,
+            "end": 2025,
+            "intervals": 11
+          },
+          "terms": {
+            "enrollmentStart": 60195,
+            "enrollmentEnd": 58326,
+            "cohortStart": 58462,
+            "cohortEnd": 55741,
+            "ratioStartPerHundred": 102.9643,
+            "ratioEndPerHundred": 104.6375
+          },
+          "contributions": {
+            "totalPct": -3.1049,
+            "demographicPp": -4.6921,
+            "ratioPp": 1.5872
+          },
+          "grade": "E2",
+          "pneThemes": [
+            {
+              "theme": "ensino_fundamental",
+              "themeLabel": "Conclusão do ensino fundamental na idade certa"
+            }
+          ],
+          "statement": "Entre 2014 e 2025, as matrículas no ensino fundamental da região foram de 60 195 para 58 326 (variação de -3,1%). Na conta decomposta, a coorte de nascimentos correspondente às idades de 6 a 14 anos foi de 58 462 para 55 741 e explica -4,7 pontos percentuais dessa variação; a taxa de atendimento aparente (matrículas por cem pessoas da coorte) foi de 103,0 para 104,6 e explica 1,6 pontos percentuais. Os dois termos somam a variação total; valores exibidos arredondados a uma casa decimal."
+        },
+        {
+          "stage": "ensino_medio",
+          "stageLabel": "no ensino médio",
+          "outcomeSeriesId": "matriculas-no-ensino-medio",
+          "cohortSeriesId": "nascidos-vivos-por-residencia-da-mae",
+          "cohortAges": {
+            "min": 15,
+            "max": 17
+          },
+          "window": {
+            "start": 2014,
+            "end": 2025,
+            "intervals": 11
+          },
+          "terms": {
+            "enrollmentStart": 16986,
+            "enrollmentEnd": 14060,
+            "cohortStart": 21728,
+            "cohortEnd": 17231,
+            "ratioStartPerHundred": 78.1756,
+            "ratioEndPerHundred": 81.5971
+          },
+          "contributions": {
+            "totalPct": -17.226,
+            "demographicPp": -21.1497,
+            "ratioPp": 3.9238
+          },
+          "grade": "E2",
+          "pneThemes": [
+            {
+              "theme": "ensino_medio",
+              "themeLabel": "Universalização e permanência no ensino médio"
+            }
+          ],
+          "statement": "Entre 2014 e 2025, as matrículas no ensino médio da região foram de 16 986 para 14 060 (variação de -17,2%). Na conta decomposta, a coorte de nascimentos correspondente às idades de 15 a 17 anos foi de 21 728 para 17 231 e explica -21,1 pontos percentuais dessa variação; a taxa de atendimento aparente (matrículas por cem pessoas da coorte) foi de 78,2 para 81,6 e explica 3,9 pontos percentuais. Os dois termos somam a variação total; valores exibidos arredondados a uma casa decimal."
+        }
+      ],
+      "absences": []
+    },
+    "employment": {
+      "methodStatement": "A decomposição é contábil, do tipo composição e ritmo: a variação dos vínculos separa-se em ritmo comum do estado, composição setorial de partida e dinâmica própria dos setores na região. A conta cobre os cinco setores classificados da fonte; vínculos sem setor classificado ficam fora dela e estão declarados nos termos publicados; a dinâmica própria absorve, sem distinguir, os fatores locais de cada setor; a conta não afirma causa.",
+      "criteria": {
+        "cohortAges": {
+          "educacao_infantil": [
+            0,
+            5
+          ],
+          "ensino_fundamental": [
+            6,
+            14
+          ],
+          "ensino_medio": [
+            15,
+            17
+          ]
+        },
+        "stagesWithoutCohort": [
+          "matriculas-na-educacao-de-jovens-e-adultos",
+          "matriculas-na-educacao-profissional"
+        ],
+        "minIntervals": 8,
+        "sectors": [
+          "Agropecuária",
+          "Comércio",
+          "Construção civil",
+          "Indústria",
+          "Serviços"
+        ],
+        "reference": "Rio Grande do Sul",
+        "rounding": {
+          "published": 4,
+          "displayed": 1
+        },
+        "closureToleranceAbs": 1e-9
+      },
+      "item": {
+        "window": {
+          "end": 2025,
+          "intervals": 19,
+          "start": 2006
+        },
+        "sectors": [
+          {
+            "regionEnd": 2490,
+            "regionStart": 1235,
+            "sectorLabel": "Agropecuária",
+            "stateEnd": 99344,
+            "stateStart": 71078
+          },
+          {
+            "regionEnd": 22897,
+            "regionStart": 13348,
+            "sectorLabel": "Comércio",
+            "stateEnd": 666238,
+            "stateStart": 436914
+          },
+          {
+            "regionEnd": 4342,
+            "regionStart": 1859,
+            "sectorLabel": "Construção civil",
+            "stateEnd": 136343,
+            "stateStart": 72001
+          },
+          {
+            "regionEnd": 64309,
+            "regionStart": 75479,
+            "sectorLabel": "Indústria",
+            "stateEnd": 746995,
+            "stateStart": 645934
+          },
+          {
+            "regionEnd": 60714,
+            "regionStart": 28690,
+            "sectorLabel": "Serviços",
+            "stateEnd": 1717553,
+            "stateStart": 1094814
+          }
+        ],
+        "totals": {
+          "regionStart": 120611,
+          "regionEnd": 154752,
+          "stateStart": 2320741,
+          "stateEnd": 3366473
+        },
+        "excludedSectorLinks": {
+          "regionEnd": 0,
+          "regionStart": 0,
+          "stateEnd": 1,
+          "stateStart": 0
+        },
+        "contributions": {
+          "totalPct": 28.3067,
+          "statePp": 45.0603,
+          "mixPp": -14.1454,
+          "ownPp": -2.6081
+        },
+        "grade": "E2",
+        "sourceLabel": "Relação Anual de Informações Sociais",
+        "statement": "Entre 2006 e 2025, os vínculos formais nos cinco setores classificados da região foram de 120 611 para 154 752 (variação de 28,3%). Na conta decomposta, o ritmo comum do estado explica 45,1 pontos percentuais dessa variação; a composição setorial de partida da região explica -14,1 pontos percentuais; a dinâmica própria dos setores na região explica -2,6 pontos percentuais. Os três termos somam a variação total; valores exibidos arredondados a uma casa decimal."
+      },
+      "absence": null
+    }
+  },
   "associations": {
     "label": "Quais características do território podem estar relacionadas ao cenário educacional?",
     "description": "Cada leitura parte de um resultado educacional observado na região e mostra, em números, como os fatores territoriais se moveram junto dele: anos de movimento conjunto, variação na mesma janela, correlação com força declarada e a posição da região entre as dez. Nenhuma delas afirma que um moveu o outro.",
@@ -16387,7 +16642,7 @@
     "scenarioPackageSha256": null,
     "scenarioSourceSha256": null,
     "municipalPackageSha256": null,
-    "synthesisPackageSha256": "776f143f696662c3a25a7b963cba13d694995af4f108b08938aa1f3f0e09a786"
+    "synthesisPackageSha256": "4a58b8cbd14cb3c293d0c0571855219c6e893cc356bac7596b7b0518eea24dba"
   },
-  "contentVersion": "0d5a833aff960f97b5b5e7110bb92fdd999e198211dc137f875379384028c8c4"
+  "contentVersion": "f7776d3005eccfc57cfee96b6b4c6d85aac7d2ef3b61875020a4c5b4c37c6f84"
 }
