@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5d-contract-v1",
+  "jobId": "v7-job5d",
+  "classification": "SOURCE_REFRESH",
+  "requestedScope": "DATA_DISCOVERY + DATA_MATERIALIZATION_ONLY",
+  "objective": "Localizar e materializar componentes oficiais exatos das taxas H2 no grão municipal anual por etapa e rede total, ou provar de forma auditável que não são obtíveis nas fontes autorizadas.",
+  "scope": {
+    "state": "RS",
+    "municipalityUniverse": 497,
+    "region": "Vale do Sinos",
+    "regionMunicipalityCount": 10,
+    "mandatoryMunicipalityId": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "administrativeDependencyIsAnalyticDimension": false,
+    "administrativeDependencyIsQADimension": true,
+    "performancePeriod": [2018, 2025],
+    "distortionPeriod": [2019, 2025],
+    "futureRecentWindow": [2023, 2025],
+    "stages": [
+      "fundamental",
+      "fundamental_anos_iniciais",
+      "fundamental_anos_finais",
+      "medio"
+    ],
+    "indicators": [
+      "approval_rate_percent",
+      "failure_rate_percent",
+      "dropout_rate_percent",
+      "age_grade_distortion_rate_percent"
+    ]
+  },
+  "componentPolicy": {
+    "officialSameGrainOnly": true,
+    "reverseRoundingAllowed": false,
+    "imputationAllowed": false,
+    "genericEnrollmentSubstituteAllowed": false,
+    "populationSubstituteAllowed": false,
+    "meanOfRatesAllowed": false,
+    "zeroDenominatorResult": null,
+    "roundingStage": "presentation_or_final_serialization_only"
+  },
+  "coverageStates": [
+    "EXACT_COMPONENTS_AVAILABLE",
+    "OFFICIAL_RATE_ONLY",
+    "PARTIAL_COMPONENT_COVERAGE",
+    "DEFINITION_INCOMPATIBLE",
+    "SOURCE_UNAVAILABLE",
+    "SUPPRESSED",
+    "NOT_APPLICABLE"
+  ],
+  "allowedFinalStates": [
+    "JOB_5D_EXACT_DENOMINATORS_MATERIALIZED_FOR_EXTERNAL_REVIEW",
+    "JOB_5D_PARTIAL_OFFICIAL_COVERAGE_REQUIRES_DECISION",
+    "JOB_5D_EXACT_DENOMINATORS_NOT_OBTAINABLE_FROM_AUTHORIZED_SOURCES"
+  ],
+  "selectedFinalState": "JOB_5D_EXACT_DENOMINATORS_NOT_OBTAINABLE_FROM_AUTHORIZED_SOURCES",
+  "stabilityDraftStatus": "DRAFT_FOR_EXTERNAL_PREREGISTRATION_REVIEW",
+  "boundaries": {
+    "trajectoryPatternSelectionAllowed": false,
+    "c5AssessmentAllowed": false,
+    "finalSmallDenominatorRuleAllowed": false,
+    "h2ApprovalAllowed": false,
+    "job6Allowed": false,
+    "gate11Status": "BLOCKED",
+    "publicDataWriteAllowed": false,
+    "databaseWriteAllowed": false
+  },
+  "outputs": [
+    "AUDITORIA_FONTES_DENOMINADORES_H2_V7.md",
+    "DICIONARIO_COMPONENTES_TAXAS_H2_V7.json",
+    "COBERTURA_DENOMINADORES_H2_V7.csv.gz",
+    "PAINEL_COMPONENTES_EXATOS_H2_V7.csv.gz",
+    "QA_RECOMPUTACAO_TAXAS_H2_V7.csv.gz",
+    "NOVA_SANTA_RITA_COMPONENTES_H2_V7.json",
+    "DRAFT_PRE_REGISTRO_ESTABILIDADE_H2_V7.yaml",
+    "LIMITACOES_AQUISICAO_H2_V7.json",
+    "PACOTE_REVISAO_EXTERNA_JOB5D_V7.json",
+    "MANIFEST_JOB5D_V7.json"
+  ]
+}

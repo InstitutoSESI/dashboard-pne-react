@@ -1,9 +1,9 @@
 /*
- * Contrato público do painel regional, do lado da interface.
+ * Contrato público do Panorama da Região, do lado da interface.
  *
- * Os tipos descrevem exatamente o que o JSON publicado entrega — nada além. O
- * `null` é parte do contrato, não um acidente: ele marca o ano em que a região
- * não teve cobertura completa, e `municipiosComDado` diz quantos informaram.
+ * O `null` permanece semântico: dado ausente não vira zero. Taxas regionais
+ * existem apenas onde o artefato publica numerador e denominador agregáveis;
+ * nos demais indicadores, o contrato identifica a mediana municipal.
  */
 
 export interface RegionalMunicipality {
@@ -76,6 +76,119 @@ export interface RegionalEnrollmentBlock {
   readonly series: RegionalEnrollmentSeries
 }
 
+export type RegionalEducationCountGroup =
+  | 'rede'
+  | 'oferta'
+  | 'educacao_indigena'
+  | 'sistema_s'
+
+export interface RegionalEducationCountIndicator {
+  readonly chave: string
+  readonly titulo: string
+  readonly grupo: RegionalEducationCountGroup
+  readonly ano: number | null
+  readonly valor: number | null
+  readonly municipiosComDado: number
+}
+
+export type RegionalDistributionUnit = 'percent' | 'index' | 'score' | 'decimal'
+
+export interface RegionalDistributionIndicator {
+  readonly chave: string
+  readonly titulo: string
+  readonly unidade: RegionalDistributionUnit
+  readonly ano: number | null
+  readonly valor: number | null
+  readonly valorEstado: number | null
+  readonly minimoMunicipal: number | null
+  readonly maximoMunicipal: number | null
+  readonly municipiosComDado: number
+  readonly municipiosEstadoComDado: number
+}
+
+export interface RegionalEducationQualityCategory {
+  readonly chave: string
+  readonly label: string
+  readonly indicadores: readonly RegionalDistributionIndicator[]
+}
+
+export interface RegionalVaarIndicator {
+  readonly chave: string
+  readonly titulo: string
+  readonly valor: number | null
+  readonly valorEstado: number | null
+  readonly municipiosComDado: number
+  readonly municipiosEstadoComDado: number
+}
+
+export interface RegionalVaarBlock {
+  readonly label: string
+  readonly descricao: string
+  readonly ano: number | null
+  readonly indicadores: readonly RegionalVaarIndicator[]
+}
+
+export interface RegionalEducationBlock {
+  readonly label: string
+  readonly descricao: string
+  readonly contagens: readonly RegionalEducationCountIndicator[]
+  readonly qualidade: readonly RegionalEducationQualityCategory[]
+  readonly vaar: RegionalVaarBlock
+}
+
+export type RegionalPneReferenceType = 'legal' | 'monitoring' | 'published'
+export type RegionalPneDirection = 'at_least' | 'at_most'
+export type RegionalPneMethod = 'regional_ratio' | 'municipal_median'
+
+export interface RegionalPneReference {
+  readonly tipo: RegionalPneReferenceType
+  readonly label: string
+  readonly valor: number
+  readonly ano: number | null
+  readonly direcao: RegionalPneDirection
+}
+
+export interface RegionalPneResult {
+  readonly metodo: RegionalPneMethod
+  readonly ano: number | null
+  readonly valor: number | null
+  readonly valorEstado: number | null
+  readonly municipiosComDado: number
+  readonly municipiosEstadoComDado: number
+  readonly minimoMunicipal: number | null
+  readonly maximoMunicipal: number | null
+  readonly municipiosNaReferencia: number | null
+  readonly distanciaReferencia: number | null
+}
+
+export interface RegionalPneIndicator {
+  readonly chave: string
+  readonly titulo: string
+  readonly descricao: string
+  readonly unidade: 'percent'
+  readonly acompanhaReferencia: boolean
+  readonly referencia: RegionalPneReference | null
+  readonly resultado: RegionalPneResult
+}
+
+export interface RegionalPneCategory {
+  readonly chave: string
+  readonly label: string
+  readonly indicadores: readonly RegionalPneIndicator[]
+}
+
+export interface RegionalPneBlock {
+  readonly cicloId: 'pne_2026_2036'
+  readonly label: string
+  readonly descricao: string
+  readonly totalIndicadores: number
+  readonly totalReferencias: number
+  readonly referenciasAvaliadas: number
+  readonly referenciasAtingidas: number
+  readonly indicadoresSemResultado: number
+  readonly categorias: readonly RegionalPneCategory[]
+}
+
 export interface RegionalSource {
   readonly nome: string
   readonly uso: string
@@ -91,6 +204,8 @@ export interface RegionalDocument {
   readonly pagina: RegionalPageCopy
   readonly atendimento: RegionalCoverageBlock
   readonly matriculas: RegionalEnrollmentBlock
+  readonly educacao: RegionalEducationBlock
+  readonly pne2026: RegionalPneBlock
   readonly metodologia: readonly string[]
   readonly fontes: readonly RegionalSource[]
 }

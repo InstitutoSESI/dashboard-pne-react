@@ -1,0 +1,613 @@
+{
+  "schemaVersion": "vocacoes-pne-advanced-analysis-preregistration-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA2",
+  "version": "1.0.3",
+  "createdOn": "2026-08-30",
+  "status": "FROZEN_PRE_RESULT",
+  "classification": "DATA_LOGIC",
+  "firstResultInspected": false,
+    "postResultAdjustment": false,
+  "freezeRule": "The final v1.0.1 file is immutable from the moment its SHA-256 is written to the external registration artifact, before result generation. Any later change requires a new version with a POST_RESULT_ADJUSTMENT marker and invalidates confirmatory language for the affected question.",
+  "entryEvidence": {
+    "aa1Panel": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/PAINEL_ANALITICO_ESTADUAL_AA1.csv.gz",
+    "aa1PanelSha256": "d6cadfec911863b93699b826da6ef340687db5c0f77350319a9eeefa0dfb652f",
+    "aa1Gate": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/AA2_ENTRY_GATE_AA1.json",
+    "aa1GateSha256": "8baef0754bd6e7b5caa5428e9cf16d8ae3c01d3eace4de68d24d1e42ba286f02",
+    "aa1ArtifactSetDigestSha256": "b5209061aff00ecae4b279165f3fd380b9324bcc845d1ad279a31a42f8bd3366",
+    "p5AuxiliaryBridge": ".tmp/vocacoes-pne/v7-job2/2d/cursos_cbo_2025.csv.gz",
+    "p5AuxiliaryBridgeSha256": "cf60bb4cb49bbe15a35af728b83783418e67fc76c215838521ef14992047f867",
+    "p5AuxiliaryBridgeProvenance": "V7 Job 2D, official CNCT course-to-CBO normative correspondence materialization; school-location EPT offer and workplace RAIS remain separate lenses",
+    "availabilityProbe": ".tmp/vocacoes-pne/advanced-analytics-v1/aa2-prereg/AVAILABILITY_PROBE_AA2.json",
+    "availabilityProbeSha256": "070911de9c63c324318679e9cd91e7c065965ad1e934f3d518ad7ce219f3625c",
+    "registrationArtifact": "data_pipeline/contracts/vocacoes-pne-aa2-preregistration-freeze.json",
+    "resultInspectionAllowedOnlyAfterGate": true
+  },
+  "sharedRules": {
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "selectedMunicipalityIbgeCode": "4313375",
+    "regionId": "REGION_VALE_DO_SINOS",
+    "regionMunicipalityCount": 10,
+    "stateMunicipalityCount": 497,
+    "educationNetworkScope": "total_all_dependencies",
+    "rounding": "presentation_or_final_serialization_only",
+    "missingness": "preserve_observed_zero_null_unavailable_suppressed_not_applicable_and_row_absence",
+    "joinPolicy": "join_only_on_textual_ibge_code_and_declared_time_stage_dimension_keys",
+    "lensPolicy": "resident_population_school_location_workplace_and_executor_lenses_remain_named; alignment is ecological and never becomes an individual linkage",
+    "scopePolicy": "statewide inference requires coverage_scope RS_497; VALE_10 never represents RS",
+    "rankingAllowed": false,
+    "unrestrictedPairSearchAllowed": false,
+    "automaticSignificanceSelection": false,
+    "causalLanguageAllowed": false,
+    "effectAndUncertaintyBeforeSignificance": true,
+    "effectPrecedenceRule": "No terminal state or claim above DISTRIBUTIONAL_PATTERN may be assigned from a p-value alone. Every positive inferential state must first meet its named substantiveEffectThreshold and interval-or-bound rule; p-value and BH criteria are secondary conjunctive gates.",
+    "negativeResultsRetained": true,
+    "maximumPrimaryQuestions": 8,
+    "maximumAlternativeSpecificationsPerQuestion": 2,
+    "confidenceLevel": 0.95,
+    "randomSeed": 4313375,
+    "randomGenerator": "numpy.random.Generator with PCG64; per-fit seed is the unsigned first 64 bits of SHA-256('4313375|fit_id|procedure_id'); rows and municipality codes are sorted before draws",
+    "smallSampleMethodRationale": "P4/P7 are longitudinal fixed-effects regressions with municipality-clustered dependence, so inference flips cluster residual signs. P6 is a ten-municipality cross-sectional correlation, so inference permutes outcome labels. Procedures are fixed by design class, never selected from results.",
+    "multipleTesting": {
+      "method": "BENJAMINI_HOCHBERG",
+      "scope": "all non-null p-values, including predeclared alternatives and sensitivities, within each family",
+      "rawAndAdjustedRequired": true,
+      "nonInferentialRows": "must carry pValueState NOT_APPLICABLE_PREDECLARED and a reason before results",
+      "familyAssignmentMayChangeAfterResults": false,
+      "fixedFamilyDenominator": "m is always the predeclared expectedPValueCount for the family (7, 6, 4, 6 or 4). An invalid fit occupies its fixed slot as p=1 only inside the BH calculation, while its serialized raw and adjusted p-values remain null with pValueState INSUFFICIENT_DATA.",
+      "discretePValueHandling": "resampling and continuous p-values use the same fixed-family BH procedure; ties are ordered by result_id for deterministic computation and monotone adjusted values; attainable raw p-value floor and grid are serialized for every resampling fit",
+      "familyDecisionAlpha": {
+        "MF_P3_SCHOOL_CONDITIONS": 0.05,
+        "MF_P4_YOUTH_WORK": 0.10,
+        "MF_P6_ADULT_EJA_WORK": 0.10,
+        "MF_P7_RURALITY_INCLUSION": 0.10,
+        "MF_P8_FINANCING_CAPACITY": 0.05
+      },
+      "structurallyUnattainableRule": "If attainable_raw_p_floor multiplied by fixed family m exceeds familyDecisionAlpha, no rejection state is possible and the affected question is PLANNING_SIGNAL_ONLY or NO_ROBUST_ASSOCIATION according to its ordered rule, with the fixed low-power caveat; alpha is never relaxed.",
+      "pValueStates": ["INFERENTIAL", "NOT_APPLICABLE_PREDECLARED", "INSUFFICIENT_DATA"],
+      "crossFamilyControl": "none; five substantively distinct families are not pooled",
+      "mandatoryDisclosure": "No cross-family error-rate control is applied; no integrated conclusion may rest on one adjusted p-value without effect-size and robustness support."
+    },
+    "terminalStates": [
+      "CONTEXT_COMPARISON_COMPLETE",
+      "ACCOUNTING_DECOMPOSITION_COMPLETE",
+      "ROBUST_ASSOCIATION",
+      "PLANNING_SIGNAL_ONLY",
+      "DISTRIBUTIONAL_PATTERN_COMPLETE",
+      "NO_ROBUST_ASSOCIATION",
+      "NOT_SUPPORTED_OR_UNAVAILABLE",
+      "INSUFFICIENT_DATA"
+    ],
+    "scopeComparisonContract": {
+      "requiredScopes": ["RS_497", "VALE_10", "MUNICIPALITY_4313375"],
+      "sameMeasureRequired": true,
+      "unavailableScopeMustBeMaterialized": true,
+      "silentSubstitutionForbidden": true
+    },
+    "minimumCoverage": {
+      "RS_CONTEXT_OR_CROSS_SECTION": {"minimumMunicipalities": 450, "mandatoryMunicipalityMustBeComplete": true},
+      "RS_PANEL": {"minimumMunicipalities": 450, "minimumYears": 6},
+      "VALE_PANEL": {"minimumMunicipalities": 9, "minimumYears": 5},
+      "VALE_SNAPSHOT": {"minimumMunicipalities": 8},
+      "coverageDisclosure": "Every fit and scope comparison reports eligible, retained and excluded municipality counts plus missingness reasons; RS_497 is a source-coverage label, never a claim of 497 complete cases.",
+      "coverageToClaimMap": {
+        "497": "RS_COMPLETE_CASES_497; declared question claim ceiling may be used",
+        "450_TO_496": "RS_SOURCE_SCOPE_WITH_NONEXHAUSTIVE_ANALYTIC_SAMPLE; declared ceiling is retained only with a mandatory attrition caveat and no phrase implying all 497 municipalities",
+        "BELOW_450": "INSUFFICIENT_DATA; no statewide relation claim"
+      },
+      "ValePanelCoverageToClaimMap": {
+        "10": "VALE_COMPLETE_CASES_10; declared question ceiling may be used",
+        "9": "VALE_SOURCE_SCOPE_WITH_NONEXHAUSTIVE_ANALYTIC_SAMPLE; mandatory attrition caveat and no phrase implying all ten municipalities",
+        "BELOW_9": "INSUFFICIENT_DATA for panel relation"
+      },
+      "ValeSnapshotCoverageToClaimMap": {
+        "10": "VALE_COMPLETE_CASES_10; declared question ceiling may be used",
+        "8_TO_9": "VALE_SOURCE_SCOPE_WITH_NONEXHAUSTIVE_ANALYTIC_SAMPLE; mandatory attrition caveat and no phrase implying all ten municipalities",
+        "BELOW_8": "INSUFFICIENT_DATA for snapshot relation"
+      },
+      "NovaSantaRitaCoverageRule": "MUNICIPALITY_4313375 is AVAILABLE only when every row required by the specific measure is present and valid. Otherwise its scope row is materialized UNAVAILABLE with reason; questions that explicitly require the case in validityCriteria become INSUFFICIENT_DATA, while regional results remain separately evaluable where allowed.",
+      "statewideFitInputRule": "Every row entering an RS fit must have coverage_scope RS_497. A VALE_10 row can never enter an RS-scoped fit; Vale descriptors are computed separately from RS_497 source rows or explicitly unavailable."
+    },
+    "modelValidity": {
+      "common": ["required columns present", "no unknown availability state", "numeric finite complete cases only", "non-degenerate outcome and exposure", "full-rank design", "algorithm convergence"],
+      "panel": ["minimum coverage threshold met", "at least two observations per retained municipality", "within-transformed exposure variance greater than 1e-12"],
+      "snapshot": ["minimum coverage threshold met", "at least four distinct ranks in each variable"],
+      "unavailableSensitivityFallback": "Every failed fit is materialized with null p-value and INSUFFICIENT_DATA reason. The question follows its ordered terminal rule: P3 and P8 require all named fits; P4 and P6 require their stated validity counts; P7 permits one component to remain valid. No denominator is silently reduced."
+    },
+    "fitBudgets": {
+      "P1_CONTEXT_ADJUSTED_TRAJECTORY": {"predictionFits": 3, "pValueFits": 0},
+      "P2_DEMOGRAPHY_ENROLLMENT_DECOMPOSITION": {"decompositionWindows": 3, "pValueFits": 0},
+      "P3_SCHOOL_CONDITIONS_AND_TRAJECTORY": {"coefficientFits": 7, "pValueFits": 7},
+      "P4_YOUTH_WORK_AND_HIGH_SCHOOL": {"coefficientFits": 6, "pValueFits": 6, "leaveOneOutFitsWithoutPValue": 10},
+      "P5_OCCUPATIONS_AND_EPT": {"correspondenceScenarios": 2, "pValueFits": 0},
+      "P6_ADULT_SCHOOLING_WORK_AND_EJA": {"correlationFits": 4, "pValueFits": 4, "leaveOneOutFitsWithoutPValue": 20},
+      "P7_RURALITY_INCLUSION_AND_ACCESS": {"coefficientFits": 6, "pValueFits": 6, "leaveOneOutFitsWithoutPValue": 20},
+      "P8_FINANCING_OFFER_AND_CAPACITY": {"coefficientFits": 4, "pValueFits": 4, "contextResidualDiagnosticsWithoutPValue": 1}
+    },
+    "derivedCompositeNaming": {
+      "requiredFields": ["numerator_metric_id", "numerator_territorial_lens", "denominator_metric_id", "denominator_territorial_lens", "composite_qualifier"],
+      "P2Qualifier": "school_location_enrollments_per_resident_age_group_context_not_coverage",
+      "P4Qualifier": "workplace_bonds_per_resident_age_group_context_not_employment_rate",
+      "forbiddenLabelTokens": ["taxa de cobertura", "coverage rate", "taxa de emprego", "employment rate"],
+      "permissionsAndCeilings": {
+        "P2": "permitted only as a cross-lens accounting identity; maximum ACCOUNTING_DECOMPOSITION; never a rate, attendance or coverage measure",
+        "P4": "permitted only as an ecological territorial intensity; maximum PLANNING_SIGNAL; never an individual employment rate"
+      },
+      "fixedDisclosureSentence": "O numerador e o denominador descrevem lentes territoriais diferentes; esta medida é apenas contexto ecológico, não taxa, cobertura nem vínculo entre as mesmas pessoas.",
+      "dependencyRule": "No terminal state depends on a dual-lens composite alone; P2 additionally requires exact component closure and P4 requires the separately observed education outcome, small-sample robustness and its fixed ceiling."
+    },
+    "executionContract": {
+      "entryOrder": ["verify registered preregistration SHA-256", "verify all input SHA-256 digests", "execute and pass AA1_TO_AA2 gate", "execute coefficient-free availability probe check", "allow result computation"],
+      "failurePolicy": "fail closed with non-zero exit before any result artifact on mismatch, unknown enum, missing input, gate failure or unregistered preregistration",
+      "databaseAllowed": false,
+      "dataAcquisitionNetworkAllowed": false,
+      "socketAndSQLiteRuntimeGuardsRequired": true,
+      "runtimePin": "data_pipeline/pyproject.toml plus data_pipeline/uv.lock; exact Python, numpy and pandas versions recorded in the manifest",
+      "outputRoot": ".tmp/vocacoes-pne/advanced-analytics-v1/aa2",
+      "transactional": true,
+      "manifestLast": true,
+      "twoIndependentOperatingSystemProcessesRequired": true,
+      "pythonHashSeeds": [101, 202],
+      "publicDataExpectedSha256": "4a52e3891163cb3427c5c01f2ef5414c5fe7855dd491a9a125b509899dcc23e1",
+      "publicDataWritesAllowed": false,
+      "fullBuildAllowed": false,
+      "postFreezeAmendmentPolicy": "After first raw_value access, the preregistration cannot be amended. Any unavoidable analytical-definition change voids the affected question to NOT_SUPPORTED_OR_UNAVAILABLE in a new explicitly POST_RESULT_ADJUSTMENT version; it cannot retain confirmatory language.",
+      "failureMapping": "An anticipated question-level validation failure is materialized in all required outputs as INSUFFICIENT_DATA or NOT_SUPPORTED_OR_UNAVAILABLE with reason. An unexpected runtime or integrity exception aborts the entire transactional package with non-zero exit and publishes no partial AA2 package; it is never converted to a successful empty artifact."
+    }
+  },
+  "multiplicityFamilies": [
+    {
+      "familyId": "MF_P3_SCHOOL_CONDITIONS",
+      "questions": ["P3_SCHOOL_CONDITIONS_AND_TRAJECTORY"],
+      "includedTests": [
+        "P3_MAIN_DROPOUT_L0",
+        "P3_ALT_FAILURE_L0",
+        "P3_ALT_DROPOUT_L1",
+        "P3_SENS_EXCLUDE_2020_2021",
+        "P3_SENS_WINDOW_2022_2025",
+        "P3_PLACEBO_LEAD1",
+        "P3_SENS_EXCLUDE_VALE_10"
+      ],
+      "expectedPValueCount": 7,
+      "diagnosticsWithoutPValues": []
+    },
+    {
+      "familyId": "MF_P4_YOUTH_WORK",
+      "questions": ["P4_YOUTH_WORK_AND_HIGH_SCHOOL"],
+      "includedTests": [
+        "P4_MAIN_L0",
+        "P4_ALT_L1",
+        "P4_ALT_L2",
+        "P4_SENS_EXCLUDE_2020_2021",
+        "P4_PLACEBO_LEAD1",
+        "P4_REVERSE_DIRECTION"
+      ],
+      "expectedPValueCount": 6,
+      "diagnosticsWithoutPValues": ["P4_LEAVE_ONE_MUNICIPALITY_OUT_10_REFITS"]
+    },
+    {
+      "familyId": "MF_P6_ADULT_EJA_WORK",
+      "questions": ["P6_ADULT_SCHOOLING_WORK_AND_EJA"],
+      "includedTests": [
+        "P6_EJA_SPEARMAN",
+        "P6_WORK_SPEARMAN",
+        "P6_EJA_PEARSON",
+        "P6_WORK_PEARSON"
+      ],
+      "expectedPValueCount": 4,
+      "diagnosticsWithoutPValues": ["P6_LEAVE_ONE_OUT_20_REFITS", "P6_BOOTSTRAP_INTERVALS"]
+    },
+    {
+      "familyId": "MF_P7_RURALITY_INCLUSION",
+      "questions": ["P7_RURALITY_INCLUSION_AND_ACCESS"],
+      "includedTests": [
+        "P7_RURAL_MAIN",
+        "P7_RURAL_EXCLUDE_2020_2021",
+        "P7_RURAL_LAG1",
+        "P7_AEE_MAIN",
+        "P7_AEE_EXCLUDE_2020_2021",
+        "P7_AEE_LAG1"
+      ],
+      "expectedPValueCount": 6,
+      "diagnosticsWithoutPValues": ["P7_LEAVE_ONE_MUNICIPALITY_OUT_20_REFITS"]
+    },
+    {
+      "familyId": "MF_P8_FINANCING_CAPACITY",
+      "questions": ["P8_FINANCING_OFFER_AND_CAPACITY"],
+      "includedTests": [
+        "P8_MAIN_2025_SIZE_ADJUSTED",
+        "P8_ALT_2024_SIZE_ADJUSTED",
+        "P8_ALT_2025_PER_ENROLLMENT",
+        "P8_SENS_2025_TRIMMED_1_PERCENT"
+      ],
+      "expectedPValueCount": 4,
+      "diagnosticsWithoutPValues": ["P8_NSR_CONTEXT_RESIDUAL"]
+    }
+  ],
+  "questions": [
+    {
+      "questionId": "P1_CONTEXT_ADJUSTED_TRAJECTORY",
+      "publicQuestion": "A trajetória recente do Ensino Médio de Nova Santa Rita ficou dentro do observado em municípios gaúchos com contexto semelhante?",
+      "mechanismHypothesis": "Demografia, escala da oferta, condição docente e ponto de partida educacional compõem o contexto no qual a trajetória é observada, sem provar que qualquer fator causou o resultado.",
+      "population": "497 municípios do RS com casos completos; Nova Santa Rita obrigatória",
+      "coverageScope": "RS_497",
+      "outcome": {
+        "metricId": "education.dropout_rate_percent",
+        "stage": "medio",
+        "period": "2025",
+        "lens": "school_location"
+      },
+      "contextFeatures": [
+        {"metricId": "education.dropout_rate_percent", "stage": "medio", "period": "2019", "transform": "identity"},
+        {"metricId": "demography.population_age_15_17", "stage": "age_15_17", "periods": ["2019", "2025"], "transform": "signed_log_ratio_change"},
+        {"metricId": "education.enrollments", "stage": "medio", "periods": ["2019", "2025"], "transform": "signed_log_ratio_change"},
+        {"metricId": "education.teacher_adequacy_percent", "stage": "medio", "period": "2025", "transform": "identity"}
+      ],
+      "mainMethod": "deterministic five-fold municipality-held-out OLS prediction; folds from SHA-256 of textual IBGE code; all features fixed before results",
+      "effect": "observed minus held-out predicted dropout rate in percentage points",
+      "interval": "95% out-of-fold absolute-residual conformal band calibrated without Nova Santa Rita residual",
+      "alternatives": [
+        "ten-fold held-out prediction with the same feature set",
+        "five-fold baseline-only model excluding contemporaneous teacher adequacy"
+      ],
+      "validityCriteria": "at least 450 municipalities, Nova Santa Rita complete, full-rank training matrices in every fold and finite held-out predictions",
+      "calibrationPass": "empirical held-out 95% interval coverage from 0.92 through 0.98 inclusive and full-model RMSE no more than 1.05 times baseline-only RMSE",
+      "NovaSantaRitaInterpretationRule": "ABOVE_CONTEXT only if its effect is above the upper conformal bound and positive in all three prediction fits; BELOW_CONTEXT only if below the lower bound and negative in all three; otherwise WITHIN_OR_INCONCLUSIVE_CONTEXT",
+      "robustness": ["exactly_5_fold_full", "exactly_10_fold_full", "exactly_5_fold_baseline_only", "out_of_sample_RMSE", "interval_coverage", "Nova_Santa_Rita_direction"],
+      "heterogeneity": "held-out residual distribution for RS, Vale and Nova Santa Rita on the identical percentage-point scale",
+      "pValueState": "NOT_APPLICABLE_PREDECLARED",
+      "pValueReason": "prediction comparison is evaluated by held-out error and calibrated interval, not a selected coefficient test",
+      "claimCeiling": "CONTEXT_ADJUSTED_COMPARISON",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if validityCriteria fails",
+        "2 INSUFFICIENT_DATA if calibrationPass fails",
+        "3 CONTEXT_COMPARISON_COMPLETE otherwise"
+      ]
+    },
+    {
+      "questionId": "P2_DEMOGRAPHY_ENROLLMENT_DECOMPOSITION",
+      "publicQuestion": "Quanto da mudança das matrículas do Ensino Médio acompanha a mudança da população de 15 a 17 anos e quanto aparece na relação entre população residente e oferta escolar localizada?",
+      "mechanismHypothesis": "A matrícula localizada pode mudar porque o grupo etário residente muda e/ou porque muda a relação territorial entre população residente e oferta escolar, sem que essa relação seja interpretada como cobertura ou frequência individual.",
+      "population": "497 municípios, Vale agregado por soma de componentes e Nova Santa Rita",
+      "coverageScope": "RS_497",
+      "window": ["2018", "2025"],
+      "outcome": {"metricId": "education.enrollments", "stage": "medio", "lens": "school_location"},
+      "exposure": {"metricId": "demography.population_age_15_17", "stage": "age_15_17", "lens": "resident_population"},
+      "mainMethod": "exact symmetric Shapley decomposition of M=P*R, with M enrollment, P resident population and R=M/P",
+      "derivedCompositeId": "school_location_enrollments_per_resident_age_group_context_not_coverage",
+      "derivedCompositeSerializedLenses": ["school_location", "resident_population"],
+      "effect": "absolute enrollment change split into population component and territorial-relation component; components close exactly to total change",
+      "interval": "deterministic identity: lower and upper equal each exact component; no sampling interpretation",
+      "alternatives": ["2019 to 2025", "2022 to 2025"],
+      "closureArithmetic": "float64 symmetric Shapley decomposition checked with relative tolerance abs(residual) <= 1e-9 * max(1, abs(total_enrollment_change)); realised raw residual and tolerance are serialized",
+      "robustness": ["exact_closure", "alternative_windows", "Vale_leave_one_municipality_out", "zero_denominator_guard"],
+      "heterogeneity": "same components for RS, Vale, Nova Santa Rita and all municipalities; no ranking",
+      "pValueState": "NOT_APPLICABLE_PREDECLARED",
+      "pValueReason": "accounting identity has no sampling null hypothesis",
+      "claimCeiling": "ACCOUNTING_DECOMPOSITION",
+      "terminalRuleOrdered": [
+        "1 NOT_SUPPORTED_OR_UNAVAILABLE if any required endpoint or positive population denominator is absent for the requested scope",
+        "2 NOT_SUPPORTED_OR_UNAVAILABLE if closureArithmetic relative tolerance fails",
+        "3 ACCOUNTING_DECOMPOSITION_COMPLETE otherwise"
+      ]
+    },
+    {
+      "questionId": "P3_SCHOOL_CONDITIONS_AND_TRAJECTORY",
+      "publicQuestion": "Mudanças na adequação da formação docente caminham junto com mudanças de abandono e reprovação no Ensino Médio?",
+      "mechanismHypothesis": "Maior adequação entre formação docente e componente curricular pode favorecer condições pedagógicas associadas à permanência, mas composição discente, gestão e fatores territoriais alternativos permanecem explicações concorrentes.",
+      "population": "painel 2018-2025 dos 497 municípios do RS, etapa medio, rede total",
+      "coverageScope": "RS_497",
+      "outcome": {"metricId": "education.dropout_rate_percent", "stage": "medio", "unit": "percentage_points"},
+      "exposure": {"metricId": "education.teacher_adequacy_percent", "stage": "medio", "scale": "10_percentage_points"},
+      "mainMethod": "municipality and year fixed effects with standard errors clustered by municipality",
+      "effect": "percentage-point change in dropout associated with a 10 percentage-point within-municipality change in teacher adequacy",
+      "interval": "two-sided 95% clustered confidence interval",
+      "alternatives": [
+        "same model with failure_rate_percent as outcome",
+        "one-year lag of teacher adequacy for dropout"
+      ],
+      "fitIds": [
+        "P3_MAIN_DROPOUT_L0",
+        "P3_ALT_FAILURE_L0",
+        "P3_ALT_DROPOUT_L1",
+        "P3_SENS_EXCLUDE_2020_2021",
+        "P3_SENS_WINDOW_2022_2025",
+        "P3_PLACEBO_LEAD1",
+        "P3_SENS_EXCLUDE_VALE_10"
+      ],
+      "validityCriteria": "each required fit must retain at least 450 municipalities and at least six years except WINDOW_2022_2025, which requires four years; full rank, convergence and within-exposure variance above 1e-12 are mandatory",
+      "standardizedEffect": "raw coefficient multiplied by the within-transformed exposure standard deviation and divided by the within-transformed outcome standard deviation",
+      "robustness": ["P3_SENS_EXCLUDE_2020_2021", "P3_SENS_WINDOW_2022_2025", "P3_SENS_EXCLUDE_VALE_10", "P3_PLACEBO_LEAD1"],
+      "multiplicityFamily": "MF_P3_SCHOOL_CONDITIONS",
+      "heterogeneity": "same observed measures for RS, Vale and Nova Santa Rita; model is statewide and no Vale coefficient is presented as statewide",
+      "claimCeiling": "ROBUST_ASSOCIATION",
+      "substantiveEffectThreshold": "absolute main effect at least 0.20 percentage point of dropout per 10 percentage points of teacher adequacy",
+      "robustAssociationRule": "P3_MAIN_DROPOUT_L0 meets substantiveEffectThreshold, has BH-adjusted p<=0.05 and a 95% interval excluding zero; all three named direction sensitivities P3_SENS_EXCLUDE_2020_2021, P3_SENS_WINDOW_2022_2025 and P3_SENS_EXCLUDE_VALE_10 have the same coefficient sign as the main fit; absolute standardized effect of P3_PLACEBO_LEAD1 is strictly smaller than the main absolute standardized effect",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if any of the seven required fits fails validityCriteria",
+        "2 ROBUST_ASSOCIATION if robustAssociationRule passes",
+        "3 NO_ROBUST_ASSOCIATION otherwise"
+      ]
+    },
+    {
+      "questionId": "P4_YOUTH_WORK_AND_HIGH_SCHOOL",
+      "publicQuestion": "A intensidade do trabalho formal de jovens de 15 a 17 anos no território se move junto com o abandono no Ensino Médio?",
+      "mechanismHypothesis": "Oportunidades e exigências do trabalho formal podem competir com tempo escolar ou reforçar expectativas de trajetória, enquanto local de trabalho, residência e escola não identificam as mesmas pessoas.",
+      "population": "painel 2019-2025 dos dez municípios do Vale; dez clusters municipais",
+      "coverageScope": "VALE_10",
+      "outcome": {"metricId": "education.dropout_rate_percent", "stage": "medio", "lens": "school_location"},
+      "exposure": {
+        "numeratorMetricId": "labor.youth_rais.active_bonds",
+        "numeratorStage": "age_15_17",
+        "denominatorMetricId": "demography.population_age_15_17",
+        "scale": "active_bonds_per_100_residents",
+        "lensWarning": "workplace stock divided by resident context is an ecological territorial intensity, not an employment rate",
+        "derivedCompositeId": "workplace_bonds_per_resident_age_group_context_not_employment_rate",
+        "derivedCompositeSerializedLenses": ["establishment_location_workplace", "resident_population"],
+        "denominatorRule": "resident population must be strictly positive; zero or absent denominator produces unavailable, never zero"
+      },
+      "mainMethod": "municipality and year fixed effects; for VALE_10 only, primary two-sided p-values from exhaustive enumeration of all 2^G Rademacher cluster sign vectors under the null, clustered by municipality and sorted by textual IBGE code; G must be 9 or 10, otherwise the fit is INSUFFICIENT_DATA and no sampled fallback is allowed",
+      "effect": "percentage-point dropout difference associated with one additional active formal bond per 100 residents aged 15-17",
+      "interval": "95% cluster-robust interval labeled approximate for ten clusters; wild-bootstrap p-value is primary and the interval is not used alone as small-sample proof",
+      "alternatives": ["one-year lag", "two-year lag"],
+      "fitIds": ["P4_MAIN_L0", "P4_ALT_L1", "P4_ALT_L2", "P4_SENS_EXCLUDE_2020_2021", "P4_PLACEBO_LEAD1", "P4_REVERSE_DIRECTION"],
+      "validityCriteria": "each p-value fit must retain at least nine municipalities and five years, converge, be full-rank and have within-exposure variance above 1e-12; all ten leave-one-out fits must be attempted and at least nine must be valid",
+      "robustness": ["P4_ALT_L1", "P4_ALT_L2", "P4_SENS_EXCLUDE_2020_2021", "P4_PLACEBO_LEAD1", "P4_REVERSE_DIRECTION", "P4_LEAVE_ONE_MUNICIPALITY_OUT_10_REFITS"],
+      "multiplicityFamily": "MF_P4_YOUTH_WORK",
+      "heterogeneity": "identical outcome descriptors for RS, Vale and Nova Santa Rita; the joint work-education coefficient is unavailable for RS by coverage contract",
+      "claimCeiling": "PLANNING_SIGNAL",
+      "resamplingGrid": "For realised G in {9,10}, enumerate exactly 2^G vectors. Test statistic is the absolute studentized cluster-robust t for the exposure coefficient; k counts sign vectors whose absolute t is at least the observed absolute t. Raw two-sided p=k/2^G including the observed sign vector, minimum 1/2^G; G, denominator, k and floor are serialized.",
+      "substantiveEffectThreshold": "absolute main effect at least 0.10 percentage point of dropout per additional workplace bond per 100 resident-age-group context",
+      "planningSignalRule": "P4_MAIN_L0 meets substantiveEffectThreshold, has BH-adjusted wild-bootstrap p<=0.10 and an approximate 95% interval excluding zero; at least two of P4_ALT_L1, P4_ALT_L2 and P4_SENS_EXCLUDE_2020_2021 preserve the main sign; at least eight of ten leave-one-out coefficients preserve the main sign; absolute standardized effect of P4_PLACEBO_LEAD1 is smaller than the main effect. P4_REVERSE_DIRECTION is always reported as simultaneity diagnostic and does not select the state.",
+      "mandatoryLowPowerCaveat": "With ten municipalities, non-rejection cannot distinguish absence of association from insufficient power and must not be narrated as evidence of no relationship.",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if validityCriteria fails",
+        "2 PLANNING_SIGNAL_ONLY if planningSignalRule passes",
+        "3 NO_ROBUST_ASSOCIATION otherwise, always with mandatoryLowPowerCaveat"
+      ]
+    },
+    {
+      "questionId": "P5_OCCUPATIONS_AND_EPT",
+      "publicQuestion": "Que parcela da estrutura ocupacional formal está ligada, por correspondência normativa, aos cursos técnicos observados no município e no Vale?",
+      "mechanismHypothesis": "A oferta técnica pode dialogar com famílias ocupacionais do território, mas uma ponte normativa curso-CBO não mede empregabilidade, demanda futura, suficiência nem adequação da oferta.",
+      "population": "dez municípios do Vale, ocupações RAIS 2025 e oferta EPT 2025",
+      "coverageScope": "VALE_10",
+      "outcome": {"metricId": "labor.occupation_active_bonds", "period": "2025", "lens": "workplace"},
+      "exposure": {"metricId": "education.ept_technical_enrollments", "period": "2025", "lens": "school_location"},
+      "auxiliaryBridge": ".tmp/vocacoes-pne/v7-job2/2d/cursos_cbo_2025.csv.gz",
+      "auxiliaryBridgeSha256": "cf60bb4cb49bbe15a35af728b83783418e67fc76c215838521ef14992047f867",
+      "bridgeJoinAndDeduplication": "municipality identity joins only by textual municipality_ibge_code; offer units deduplicate on municipality_ibge_code, school_code and course_code before enrollment coverage; normative links deduplicate on municipality_ibge_code, course_code and occupation_subgroup_code; six-digit occupation dimension_id maps to the declared two-digit subgroup by its first two characters, never by label",
+      "mainMethod": "deduplicated normative course-to-two-digit-CBO-subgroup bridge applied to local all-age active bonds",
+      "effect": "share of local active bonds in occupation subgroups connected to at least one locally observed technical course",
+      "interval": "transparent correspondence bounds: local-offer share as lower scenario and Vale-access share as upper scenario; not a statistical confidence interval",
+      "alternatives": ["Vale-wide accessible offer", "exclude bridge rows without mapped CBO subgroup"],
+      "bridgeCoverageOutputs": ["unique_offer_unit_count", "mapped_offer_unit_share", "mapped_technical_enrollment_share", "unmapped_technical_enrollment_share", "active_bond_share_outside_mapped_subgroups"],
+      "coverageFloor": "Vale mapped technical enrollment share must be at least 0.70; below this threshold facts remain materialized but the question terminates NOT_SUPPORTED_OR_UNAVAILABLE",
+      "robustness": ["course_deduplication", "occupation_prefix_aggregation", "mapped_enrollment_share", "observed_zero_vs_unavailable", "local_vs_regional_offer"],
+      "heterogeneity": "same correspondence share for each Vale municipality and Nova Santa Rita; RS explicitly unavailable because detailed EPT and occupation coverage is VALE_10",
+      "pValueState": "NOT_APPLICABLE_PREDECLARED",
+      "pValueReason": "normative correspondence accounting is descriptive and has no sampling null",
+      "claimCeiling": "DISTRIBUTIONAL_PATTERN",
+      "terminalRuleOrdered": [
+        "1 NOT_SUPPORTED_OR_UNAVAILABLE if the bridge hash mismatches, the occupation denominator is non-positive or coverageFloor fails",
+        "2 DISTRIBUTIONAL_PATTERN_COMPLETE otherwise"
+      ]
+    },
+    {
+      "questionId": "P6_ADULT_SCHOOLING_WORK_AND_EJA",
+      "publicQuestion": "A escolaridade adulta do território se relaciona com a distribuição da EJA e com o perfil escolar dos vínculos formais jovens?",
+      "mechanismHypothesis": "Déficits acumulados de escolarização podem aparecer simultaneamente na escolaridade adulta, na oferta localizada de EJA e no perfil escolar do trabalho jovem, sem identificar demanda individual ou trajetória da mesma pessoa.",
+      "population": "snapshot 2022 dos dez municípios do Vale",
+      "coverageScope": "VALE_10",
+      "exposure": {"metricId": "adult.high_school_completion_share_percent", "period": "2022", "lens": "resident_population", "ageBase": "resident_population_age_18_or_more"},
+      "outcomes": [
+        {
+          "outcomeId": "EJA_PER_1000_ADULTS",
+          "numeratorMetricId": "education.eja_enrollments",
+          "stages": ["eja_fundamental", "eja_high_school"],
+          "denominatorMetricId": "adult.population_count",
+          "denominatorAgeBase": "resident_population_age_18_or_more",
+          "denominatorRule": "strictly positive; zero or absent denominator produces unavailable, never zero",
+          "scale": "enrollments_per_1000_adults"
+        },
+        {
+          "outcomeId": "YOUNG_WORKER_HS_INCOMPLETE_SHARE",
+          "metricId": "labor.youth_rais.schooling_composition_share_percent",
+          "stage": "age_18_24",
+          "dimensionId": "high_school_incomplete"
+        }
+      ],
+      "mainMethod": "Spearman rank correlation with B=99,999 deterministic PCG64 permutations as the primary two-sided small-sample inference for each preregistered outcome; statistic is absolute rho, k counts permuted absolute statistics at least the observed absolute statistic, and p=(k+1)/(B+1), floor 0.00001; fit-specific seeds follow sharedRules.randomGenerator",
+      "effect": "Spearman rho",
+      "interval": "95% municipality bootstrap percentile interval with 10,000 deterministic resamples",
+      "alternatives": ["Pearson correlation with the same permutation procedure for both outcomes", "leave-one-municipality-out Spearman range without p-values"],
+      "fitIds": ["P6_EJA_SPEARMAN", "P6_WORK_SPEARMAN", "P6_EJA_PEARSON", "P6_WORK_PEARSON"],
+      "validityCriteria": "each relationship must retain at least eight municipalities and at least four distinct ranks in both variables; all twenty leave-one-out fits are attempted and at least sixteen are valid; unknown schooling is preserved and never redistributed",
+      "robustness": ["four_permutation_p_values", "two_descriptive_bootstrap_intervals", "P6_LEAVE_ONE_OUT_20_REFITS", "lens_warning", "unknown_schooling_not_redistributed"],
+      "multiplicityFamily": "MF_P6_ADULT_EJA_WORK",
+      "heterogeneity": "same adult-completion measure for RS, Vale and Nova Santa Rita; joint EJA/work relations are unavailable for RS",
+      "claimCeiling": "DISTRIBUTIONAL_PATTERN",
+      "substantiveEffectThreshold": "absolute Spearman rho at least 0.40",
+      "stablePatternRule": "at least one primary Spearman fit meets substantiveEffectThreshold, has BH-adjusted permutation p<=0.10, its descriptive bootstrap interval excludes zero and at least eight of ten leave-one-out coefficients for that outcome preserve its sign",
+      "discordanceRule": "A permutation rejection with a descriptive bootstrap interval containing zero is deterministically classified NO_ROBUST_ASSOCIATION and narrated as 'permutation evidence was not stable under municipal resampling'; the p-value never overrides the interval.",
+      "mandatoryLowPowerCaveat": "With at most ten municipalities, failure to meet stablePatternRule cannot distinguish absence of relationship from insufficient power; bootstrap intervals are descriptive and permutation p-values are primary.",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if validityCriteria fails for either primary relationship",
+        "2 DISTRIBUTIONAL_PATTERN_COMPLETE if stablePatternRule passes",
+        "3 NO_ROBUST_ASSOCIATION otherwise, always with mandatoryLowPowerCaveat"
+      ]
+    },
+    {
+      "questionId": "P7_RURALITY_INCLUSION_AND_ACCESS",
+      "publicQuestion": "A oferta escolar rural e a oferta de AEE acompanham as mudanças de matrículas que deveriam orientar o acesso?",
+      "mechanismHypothesis": "Escolas e serviços especializados estruturam possibilidades de acesso, mas contagens de matrículas e unidades podem crescer juntas por escala, registro, política de inclusão ou reorganização da rede e não medem suficiência.",
+      "population": "painel 2014-2025 dos dez municípios do Vale",
+      "coverageScope": "VALE_10",
+      "components": [
+        {
+          "componentId": "RURAL_OFFER",
+          "outcomeMetricId": "education.rural.rural_enrollments",
+          "exposureMetricId": "education.rural.rural_schools",
+          "stage": "all",
+          "transform": "log1p"
+        },
+        {
+          "componentId": "AEE_OFFER",
+          "outcomeMetricId": "education.special_aee.special_enrollments",
+          "exposureMetricId": "education.special_aee.schools_offering_aee",
+          "stage": "all",
+          "transform": "log1p"
+        }
+      ],
+      "mainMethod": "separate municipality and year fixed-effects models for rural and AEE components; for VALE_10 only, primary two-sided p-values from exhaustive enumeration of all 2^G Rademacher cluster sign vectors under the null, sorted by textual IBGE code; G must be 9 or 10, otherwise the fit is INSUFFICIENT_DATA and no sampled fallback is allowed",
+      "effect": "within-municipality elasticity of enrollments to observed school/service count",
+      "interval": "95% cluster-robust interval labeled approximate for ten clusters; wild-bootstrap p-values are primary",
+      "alternatives": ["exclude 2020-2021", "one-year lag of offer"],
+      "fitIds": ["P7_RURAL_MAIN", "P7_RURAL_EXCLUDE_2020_2021", "P7_RURAL_LAG1", "P7_AEE_MAIN", "P7_AEE_EXCLUDE_2020_2021", "P7_AEE_LAG1"],
+      "validityCriteria": "each required fit must retain at least nine municipalities and eight years, converge, be full-rank and have within-exposure variance above 1e-12; all twenty leave-one-out fits are attempted and at least eighteen are valid; suppressed or unavailable values never enter log1p",
+      "robustness": ["component_separation", "six_wild_bootstrap_p_values", "P7_LEAVE_ONE_MUNICIPALITY_OUT_20_REFITS", "zero_preservation"],
+      "multiplicityFamily": "MF_P7_RURALITY_INCLUSION",
+      "heterogeneity": "identical descriptive measures for Vale and Nova Santa Rita; RS relationship explicitly unavailable by coverage",
+      "claimCeiling": "PLANNING_SIGNAL",
+      "resamplingGrid": "For realised G in {9,10}, enumerate exactly 2^G vectors. Test statistic is the absolute studentized cluster-robust t for the exposure coefficient; k counts sign vectors whose absolute t is at least the observed absolute t. Raw two-sided p=k/2^G including the observed sign vector, minimum 1/2^G; G, denominator, k and floor are serialized.",
+      "substantiveEffectThreshold": "absolute within-municipality elasticity at least 0.10",
+      "stableComponentRule": "for at least one component, the main fit meets substantiveEffectThreshold, has BH-adjusted wild-bootstrap p<=0.10 and an approximate 95% interval excluding zero, both its exclude-2020-2021 and lag-1 fits preserve sign, and at least eight of ten leave-one-out coefficients preserve sign",
+      "mandatoryLowPowerCaveat": "With ten municipalities, non-rejection cannot distinguish absence of association from insufficient power; school/service counts do not measure access sufficiency.",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if validityCriteria fails for both components",
+        "2 PLANNING_SIGNAL_ONLY if stableComponentRule passes for at least one component",
+        "3 NO_ROBUST_ASSOCIATION otherwise, always with mandatoryLowPowerCaveat"
+      ]
+    },
+    {
+      "questionId": "P8_FINANCING_OFFER_AND_CAPACITY",
+      "publicQuestion": "A capacidade financeira aplicada à educação se associa à intensidade da oferta de tempo integral, depois de considerar a escala da rede?",
+      "mechanismHypothesis": "Maior capacidade de aplicação pode viabilizar oferta, mas gasto e oferta são decididos conjuntamente, refletem necessidades diferentes e não permitem inferir efeito causal.",
+      "population": "cross-section 2025 dos municípios do RS com casos completos",
+      "coverageScope": "RS_497",
+      "outcome": {
+        "numeratorMetricId": "education.full_time_enrollments",
+        "denominatorMetricId": "education.enrollments",
+        "stage": "education_basic",
+        "scale": "percentage"
+      },
+      "exposure": {"metricId": "finance.mde_applied_amount", "period": "2025", "transform": "natural_log"},
+      "control": {"metricId": "education.enrollments", "stage": "education_basic", "period": "2025", "transform": "natural_log"},
+      "mainMethod": "cross-sectional OLS with HC3 errors: full-time share on log MDE applied amount and log total enrollments",
+      "effect": "percentage-point full-time-share difference associated with 10% higher MDE applied amount at the same enrollment scale, calculated exactly as the log-exposure coefficient multiplied by ln(1.1)",
+      "interval": "two-sided 95% HC3 confidence interval",
+      "alternatives": [
+        "2024 repetition with the same model",
+        "2025 log MDE per enrollment without the size control"
+      ],
+      "fitIds": ["P8_MAIN_2025_SIZE_ADJUSTED", "P8_ALT_2024_SIZE_ADJUSTED", "P8_ALT_2025_PER_ENROLLMENT", "P8_SENS_2025_TRIMMED_1_PERCENT"],
+      "validityCriteria": "all four fits must retain at least 400 municipalities, be full-rank and have non-degenerate outcome and exposure; Nova Santa Rita must be complete for its residual diagnostic",
+      "financePriceBasis": "nominal BRL within each reference year; 2024 and 2025 coefficients are separate repetitions and no nominal amount is compared across years",
+      "robustness": ["P8_ALT_2024_SIZE_ADJUSTED", "P8_ALT_2025_PER_ENROLLMENT", "P8_SENS_2025_TRIMMED_1_PERCENT", "P8_NSR_CONTEXT_RESIDUAL_WITHOUT_P_VALUE"],
+      "multiplicityFamily": "MF_P8_FINANCING_CAPACITY",
+      "heterogeneity": "same full-time share and finance-per-enrollment descriptors for RS, Vale and Nova Santa Rita; regression remains statewide",
+      "claimCeiling": "CONTEXT_ADJUSTED_COMPARISON",
+      "substantiveEffectThreshold": "absolute main effect at least 0.10 percentage point in full-time share per 10% higher MDE applied amount",
+      "contextComparisonRule": "P8_MAIN_2025_SIZE_ADJUSTED meets substantiveEffectThreshold, has BH-adjusted p<=0.05 and a 95% HC3 interval excluding zero; at least two of the three named coefficient fits P8_ALT_2024_SIZE_ADJUSTED, P8_ALT_2025_PER_ENROLLMENT and P8_SENS_2025_TRIMMED_1_PERCENT preserve the main sign",
+      "mandatoryEndogeneityCaveat": "Finance and offer are jointly determined; the comparison is cross-sectional, size-adjusted and non-causal, with reverse causation and omitted need/capacity factors remaining plausible.",
+      "terminalRuleOrdered": [
+        "1 INSUFFICIENT_DATA if validityCriteria fails",
+        "2 CONTEXT_COMPARISON_COMPLETE if contextComparisonRule passes",
+        "3 NO_ROBUST_ASSOCIATION otherwise, always with mandatoryEndogeneityCaveat"
+      ]
+    }
+  ],
+  "requiredOutputs": {
+    "questionCount": 8,
+    "questionTerminalStateRequired": true,
+    "effectRequired": true,
+    "intervalOrPredeclaredNonSamplingBoundRequired": true,
+    "robustnessRequired": true,
+    "claimCeilingRequired": true,
+    "scopeComparisonRequired": true,
+    "negativeAndUnavailableResultsRequired": true,
+    "publicNarrativeAllowedAtAA2": false,
+    "packageFiles": [
+      "RESULTADOS_AA2.csv.gz",
+      "ROBUSTEZ_AA2.csv.gz",
+      "HETEROGENEIDADE_AA2.csv.gz",
+      "COMPARACOES_ESCOPO_AA2.csv.gz",
+      "CLAIMS_AA2.json",
+      "QA_SUMMARY_AA2.json",
+      "MANIFEST_AA2.json"
+    ],
+    "resultRowRequiredFields": [
+      "question_id",
+      "result_id",
+      "result_role",
+      "method_id",
+      "coverage_scope",
+      "analytic_municipality_count",
+      "analytic_period_count",
+      "effect_estimate",
+      "effect_unit",
+      "interval_state",
+      "interval_lower",
+      "interval_upper",
+      "p_value_state",
+      "p_value_raw",
+      "multiplicity_family",
+      "p_value_bh",
+      "robustness_state",
+      "claim_ceiling",
+      "terminal_state",
+      "numerator_metric_id",
+      "numerator_territorial_lens",
+      "denominator_metric_id",
+      "denominator_territorial_lens",
+      "composite_qualifier",
+      "availability_reason",
+      "source_refs"
+    ],
+    "scopeRowRequiredFields": [
+      "question_id",
+      "measure_id",
+      "scope_id",
+      "scope_state",
+      "value",
+      "unit",
+      "municipality_count",
+      "coverage_scope",
+      "unavailability_reason"
+    ],
+    "claimRequiredFields": [
+      "questionId",
+      "terminalState",
+      "claimCeiling",
+      "effectSummary",
+      "uncertaintySummary",
+      "robustnessSummary",
+      "scopeAvailability",
+      "negativeFinding",
+      "mandatoryCaveats"
+    ]
+  },
+  "changeLog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-08-30",
+      "kind": "PRE_RESULT_FREEZE_AFTER_OPUS_AT_RISK_RECONCILIATION",
+      "justification": "Closes preregistration ambiguity in multiplicity, small-sample inference, terminal rules, coverage, bridge integrity and fail-closed execution before AA2 result inspection.",
+      "impact": "No analytical result has been generated or inspected; corrections remain pre-result."
+    },
+    {
+      "version": "1.0.2",
+      "date": "2026-08-30",
+      "kind": "PRE_RESULT_REFREEZE_AFTER_OPUS_BOUNDED_ADDENDUM",
+      "justification": "Fixes the BH family denominator, exact small-cluster p-value grid, RS analytic-coverage caveat, effect thresholds and P6 discordance rule. P2 and other controls reported missing by the bounded packet were verified as already present.",
+      "impact": "The v1.0.1 registration is superseded before any raw_value access; no analytical result has been generated or inspected."
+    },
+    {
+      "version": "1.0.3",
+      "date": "2026-08-30",
+      "kind": "FINAL_PRE_RESULT_REFREEZE_AFTER_THIRD_OPUS_REVIEW",
+      "justification": "Pins exact small-cluster scope/statistic/grid, family alphas, Vale and Nova Santa Rita coverage tiers, P6 estimator, relative decomposition tolerance, dual-lens disclosure and post-freeze failure policy.",
+      "impact": "The v1.0.2 registration is superseded before any raw_value access; factual findings contradicted by frozen fields are documented separately."
+    }
+  ]
+}

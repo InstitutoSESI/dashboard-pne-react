@@ -24,10 +24,10 @@ import {
  * arquivo e rollback do lote quando qualquer troca falha.
  */
 
-const MATRIZ_PUBLIC_ROOT = new URL('../public/data/pne2026-matriz/', import.meta.url)
-const MATRIZ_MANIFEST_PATH = new URL('manifest.json', MATRIZ_PUBLIC_ROOT)
+export const MATRIZ_PUBLIC_ROOT = new URL('../public/data/pne2026-matriz/', import.meta.url)
+export const MATRIZ_MANIFEST_PATH = new URL('manifest.json', MATRIZ_PUBLIC_ROOT)
 
-export const MATRIZ_GENERATOR_VERSION = 'pne2026-matriz-generator-v4'
+export const MATRIZ_GENERATOR_VERSION = 'pne2026-matriz-generator-v5'
 
 const DEFAULT_INPUT_PATH = fileURLToPath(new URL('../.tmp/matriz/artefato/matriz.json', import.meta.url))
 const DEFAULT_SOURCE_MANIFEST_PATH = fileURLToPath(
@@ -59,6 +59,8 @@ const SOURCE_DIAGNOSTIC_FIELDS = [
 ]
 const SOURCE_WORKBOOK_FIELDS = ['schemaVersion', 'sha256']
 const PEER_GROUP_FIELDS = ['band', 'criteria', 'expansions', 'n', 'populationPeriod', 'releaseId']
+const PEER_EXPANSION_FIELDS = ['bands', 'goalId', 'indicatorId', 'n']
+const PEER_BANDS = new Set(['ate_5k', '5k_20k', '20k_100k', '100k_mais'])
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const IBGE7_PATTERN = /^\d{7}$/
@@ -99,11 +101,11 @@ function assertSha256(value, label) {
   invariant(typeof value === 'string' && SHA256_PATTERN.test(value), `${label} deve ser sha256.`)
 }
 
-function sha256(contents) {
+export function sha256(contents) {
   return createHash('sha256').update(contents).digest('hex')
 }
 
-function canonicalJson(value) {
+export function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
   if (isRecord(value)) {
     return `{${Object.keys(value)
@@ -117,11 +119,26 @@ function canonicalJson(value) {
 function assertPeerGroup(candidate, label) {
   assertExactFields(candidate, PEER_GROUP_FIELDS, label)
   assertTextFields(candidate, ['band', 'criteria', 'populationPeriod', 'releaseId'], label)
-  invariant(Number.isInteger(candidate.n) && candidate.n >= 20, `${label}.n deve ser inteiro maior ou igual a 20.`)
+  invariant(candidate.criteria === 'uf+pop_band', `${label}.criteria fora do contrato.`)
+  invariant(PEER_BANDS.has(candidate.band), `${label}.band fora do contrato.`)
+  invariant(Number.isInteger(candidate.n) && candidate.n > 0, `${label}.n deve ser inteiro positivo.`)
   assertSha256(candidate.releaseId, `${label}.releaseId`)
   invariant(Array.isArray(candidate.expansions), `${label}.expansions deve ser lista.`)
+  const relations = new Set()
   candidate.expansions.forEach((item, index) => {
-    invariant(typeof item === 'string', `${label}.expansions[${index}] deve ser texto.`)
+    const itemLabel = `${label}.expansions[${index}]`
+    assertExactFields(item, PEER_EXPANSION_FIELDS, itemLabel)
+    assertTextFields(item, ['goalId', 'indicatorId'], itemLabel)
+    invariant(Array.isArray(item.bands) && item.bands.length >= 2, `${itemLabel}.bands deve registrar a expansão.`)
+    item.bands.forEach((band, bandIndex) => {
+      invariant(typeof band === 'string' && PEER_BANDS.has(band), `${itemLabel}.bands[${bandIndex}] fora do contrato.`)
+    })
+    invariant(new Set(item.bands).size === item.bands.length, `${itemLabel}.bands não pode repetir faixas.`)
+    invariant(item.bands[0] === candidate.band, `${itemLabel}.bands deve iniciar pela faixa-base.`)
+    invariant(Number.isInteger(item.n) && item.n >= 20, `${itemLabel}.n deve ser inteiro maior ou igual a 20.`)
+    const relation = `${item.goalId}/${item.indicatorId}`
+    invariant(!relations.has(relation), `${label}.expansions repete ${relation}.`)
+    relations.add(relation)
   })
 }
 
@@ -179,7 +196,7 @@ export function parseSourceMatrizManifest(candidate) {
   return structuredClone(candidate)
 }
 
-function reconcileSource(document, sourceManifest, rawInput) {
+export function reconcileSource(document, sourceManifest, rawInput) {
   const output = sourceManifest.outputs[0]
   invariant(output.byteSize === rawInput.byteLength, 'byteSize de matriz.json diverge do manifesto de origem.')
   invariant(output.sha256 === sha256(rawInput), 'sha256 de matriz.json diverge do manifesto de origem.')
@@ -207,7 +224,7 @@ function reconcileSource(document, sourceManifest, rawInput) {
   )
 }
 
-function readPublishedManifest() {
+export function readPublishedManifest() {
   if (!fs.existsSync(MATRIZ_MANIFEST_PATH)) return null
   const candidate = JSON.parse(fs.readFileSync(MATRIZ_MANIFEST_PATH, 'utf8'))
   if (

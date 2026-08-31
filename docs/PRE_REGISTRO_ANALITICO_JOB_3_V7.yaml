@@ -1,0 +1,160 @@
+schema_version: vocacoes-pne-v7-job3-preregistration-v1
+job_id: v7-job3
+version: "1.0.0"
+created_on: "2026-08-28"
+status: FROZEN_PRE_RESULT
+classification: DATA_LOGIC
+post_result_adjustment: false
+freeze_rule: Any change after first analytical result requires a new version, date, justification, impact and POST_RESULT_ADJUSTMENT marker.
+shared_rules:
+  municipality_identity: textual_ibge_code_7_digits
+  region_universe: canonical 10-municipality FIERGS Vale do Sinos map
+  mandatory_case: "4313375"
+  state_universe: 497 RS municipalities when confirmed source coverage permits
+  regional_counts: sum
+  regional_rates: recompute_from_components_or_declared_weights
+  forbidden_aggregation: simple_mean_of_municipal_rates
+  rounding: reports_only
+  missingness: preserve_observed_zero_null_unavailable_suppressed_not_applicable
+  inference_language: ecological_non_causal
+  panel_defaults:
+    municipality_fixed_effects: true
+    year_fixed_effects: true
+    standard_errors: clustered_by_municipality
+    maximum_specifications_per_outcome: 3
+    lags: [0, 1, 2]
+    multiple_testing: benjamini_hochberg_with_raw_and_adjusted_p
+    automatic_significance_selection: false
+    required_diagnostics: [observations, municipalities, years, null_treatment, weights, sign, magnitude]
+candidates:
+  H1_DEMOGRAFIA_REDE:
+    unit_of_analysis: municipality-year-stage, with region and RS reconstructions kept separate
+    main_outcome: observed school-location enrollment by compatible stage
+    main_factors: [resident_population_compatible_age, enrollment_population_relation, schools, classes_when_available, network_when_available, births_through_2024]
+    allowed_controls: []
+    weights: compatible resident population for rates; none for count decompositions
+    main_window: 2014-2025
+    alternative_windows: [2014-2019, 2019-2025, 2022-2025]
+    allowed_lags: [0]
+    regional_comparison: Vale reconstructed from its ten municipalities
+    state_comparison: RS observed direction and magnitude where identical variables and lenses are available
+    municipal_test: contribution, direction-versus-region, typology and leave-one-municipality-out
+    internal_model: none; exact M=P*R decomposition and descriptive contribution analysis
+    robustness_tests: [alternative_windows, leave_one_out, RS_direction, municipality_concentration, lens_compatibility]
+    decision_rule: Eligible only if network, schools, classes or municipal distribution changes the planning question beyond population change alone.
+    retention_criteria: Retain if decomposition is valid but the response dimension is incomplete, unstable, redundant with A1 or fails to alter a decision.
+  H2_TRAJETORIA_PERMANENCIA:
+    unit_of_analysis: municipality-year-stage-network-location at the finest compatible common grain
+    main_outcome: [failure_rate_percent, dropout_rate_percent, age_grade_distortion_rate_percent]
+    secondary_outcome: approval_rate_percent
+    main_factors:
+      - students_per_class
+      - teacher_adequacy_percent
+      - inse_mean
+      - schools_with_broadband_percent
+    allowed_controls: [inse_mean, stage, network, location]
+    weights: declared source denominator or weight when present; otherwise unweighted with an explicit sensitivity label
+    main_window: 2019-2025
+    alternative_windows: [2018-2025, 2019-2019, 2022-2025]
+    allowed_lags: [0, 1]
+    regional_comparison: weighted/recomputed Vale value when components exist; otherwise municipal distribution
+    state_comparison: 497-municipality RS panel only for identical source fields and period
+    municipal_test: Nova Santa Rita reconstruction, concentration and direction-versus-region
+    internal_model: municipality and year fixed effects by compatible stage/network; clustered municipality errors; at most three specifications per outcome
+    model_specifications:
+      - one factor at a time with fixed effects
+      - factor plus INSE when INSE is not the factor and common coverage exists
+      - preferred factor set with common complete cases only
+    robustness_tests: [windows, exclude_2020_2021, network, stage, weights, small_denominator, with_without_INSE, leave_one_out, BH_correction, no_FE_diagnostic]
+    decision_rule: No candidate passes on p-values alone; require stable sign/magnitude, substantive mechanism, municipal differentiation and a planning delta.
+    retention_criteria: Retain if compatible sample is too small, direction is unstable, factors add no integrated value or conditions reduce to isolated series.
+  H3_TRABALHO_JUVENIL_MEDIO:
+    unit_of_analysis: municipality-year-age_group, connected to municipality-year secondary-school outcome without person-level linkage
+    main_outcome: [secondary_dropout_rate_percent, secondary_failure_rate_percent, secondary_age_grade_distortion_rate_percent]
+    main_factors: [RAIS_active_bonds_15_17, RAIS_active_bonds_18_24, CAGED_admissions, CAGED_dismissals, CAGED_balance]
+    allowed_controls: [resident_population_15_17, resident_population_18_24, inse_mean]
+    weights: compatible youth population or educational denominator when available; unweighted sensitivity otherwise
+    main_window: 2019-2025
+    alternative_windows: [2019-2019, 2022-2025]
+    allowed_lags: [0, 1, 2]
+    regional_comparison: Vale totals and weighted education outcomes; RAIS stock and CAGED flows kept separate
+    state_comparison: RS only where the same source, unit, period and lens are available
+    municipal_test: Nova Santa Rita, concentration, sector/occupation composition and direction-versus-region
+    internal_model: ecological municipality and year fixed effects for RAIS stock when 497-municipality coverage is reproducible; no model mixes RAIS and CAGED as one factor
+    model_specifications:
+      - log1p_RAIs_15_17 with fixed effects
+      - log1p_RAIs_15_17 plus compatible population control
+      - log1p_RAIs_18_24 as a distinct diagnostic
+    robustness_tests: [lags_0_1_2, windows, exclude_2020_2021, weights, with_without_INSE, leave_one_out, large_RS_municipalities_excluded, BH_correction, no_FE_diagnostic]
+    decision_rule: Eligible only if formal-work evidence changes a secondary-education monitoring decision beyond demographic evidence and remains explicitly ecological.
+    retention_criteria: Retain if only correlation is available, coverage is unstable, the decision delta is absent or the result duplicates A2.
+  H4_EJA_DISTRIBUICAO:
+    unit_of_analysis: municipality-stage in the 2022 snapshot; municipality-year for historical integrated EJA in a separate context
+    main_outcome: distribution_difference_fraction_0_1
+    main_factors: [potential_public_share, enrollment_share, enrollments_per_thousand]
+    allowed_controls: [stage]
+    weights: potential_public for per-thousand regional recomputation
+    main_window: "2022"
+    alternative_windows: [2014-2025_integrated_EJA_context_only]
+    allowed_lags: []
+    regional_comparison: municipality shares close to one and differences close to zero within Vale
+    state_comparison: same 2022 universe and formulas only if fully reproducible
+    municipal_test: Nova Santa Rita stage-specific classification and responsible network context
+    internal_model: none; snapshot distribution and transparent above/near/below typology
+    robustness_tests: [formula_recomputation, share_closure, stage_separation, mixed_lens_warning, historical_context_separation]
+    decision_rule: Eligible if the distribution changes a responsibility or monitoring decision without being called coverage, reach, demand or sufficiency.
+    retention_criteria: Retain if mixed lenses dominate interpretation, state universe is not comparable or the snapshot supplies no municipal decision delta.
+  A1_COORTES_REDE:
+    unit_of_analysis: municipality-year-age_group and municipality-year observed network
+    main_outcome: observed transformation of cohort size and network distribution
+    main_factors: [resident_age_cohorts, observed_enrollments, observed_schools, municipality_contribution]
+    allowed_controls: []
+    weights: none for counts; compatible population for rates
+    main_window: 2014-2025
+    alternative_windows: [2014-2019, 2019-2025, 2022-2025]
+    allowed_lags: [0]
+    regional_comparison: ten-municipality reconstruction and municipalities moving against the regional direction
+    state_comparison: observed RS direction where identical coverage exists
+    municipal_test: Nova Santa Rita, growing municipalities in a shrinking region and leave-one-out
+    internal_model: none; descriptive transformation and non-redundancy review against H1
+    robustness_tests: [windows, leave_one_out, RS_direction, concentration, H1_redundancy]
+    decision_rule: Eligible only if starting from territorial transformation yields a distinct planning decision from H1 without any forecast.
+    retention_criteria: Retain if it is substantively redundant with H1 or would require future enrollment/scenario claims.
+  A2_TRABALHO_PERMANENCIA:
+    unit_of_analysis: municipality-year-age_group formal-work transformation, followed by compatible ecological education outcome
+    main_outcome: transformation in formal youth-work stock/flow composition
+    main_factors: [RAIS_age_group_stock, CAGED_age_group_flows, sector, occupation, schooling]
+    allowed_controls: [resident_youth_population, inse_mean]
+    weights: active_bonds or compatible population, declared by analysis
+    main_window: 2019-2025
+    alternative_windows: [2019-2019, 2022-2025]
+    allowed_lags: [0, 1, 2]
+    regional_comparison: Vale composition and contribution; RAIS and CAGED remain separate
+    state_comparison: RS where identical formal-work coverage exists
+    municipal_test: Nova Santa Rita work transformation, education contrast and concentration
+    internal_model: shared H3 fixed-effect evidence may be referenced but is not re-selected for A2
+    robustness_tests: [windows, lags_0_1_2, exclude_2020_2021, leave_one_out, H3_redundancy]
+    decision_rule: Eligible only if work-first framing changes the monitoring or coordination decision and is non-redundant with H3.
+    retention_criteria: Retain if it duplicates H3, has no education increment or implies causal/person-level transitions.
+  A3_OCUPACOES_FORMACAO:
+    unit_of_analysis: municipality-year-course-axis and municipality-year-occupation/sector, linked only through the versioned normative bridge
+    main_outcome: observed course-supply and occupational-structure correspondence with coverage status
+    main_factors: [courses, technological_axes, technical_enrollments, schools, RAIS_occupations, RAIS_sectors, course_CBO_bridge]
+    allowed_controls: [year, municipality, bridge_status]
+    weights: technical_enrollments for supply composition; active_bonds for occupation composition
+    main_window: 2023-2025 for supply and 2019-2025 for occupations
+    alternative_windows: [2025_cross_section, 2023-2024_supply_change]
+    allowed_lags: []
+    regional_comparison: Vale totals, concentration and zero-versus-unavailable semantics
+    state_comparison: not planned because the detailed course universe is regional in Job 2
+    municipal_test: Nova Santa Rita observed zero, regional occupational context and explicit ineligibility of absence claims
+    internal_model: none; descriptive bridge coverage and composition only
+    robustness_tests: [bridge_coverage_by_course, bridge_coverage_by_enrollment, zero_missingness, duplicate_nonadditivity, year_composition, concentration]
+    decision_rule: Eligible only if the reproducible bridge adds a defensible coordination decision while unresolved correspondence remains explicit.
+    retention_criteria: Retain if correspondence coverage is insufficient, the result implies adequacy/employability, or it cannot distinguish observed zero from missingness.
+change_log:
+  - version: "1.0.0"
+    date: "2026-08-28"
+    kind: PRE_RESULT_FREEZE
+    justification: Initial registration before candidate calculations or model estimation.
+    impact: Defines the complete analytical search space and decision rules.

@@ -2,7 +2,7 @@
  * Publica o painel regional em `public/data/regioes/`.
  *
  * O gerador é determinístico e não fala com banco: ele agrega o que a própria
- * plataforma já publicou por município. Duas fontes, uma regra cada:
+ * plataforma já publicou por município. As regras centrais são:
  *
  *  - matrículas (`public/data/educacao/municipios/<ibge>.json`): contagens
  *    absolutas, somadas;
@@ -10,30 +10,41 @@
  *    numerador e denominador anuais, somados separadamente e só então
  *    divididos.
  *
- * Nunca se calcula média de percentual, e nenhum ano é publicado com cobertura
- * parcial: se um município da região não tem o dado do ano, o ano regional sai
- * nulo com a contagem de quem tinha. Indicadores sem denominador publicado
- * (fluxo, IDEB/SAEB, INSE) ficam fora desta versão — o legado os resolvia por
- * média simples, que não se sustenta.
+ *  - PNE 2026–2036: taxa regional somente para os quatro indicadores cujo
+ *    numerador e denominador estão publicados; os demais usam mediana municipal
+ *    explicitamente rotulada e comparada à mesma estatística estadual;
+ *  - fluxo, aprendizagem e organização: mediana municipal, nunca taxa regional;
+ *  - estrutura, oferta, educação indígena e Sistema S: contagens somadas.
+ *
+ * Nenhum ano é publicado como total completo quando falta município. A geração
+ * ocorre em staging, é validada integralmente e só então promovida com rollback.
  *
  * Uso:
  *   node scripts/generate-regioes.mjs            publica
  *   node scripts/generate-regioes.mjs --check    confere sem escrever
  */
 
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { loadRegionsConfig } from './lib/state-build-profile.mjs'
+import {
+  buildRegionalEducationBlock,
+  buildRegionalPneBlock,
+} from './lib/regional-panorama.mjs'
+import {
+  parseRegiaoDocument,
+  parseRegioesManifest,
+} from '../src/features/regional/regionalLoader.js'
 
 const REPOSITORY_ROOT = new URL('../', import.meta.url)
 const STATE_CODE = 'RS'
 
 export const REGIOES_MANIFEST_SCHEMA = 'regioes-manifest-v1'
-export const REGIOES_DOCUMENT_SCHEMA = 'regioes-1.0.0'
-export const REGIOES_GENERATOR_VERSION = 'regioes-generator-v1'
+export const REGIOES_DOCUMENT_SCHEMA = 'regioes-2.0.0'
+export const REGIOES_GENERATOR_VERSION = 'regioes-generator-v2'
 
 /*
  * Os recortes de matrícula publicados no painel regional. Todos são contagem
@@ -193,26 +204,39 @@ function lastAvailable(series) {
   return null
 }
 
-function loadMunicipalSources(region, registryByCode) {
+function loadMunicipalSource(identity) {
+  const ibgeCode = identity.ibgeCode
+  const education = readJson(`public/data/educacao/municipios/${ibgeCode}.json`)
+  const index = readJson(`public/data/municipios/${ibgeCode}/index.json`)
+  if (education.id_municipio !== ibgeCode) {
+    fail(`artefato educacional de ${ibgeCode} declara outro município.`)
+  }
+  if (index.id_municipio !== ibgeCode) {
+    fail(`índice municipal de ${ibgeCode} declara outro município.`)
+  }
+  if (typeof education.updated_at !== 'string' || !ISO_DATE_PATTERN.test(education.updated_at)) {
+    fail(`artefato educacional de ${ibgeCode} não declara updated_at em ISO.`)
+  }
+  const coverage = index.educacao?.atendimento_cenarios?.ageCoverage
+  if (coverage === undefined || coverage === null) {
+    fail(`índice municipal de ${ibgeCode} não publica cobertura por idade.`)
+  }
+  const pne2026 = index.pne_2026_2036
+  if (pne2026 === undefined || pne2026 === null || typeof pne2026.indicadores !== 'object') {
+    fail(`índice municipal de ${ibgeCode} não publica o ciclo PNE 2026–2036.`)
+  }
+  return { identity, education, coverage, pne2026, updatedAt: education.updated_at }
+}
+
+function loadAllMunicipalSources(registry) {
+  return registry.municipalities.map((identity) => loadMunicipalSource(identity))
+}
+
+function selectRegionalSources(region, sourcesByCode) {
   return region.municipalityIbgeCodes.map((ibgeCode) => {
-    const identity = registryByCode.get(ibgeCode)
-    if (identity === undefined) fail(`município ${ibgeCode} fora do registro de ${STATE_CODE}.`)
-    const education = readJson(`public/data/educacao/municipios/${ibgeCode}.json`)
-    const index = readJson(`public/data/municipios/${ibgeCode}/index.json`)
-    if (education.id_municipio !== ibgeCode) {
-      fail(`artefato educacional de ${ibgeCode} declara outro município.`)
-    }
-    if (index.id_municipio !== ibgeCode) {
-      fail(`índice municipal de ${ibgeCode} declara outro município.`)
-    }
-    if (typeof education.updated_at !== 'string' || !ISO_DATE_PATTERN.test(education.updated_at)) {
-      fail(`artefato educacional de ${ibgeCode} não declara updated_at em ISO.`)
-    }
-    const coverage = index.educacao?.atendimento_cenarios?.ageCoverage
-    if (coverage === undefined || coverage === null) {
-      fail(`índice municipal de ${ibgeCode} não publica cobertura por idade.`)
-    }
-    return { identity, education, coverage, updatedAt: education.updated_at }
+    const source = sourcesByCode.get(ibgeCode)
+    if (source === undefined) fail(`município ${ibgeCode} fora do registro de ${STATE_CODE}.`)
+    return source
   })
 }
 
@@ -328,12 +352,19 @@ function buildCoverageBlock(sources, municipalityCount) {
   }
 }
 
-export function buildRegionDocument(region, sources) {
+export function buildRegionDocument({
+  region,
+  sources,
+  stateSources,
+  pneCatalog,
+  stateCoverage,
+}) {
   const municipalityCount = region.municipalityCount
   if (sources.length !== municipalityCount) {
     fail(`região ${region.slug} carregou ${sources.length} de ${municipalityCount} municípios.`)
   }
   const updatedAt = sources.map((source) => source.updatedAt).toSorted().at(-1)
+  const coverage = buildCoverageBlock(sources, municipalityCount)
 
   return {
     schemaVersion: REGIOES_DOCUMENT_SCHEMA,
@@ -357,14 +388,26 @@ export function buildRegionDocument(region, sources) {
         `Leitura agregada dos ${municipalityCount} municípios da região, `
         + 'construída a partir dos dados publicados de cada um deles.',
     },
-    atendimento: buildCoverageBlock(sources, municipalityCount),
+    atendimento: coverage,
     matriculas: buildEnrollmentBlock(sources, municipalityCount),
+    educacao: buildRegionalEducationBlock({
+      regionalSources: sources,
+      stateSources,
+    }),
+    pne2026: buildRegionalPneBlock({
+      regionalSources: sources,
+      stateSources,
+      catalog: pneCatalog,
+      regionalCoverage: coverage,
+      stateCoverage,
+    }),
     metodologia: [
       'Contagens são somadas município a município.',
-      'Percentuais são recalculados a partir dos totais somados, nunca por média de percentuais.',
-      'Um ano só recebe valor regional quando todos os municípios da região informaram o dado; caso contrário o valor é nulo e a contagem de municípios com dado fica declarada.',
+      'Taxas com numerador e denominador publicados são recalculadas a partir dos totais somados. Nos demais indicadores, o painel usa a mediana municipal e a identifica explicitamente.',
+      'Somas e taxas regionais só recebem valor quando há componentes para a região inteira; medianas usam os resultados municipais disponíveis e declaram quantos entraram.',
       'As etapas de ensino não formam uma divisão do total: o ensino fundamental aparece também nos anos iniciais e finais, e uma parte das matrículas é informada em mais de uma etapa. Somar as etapas dá mais do que o total.',
-      'Indicadores sem denominador publicado — fluxo escolar, IDEB, SAEB e INSE — não entram nesta versão do painel regional.',
+      'Quando o contrato municipal não publica numerador e denominador suficientes para recompor uma taxa regional, o painel mostra a mediana dos municípios e a identifica explicitamente; isso se aplica, entre outros, a fluxo escolar, IDEB, SAEB e INSE.',
+      'Metas e referências do PNE 2026–2036 vêm do contrato canônico do ciclo; resultado observado, zero e indisponibilidade permanecem distintos.',
       'null significa dado ausente, não zero.',
     ],
     fontes: [
@@ -375,6 +418,22 @@ export function buildRegionDocument(region, sources) {
       {
         nome: 'Painel populacional municipal por faixa etária',
         uso: 'denominadores de cobertura por faixa etária',
+      },
+      {
+        nome: 'INEP - Taxas de Rendimento Escolar, SAEB, IDEB, INSE e Alfabetização',
+        uso: 'trajetória e aprendizagem na distribuição dos municípios',
+      },
+      {
+        nome: 'IBGE - Censo Demográfico',
+        uso: 'indicadores de escolaridade da população',
+      },
+      {
+        nome: 'Contrato canônico do PNE 2026–2036',
+        uso: 'metas, referências, direção e vínculo dos indicadores do ciclo',
+      },
+      {
+        nome: 'VAAR/FUNDEB',
+        uso: 'condicionalidades e componentes do exercício mais recente',
       },
     ],
   }
@@ -406,11 +465,25 @@ export function buildPublication() {
   })
   if (regionsConfig === null) fail(`não há mapa regional para ${STATE_CODE}.`)
 
-  const registryByCode = new Map(registry.municipalities.map((entry) => [entry.ibgeCode, entry]))
+  const stateSources = loadAllMunicipalSources(registry)
+  const sourcesByCode = new Map(
+    stateSources.map((source) => [source.identity.ibgeCode, source]),
+  )
+  const pneCatalog = readJson('public/data/indicadores.json').cycles?.pne_2026_2036
+  if (pneCatalog === undefined || pneCatalog === null) {
+    fail('o catálogo público não contém o ciclo PNE 2026–2036.')
+  }
+  const stateCoverage = buildCoverageBlock(stateSources, registry.municipalityCount)
   const files = []
   for (const region of regionsConfig.regions) {
-    const sources = loadMunicipalSources(region, registryByCode)
-    const document = buildRegionDocument(region, sources)
+    const sources = selectRegionalSources(region, sourcesByCode)
+    const document = buildRegionDocument({
+      region,
+      sources,
+      stateSources,
+      pneCatalog,
+      stateCoverage,
+    })
     const contentVersion = sha256(serializeForContentVersion(document))
     const published = { ...document, contentVersion }
     const serialized = `${JSON.stringify(published, null, 2)}\n`
@@ -447,33 +520,201 @@ export function buildPublication() {
   return { manifest, files }
 }
 
-function writeFileAtomic(targetUrl, contents) {
-  const target = fileURLToPath(targetUrl)
+function publicationOutputs(publication) {
+  return [
+    {
+      relativePath: 'manifest.json',
+      contents: `${JSON.stringify(publication.manifest, null, 2)}\n`,
+    },
+    ...publication.files.map((file) => ({
+      relativePath: `${file.region.slug}.json`,
+      contents: file.serialized,
+    })),
+  ]
+}
+
+function assertChildPath(root, target, label) {
+  const relative = path.relative(path.resolve(root), path.resolve(target))
+  if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
+    fail(`${label} precisa ficar dentro de ${root}.`)
+  }
+}
+
+function writeFileAtomic(target, contents) {
   fs.mkdirSync(path.dirname(target), { recursive: true })
-  const temporary = `${target}.tmp`
-  fs.writeFileSync(temporary, contents, 'utf8')
-  fs.renameSync(temporary, target)
+  const temporary = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.${process.pid}.${randomUUID()}.tmp`,
+  )
+  const descriptor = fs.openSync(temporary, 'w')
+  try {
+    fs.writeFileSync(descriptor, contents, 'utf8')
+    fs.fsyncSync(descriptor)
+  } finally {
+    fs.closeSync(descriptor)
+  }
+  try {
+    fs.renameSync(temporary, target)
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary)
+  }
+}
+
+function jsonFiles(directory) {
+  if (!fs.existsSync(directory)) return []
+  return fs.readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => entry.name)
+    .toSorted()
+}
+
+export function validatePublicationDirectory(directory) {
+  const manifestPath = path.join(directory, 'manifest.json')
+  if (!fs.existsSync(manifestPath)) fail('o staging não contém manifest.json.')
+  const manifestRaw = fs.readFileSync(manifestPath, 'utf8')
+  const manifest = parseRegioesManifest(JSON.parse(manifestRaw))
+  const expectedFiles = ['manifest.json', ...manifest.regions.map((entry) => entry.path)].toSorted()
+  const actualFiles = jsonFiles(directory)
+  if (JSON.stringify(actualFiles) !== JSON.stringify(expectedFiles)) {
+    fail(`o staging contém ${actualFiles.join(', ')}, mas deveria conter ${expectedFiles.join(', ')}.`)
+  }
+
+  for (const entry of manifest.regions) {
+    const target = path.join(directory, entry.path)
+    const raw = fs.readFileSync(target, 'utf8')
+    if (Buffer.byteLength(raw, 'utf8') !== entry.byteSize) {
+      fail(`${entry.path} diverge do byteSize declarado.`)
+    }
+    if (sha256(raw) !== entry.contentHash) {
+      fail(`${entry.path} diverge do contentHash declarado.`)
+    }
+    const payload = JSON.parse(raw)
+    const { contentVersion, ...withoutVersion } = payload
+    if (
+      contentVersion !== entry.contentVersion
+      || sha256(serializeForContentVersion(withoutVersion)) !== entry.contentVersion
+    ) {
+      fail(`${entry.path} diverge da versão de conteúdo declarada.`)
+    }
+    const document = parseRegiaoDocument(payload)
+    if (
+      document.regiao.slug !== entry.slug
+      || document.regiao.nome !== entry.name
+      || document.regiao.totalMunicipios !== entry.municipalityCount
+      || document.schemaVersion !== manifest.documentSchemaVersion
+      || document.generatorVersion !== manifest.generatorVersion
+      || document.stateCode !== manifest.stateCode
+    ) {
+      fail(`${entry.path} diverge da identidade ou origem declarada no manifesto.`)
+    }
+  }
+  return manifest
+}
+
+/**
+ * Promove o lote regional somente depois da validação integral do staging.
+ * Arquivos idênticos são preservados; qualquer falha restaura todo o conjunto.
+ */
+export function publishPublicationTransactionally(
+  publication,
+  {
+    outputRoot = fileURLToPath(new URL('public/data/regioes/', REPOSITORY_ROOT)),
+    stagingRoot = fileURLToPath(new URL('data_pipeline/.staging/regioes/', REPOSITORY_ROOT)),
+    afterTargetPromoted = null,
+  } = {},
+) {
+  const outputs = publicationOutputs(publication)
+  const runRoot = path.join(stagingRoot, `run-${randomUUID()}`)
+  const candidateRoot = path.join(runRoot, 'candidate')
+  const backupRoot = path.join(runRoot, 'backup')
+  assertChildPath(stagingRoot, runRoot, 'o run regional')
+  fs.mkdirSync(candidateRoot, { recursive: true })
+
+  for (const output of outputs) {
+    const target = path.join(candidateRoot, output.relativePath)
+    assertChildPath(candidateRoot, target, 'o arquivo de staging')
+    writeFileAtomic(target, output.contents)
+  }
+  validatePublicationDirectory(candidateRoot)
+
+  fs.mkdirSync(outputRoot, { recursive: true })
+  const expected = new Set(outputs.map((output) => output.relativePath))
+  const managed = [...new Set([...jsonFiles(outputRoot), ...expected])].toSorted()
+  const existed = new Set()
+  for (const relativePath of managed) {
+    const current = path.join(outputRoot, relativePath)
+    if (!fs.existsSync(current)) continue
+    existed.add(relativePath)
+    const backup = path.join(backupRoot, relativePath)
+    assertChildPath(backupRoot, backup, 'o backup regional')
+    fs.mkdirSync(path.dirname(backup), { recursive: true })
+    fs.copyFileSync(current, backup)
+  }
+
+  const report = { created: [], updated: [], preserved: [], removed: [] }
+  let rollbackFailure = null
+  try {
+    for (const output of outputs) {
+      const target = path.join(outputRoot, output.relativePath)
+      assertChildPath(outputRoot, target, 'o arquivo regional promovido')
+      const current = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null
+      if (current === output.contents) {
+        report.preserved.push(output.relativePath)
+      } else {
+        writeFileAtomic(target, output.contents)
+        report[existed.has(output.relativePath) ? 'updated' : 'created'].push(output.relativePath)
+        afterTargetPromoted?.(output.relativePath, report)
+      }
+    }
+    for (const relativePath of managed) {
+      if (expected.has(relativePath)) continue
+      const target = path.join(outputRoot, relativePath)
+      assertChildPath(outputRoot, target, 'o órfão regional')
+      if (fs.existsSync(target)) {
+        fs.unlinkSync(target)
+        report.removed.push(relativePath)
+        afterTargetPromoted?.(relativePath, report)
+      }
+    }
+    validatePublicationDirectory(outputRoot)
+  } catch (error) {
+    try {
+      for (const relativePath of managed) {
+        const target = path.join(outputRoot, relativePath)
+        const backup = path.join(backupRoot, relativePath)
+        if (existed.has(relativePath)) {
+          writeFileAtomic(target, fs.readFileSync(backup, 'utf8'))
+        } else if (fs.existsSync(target)) {
+          fs.unlinkSync(target)
+        }
+      }
+    } catch (rollbackError) {
+      rollbackFailure = rollbackError
+    }
+    if (rollbackFailure !== null) {
+      throw new AggregateError(
+        [error, rollbackFailure],
+        `Painel regional: promoção falhou e o rollback também falhou; preserve ${runRoot}.`,
+      )
+    }
+    fs.rmSync(runRoot, { recursive: true, force: true })
+    throw error
+  }
+
+  fs.rmSync(runRoot, { recursive: true, force: true })
+  return report
 }
 
 function main(argv) {
   const checkOnly = argv.includes('--check')
   const publication = buildPublication()
-  const outputRoot = new URL('public/data/regioes/', REPOSITORY_ROOT)
-  const outputs = [
-    {
-      contents: `${JSON.stringify(publication.manifest, null, 2)}\n`,
-      url: new URL('manifest.json', outputRoot),
-    },
-    ...publication.files.map((file) => ({
-      contents: file.serialized,
-      url: new URL(`${file.region.slug}.json`, outputRoot),
-    })),
-  ]
+  const outputRoot = fileURLToPath(new URL('public/data/regioes/', REPOSITORY_ROOT))
+  const outputs = publicationOutputs(publication)
 
   if (checkOnly) {
     let drift = 0
     for (const output of outputs) {
-      const target = fileURLToPath(output.url)
+      const target = path.join(outputRoot, output.relativePath)
       const current = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null
       if (current !== output.contents) {
         drift += 1
@@ -490,10 +731,12 @@ function main(argv) {
     return
   }
 
-  for (const output of outputs) writeFileAtomic(output.url, output.contents)
+  const report = publishPublicationTransactionally(publication, { outputRoot })
   process.stdout.write(
     `Painel regional publicado: ${publication.files.length} regiões, `
-    + `${publication.manifest.municipalityCount} municípios (${publication.manifest.generatedAt}).\n`,
+    + `${publication.manifest.municipalityCount} municípios (${publication.manifest.generatedAt}); `
+    + `${report.created.length} criados, ${report.updated.length} atualizados, `
+    + `${report.preserved.length} preservados e ${report.removed.length} removidos.\n`,
   )
 }
 

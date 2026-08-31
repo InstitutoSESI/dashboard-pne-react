@@ -41,9 +41,13 @@ const municipalRaw = await readFile(
 const sourceManifestRaw = await readFile(
   new URL('../../.tmp/matriz/artefato/matriz-manifest.json', import.meta.url),
 )
+const rsRegistryRaw = await readFile(
+  new URL('../../config/municipalities/rs.json', import.meta.url),
+)
 const manifest = JSON.parse(manifestRaw.toString('utf8'))
 const matriz = JSON.parse(municipalRaw.toString('utf8'))
 const sourceManifest = JSON.parse(sourceManifestRaw.toString('utf8'))
+const rsRegistry = JSON.parse(rsRegistryRaw.toString('utf8'))
 const entry = manifest.municipalities.find((municipality) => municipality.ibge7 === MUNICIPALITY_ID)
 
 function createFixtureLoader({
@@ -137,6 +141,23 @@ test('o manifesto publicado registra o hash e o tamanho exatos do documento muni
   assert.deepEqual(entry.peerGroup, matriz.peerGroup)
 })
 
+test('a coleção publicada cobre exatamente os 497 municípios canônicos do RS e reconcilia todos os arquivos', async () => {
+  const publishedCodes = manifest.municipalities.map((municipality) => municipality.ibge7).toSorted()
+  const canonicalCodes = rsRegistry.municipalities.map((municipality) => municipality.ibgeCode).toSorted()
+  assert.equal(manifest.municipalities.length, 497)
+  assert.deepEqual(publishedCodes, canonicalCodes)
+
+  for (const municipality of manifest.municipalities) {
+    const raw = await readFile(new URL(`../../public/data/pne2026-matriz/${municipality.path}`, import.meta.url))
+    const document = JSON.parse(raw.toString('utf8'))
+    assert.equal(raw.byteLength, municipality.outputByteSize, municipality.ibge7)
+    assert.equal(createHash('sha256').update(raw).digest('hex'), municipality.outputSha256, municipality.ibge7)
+    assert.equal(document.municipality.ibge7, municipality.ibge7)
+    assert.equal(document.municipality.name, municipality.name)
+    assert.equal(document.municipality.uf, 'RS')
+  }
+})
+
 test('manifestos de origem e publicação e documento municipal passam pelos parsers fechados', () => {
   assert.deepEqual(parseSourceMatrizManifest(sourceManifest), sourceManifest)
   assert.deepEqual(parsePne2026MatrizManifest(manifest), manifest)
@@ -161,6 +182,43 @@ test('manifestos de origem e publicação e documento municipal passam pelos par
     assert.equal(goal.severity.peerBenchmark.unit, goal.unit)
     assert.equal(goal.severity.peerBenchmark.year, goal.year)
   }
+})
+
+test('faixa-base com 19 municípios é válida e registra a expansão das comparações', async () => {
+  const matrixWithSmallBaseBand = structuredClone(matriz)
+  matrixWithSmallBaseBand.peerGroup.band = '100k_mais'
+  matrixWithSmallBaseBand.peerGroup.n = 19
+  matrixWithSmallBaseBand.peerGroup.expansions = [{
+    bands: ['100k_mais', '20k_100k'],
+    goalId: matrixWithSmallBaseBand.priorityGoals[0].goalId,
+    indicatorId: matrixWithSmallBaseBand.priorityGoals[0].indicatorId,
+    n: 107,
+  }]
+  assert.deepEqual(parsePne2026Matriz(matrixWithSmallBaseBand), matrixWithSmallBaseBand)
+  assert.ok(matrixWithSmallBaseBand.priorityGoals.every((goal) => goal.severity.peerN >= 20))
+
+  const sourceManifestWithSmallBaseBand = structuredClone(sourceManifest)
+  sourceManifestWithSmallBaseBand.peerGroup = structuredClone(matrixWithSmallBaseBand.peerGroup)
+  assert.deepEqual(
+    parseSourceMatrizManifest(sourceManifestWithSmallBaseBand),
+    sourceManifestWithSmallBaseBand,
+  )
+
+  const publishedManifestWithSmallBaseBand = structuredClone(manifest)
+  const municipality = publishedManifestWithSmallBaseBand.municipalities.find(
+    (candidate) => candidate.ibge7 === MUNICIPALITY_ID,
+  )
+  municipality.peerGroup = structuredClone(matrixWithSmallBaseBand.peerGroup)
+  assert.deepEqual(
+    parsePne2026MatrizManifest(publishedManifestWithSmallBaseBand),
+    publishedManifestWithSmallBaseBand,
+  )
+
+  const fixture = createFixtureLoader({
+    document: matrixWithSmallBaseBand,
+    manifestPayload: publishedManifestWithSmallBaseBand,
+  })
+  assert.equal((await fixture.load(MUNICIPALITY_ID)).matriz.peerGroup.n, 19)
 })
 
 test('documento 4.0.0 válido aceita trajetória, concentração da rede e mediana por sinal', () => {
@@ -194,6 +252,7 @@ test('gerador recusa troca de versão quando preservaria outro município da col
     ...structuredClone(manifest),
     matrizSchemaVersion: PNE_2026_MATRIZ_SCHEMA_V3,
     sourceManifestSchemaVersion: PNE_2026_MATRIZ_SOURCE_MANIFEST_SCHEMA_V3,
+    municipalities: [structuredClone(entry)],
   }
   const cases = [
     {
@@ -233,6 +292,7 @@ test('gerador permite troca de versão quando não há outras entradas preservad
     ...structuredClone(manifest),
     matrizSchemaVersion: PNE_2026_MATRIZ_SCHEMA_V3,
     sourceManifestSchemaVersion: PNE_2026_MATRIZ_SOURCE_MANIFEST_SCHEMA_V3,
+    municipalities: [structuredClone(entry)],
   }
   const updatedManifest = buildManifest(v3Manifest, structuredClone(entry), {
     matrizSchemaVersion: PNE_2026_MATRIZ_SCHEMA_V4,
@@ -353,7 +413,7 @@ test('o loader aceita pares homogêneos 3.0.0 e 4.0.0 e recusa versões divergen
 
 test('município ausente e código inválido falham fechados antes do documento', async () => {
   const absent = createFixtureLoader()
-  await assert.rejects(absent.load('4300034'), {
+  await assert.rejects(absent.load('2700300'), {
     name: 'MatrizLoadError',
     code: 'municipality_not_published',
   })
@@ -371,7 +431,7 @@ test('manifesto adulterado ou sem peerGroup completo é recusado', async () => {
     ['campo desconhecido', (payload) => { payload.extra = true }],
     ['peerGroup ausente', (payload) => { delete payload.municipalities[0].peerGroup }],
     ['peerGroup incompleto', (payload) => { delete payload.municipalities[0].peerGroup.releaseId }],
-    ['peerGroup pequeno', (payload) => { payload.municipalities[0].peerGroup.n = 19 }],
+    ['peerGroup vazio', (payload) => { payload.municipalities[0].peerGroup.n = 0 }],
     ['hash inválido', (payload) => { payload.municipalities[0].outputSha256 = 'x' }],
     ['caminho fora do padrão', (payload) => { payload.municipalities[0].path = 'municipios/x.json' }],
   ]) {
@@ -464,7 +524,7 @@ test('proof.maxInference usa vocabulário fechado com os três níveis públicos
   }
 })
 
-test('o piloto preserva sete metas, nove causas únicas e a ordem do artefato', () => {
+test('Nova Santa Rita preserva sete metas, nove causas únicas e a ordem do artefato', () => {
   const expected = [
     ['1.a', ['F_DISTANCE']],
     ['5.a', ['F_ATTEND', 'F_FOUNDATION', 'F_TIME_QUALITY']],

@@ -29,6 +29,16 @@ import type {
   VocacoesWindow,
 } from './vocacoesRegiaoTypes'
 import { buildSparklineModel } from '../../utils/sparkline'
+import { VocacoesPneNarrativeReport } from './VocacoesPneNarrativeReport'
+import { VocacoesPneAdvancedReport } from './VocacoesPneAdvancedReport'
+import { VocacoesPneOfficialReport } from './VocacoesPneOfficialReport'
+import { isVocacoesPneAdvancedScopeSupported } from './vocacoesPneAdvancedContract'
+import { resolveRegisteredVocacoesPneNarrative } from './vocacoesPneNarrativeRegistry.js'
+import { useVocacoesPneAdvancedBundle } from './useVocacoesPneAdvancedBundle'
+import { useVocacoesPneOfficialBundle } from './useVocacoesPneOfficialBundle'
+import { matchesVocacoesPneOfficialPromotion } from './vocacoesPneOfficialPromotion'
+import { resolveVocacoesPneSurface } from './vocacoesPneSurfaceResolution'
+import type { VocacoesPneNarrativeDocument } from './vocacoesPneNarrativeTypes'
 import '../../styles/vocacoes-regiao-page.css'
 
 /*
@@ -2294,6 +2304,30 @@ export function VocacoesRegiaoPage({
   municipalityId: string | null
 }) {
   const { data, loading } = useVocacoesRegiao(municipalityId)
+  const officialPromotionEligible = data !== null
+    && data !== undefined
+    && matchesVocacoesPneOfficialPromotion(data.document, ACTIVE_STATE_CONFIG.stateCode)
+    && resolveVocacoesPneNarrative(data.document) !== null
+  const advancedScopeRequested = officialPromotionEligible
+    && isVocacoesPneAdvancedScopeSupported(municipalityId)
+  const advancedBundle = useVocacoesPneAdvancedBundle(advancedScopeRequested)
+  const officialBundle = useVocacoesPneOfficialBundle(officialPromotionEligible)
+
+  const advancedScopeSupported = advancedBundle.status === 'ready'
+    && (municipalityId === null
+      || (municipalityId === '4313375'
+        && advancedBundle.data.region.advancedMunicipalityIbgeCodes.includes(municipalityId)))
+  const officialScopeSupported = officialBundle.status === 'ready'
+    && (municipalityId === null
+      || officialBundle.data.core.municipalities.some((item) => item.ibgeCode === municipalityId))
+  const selectedSurface = resolveVocacoesPneSurface({
+    eligible: officialPromotionEligible,
+    advancedRequested: advancedScopeRequested,
+    advancedStatus: advancedBundle.status,
+    advancedScopeSupported,
+    officialStatus: officialBundle.status,
+    officialScopeSupported,
+  })
 
   if (loading) {
     return <LoadingState message="Carregando as vocações da região…" />
@@ -2306,5 +2340,57 @@ export function VocacoesRegiaoPage({
    */
   if (!data) return null
 
-  return <VocacoesReport document={data.document} />
+  if (selectedSurface === 'loading') {
+    return <LoadingState message="Preparando a leitura integrada de educação e território…" />
+  }
+
+  if (selectedSurface === 'advanced' && advancedBundle.status === 'ready') {
+    return (
+      <VocacoesPneAdvancedReport
+        bundle={advancedBundle.data}
+        municipalityId={municipalityId}
+      />
+    )
+  }
+
+  if (selectedSurface === 'official_previous' && officialBundle.status === 'ready') {
+    return (
+      <VocacoesPneOfficialReport
+        advancedScopeNotice={municipalityId !== null && !isVocacoesPneAdvancedScopeSupported(municipalityId)}
+        bundle={officialBundle.data}
+        legacyDocument={data.document}
+        municipalityId={municipalityId}
+      />
+    )
+  }
+
+  // Resolução fail-closed: pacote avançado, página oficial anterior e, por fim,
+  // relatório narrativo/legado. Falhas nunca produzem uma rota parcialmente vazia.
+  return <VocacoesResolvedReport legacyDocument={data.document} />
+}
+
+export function resolveVocacoesPneNarrative(
+  legacyDocument: VocacoesDocument,
+): VocacoesPneNarrativeDocument | null {
+  return resolveRegisteredVocacoesPneNarrative(
+    legacyDocument,
+    ACTIVE_STATE_CONFIG.stateCode,
+  ) as VocacoesPneNarrativeDocument | null
+}
+
+export const resolveVocacoesPneNarrativePilot = resolveVocacoesPneNarrative
+
+export function VocacoesResolvedReport({
+  legacyDocument,
+}: {
+  legacyDocument: VocacoesDocument
+}) {
+  const narrative = resolveVocacoesPneNarrative(legacyDocument)
+  if (narrative === null) return <VocacoesReport document={legacyDocument} />
+  return (
+    <VocacoesPneNarrativeReport
+      legacyDocument={legacyDocument}
+      narrative={narrative}
+    />
+  )
 }

@@ -49,6 +49,8 @@ npm run test:app-routing
 npm run test:municipality-identity
 npm run test:data-sources
 npm run test:ui-architecture
+npm run test:regional
+npm run check:regioes
 npm run test:python
 npm run validate:details
 npm run check:hygiene
@@ -111,6 +113,23 @@ npm run test:al-municipality-registry
 npm run test:identity-publication
 npm run test:multistate-hosting
 ```
+
+O panorama regional do RS é uma projeção controlada dos documentos municipais
+já publicados. O fluxo Node não consulta banco nem rede: lê o mapa canônico de
+`config/regions/rs.json`, gera as dez regiões em staging, valida manifesto,
+hashes, schema e conteúdo integral e só então promove o lote com rollback.
+
+```powershell
+npm run generate:regioes
+npm run check:regioes
+npm run test:regional
+```
+
+Cada região publica estrutura e oferta educacional, distribuições municipais de
+fluxo, aprendizagem e organização, VAAR/FUNDEB e todos os indicadores do catálogo
+PNE 2026–2036. Taxas só são regionais quando numerador e denominador podem ser
+somados; nos demais casos, o artefato identifica a mediana dos municípios e a
+compara com a mediana estadual.
 
 `build:app` não copia `public/data`; `check:fast` continua executando typecheck,
 lint e esse build leve. No desenvolvimento e no build completo, os ativos

@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "vocacoes-pne-advanced-analysis-contract-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA2",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "state": "RS",
+    "stateMunicipalityCount": 497,
+    "regionId": "REGION_VALE_DO_SINOS",
+    "regionMunicipalityCount": 10,
+    "selectedMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "educationNetworkScope": "total_all_dependencies",
+    "rankingAllowed": false,
+    "causalClaimsAllowed": false
+  },
+  "frozenPreregistration": {
+    "path": "docs/PRE_REGISTRO_AA2_AVANCO_ANALITICO_VOCACOES_PNE.json",
+    "sha256": "aa931e75a8530bf0f9c22c48b937ef0b92b40210240da012bdb33ed16ff24a25",
+    "registrationPath": "data_pipeline/contracts/vocacoes-pne-aa2-preregistration-freeze.json",
+    "statusRequired": "FROZEN_PRE_RESULT",
+    "postResultAdjustmentRequired": false
+  },
+  "inputs": [
+    {
+      "inputId": "AA1_PANEL",
+      "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/PAINEL_ANALITICO_ESTADUAL_AA1.csv.gz",
+      "sha256": "d6cadfec911863b93699b826da6ef340687db5c0f77350319a9eeefa0dfb652f"
+    },
+    {
+      "inputId": "AA1_ENTRY_GATE",
+      "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/AA2_ENTRY_GATE_AA1.json",
+      "sha256": "8baef0754bd6e7b5caa5428e9cf16d8ae3c01d3eace4de68d24d1e42ba286f02"
+    },
+    {
+      "inputId": "AA2_AVAILABILITY_PROBE",
+      "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa2-prereg/AVAILABILITY_PROBE_AA2.json",
+      "sha256": "070911de9c63c324318679e9cd91e7c065965ad1e934f3d518ad7ce219f3625c"
+    },
+    {
+      "inputId": "P5_NORMATIVE_COURSE_CBO_BRIDGE",
+      "path": ".tmp/vocacoes-pne/v7-job2/2d/cursos_cbo_2025.csv.gz",
+      "sha256": "cf60bb4cb49bbe15a35af728b83783418e67fc76c215838521ef14992047f867"
+    }
+  ],
+  "questions": [
+    "P1_CONTEXT_ADJUSTED_TRAJECTORY",
+    "P2_DEMOGRAPHY_ENROLLMENT_DECOMPOSITION",
+    "P3_SCHOOL_CONDITIONS_AND_TRAJECTORY",
+    "P4_YOUTH_WORK_AND_HIGH_SCHOOL",
+    "P5_OCCUPATIONS_AND_EPT",
+    "P6_ADULT_SCHOOLING_WORK_AND_EJA",
+    "P7_RURALITY_INCLUSION_AND_ACCESS",
+    "P8_FINANCING_OFFER_AND_CAPACITY"
+  ],
+  "questionCount": 8,
+  "multiplicity": {
+    "method": "BENJAMINI_HOCHBERG",
+    "families": {
+      "MF_P3_SCHOOL_CONDITIONS": 7,
+      "MF_P4_YOUTH_WORK": 6,
+      "MF_P6_ADULT_EJA_WORK": 4,
+      "MF_P7_RURALITY_INCLUSION": 6,
+      "MF_P8_FINANCING_CAPACITY": 4
+    },
+    "maximumPotentialPValueCount": 27,
+    "fixedFamilyDenominator": true,
+    "invalidFitBhPlaceholder": 1.0,
+    "allNonNullPValuesMustHaveAdjustedValue": true,
+    "invalidFitsMustHaveNullPValueAndReason": true,
+    "crossFamilyControl": false,
+    "familyDecisionAlpha": {
+      "MF_P3_SCHOOL_CONDITIONS": 0.05,
+      "MF_P4_YOUTH_WORK": 0.10,
+      "MF_P6_ADULT_EJA_WORK": 0.10,
+      "MF_P7_RURALITY_INCLUSION": 0.10,
+      "MF_P8_FINANCING_CAPACITY": 0.05
+    }
+  },
+  "smallSampleInference": {
+    "P4_YOUTH_WORK_AND_HIGH_SCHOOL": "exhaustive_2_to_the_G_Rademacher_wild_cluster_bootstrap_t",
+    "P6_ADULT_SCHOOLING_WORK_AND_EJA": "99999_deterministic_permutations_primary_and_10000_bootstrap_descriptive",
+    "P7_RURALITY_INCLUSION_AND_ACCESS": "exhaustive_2_to_the_G_Rademacher_wild_cluster_bootstrap_t",
+    "rawPValueGrid": "two_sided_absolute_studentized_t_k_over_2_to_the_G_with_G_in_9_10_and_minimum_1_over_2_to_the_G",
+    "nonRejectionAbsenceClaimAllowed": false
+  },
+  "allowedTerminalStates": [
+    "CONTEXT_COMPARISON_COMPLETE",
+    "ACCOUNTING_DECOMPOSITION_COMPLETE",
+    "ROBUST_ASSOCIATION",
+    "PLANNING_SIGNAL_ONLY",
+    "DISTRIBUTIONAL_PATTERN_COMPLETE",
+    "NO_ROBUST_ASSOCIATION",
+    "NOT_SUPPORTED_OR_UNAVAILABLE",
+    "INSUFFICIENT_DATA"
+  ],
+  "allowedClaimCeilings": [
+    "OBSERVED_FACT",
+    "DISTRIBUTIONAL_PATTERN",
+    "ACCOUNTING_DECOMPOSITION",
+    "CONTEXT_ADJUSTED_COMPARISON",
+    "ROBUST_ASSOCIATION",
+    "PLANNING_SIGNAL",
+    "NOT_SUPPORTED_OR_UNAVAILABLE"
+  ],
+  "resultSchema": {
+    "requiredFields": [
+      "question_id",
+      "result_id",
+      "result_role",
+      "method_id",
+      "coverage_scope",
+      "analytic_municipality_count",
+      "analytic_period_count",
+      "effect_estimate",
+      "effect_unit",
+      "interval_state",
+      "interval_lower",
+      "interval_upper",
+      "p_value_state",
+      "p_value_raw",
+      "multiplicity_family",
+      "p_value_bh",
+      "robustness_state",
+      "claim_ceiling",
+      "terminal_state",
+      "numerator_metric_id",
+      "numerator_territorial_lens",
+      "denominator_metric_id",
+      "denominator_territorial_lens",
+      "composite_qualifier",
+      "availability_reason",
+      "source_refs"
+    ],
+    "intervalStates": ["CONFIDENCE_INTERVAL", "PREDICTION_BAND", "DETERMINISTIC_EXACT", "IDENTIFICATION_BOUND", "DESCRIPTIVE_BOOTSTRAP", "UNAVAILABLE"],
+    "pValueStates": ["INFERENTIAL", "NOT_APPLICABLE_PREDECLARED", "INSUFFICIENT_DATA"],
+    "negativeResultsRequired": true,
+    "unavailableResultsRequired": true,
+    "roundingOnlyAtSerialization": true
+  },
+  "scopeComparisonSchema": {
+    "requiredScopes": ["RS_497", "VALE_10", "MUNICIPALITY_4313375"],
+    "sameMeasureRequired": true,
+    "unavailableScopeMaterialized": true,
+    "silentSubstitutionForbidden": true
+  },
+  "derivedCompositePolicy": {
+    "requiredLensFields": ["numerator_territorial_lens", "denominator_territorial_lens", "composite_qualifier"],
+    "P2Qualifier": "school_location_enrollments_per_resident_age_group_context_not_coverage",
+    "P4Qualifier": "workplace_bonds_per_resident_age_group_context_not_employment_rate",
+    "rateOrCoverageLanguageAllowed": false
+  },
+  "qualityRequirements": {
+    "questionCountExact": 8,
+    "terminalStatePerQuestionExact": true,
+    "effectPerQuestionRequired": true,
+    "intervalOrBoundPerQuestionRequired": true,
+    "robustnessPerQuestionRequired": true,
+    "claimCeilingPerQuestionRequired": true,
+    "NovaSantaRitaAllQuestionsRequired": true,
+    "nameJoinAllowed": false,
+    "educationDependencyStrataAllowed": false,
+    "unknownCoverageOrLensAllowed": false,
+    "negativeFindingDroppedAllowed": false
+  },
+  "package": {
+    "outputRoot": ".tmp/vocacoes-pne/advanced-analytics-v1/aa2",
+    "files": [
+      "RESULTADOS_AA2.csv.gz",
+      "ROBUSTEZ_AA2.csv.gz",
+      "HETEROGENEIDADE_AA2.csv.gz",
+      "COMPARACOES_ESCOPO_AA2.csv.gz",
+      "CLAIMS_AA2.json",
+      "QA_SUMMARY_AA2.json",
+      "MANIFEST_AA2.json"
+    ],
+    "transactional": true,
+    "manifestLast": true
+  },
+  "generation": {
+    "deterministic": true,
+    "randomSeed": 4313375,
+    "twoIndependentOperatingSystemProcessesRequired": true,
+    "pythonHashSeeds": [101, 202],
+    "networkGuardRequired": true,
+    "databaseGuardRequired": true,
+    "networkUsed": false,
+    "databaseUsed": false,
+    "publicDataWritesAllowed": false,
+    "publicDataExpectedSha256": "4a52e3891163cb3427c5c01f2ef5414c5fe7855dd491a9a125b509899dcc23e1",
+    "fullBuildAllowed": false
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pne.local/contracts/vocacoes-pne-ui-v2-series.schema.json",
+  "title": "Série temporal UI V2 — Vocações × PNE",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seriesId",
+    "storyFamilyId",
+    "entityId",
+    "metricId",
+    "title",
+    "unit",
+    "period",
+    "territorialLens",
+    "networkScope",
+    "ageGroup",
+    "populationScope",
+    "educationalStage",
+    "offerUniverse",
+    "temporalNature",
+    "points"
+  ],
+  "properties": {
+    "seriesId": { "type": "string", "minLength": 1 },
+    "storyFamilyId": { "type": "string", "minLength": 1 },
+    "entityId": { "type": "string", "minLength": 1 },
+    "metricId": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "enrollments",
+        "schools",
+        "classes",
+        "teaching_units",
+        "teachers",
+        "active_bonds",
+        "adjusted_events",
+        "persons",
+        "beneficiaries",
+        "percent",
+        "ratio",
+        "BRL_nominal",
+        "count"
+      ]
+    },
+    "period": { "type": "string", "minLength": 1 },
+    "territorialLens": {
+      "type": "string",
+      "enum": [
+        "resident_population",
+        "student_residence",
+        "school_location",
+        "rural_school_location",
+        "workplace",
+        "municipal_executor"
+      ]
+    },
+    "networkScope": { "const": "total_all_dependencies" },
+    "ageGroup": { "type": "string" },
+    "populationScope": { "type": "string" },
+    "educationalStage": { "type": "string" },
+    "offerUniverse": { "type": "string" },
+    "temporalNature": {
+      "type": "string",
+      "enum": ["observed_series", "observed_endpoints", "single_year_snapshot", "planning_stages"]
+    },
+    "points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "year",
+          "value",
+          "availabilityState",
+          "unit",
+          "sourceRef",
+          "territorialLens",
+          "breakOrCautionState",
+          "aggregationRule",
+          "numerator",
+          "denominator",
+          "rawRatio",
+          "displayValue",
+          "displayUnit",
+          "scaleContract"
+        ],
+        "properties": {
+          "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+          "value": { "type": ["number", "null"] },
+          "availabilityState": {
+            "type": "string",
+            "enum": ["observed", "observed_zero", "unavailable", "not_applicable", "suppressed"]
+          },
+          "unit": { "type": "string", "minLength": 1 },
+          "sourceRef": { "type": "string", "minLength": 1 },
+          "territorialLens": { "type": "string", "minLength": 1 },
+          "breakOrCautionState": {
+            "type": "string",
+            "enum": ["none", "continuity_caution", "series_break", "planning_forecast", "snapshot_only"]
+          },
+          "aggregationRule": { "type": "string", "minLength": 1 }
+          ,
+          "numerator": { "type": ["number", "null"] },
+          "denominator": { "type": ["number", "null"] },
+          "rawRatio": { "type": ["number", "null"] },
+          "displayValue": { "type": ["number", "null"] },
+          "displayUnit": { "type": "string", "minLength": 1 },
+          "scaleContract": {
+            "type": "string",
+            "enum": ["absolute", "source_percent_0_100", "ratio_0_1_to_percent_0_100", "ratio_0_1"]
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "availabilityState": { "const": "observed_zero" } } },
+            "then": { "properties": { "value": { "const": 0 } } }
+          },
+          {
+            "if": {
+              "properties": {
+                "availabilityState": {
+                  "enum": ["unavailable", "not_applicable", "suppressed"]
+                }
+              }
+            },
+            "then": { "properties": { "value": { "type": "null" } } }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -114,6 +114,59 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function isFutureBasis(value, transformationClass) {
+  if (!isRecord(value)) return false
+  const basisTypes = new Set([
+    'observed_series',
+    'observed_snapshot',
+    'sector_study',
+    'scenario',
+  ])
+  const observedPeriod = value.observedPeriod
+  const baseShapeIsValid = (
+    basisTypes.has(value.basisType)
+    && Array.isArray(value.seriesIds)
+    && value.seriesIds.length > 0
+    && value.seriesIds.every(isNonEmptyString)
+    && isRecord(observedPeriod)
+    && Number.isInteger(observedPeriod.start)
+    && Number.isInteger(observedPeriod.end)
+    && observedPeriod.start <= observedPeriod.end
+    && typeof value.supportsTrend === 'boolean'
+    && (value.scenarioId === null || isNonEmptyString(value.scenarioId))
+    && Array.isArray(value.futureNumericValues)
+    && value.futureNumericValues.every(Number.isFinite)
+    && isNonEmptyString(value.claimBoundary)
+  )
+  if (!baseShapeIsValid) return false
+  if (
+    value.basisType !== 'scenario'
+    && (value.scenarioId !== null || value.futureNumericValues.length > 0)
+  ) {
+    return false
+  }
+  if (value.basisType === 'observed_snapshot' && value.supportsTrend !== false) {
+    return false
+  }
+  if (value.basisType === 'scenario' && !isNonEmptyString(value.scenarioId)) {
+    return false
+  }
+  const expectedBasisType = {
+    mudanca_observada: 'observed_snapshot',
+    tendencia_sustentada: 'observed_series',
+    estudo_setorial: 'sector_study',
+    cenario: 'scenario',
+  }[transformationClass]
+  if (expectedBasisType !== value.basisType) return false
+  if (
+    ['tendencia_sustentada', 'estudo_setorial'].includes(transformationClass)
+    && value.supportsTrend !== true
+  ) {
+    return false
+  }
+  return true
+}
+
 function assertVocabularyShape(vocab, filePath) {
   const fail = (message) => {
     throw new Error(`Vocabulário inválido em ${filePath}: ${message}`)
@@ -286,6 +339,36 @@ export function lintCard(card, vocab) {
   return violations
 }
 
+/**
+ * Aplica o vocabulário a qualquer projeção pública. Diferentemente de
+ * `lintCard`, não conhece nem ignora a chave `internal`: o compilador chama
+ * esta função somente depois de construir o documento público por allowlist.
+ */
+export function lintPublicDocument(document, vocab) {
+  const violations = []
+
+  const visit = (value, field) => {
+    if (typeof value === 'string') {
+      violations.push(
+        ...lintText(value, vocab).map((violation) => ({ ...violation, field })),
+      )
+      return
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => visit(item, `${field}[${index}]`))
+      return
+    }
+    if (!isRecord(value)) return
+
+    for (const [key, child] of Object.entries(value)) {
+      visit(child, field ? `${field}.${key}` : key)
+    }
+  }
+
+  visit(document, '')
+  return violations
+}
+
 export function validateCardContract(card) {
   if (!isRecord(card) || !Object.hasOwn(DIRECTIONS, card.direction)) {
     return [{ ruleId: 'direcao-invalida', field: 'direction' }]
@@ -301,7 +384,12 @@ export function validateCardContract(card) {
 
   const internal = isRecord(card.internal) ? card.internal : {}
   for (const field of contract.internalFields) {
-    if (!isNonEmptyString(internal[field])) {
+    const fieldIsValid = (
+      field === 'future_basis'
+        ? isFutureBasis(internal[field], internal.transformation_class)
+        : isNonEmptyString(internal[field])
+    )
+    if (!fieldIsValid) {
       const qualifiedField = `internal.${field}`
       violations.push({
         ruleId: `campo-obrigatorio:${qualifiedField}`,
@@ -326,7 +414,7 @@ export function validateCardContract(card) {
     )
     const missingFutureBasis = (
       card.direction === 'territorio_para_educacao'
-      && !isNonEmptyString(internal.future_basis)
+      && !isFutureBasis(internal.future_basis, internal.transformation_class)
     )
     if (failedCheck || missingFutureBasis) {
       violations.push({

@@ -1,0 +1,706 @@
+{
+  "schemaVersion": "vocacoes-pne-primeira-saida-v1",
+  "contractVersion": "1.3.0",
+  "region": {
+    "municipalities": [
+      {
+        "ibge7": "4303905",
+        "name": "Campo Bom"
+      },
+      {
+        "ibge7": "4306403",
+        "name": "Dois Irmãos"
+      },
+      {
+        "ibge7": "4307609",
+        "name": "Estância Velha"
+      },
+      {
+        "ibge7": "4307708",
+        "name": "Esteio"
+      },
+      {
+        "ibge7": "4310801",
+        "name": "Ivoti"
+      },
+      {
+        "ibge7": "4313375",
+        "name": "Nova Santa Rita"
+      },
+      {
+        "ibge7": "4313409",
+        "name": "Novo Hamburgo"
+      },
+      {
+        "ibge7": "4314803",
+        "name": "Portão"
+      },
+      {
+        "ibge7": "4318705",
+        "name": "São Leopoldo"
+      },
+      {
+        "ibge7": "4320008",
+        "name": "Sapucaia do Sul"
+      }
+    ],
+    "municipalityCount": 10,
+    "name": "Vale do Sinos",
+    "slug": "vale-do-sinos",
+    "stateCode": "RS"
+  },
+  "researchArtifact": {
+    "path": "scripts/checks/fixtures/vocacoes-pne/primeira-saida-pesquisa-vale-do-sinos.json",
+    "sha256": "9852d0d106deaa3df3dcefc587a08bf3f5e14d2909d159ebe013593d55d213cd",
+    "byteSize": 97967
+  },
+  "cards": [
+    {
+      "id": "vds-educacao-infantil-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A educação infantil cresceu mesmo com menos crianças de 0 a 5 anos",
+      "education_question": "Como a redução das novas gerações conviveu com o crescimento das matrículas na educação infantil?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas na educação infantil passaram de 34.568 para 40.333, aumento de 5.765 (16,7%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 0 a 5 anos passou de 71.337 para 60.661, redução de 10.676 (15,0%)."
+      ],
+      "integrated_reading": "A parte da mudança ligada ao tamanho da população foi de menos 6.136 matrículas. Já a parte ligada ao aumento das matrículas em relação à população da idade foi de mais 11.901 e mais que compensou a redução demográfica.",
+      "municipal_pattern": "Sapucaia do Sul (+1.981), Novo Hamburgo (+1.093) e Portão (+777) tiveram as maiores ampliações. Ivoti (-112) e Esteio (-33) seguiram a direção contrária; retirar qualquer município mantém o crescimento regional.",
+      "planning_question": "Como distribuir vagas de creche e pré-escola entre os dez municípios enquanto a população de 0 a 5 anos diminui, acompanhando matrículas e população de cada faixa etária?",
+      "pne_topics": [
+        "Ampliação do atendimento em creche",
+        "Universalização da pré-escola"
+      ],
+      "monitoring_indicators": [
+        "Matrículas em creche e pré-escola por município",
+        "População de 0 a 3 e de 4 a 5 anos"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ],
+      "internal": {
+        "mechanism_id": "M1-nascimentos-educacao-infantil",
+        "universe_check": "ok",
+        "temporal_check": "ok",
+        "sensitivity_check": "ok",
+        "territorial_check": "ok",
+        "publication_decision": "publicada",
+        "gates": {
+          "G1": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.matriculas"
+            ],
+            "reasonCode": "prioridade-pne-declarada",
+            "status": "ok"
+          },
+          "G2": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.populacao"
+            ],
+            "reasonCode": "mecanismo-e-pares-declarados",
+            "status": "ok"
+          },
+          "G3": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.relacao-matricula-populacao"
+            ],
+            "reasonCode": "universos-e-lente-mista-declarados",
+            "status": "ok"
+          },
+          "G4": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.estabilidade"
+            ],
+            "reasonCode": "janela-anual-alinhada",
+            "status": "ok"
+          },
+          "G5": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.estabilidade",
+              "vds-educacao-infantil-populacao.municipios"
+            ],
+            "reasonCode": "estavel-em-janelas-e-retirada-municipal",
+            "status": "ok"
+          },
+          "G6": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.componentes"
+            ],
+            "reasonCode": "componentes-acrescentam-interpretacao",
+            "status": "ok"
+          },
+          "G7": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.matriculas",
+              "vds-educacao-infantil-populacao.municipios"
+            ],
+            "reasonCode": "planejamento-estruturado",
+            "status": "ok"
+          },
+          "G8": {
+            "status": "ok",
+            "reasonCode": "texto-publico-aprovado-pelo-linter-e-revisao-editorial",
+            "evidenceFactIds": []
+          },
+          "G9": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.matriculas"
+            ],
+            "reasonCode": "resultado-educacional-e-tema-unicos",
+            "status": "ok"
+          },
+          "G10": {
+            "evidenceFactIds": [
+              "vds-educacao-infantil-populacao.matriculas",
+              "vds-educacao-infantil-populacao.populacao",
+              "vds-educacao-infantil-populacao.relacao-matricula-populacao",
+              "vds-educacao-infantil-populacao.componentes",
+              "vds-educacao-infantil-populacao.comparacao-rs",
+              "vds-educacao-infantil-populacao.municipios",
+              "vds-educacao-infantil-populacao.estabilidade"
+            ],
+            "reasonCode": "fatos-e-fontes-rastreaveis",
+            "status": "ok"
+          }
+        },
+        "fact_references": {
+          "title": [
+            "vds-educacao-infantil-populacao.matriculas",
+            "vds-educacao-infantil-populacao.populacao"
+          ],
+          "education_question": [
+            "vds-educacao-infantil-populacao.matriculas",
+            "vds-educacao-infantil-populacao.populacao"
+          ],
+          "education_facts[0]": [
+            "vds-educacao-infantil-populacao.matriculas"
+          ],
+          "territorial_facts[0]": [
+            "vds-educacao-infantil-populacao.populacao"
+          ],
+          "integrated_reading": [
+            "vds-educacao-infantil-populacao.componentes"
+          ],
+          "municipal_pattern": [
+            "vds-educacao-infantil-populacao.municipios"
+          ],
+          "planning_question": [
+            "vds-educacao-infantil-populacao.matriculas",
+            "vds-educacao-infantil-populacao.populacao",
+            "vds-educacao-infantil-populacao.municipios"
+          ]
+        },
+        "planning_components": {
+          "audience": "crianças de 0 a 5 anos",
+          "indicatorIds": [
+            "matriculas-na-educacao-infantil",
+            "populacao-de-0-a-3-anos",
+            "populacao-de-4-e-5-anos"
+          ],
+          "phenomenon": "dimensionamento e distribuição da oferta entre creche e pré-escola",
+          "scope": "Vale do Sinos; dez municípios; 2015–2025",
+          "stage": "educação infantil"
+        },
+        "visualization_ids": [
+          "vds-educacao-infantil-populacao.visual.temporal",
+          "vds-educacao-infantil-populacao.visual.componentes",
+          "vds-educacao-infantil-populacao.visual.municipios",
+          "vds-educacao-infantil-populacao.visual.rs"
+        ],
+        "research_candidate_id": "vds-educacao-infantil-populacao"
+      }
+    },
+    {
+      "id": "vds-ensino-fundamental-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A queda das matrículas do ensino fundamental acompanha principalmente a redução da população de 6 a 14 anos",
+      "education_question": "Quanto da queda das matrículas do ensino fundamental acompanha a redução da população de 6 a 14 anos, e onde a trajetória ainda exige atenção?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas do ensino fundamental passaram de 114.192 para 104.328, redução de 9.864 (8,6%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 6 a 14 anos passou de 113.469 para 104.481, redução de 8.988 (7,9%).",
+        "Em 2025, a mediana municipal da distorção idade-série foi de 7,5% no Vale do Sinos e de 8,1% no RS; entre os municípios do Vale, variou de 2,5% a 14,4%."
+      ],
+      "integrated_reading": "Na separação dos componentes, 9.010 das 9.864 matrículas a menos correspondem à parte ligada ao tamanho da população; a parte ligada às matrículas em relação à população da idade foi de menos 854. As diferenças de trajetória entre os municípios permanecem relevantes para o planejamento.",
+      "municipal_pattern": "Novo Hamburgo (-3.516), São Leopoldo (-3.404) e Sapucaia do Sul (-2.629) tiveram as maiores reduções. Estância Velha (+344), Dois Irmãos (+214), Nova Santa Rita (+210) e Campo Bom (+85) cresceram; retirar qualquer município mantém a queda regional.",
+      "planning_question": "Em quais municípios e anos escolares o ajuste da oferta do ensino fundamental deve vir acompanhado de correção de fluxo, considerando a população de 6 a 14 anos e a distorção idade-série?",
+      "pne_topics": [
+        "Universalização do ensino fundamental na idade adequada",
+        "Correção de fluxo escolar"
+      ],
+      "monitoring_indicators": [
+        "Matrículas do ensino fundamental",
+        "População de 6 a 14 anos",
+        "Distorção idade-série por ano escolar"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Indicadores de fluxo escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ],
+      "internal": {
+        "mechanism_id": "M2-fluxo-fundamental",
+        "universe_check": "ok",
+        "temporal_check": "ok",
+        "sensitivity_check": "ok",
+        "territorial_check": "ok",
+        "publication_decision": "publicada",
+        "gates": {
+          "G1": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.matriculas"
+            ],
+            "reasonCode": "prioridade-pne-declarada",
+            "status": "ok"
+          },
+          "G2": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.populacao"
+            ],
+            "reasonCode": "mecanismo-e-pares-declarados",
+            "status": "ok"
+          },
+          "G3": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.relacao-matricula-populacao"
+            ],
+            "reasonCode": "universos-e-lente-mista-declarados",
+            "status": "ok"
+          },
+          "G4": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.estabilidade"
+            ],
+            "reasonCode": "janela-anual-alinhada",
+            "status": "ok"
+          },
+          "G5": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.estabilidade",
+              "vds-ensino-fundamental-populacao.municipios"
+            ],
+            "reasonCode": "estavel-em-janelas-e-retirada-municipal",
+            "status": "ok"
+          },
+          "G6": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.componentes"
+            ],
+            "reasonCode": "componentes-acrescentam-interpretacao",
+            "status": "ok"
+          },
+          "G7": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.matriculas",
+              "vds-ensino-fundamental-populacao.municipios"
+            ],
+            "reasonCode": "planejamento-estruturado",
+            "status": "ok"
+          },
+          "G8": {
+            "status": "ok",
+            "reasonCode": "texto-publico-aprovado-pelo-linter-e-revisao-editorial",
+            "evidenceFactIds": []
+          },
+          "G9": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.matriculas"
+            ],
+            "reasonCode": "resultado-educacional-e-tema-unicos",
+            "status": "ok"
+          },
+          "G10": {
+            "evidenceFactIds": [
+              "vds-ensino-fundamental-populacao.matriculas",
+              "vds-ensino-fundamental-populacao.populacao",
+              "vds-ensino-fundamental-populacao.relacao-matricula-populacao",
+              "vds-ensino-fundamental-populacao.componentes",
+              "vds-ensino-fundamental-populacao.comparacao-rs",
+              "vds-ensino-fundamental-populacao.municipios",
+              "vds-ensino-fundamental-populacao.estabilidade",
+              "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_reprovacao_fundamental",
+              "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_abandono_fundamental",
+              "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_distorcao_fundamental"
+            ],
+            "reasonCode": "fatos-e-fontes-rastreaveis",
+            "status": "ok"
+          }
+        },
+        "fact_references": {
+          "title": [
+            "vds-ensino-fundamental-populacao.matriculas",
+            "vds-ensino-fundamental-populacao.populacao",
+            "vds-ensino-fundamental-populacao.componentes"
+          ],
+          "education_question": [
+            "vds-ensino-fundamental-populacao.matriculas",
+            "vds-ensino-fundamental-populacao.populacao",
+            "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_distorcao_fundamental"
+          ],
+          "education_facts[0]": [
+            "vds-ensino-fundamental-populacao.matriculas"
+          ],
+          "territorial_facts[0]": [
+            "vds-ensino-fundamental-populacao.populacao"
+          ],
+          "territorial_facts[1]": [
+            "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_distorcao_fundamental"
+          ],
+          "integrated_reading": [
+            "vds-ensino-fundamental-populacao.componentes",
+            "vds-ensino-fundamental-populacao.municipios"
+          ],
+          "municipal_pattern": [
+            "vds-ensino-fundamental-populacao.municipios"
+          ],
+          "planning_question": [
+            "vds-ensino-fundamental-populacao.populacao",
+            "vds-ensino-fundamental-populacao.fluxo.fluxo_taxa_distorcao_fundamental",
+            "vds-ensino-fundamental-populacao.municipios"
+          ]
+        },
+        "planning_components": {
+          "audience": "estudantes de 6 a 14 anos",
+          "indicatorIds": [
+            "matriculas-no-ensino-fundamental",
+            "populacao-de-6-a-14-anos",
+            "fluxo_taxa_distorcao_fundamental"
+          ],
+          "phenomenon": "ajuste da oferta e correção de fluxo escolar",
+          "scope": "Vale do Sinos; dez municípios; 2015–2025",
+          "stage": "ensino fundamental"
+        },
+        "visualization_ids": [
+          "vds-ensino-fundamental-populacao.visual.temporal",
+          "vds-ensino-fundamental-populacao.visual.componentes",
+          "vds-ensino-fundamental-populacao.visual.municipios",
+          "vds-ensino-fundamental-populacao.visual.rs"
+        ],
+        "research_candidate_id": "vds-ensino-fundamental-populacao"
+      }
+    },
+    {
+      "id": "vds-ensino-medio-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A queda das matrículas do ensino médio acompanha principalmente a redução da população de 15 a 17 anos",
+      "education_question": "Quanto da queda das matrículas do ensino médio acompanha a redução da população de 15 a 17 anos, e o que permanece como desafio de trajetória?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas do ensino médio passaram de 30.847 para 26.911, redução de 3.936 (12,8%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 15 a 17 anos passou de 42.781 para 33.093, redução de 9.688 (22,6%).",
+        "Em 2025, as medianas municipais de reprovação (6,0%) e abandono (2,8%) no Vale do Sinos superaram as do RS (2,7% e 1,5%)."
+      ],
+      "integrated_reading": "A parte da mudança ligada ao tamanho da população foi de menos 7.432 matrículas, enquanto a parte ligada ao aumento das matrículas em relação à população da idade acrescentou 3.496. Por isso, a população jovem caiu mais do que as matrículas, sem retirar da agenda os desafios de permanência e conclusão.",
+      "municipal_pattern": "Novo Hamburgo (-1.754), Campo Bom (-796) e Esteio (-674) tiveram as maiores reduções. Portão (+314), Nova Santa Rita (+83) e Sapucaia do Sul (+10) seguiram a direção contrária; retirar qualquer município mantém a queda regional.",
+      "planning_question": "Como ajustar o tamanho e a distribuição da oferta do ensino médio e concentrar ações de permanência e conclusão nos municípios com maior reprovação e abandono, acompanhando também a população de 15 a 17 anos?",
+      "pne_topics": [
+        "Universalização do atendimento de 15 a 17 anos",
+        "Permanência e conclusão na idade adequada",
+        "Permanência no ensino médio"
+      ],
+      "monitoring_indicators": [
+        "Matrículas no ensino médio",
+        "População de 15 a 17 anos",
+        "Reprovação e abandono no ensino médio"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Indicadores de fluxo escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ],
+      "internal": {
+        "mechanism_id": "M1-coorte-15-17",
+        "universe_check": "ok",
+        "temporal_check": "ok",
+        "sensitivity_check": "ok",
+        "territorial_check": "ok",
+        "publication_decision": "publicada",
+        "gates": {
+          "G1": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.matriculas"
+            ],
+            "reasonCode": "prioridade-pne-declarada",
+            "status": "ok"
+          },
+          "G2": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.populacao"
+            ],
+            "reasonCode": "mecanismo-e-pares-declarados",
+            "status": "ok"
+          },
+          "G3": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.relacao-matricula-populacao"
+            ],
+            "reasonCode": "universos-e-lente-mista-declarados",
+            "status": "ok"
+          },
+          "G4": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.estabilidade"
+            ],
+            "reasonCode": "janela-anual-alinhada",
+            "status": "ok"
+          },
+          "G5": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.estabilidade",
+              "vds-ensino-medio-populacao.municipios"
+            ],
+            "reasonCode": "estavel-em-janelas-e-retirada-municipal",
+            "status": "ok"
+          },
+          "G6": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.componentes"
+            ],
+            "reasonCode": "componentes-acrescentam-interpretacao",
+            "status": "ok"
+          },
+          "G7": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.matriculas",
+              "vds-ensino-medio-populacao.municipios"
+            ],
+            "reasonCode": "planejamento-estruturado",
+            "status": "ok"
+          },
+          "G8": {
+            "status": "ok",
+            "reasonCode": "texto-publico-aprovado-pelo-linter-e-revisao-editorial",
+            "evidenceFactIds": []
+          },
+          "G9": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.matriculas"
+            ],
+            "reasonCode": "resultado-educacional-e-tema-unicos",
+            "status": "ok"
+          },
+          "G10": {
+            "evidenceFactIds": [
+              "vds-ensino-medio-populacao.matriculas",
+              "vds-ensino-medio-populacao.populacao",
+              "vds-ensino-medio-populacao.relacao-matricula-populacao",
+              "vds-ensino-medio-populacao.componentes",
+              "vds-ensino-medio-populacao.comparacao-rs",
+              "vds-ensino-medio-populacao.municipios",
+              "vds-ensino-medio-populacao.estabilidade",
+              "vds-ensino-medio-populacao.fluxo.fluxo_taxa_reprovacao_medio",
+              "vds-ensino-medio-populacao.fluxo.fluxo_taxa_abandono_medio",
+              "vds-ensino-medio-populacao.fluxo.fluxo_taxa_distorcao_medio"
+            ],
+            "reasonCode": "fatos-e-fontes-rastreaveis",
+            "status": "ok"
+          }
+        },
+        "fact_references": {
+          "title": [
+            "vds-ensino-medio-populacao.matriculas",
+            "vds-ensino-medio-populacao.populacao",
+            "vds-ensino-medio-populacao.componentes"
+          ],
+          "education_question": [
+            "vds-ensino-medio-populacao.matriculas",
+            "vds-ensino-medio-populacao.populacao",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_reprovacao_medio",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_abandono_medio"
+          ],
+          "education_facts[0]": [
+            "vds-ensino-medio-populacao.matriculas"
+          ],
+          "territorial_facts[0]": [
+            "vds-ensino-medio-populacao.populacao"
+          ],
+          "territorial_facts[1]": [
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_reprovacao_medio",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_abandono_medio"
+          ],
+          "integrated_reading": [
+            "vds-ensino-medio-populacao.componentes",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_reprovacao_medio",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_abandono_medio"
+          ],
+          "municipal_pattern": [
+            "vds-ensino-medio-populacao.municipios"
+          ],
+          "planning_question": [
+            "vds-ensino-medio-populacao.populacao",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_reprovacao_medio",
+            "vds-ensino-medio-populacao.fluxo.fluxo_taxa_abandono_medio",
+            "vds-ensino-medio-populacao.municipios"
+          ]
+        },
+        "planning_components": {
+          "audience": "jovens de 15 a 17 anos",
+          "indicatorIds": [
+            "matriculas-no-ensino-medio",
+            "populacao-de-15-a-17-anos",
+            "fluxo_taxa_reprovacao_medio",
+            "fluxo_taxa_abandono_medio"
+          ],
+          "phenomenon": "dimensionamento da oferta, permanência e conclusão",
+          "scope": "Vale do Sinos; dez municípios; 2015–2025",
+          "stage": "ensino médio"
+        },
+        "visualization_ids": [
+          "vds-ensino-medio-populacao.visual.temporal",
+          "vds-ensino-medio-populacao.visual.componentes",
+          "vds-ensino-medio-populacao.visual.municipios",
+          "vds-ensino-medio-populacao.visual.rs"
+        ],
+        "research_candidate_id": "vds-ensino-medio-populacao"
+      }
+    }
+  ],
+  "retainedCandidates": [
+    {
+      "candidateId": "vds-eja-publico-potencial",
+      "publicationDecision": "retida",
+      "failedGates": [
+        {
+          "gateId": "G4",
+          "reasonCode": "nivel-e-janela-do-publico-potencial-nao-fechados"
+        }
+      ]
+    },
+    {
+      "candidateId": "vds-educacao-profissional-ocupacoes",
+      "publicationDecision": "retida",
+      "failedGates": [
+        {
+          "gateId": "G5",
+          "reasonCode": "matricula-por-modalidade-sem-decomposicao-municipal-compativel"
+        }
+      ]
+    },
+    {
+      "candidateId": "vds-tempo-integral-trabalho-familias",
+      "publicationDecision": "retida",
+      "failedGates": [
+        {
+          "gateId": "G5",
+          "reasonCode": "fator-territorial-sem-decomposicao-municipal-compativel"
+        }
+      ]
+    }
+  ],
+  "publicProjection": [
+    {
+      "id": "vds-educacao-infantil-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A educação infantil cresceu mesmo com menos crianças de 0 a 5 anos",
+      "education_question": "Como a redução das novas gerações conviveu com o crescimento das matrículas na educação infantil?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas na educação infantil passaram de 34.568 para 40.333, aumento de 5.765 (16,7%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 0 a 5 anos passou de 71.337 para 60.661, redução de 10.676 (15,0%)."
+      ],
+      "integrated_reading": "A parte da mudança ligada ao tamanho da população foi de menos 6.136 matrículas. Já a parte ligada ao aumento das matrículas em relação à população da idade foi de mais 11.901 e mais que compensou a redução demográfica.",
+      "municipal_pattern": "Sapucaia do Sul (+1.981), Novo Hamburgo (+1.093) e Portão (+777) tiveram as maiores ampliações. Ivoti (-112) e Esteio (-33) seguiram a direção contrária; retirar qualquer município mantém o crescimento regional.",
+      "planning_question": "Como distribuir vagas de creche e pré-escola entre os dez municípios enquanto a população de 0 a 5 anos diminui, acompanhando matrículas e população de cada faixa etária?",
+      "pne_topics": [
+        "Ampliação do atendimento em creche",
+        "Universalização da pré-escola"
+      ],
+      "monitoring_indicators": [
+        "Matrículas em creche e pré-escola por município",
+        "População de 0 a 3 e de 4 a 5 anos"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ]
+    },
+    {
+      "id": "vds-ensino-fundamental-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A queda das matrículas do ensino fundamental acompanha principalmente a redução da população de 6 a 14 anos",
+      "education_question": "Quanto da queda das matrículas do ensino fundamental acompanha a redução da população de 6 a 14 anos, e onde a trajetória ainda exige atenção?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas do ensino fundamental passaram de 114.192 para 104.328, redução de 9.864 (8,6%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 6 a 14 anos passou de 113.469 para 104.481, redução de 8.988 (7,9%).",
+        "Em 2025, a mediana municipal da distorção idade-série foi de 7,5% no Vale do Sinos e de 8,1% no RS; entre os municípios do Vale, variou de 2,5% a 14,4%."
+      ],
+      "integrated_reading": "Na separação dos componentes, 9.010 das 9.864 matrículas a menos correspondem à parte ligada ao tamanho da população; a parte ligada às matrículas em relação à população da idade foi de menos 854. As diferenças de trajetória entre os municípios permanecem relevantes para o planejamento.",
+      "municipal_pattern": "Novo Hamburgo (-3.516), São Leopoldo (-3.404) e Sapucaia do Sul (-2.629) tiveram as maiores reduções. Estância Velha (+344), Dois Irmãos (+214), Nova Santa Rita (+210) e Campo Bom (+85) cresceram; retirar qualquer município mantém a queda regional.",
+      "planning_question": "Em quais municípios e anos escolares o ajuste da oferta do ensino fundamental deve vir acompanhado de correção de fluxo, considerando a população de 6 a 14 anos e a distorção idade-série?",
+      "pne_topics": [
+        "Universalização do ensino fundamental na idade adequada",
+        "Correção de fluxo escolar"
+      ],
+      "monitoring_indicators": [
+        "Matrículas do ensino fundamental",
+        "População de 6 a 14 anos",
+        "Distorção idade-série por ano escolar"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Indicadores de fluxo escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ]
+    },
+    {
+      "id": "vds-ensino-medio-populacao",
+      "direction": "educacao_para_territorio",
+      "title": "A queda das matrículas do ensino médio acompanha principalmente a redução da população de 15 a 17 anos",
+      "education_question": "Quanto da queda das matrículas do ensino médio acompanha a redução da população de 15 a 17 anos, e o que permanece como desafio de trajetória?",
+      "education_facts": [
+        "Entre 2015 e 2025, as matrículas do ensino médio passaram de 30.847 para 26.911, redução de 3.936 (12,8%)."
+      ],
+      "territorial_facts": [
+        "No mesmo período, a população de 15 a 17 anos passou de 42.781 para 33.093, redução de 9.688 (22,6%).",
+        "Em 2025, as medianas municipais de reprovação (6,0%) e abandono (2,8%) no Vale do Sinos superaram as do RS (2,7% e 1,5%)."
+      ],
+      "integrated_reading": "A parte da mudança ligada ao tamanho da população foi de menos 7.432 matrículas, enquanto a parte ligada ao aumento das matrículas em relação à população da idade acrescentou 3.496. Por isso, a população jovem caiu mais do que as matrículas, sem retirar da agenda os desafios de permanência e conclusão.",
+      "municipal_pattern": "Novo Hamburgo (-1.754), Campo Bom (-796) e Esteio (-674) tiveram as maiores reduções. Portão (+314), Nova Santa Rita (+83) e Sapucaia do Sul (+10) seguiram a direção contrária; retirar qualquer município mantém a queda regional.",
+      "planning_question": "Como ajustar o tamanho e a distribuição da oferta do ensino médio e concentrar ações de permanência e conclusão nos municípios com maior reprovação e abandono, acompanhando também a população de 15 a 17 anos?",
+      "pne_topics": [
+        "Universalização do atendimento de 15 a 17 anos",
+        "Permanência e conclusão na idade adequada",
+        "Permanência no ensino médio"
+      ],
+      "monitoring_indicators": [
+        "Matrículas no ensino médio",
+        "População de 15 a 17 anos",
+        "Reprovação e abandono no ensino médio"
+      ],
+      "period": "2015–2025",
+      "sources": [
+        "Censo Escolar (INEP)",
+        "Indicadores de fluxo escolar (INEP)",
+        "Estimativas populacionais por idade"
+      ]
+    }
+  ],
+  "summary": {
+    "candidateCount": 6,
+    "publishedCount": 3,
+    "retainedCount": 3,
+    "gate6": "aprovado",
+    "gate8": "aprovado"
+  },
+  "generation": {
+    "deterministic": true,
+    "clockUsed": false,
+    "modelUsed": false,
+    "networkUsed": false,
+    "databaseUsed": false,
+    "builderVersion": "generate-vocacoes-pne-primeira-saida.mjs v1.0.0"
+  }
+}

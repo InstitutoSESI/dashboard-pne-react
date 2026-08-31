@@ -35,6 +35,8 @@ const PAGE_PRODUCTS: Readonly<Record<string, AnalyticsProduct>> = Object.freeze(
   'relatorio-tecnico-municipal': 'educacao',
   'analise-regional': 'educacao',
   'vocacoes-regiao': 'educacao',
+  'cenarios-educacao': 'educacao',
+  'cenarios-educacao-dados': 'educacao',
   [FINANCIAL_PAGE_KEYS.overview]: 'financiamento',
   [FINANCIAL_PAGE_KEYS.panorama]: 'financiamento',
   [FINANCIAL_PAGE_KEYS.application]: 'financiamento',

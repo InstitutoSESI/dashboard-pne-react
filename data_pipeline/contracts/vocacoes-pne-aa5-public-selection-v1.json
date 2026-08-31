@@ -1,0 +1,831 @@
+{
+  "schemaVersion": "vocacoes-pne-aa5-public-selection-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA5",
+  "classification": "DATA_LOGIC_WITH_DATA_PRESENTATION_AND_UI",
+  "source": {
+    "manifestPath": ".tmp/vocacoes-pne/advanced-analytics-v1/aa4/MANIFEST_AA4.json",
+    "manifestSha256": "4d4d10560c8aaf1de4cd569f7d2d80f4bf7ddd7b6fa704a6136af57beaf2d1f5",
+    "requiredFinalState": "AA4_COMPLETE_OPUS_REAUDIT_ON_TRACK",
+    "artifactSetDigestSha256": "1db90f4fa82d48708d9c126e0b4436259db17a7f908f36ffa1779bc69de68778",
+    "artifacts": {
+      "DOSSIES_VALE_AA4.json": "74e58cae6005b6bbdb523370c92b77c140d60d7f67c81b0f852893eeb00e7493",
+      "DOSSIES_NOVA_SANTA_RITA_AA4.json": "4902aee5c915a968a9b72b6c7fd6412edc4e5d066af31d026c318ca3055bbd49",
+      "AGENDAS_PLANEJAMENTO_AA4.json": "fb8c44eceacdf621b2aa328ed9e9c32e5d57432b85b6a4be4c3e039925de56bb",
+      "FATOS_RECONCILIADOS_AA4.csv.gz": "27d05ab5aa13b6d520fe17bf106e8192b529f9ec40e6121e65406dd76b218647",
+      "MAPA_VISUAIS_AA4.json": "31546ef667508369990b981ef9c875e00edd13c6680e031637a67562b1f783eb",
+      "QA_SUMMARY_AA4.json": "cd4918303d6c7d1d78fd4105ca70c26db443e68563ee2610c8c137ef7d770648"
+    }
+  },
+  "scope": {
+    "stateCode": "RS",
+    "regionId": "REGION_VALE_DO_SINOS",
+    "regionSlug": "vale-do-sinos",
+    "regionName": "Vale do Sinos",
+    "educationNetworkScope": "total_all_dependencies",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "municipalityRegistryPath": "config/municipalities/rs.json",
+    "regionMunicipalityIbgeCodes": [
+      "4303905",
+      "4306403",
+      "4307609",
+      "4307708",
+      "4310801",
+      "4313375",
+      "4313409",
+      "4314803",
+      "4318705",
+      "4320008"
+    ],
+    "advancedMunicipalityIbgeCodes": ["4313375"],
+    "selectedMunicipalityIbgeCode": "4313375"
+  },
+  "sourceCatalog": {
+    "INEP_TRAJECTORY": "INEP — Indicadores Educacionais e Censo Escolar; dados do ensino médio de escolas municipais, estaduais, federais e privadas.",
+    "IBGE_DEMOGRAPHY": "IBGE — população por idade, contada no município onde a pessoa mora.",
+    "RAIS_YOUTH": "Ministério do Trabalho e Emprego — RAIS; conta empregos formais no local do estabelecimento, não estudantes nem pessoas únicas.",
+    "INEP_EPT": "INEP — Censo Escolar; matrículas de educação profissional nas escolas do município ou da região.",
+    "CBO_CNCT": "CBO e Catálogo Nacional de Cursos Técnicos — comparação entre classificações oficiais de ocupações e cursos; não mede procura por curso nem chance de emprego.",
+    "IBGE_ADULT_SCHOOLING": "IBGE — Censo Demográfico 2022; escolaridade dos adultos no município onde moram.",
+    "INEP_EJA": "INEP — Censo Escolar; matrículas de EJA por etapa e município da escola.",
+    "SOCIAL_REGISTER": "Cadastro administrativo social de dezembro de 2024; conta pessoas registradas, não a proporção de toda a população.",
+    "INEP_ACCESS": "INEP — Censo Escolar; matrículas e escolas rurais, educação especial e oferta de AEE usadas para orientar perguntas sobre a organização da rede."
+  },
+  "scopeEditorial": {
+    "VALE_10": {
+      "entityType": "region",
+      "headline": "Cinco leituras para conectar educação, população e transformação do trabalho",
+      "standfirst": "No Vale do Sinos, o número e a idade dos moradores, o perfil dos empregos e os resultados educacionais mudam em ritmos diferentes. A leitura abaixo mostra o que os dados sustentam, o que ainda é hipótese e o que merece entrar na agenda do PNE.",
+      "containmentDisclosure": "A visão regional reúne exatamente dez municípios. Nova Santa Rita faz parte desse total; por isso, a comparação serve para situar o município, não para tratar município e região como grupos separados.",
+      "decisionSignals": [
+        {
+          "title": "O número de jovens explica apenas parte da mudança nas matrículas",
+          "text": "A diferença restante indica que é preciso investigar vagas, deslocamentos, local de moradia, local de estudo e organização da rede."
+        },
+        {
+          "title": "Formação técnica é uma decisão regional",
+          "text": "Cursos disponíveis, acesso em outros municípios e mudanças nos empregos precisam ser vistos juntos antes de decidir sobre vagas ou expansão."
+        },
+        {
+          "title": "EJA precisa ser planejada por etapa e barreira",
+          "text": "Fundamental e médio mudaram de maneiras diferentes. Isso não mede a procura por EJA, mas mostra onde registrar interesse, turno e deslocamento."
+        }
+      ]
+    },
+    "MUNICIPALITY_4313375": {
+      "entityType": "municipality",
+      "headline": "Nova Santa Rita: decisões locais que dependem de uma leitura regional",
+      "standfirst": "Nova Santa Rita apresenta movimentos que não cabem em uma explicação única: o número de moradores de 15 a 17 anos diminuiu enquanto as matrículas do ensino médio cresceram; não houve matrícula técnica registrada nas escolas do município; e as duas etapas da EJA seguiram direções opostas. O desafio é transformar esses sinais em investigação e coordenação.",
+      "containmentDisclosure": "Nova Santa Rita faz parte do total do Vale do Sinos. Os dados regionais ajudam a situar o município, mas não representam um grupo separado dele.",
+      "decisionSignals": [
+        {
+          "title": "A demografia não encerra o diagnóstico",
+          "text": "A população residente de 15 a 17 anos diminuiu, mas as matrículas localizadas cresceram; fluxos entre residência e escola e mudanças de oferta precisam ser medidos."
+        },
+        {
+          "title": "Zero local de EPT não significa ausência de acesso",
+          "text": "O zero observado de matrículas técnicas locais pede um mapa de vagas, deslocamentos e conclusão no Vale antes de qualquer decisão de expansão."
+        },
+        {
+          "title": "O perfil das matrículas da EJA mudou",
+          "text": "A retração no fundamental e o surgimento de matrículas no médio sugerem revisar etapa, turno e território de acesso sem converter matrícula em demanda."
+        }
+      ]
+    }
+  },
+  "editorialSelection": {
+    "decisionRule": "Uma candidata só é promovida quando passa evidência, materialidade, estabilidade compatível com o teto, comunicação e valor para o planejamento. PASS_WITH_BOUNDARY exige que o limite permaneça visível no cartão.",
+    "criteria": [
+      {"id": "evidence", "question": "A conclusão é sustentada por fatos AA4 elegíveis e fontes rastreáveis?"},
+      {"id": "materiality", "question": "A leitura muda uma pergunta ou decisão relevante para o planejamento?"},
+      {"id": "stability", "question": "A evidência respeita robustez, suficiência temporal e teto de afirmação?"},
+      {"id": "communication", "question": "A relação pode ser explicada sem fundir universos, lentes ou causalidade?"},
+      {"id": "planningValue", "question": "Há implicação, indicadores e condição de revisão acionáveis?"}
+    ],
+    "retainedReadings": [
+      {
+        "id": "demografia-matriculas-rede",
+        "criterionResults": {"evidence": "PASS", "materiality": "PASS", "stability": "PASS_WITH_BOUNDARY", "communication": "PASS", "planningValue": "PASS"},
+        "stateComparatorDisposition": "NOT_INCLUDED_NO_COMPATIBLE_AA4_MEASURE",
+        "rationale": "A identidade fecha no bruto e separa a parcela demográfica do residual, gerando uma investigação concreta de fluxos e oferta sem nomear causa."
+      },
+      {
+        "id": "trajetoria-contexto",
+        "criterionResults": {"evidence": "PASS", "materiality": "PASS", "stability": "PASS_WITH_BOUNDARY", "communication": "PASS", "planningValue": "PASS"},
+        "stateComparatorDisposition": "INCLUDED_COMPATIBLE_MEASURE",
+        "rationale": "É a única leitura com referência municipal, regional e estadual compatível; a incerteza e o resultado inconclusivo permanecem explícitos."
+      },
+      {
+        "id": "transformacao-economica-ept",
+        "criterionResults": {"evidence": "PASS", "materiality": "PASS", "stability": "PASS_WITH_BOUNDARY", "communication": "PASS", "planningValue": "PASS"},
+        "stateComparatorDisposition": "NOT_INCLUDED_NO_COMPATIBLE_AA4_MEASURE",
+        "rationale": "A faixa nomenclatural e o zero local revelam uma decisão de acesso regional, sem converter correspondência CBO–curso em demanda ou empregabilidade."
+      },
+      {
+        "id": "escolaridade-adulta-eja",
+        "criterionResults": {"evidence": "PASS", "materiality": "PASS", "stability": "PASS_WITH_BOUNDARY", "communication": "PASS", "planningValue": "PASS"},
+        "stateComparatorDisposition": "NOT_INCLUDED_NO_COMPATIBLE_AA4_MEASURE",
+        "rationale": "A separação por etapa evita esconder trajetórias opostas e permite planejar registro de procura, turno e deslocamento sem inferir demanda."
+      },
+      {
+        "id": "trabalho-juvenil-permanencia",
+        "criterionResults": {"evidence": "PASS", "materiality": "PASS", "stability": "PASS_WITH_BOUNDARY", "communication": "PASS_WITH_BOUNDARY", "planningValue": "PASS_WITH_BOUNDARY"},
+        "stateComparatorDisposition": "NOT_INCLUDED_NO_COMPATIBLE_AA4_MEASURE",
+        "rationale": "O resultado negativo tem valor gerencial por impedir uma explicação indevida e converter a hipótese em monitoramento, não em prioridade autônoma."
+      }
+    ],
+    "retainedAgendas": [
+      {"sourceAgendaId": "AG2_DEMOGRAPHY_NETWORK_COORDINATION", "rationale": "Liga decomposição exata a programação de rede, fluxos e capacidade."},
+      {"sourceAgendaId": "AG4_REGIONAL_EPT_ACCESS_MAPPING", "rationale": "Transforma o desajuste territorial em decisão compartilhada de acesso, sem prometer expansão automática."},
+      {"sourceAgendaId": "AG5_EJA_BY_STAGE_REVIEW", "rationale": "Preserva fundamental e médio separados e cria gatilho de revisão da oferta."},
+      {"sourceAgendaId": "AG1_TRAJECTORY_CONTEXT_MONITORING", "rationale": "Conecta trajetória e condições escolares mantendo a comparação contextual e sua incerteza."}
+    ]
+  },
+  "expandedAnalysis": {
+    "schemaVersion": "vocacoes-pne-expanded-reading-checks-v1",
+    "evidenceFreezePath": "data_pipeline/contracts/vocacoes-pne-aa5-expanded-evidence-v1.json",
+    "evidenceFreezeSha256": "d032044ad34b3c4a3353e9ae3fd162101c5c2b10a6e6be1db5dd8bb36eb6522e",
+    "fableCheckpoint": {
+      "stage": "expanded-relations-selection-preimplementation",
+      "verdict": "ON_TRACK",
+      "confidence": 0.85
+    },
+    "sourceArtifacts": {
+      "demographyNetwork": {
+        "resultsPath": ".tmp/vocacoes-pne/expanded-relations/demography-network/results.json",
+        "resultsSha256": "9cc5855019d333ff5f80866068b001743d2fae85832e0cbf5058859f737f792c",
+        "manifestPath": ".tmp/vocacoes-pne/expanded-relations/demography-network/MANIFEST.json",
+        "manifestSha256": "c5d40b50f6b6e4a450549626aff38d29a5ce752be742337457b779ba4f08f506",
+        "preregistrationPath": ".tmp/vocacoes-pne/expanded-relations/demography-network/preregistration.json",
+        "preregistrationSha256": "7a6427eeebd875d5ee23827f5aa572ffc878b89cf5b173a24218b7147ad19ae4",
+        "qaPath": ".tmp/vocacoes-pne/expanded-relations/demography-network/VALIDATION.json",
+        "qaSha256": "f92ad4117bfc5e77535d191837964add71eb48fda5030fafcfcf07a85c161e96",
+        "artifactSetDigestSha256": "04cffcaf03cf4f3a70af3320a8b4899c78b5f294d23032bcb11e1b5eeecc2c6a"
+      },
+      "economyWork": {
+        "resultsPath": ".tmp/vocacoes-pne/expanded-relations/economy-work/results.json",
+        "resultsSha256": "d7b7cedfd757377df401ef1e69a55349801484275883eafa74ce15cc9b0304b6",
+        "manifestPath": ".tmp/vocacoes-pne/expanded-relations/economy-work/MANIFEST.json",
+        "manifestSha256": "cc85d8586f56fc2ba692cc577d0a3055fa8f1690fe73ef53543e612dd0604a8e",
+        "preregistrationPath": ".tmp/vocacoes-pne/expanded-relations/economy-work/PREREGISTRATION.json",
+        "preregistrationSha256": "65940fa17bf5528fa5643b67a6c9316cdd9ed115c333008b17c51b5e8e3d3851",
+        "qaPath": ".tmp/vocacoes-pne/expanded-relations/economy-work/QA.json",
+        "qaSha256": "e9946d93d8d2977a718adfac6ab3bc16891ba8de610832dd4a3cd0705609ade0"
+      },
+      "socialAccess": {
+        "resultsPath": ".tmp/vocacoes-pne/expanded-relations/social-access/ANALYSIS_RESULTS.json",
+        "resultsSha256": "5101bbc205eb10c616bc382f68dd1120c0d61248c85e2d25aa41a3978ef76692",
+        "manifestPath": ".tmp/vocacoes-pne/expanded-relations/social-access/MANIFEST.json",
+        "manifestSha256": "4b98851bdfda057e1721ac6f6bac1aa8305a4c0b1b5c79ef824467cf8f436be0",
+        "preregistrationPath": ".tmp/vocacoes-pne/expanded-relations/social-access/PREREGISTRATION.json",
+        "preregistrationSha256": "eee53cd9626c83e8134e33a5e9e4d6e79f65e66527db30d6055be660e4e49c88",
+        "qaPath": ".tmp/vocacoes-pne/expanded-relations/social-access/DATA_QUALITY.json",
+        "qaSha256": "ff75d3380e86a8a1e3cc203b118252f732717f4d6e9a5f865b9bbd7109e586ef",
+        "artifactSetDigestSha256": "1c78be9beacfaec85277cef6b3ce3d1fe8b64ddc08c30a78c783170c4c91ce81"
+      }
+    },
+    "readingChecks": {
+      "demografia-matriculas-rede": {
+        "sourceKey": "demographyNetwork",
+        "evidenceRefs": ["DN01", "DN02"],
+        "status": "consistent",
+        "label": "Padrão consistente no conjunto analisado",
+        "title": "Em outras etapas, população e matrículas também mudaram juntas",
+        "scopeLabel": "497 municípios do RS · 2019–2025",
+        "scopeDisclosures": {
+          "VALE_10": "O resultado reúne municípios de todo o Rio Grande do Sul. Ele ajuda a interpretar a relação entre população e matrículas, mas não prova separadamente o que ocorreu no Vale.",
+          "MUNICIPALITY_4313375": "O resultado reúne municípios de todo o Rio Grande do Sul. Ele serve como contexto e não descreve Nova Santa Rita isoladamente."
+        },
+        "summary": "Nos anos iniciais e finais do ensino fundamental, as mudanças anuais no número de moradores das idades correspondentes vieram acompanhadas de mudanças nas matrículas localizadas. O padrão se repetiu nas diferentes regiões do estado.",
+        "planningMeaning": "Usar a população como uma das bases para planejar a rede, mas continuar medindo deslocamentos, vagas, registros e diferenças entre idade e etapa escolar.",
+        "details": [
+          "Nos anos iniciais, uma mudança de 10% no número de moradores de 6 a 10 anos veio acompanhada, em média, de 6,1% de mudança nas matrículas. A faixa estimada foi de 3,9% a 8,4%.",
+          "Nos anos finais, uma mudança de 10% no número de moradores de 11 a 14 anos veio acompanhada, em média, de 7,0% de mudança nas matrículas. A faixa estimada foi de 5,1% a 9,0%.",
+          "A direção permaneceu quando cada uma das dez regiões foi retirada da análise e quando 2020 e 2021 foram excluídos. Uma verificação com valores futuros também encontrou persistência; por isso, o teste não mostra qual mudança veio primeiro nem prova causa."
+        ],
+        "sources": [
+          "IBGE — população residente por idade, 2018–2025.",
+          "INEP — matrículas dos anos iniciais e finais por local da escola, todas as dependências, 2018–2025."
+        ]
+      },
+      "trajetoria-contexto": {
+        "sourceKey": "socialAccess",
+        "evidenceRefs": ["T1_INSE_LEARNING_AF_2023_2025", "T2_INSE_DROPOUT_MEDIO_2023_2025", "T3_RURAL_SHARE_DISTORTION_AF_PANEL", "T4_FULLTIME_SHARE_DROPOUT_MEDIO_PANEL"],
+        "status": "not_confirmed",
+        "label": "Três ligações não se confirmaram; uma comparação não foi feita",
+        "title": "Contexto social e organização da oferta não formaram uma explicação única",
+        "scopeLabel": "Até 497 municípios do RS · janelas entre 2019 e 2025",
+        "scopeDisclosures": {
+          "VALE_10": "Os testes usam municípios de todo o Rio Grande do Sul. Eles ajudam a evitar explicações apressadas, mas não produzem uma medida específica do Vale.",
+          "MUNICIPALITY_4313375": "Os testes usam municípios de todo o Rio Grande do Sul. Eles ajudam a situar a pergunta, mas não produzem um resultado próprio para Nova Santa Rita."
+        },
+        "summary": "Depois de considerar o ponto de partida e outras diferenças entre municípios, não apareceu uma ligação consistente entre o contexto socioeconômico das escolas e o abandono, entre matrículas em escolas rurais e distorção idade-série, nem entre tempo integral e abandono. A relação com aprendizagem não foi testada porque os dois dados disponíveis não cobrem a mesma rede de ensino.",
+        "planningMeaning": "Acompanhar essas condições junto da trajetória, sem escolher uma causa isolada. Para estudar aprendizagem, primeiro é preciso colocar os dois dados na mesma rede de ensino.",
+        "details": [
+          "Contexto socioeconômico e abandono foram comparados em 494 municípios. O resultado ficou próximo de zero e foi compatível tanto com aumento quanto com redução do abandono.",
+          "A análise de escolas rurais reuniu 442 municípios e 1.655 comparações ao longo do tempo; a de tempo integral reuniu 496 municípios e 1.984 comparações. Nenhuma das duas encontrou uma ligação que resistisse ao conjunto de verificações.",
+          "Não calculamos contexto socioeconômico e aprendizagem porque a série principal de aprendizagem prioriza a rede pública, enquanto o dado de contexto disponível reúne todas as dependências. Misturá-los daria uma comparação enganosa."
+        ],
+        "sources": [
+          "INEP — contexto socioeconômico, abandono, distorção idade-série, tempo integral e matrículas em escolas rurais.",
+          "Configuração oficial das dez regiões de planejamento do Rio Grande do Sul."
+        ]
+      },
+      "transformacao-economica-ept": {
+        "sourceKey": "economyWork",
+        "evidenceRefs": ["EW3_EPT_INDUSTRIAL_STRUCTURE"],
+        "status": "watch",
+        "label": "Sinal para acompanhar",
+        "title": "O perfil industrial e as matrículas técnicas mostraram um sinal regional",
+        "scopeLabel": "10 regiões do RS · 2016–2025",
+        "scopeDisclosures": {
+          "VALE_10": "A comparação foi feita entre as dez regiões do Rio Grande do Sul. Ela inclui o Vale como uma das regiões, mas não demonstra uma relação exclusiva do Vale.",
+          "MUNICIPALITY_4313375": "A comparação foi feita entre as dez regiões do Rio Grande do Sul. Ela não demonstra uma relação própria de Nova Santa Rita."
+        },
+        "summary": "Nas regiões em que a participação industrial entre os empregos formais aumentou, as matrículas técnicas no ano seguinte também tenderam a ser maiores. O sinal foi estável, mas ficou abaixo do critério mais rigoroso definido antes da análise; por isso, não é tratado como relação confirmada.",
+        "planningMeaning": "Acompanhar perfil dos empregos, matrículas, vagas e capacidade dos ofertantes em conjunto, sem usar o sinal como justificativa automática para abrir ou fechar cursos.",
+        "details": [
+          "A análise reuniu 100 comparações entre região e ano. O sinal manteve a mesma direção quando cada região foi retirada, uma de cada vez, e em todas as verificações alternativas previstas.",
+          "Para uma mudança típica de 13 pontos percentuais na participação industrial, a estimativa para as matrículas foi grande, mas também muito incerta: a faixa compatível com os dados foi de aproximadamente 38% a 228%.",
+          "Depois de considerar todos os testes realizados, o resultado ficou em 0,136, acima do corte de 0,10 definido antes da análise. Valores futuros do emprego não apresentaram o mesmo sinal, mas isso ainda não prova causa."
+        ],
+        "sources": [
+          "Ministério do Trabalho e Emprego — RAIS; empregos formais por região do estabelecimento.",
+          "INEP — matrículas técnicas por local da escola, todas as dependências."
+        ]
+      },
+      "escolaridade-adulta-eja": {
+        "sourceKey": "economyWork",
+        "evidenceRefs": ["EW2_EJA_EMPLOYMENT_INCOME"],
+        "status": "not_confirmed",
+        "label": "A ligação não se confirmou",
+        "title": "Emprego, renda e registro de baixa renda não explicaram as matrículas da EJA",
+        "scopeLabel": "10 regiões do RS · 2017–2025",
+        "scopeDisclosures": {
+          "VALE_10": "A comparação foi feita entre as dez regiões do Rio Grande do Sul. Ela ajuda a qualificar a leitura do Vale, mas não mede a procura regional por EJA.",
+          "MUNICIPALITY_4313375": "A comparação foi feita entre as dez regiões do Rio Grande do Sul. Ela não mede a procura por EJA nem uma relação exclusiva de Nova Santa Rita."
+        },
+        "summary": "As mudanças no número de empregos formais, na renda real por emprego e na população de baixa renda registrada não apresentaram uma ligação estável com as matrículas da EJA quando população, região e ano foram considerados.",
+        "planningMeaning": "Não usar emprego, renda ou cadastro como substitutos da procura. Registrar diretamente interesse, etapa, turno, barreira, deslocamento e motivo de não matrícula.",
+        "details": [
+          "A análise reuniu 90 comparações entre região e ano. O sinal mais próximo de uma relação perdeu consistência quando outras formas de comparação foram aplicadas.",
+          "O Cadastro Único municipal disponível é uma fotografia de dezembro de 2024. Ele não permite construir uma tendência e a contagem de pessoas registradas não representa a proporção de toda a população.",
+          "Matrícula é registrada no município da escola; emprego, no local do estabelecimento; população, no local de moradia. Os dados não acompanham as mesmas pessoas."
+        ],
+        "sources": [
+          "INEP — matrículas de EJA por local da escola.",
+          "Ministério do Trabalho e Emprego — RAIS; empregos e massa salarial real por região.",
+          "Cadastro administrativo social — pessoas registradas em dezembro de 2024."
+        ]
+      },
+      "trabalho-juvenil-permanencia": {
+        "sourceKey": "economyWork",
+        "evidenceRefs": ["EW1_DROPOUT_YOUTH_WORK", "EW1_APPROVAL_YOUTH_WORK_SECONDARY"],
+        "status": "not_confirmed",
+        "label": "A ligação não se confirmou",
+        "title": "Mais emprego formal de jovens não explicou a mudança na trajetória escolar",
+        "scopeLabel": "10 municípios do Vale · 2022–2025",
+        "scopeDisclosures": {
+          "VALE_10": "O teste usa os dez municípios do Vale e descreve um padrão agregado. Ele não acompanha os mesmos jovens entre escola e trabalho.",
+          "MUNICIPALITY_4313375": "O teste usa os dez municípios do Vale. Ele ajuda a situar Nova Santa Rita, mas não produz uma relação municipal separada nem acompanha os mesmos jovens."
+        },
+        "summary": "Testamos número de empregos formais, horas contratadas e participação de admissões como aprendiz contra abandono e aprovação no ensino médio. Nenhum intervalo de tempo mostrou uma ligação que resistisse ao conjunto de verificações.",
+        "planningMeaning": "Continuar acompanhando escola e trabalho, mas não usar o crescimento do emprego formal como explicação para abandono, aprovação ou permanência.",
+        "details": [
+          "A análise reuniu 38 comparações completas entre município e ano depois de 2021, período escolhido para evitar que a ruptura da pandemia dominasse a leitura.",
+          "Foram testados o mesmo ano e intervalos de um e dois anos. As estimativas aceitaram tanto aumento quanto redução da trajetória ou não passaram as verificações feitas em conjunto.",
+          "A RAIS conta empregos no estabelecimento e o Censo Escolar conta matrículas e resultados na escola. Não há ligação entre o registro do jovem trabalhador e o do estudante."
+        ],
+        "sources": [
+          "Ministério do Trabalho e Emprego — RAIS e Novo Caged; empregos, horas e admissões por local do estabelecimento.",
+          "INEP — abandono e aprovação no ensino médio por local da escola, todas as dependências."
+        ]
+      }
+    }
+  },
+  "relationshipAtlas": {
+    "schemaVersion": "vocacoes-pne-relationship-atlas-public-selection-v1",
+    "state": "COMPLETE_RECONCILED_FOR_PUBLICATION",
+    "executionContractPath": "data_pipeline/contracts/vocacoes-pne-relationship-atlas-execution-v1.json",
+    "executionContractSha256": "3243b529f2da96e8af061c727a4d25861fbfdb9cc10360482cb3aea10ccaa7b0",
+    "manifestPath": ".tmp/vocacoes-pne/relationship-atlas-v1/results/reconciliation/MANIFEST.json",
+    "manifestSha256": "69544fbf2756788adcfb41763e109c83ada8916d7dd1e8d990c2c14ed6da2549",
+    "artifactSetDigestSha256": "eb673cfd423bd6b1d4cce1512f310fe3e09819df8e7d4be609c18ca9a38ea23f",
+    "allResultsPath": ".tmp/vocacoes-pne/relationship-atlas-v1/results/reconciliation/ALL_RESULTS.json",
+    "allResultsSha256": "87ea75120f775f39273bbb2a0916cc2ac3b1342745dc02522ff570e180597439",
+    "promotionLedgerPath": ".tmp/vocacoes-pne/relationship-atlas-v1/results/reconciliation/PROMOTION_LEDGER.json",
+    "promotionLedgerSha256": "d24a6564477939eaafdf69c7cc061b8fb37c8a53f4498e8065eb17595e99c314",
+    "qaPath": ".tmp/vocacoes-pne/relationship-atlas-v1/results/reconciliation/QA_SUMMARY.json",
+    "qaSha256": "126a9a8993c39376e98901cb45002f0c87b00150405543d2011ee3fe3dfb3889",
+    "fableAuditPath": ".tmp/vocacoes-pne/relationship-atlas-v1/fable-final/FABLE_FINAL_AUDIT.json",
+    "fableAuditSha256": "7f8b3ed54ffe736658a0603a23c776929de7ecfac849d57e27d4b1d483bff851",
+    "fableVerdict": "AT_RISK_RECONCILED",
+    "fableReconciliationPath": ".tmp/vocacoes-pne/relationship-atlas-v1/fable-final/RECONCILIATION.md",
+    "fableReconciliationSha256": "b5a69eab92261aa452c993b812a0e8210c2b605a661ec8ef0e0585c8e47c7a7f",
+    "multiplicityThresholds": {
+      "statewideMaximumQ": 0.05,
+      "valeMaximumQ": 0.1,
+      "globalQIsExploratoryOnly": true
+    },
+    "resultSummary": {
+      "testedRelationships": 98,
+      "robustRows": 6,
+      "robustMechanisms": 1,
+      "notRobustRows": 28,
+      "insufficientRows": 61,
+      "descriptiveRows": 2,
+      "blockedRows": 1,
+      "causalClaimsAllowed": false,
+      "publicStatement": "Foram avaliadas 98 relações definidas antes dos testes. Seis comparações passaram todas as verificações, mas representam um único tema: oferta rural e matrículas. As demais viraram limites, sinais para acompanhar ou evidência insuficiente; nenhuma autoriza afirmar causa."
+    },
+    "readingChecks": {
+      "demografia-matriculas-rede": {
+        "status": "not_confirmed",
+        "label": "A conta ajuda; a verificação completa ficou incompleta",
+        "title": "População e matrículas se moveram juntas, mas um teste regional não pôde ser concluído",
+        "scopeLabel": "497 municípios do RS · mudanças anuais de 2019 a 2025",
+        "scopeDisclosures": {
+          "VALE_10": "O teste usa municípios de todo o Rio Grande do Sul e não estima um efeito próprio do Vale.",
+          "MUNICIPALITY_4313375": "O teste usa municípios de todo o Rio Grande do Sul e não estima um efeito próprio de Nova Santa Rita."
+        },
+        "summary": "As mudanças anuais da população em idade escolar vieram acompanhadas por mudanças nas matrículas, mas uma das dez retiradas regionais previstas deixou menos municípios que o mínimo definido antes da análise. Por isso, a conta demográfica continua útil para investigar, sem receber o selo de relação confirmada.",
+        "planningMeaning": "Usar projeções populacionais como insumo, mantendo fluxo residência–escola, vagas, transporte e registro como explicações ainda abertas.",
+        "details": [
+          "Nos anos finais e no ensino médio, uma mudança de 10% na população veio acompanhada por cerca de 7% de mudança nas matrículas; as faixas estimadas não incluíram zero.",
+          "Nove retiradas regionais puderam ser calculadas e mantiveram a direção. A retirada da região Noroeste deixou 364 municípios, abaixo do mínimo pré-definido de 400, e impediu concluir o conjunto de verificações.",
+          "A plataforma conserva esse resultado como evidência incompleta, sem alterar a regra depois de conhecer os números."
+        ],
+        "sources": [
+          "IBGE — população residente por idade, 2018–2025.",
+          "INEP — matrículas por local da escola, todas as dependências, 2018–2025."
+        ]
+      },
+      "trajetoria-contexto": {
+        "status": "not_confirmed",
+        "label": "Gradientes apareceram, mas não fecharam a explicação",
+        "title": "Condição socioeconômica e cadastro social não formaram uma causa única para a trajetória",
+        "scopeLabel": "RS e Vale · janelas entre 2019 e 2025",
+        "scopeDisclosures": {
+          "VALE_10": "Parte dos testes usa todo o estado e parte usa os dez municípios; nenhum acompanha os mesmos estudantes entre fontes.",
+          "MUNICIPALITY_4313375": "Os resultados situam Nova Santa Rita, mas não estimam uma relação municipal isolada."
+        },
+        "summary": "Municípios com melhor condição socioeconômica escolar mostraram menor abandono e distorção nas comparações disponíveis, mas a verificação regional completa ficou inviável pelo mínimo congelado. Já as medidas do cadastro social não passaram o ajuste para os vários testes. Os dados sustentam uma desigualdade a investigar, não uma causa isolada.",
+        "planningMeaning": "Combinar trajetória, busca ativa, condição das escolas e barreiras familiares, registrando quais mecanismos locais realmente aparecem antes de escolher uma intervenção.",
+        "details": [
+          "No ensino médio, um aumento de um desvio-padrão no indicador socioeconômico veio acompanhado por 1,05 ponto percentual a menos de abandono na comparação principal.",
+          "Uma retirada regional prevista ficou abaixo do mínimo de 400 municípios; por isso, o resultado socioeconômico não passou o protocolo completo e recebeu evidência insuficiente.",
+          "A relação entre participação registrada sem renda e distorção teve sinal positivo, mas não resistiu ao ajuste dos testes da família."
+        ],
+        "sources": [
+          "INEP — indicador socioeconômico, abandono e distorção idade-série.",
+          "Cadastro administrativo social — população registrada em dezembro de 2024."
+        ]
+      },
+      "transformacao-economica-ept": {
+        "status": "watch",
+        "label": "Tema relevante; ligação ainda não confirmada",
+        "title": "Mudança econômica e formação técnica precisam ser acompanhadas sem automatizar a oferta",
+        "scopeLabel": "Vale e regiões do RS · 2019–2025",
+        "scopeDisclosures": {
+          "VALE_10": "As comparações são agregadas e não ligam trabalhadores, estudantes e pessoas que concluíram cursos.",
+          "MUNICIPALITY_4313375": "O zero local de matrículas técnicas não informa se moradores estudam em outros municípios nem estima procura."
+        },
+        "summary": "O perfil industrial mostrou um sinal anterior para acompanhar, mas os novos testes municipais de mudança econômica e matrículas técnicas não completaram todas as verificações. As pontes entre ocupações e cursos continuam descritivas. Isso sustenta mapear acesso e capacidade, não abrir cursos automaticamente.",
+        "planningMeaning": "Cruzar empregos, vagas, matrículas, conclusão e deslocamento regional antes de criar, ampliar ou reduzir cursos.",
+        "details": [
+          "As comparações de mudança de estrutura econômica com matrículas técnicas não possuíam um segundo período estrutural compatível para a verificação alternativa definida antes do teste.",
+          "Os painéis de EPT tinham apenas 2023–2025; ao deslocar a variável para testar se o futuro também explicava o presente, restaram dois anos, abaixo do mínimo de três.",
+          "A correspondência entre grupos de ocupações e cursos mostra possibilidades de conexão, não demanda, empregabilidade ou falta de oferta."
+        ],
+        "sources": [
+          "Ministério do Trabalho e Emprego — RAIS e Novo Caged.",
+          "INEP — matrículas técnicas por local da escola.",
+          "CBO e Catálogo Nacional de Cursos Técnicos — comparação descritiva de classificações."
+        ]
+      },
+      "escolaridade-adulta-eja": {
+        "status": "watch",
+        "label": "Sinal apareceu, mas também acompanhou a tendência futura",
+        "title": "Escolaridade dos trabalhadores e EJA formam uma pergunta de busca ativa, não uma previsão de procura",
+        "scopeLabel": "10 municípios do Vale · 2019–2025",
+        "scopeDisclosures": {
+          "VALE_10": "O resultado compara municípios do Vale e não acompanha os mesmos trabalhadores nas matrículas da EJA.",
+          "MUNICIPALITY_4313375": "O resultado regional ajuda a formular a pergunta, mas não estima procura própria de Nova Santa Rita."
+        },
+        "summary": "Onde a participação de trabalhadores de 18 a 24 anos sem ensino médio completo era maior, as matrículas da EJA médio também tenderam a ser maiores. O sinal resistiu à retirada de cada município, mas uma medida futura teve força semelhante; tendência compartilhada ou simultaneidade continuam explicações possíveis.",
+        "planningMeaning": "Usar o sinal para orientar busca ativa e registro de procura por etapa e turno, nunca para projetar matrículas apenas a partir do mercado formal.",
+        "details": [
+          "A correlação por postos foi 0,52; a faixa descritiva foi de 0,09 a 0,94 e a direção permaneceu ao retirar cada município.",
+          "Depois do ajuste dos testes da família, o resultado permaneceu abaixo de 0,05, mas a verificação com valor futuro não foi mais fraca.",
+          "Empregos são registrados no estabelecimento e matrículas na escola; não há ligação individual entre as bases."
+        ],
+        "sources": [
+          "Ministério do Trabalho e Emprego — escolaridade de vínculos formais de 18 a 24 anos na RAIS.",
+          "INEP — matrículas da EJA ensino médio por local da escola."
+        ]
+      },
+      "trabalho-juvenil-permanencia": {
+        "status": "not_confirmed",
+        "label": "A ligação não resistiu ao conjunto de testes",
+        "title": "Trabalho formal juvenil não explicou abandono ou distorção no ensino médio",
+        "scopeLabel": "10 municípios do Vale · 2019–2025",
+        "scopeDisclosures": {
+          "VALE_10": "O teste usa os dez municípios e não acompanha os mesmos jovens entre emprego e escola.",
+          "MUNICIPALITY_4313375": "A comparação regional situa Nova Santa Rita, mas não estima uma relação municipal própria."
+        },
+        "summary": "Intensidade de admissões, estoque de empregos, aprendizagem, jornada e tempo no emprego foram comparados com abandono e distorção. Nenhuma das relações passou em conjunto direção, intervalo, vários testes, antecipação temporal e estabilidade. Um resultado contrário ao esperado reforça que uma explicação simples seria enganosa.",
+        "planningMeaning": "Acompanhar trabalho e escola por turno, setor e barreira, sem usar crescimento do emprego formal como explicação automática para permanência.",
+        "details": [
+          "A relação entre jornada mediana e abandono apareceu negativa, ao contrário da direção definida antes do teste, e não passou o ajuste da família.",
+          "Os sinais de aprendizagem e admissões não foram estáveis nos testes temporais; os painéis curtos de 2023–2025 também não permitiram completar a antecipação exigida.",
+          "Trabalho informal, desemprego e deslocamentos entre moradia, escola e emprego não estão ligados individualmente nas bases."
+        ],
+        "sources": [
+          "Ministério do Trabalho e Emprego — RAIS e Novo Caged por local do estabelecimento.",
+          "INEP — abandono e distorção idade-série por local da escola."
+        ]
+      }
+    },
+    "transversalChecks": {
+      "ruralidade-organizacao-rede": {
+        "status": "consistent",
+        "label": "Movimento conjunto consistente; direção não determinada",
+        "title": "Oferta rural e matrículas se moveram juntas nos dez municípios",
+        "scopeLabel": "10 municípios do Vale · 2014–2025",
+        "scopeDisclosures": {
+          "VALE_10": "O teste descreve o movimento dentro dos dez municípios e não mostra se a oferta respondeu à procura ou a procura respondeu à oferta.",
+          "MUNICIPALITY_4313375": "Nova Santa Rita integra o teste regional. Seus números locais são contexto descritivo, não uma estimativa de efeito municipal."
+        },
+        "summary": "Seis comparações entre escolas ou turmas rurais e matrículas rurais passaram as verificações da família. Como oferta e matrícula são decididas e registradas em conjunto, o resultado mostra uma estrutura territorial estável, não qual lado veio primeiro.",
+        "planningMeaning": "Planejar escola, turma, transporte, distância e capacidade em conjunto, acompanhando a direção da mudança antes de alterar a oferta.",
+        "details": [
+          "As comparações usaram os dez municípios e doze anos, retiraram um município por vez e mantiveram a direção positiva.",
+          "O resultado também manteve a direção sem 2020 e 2021, e a relação com valor futuro foi mais fraca que a relação do mesmo período.",
+          "Os seis testes representam um único tema e ficam agrupados. Eles não demonstram suficiência, qualidade, acesso individual nem causalidade."
+        ],
+        "sources": [
+          "INEP — escolas, turmas e matrículas rurais por local da escola, 2014–2025."
+        ]
+      }
+    }
+  },
+  "readings": [
+    {
+      "id": "demografia-matriculas-rede",
+      "order": 1,
+      "dossierId": "D2_DEMOGRAPHY_AND_NETWORK",
+      "theme": "Demografia e rede",
+      "evidenceClass": {
+        "kind": "accounting",
+        "label": "conta que fecha com os dados",
+        "explanation": "A soma confere exatamente, mas as partes da conta não mostram, sozinhas, por que a mudança aconteceu."
+      },
+      "visualKind": "decomposition",
+      "theoryIndex": 0,
+      "planningAgendaId": "AG2_DEMOGRAPHY_NETWORK_COORDINATION",
+      "sourceIds": ["IBGE_DEMOGRAPHY", "INEP_TRAJECTORY"],
+      "publicCopy": {
+        "title": "População jovem, matrículas e organização da rede",
+        "question": "A mudança no número de jovens ajuda a entender a mudança nas matrículas?",
+        "conclusions": {
+          "VALE_10": "Entre 2018 e 2025, o número de moradores de 15 a 17 anos no Vale diminuiu em 7.205, enquanto as matrículas de ensino médio nas escolas da região diminuíram em 2.339. Pela conta, a mudança da população corresponderia a cerca de 5.544 matrículas a menos. Como a queda observada foi menor, ficou uma diferença de cerca de 3.205 matrículas que a população, sozinha, não explica. Essa diferença indica o que precisa ser investigado; ela não mede migração.",
+          "MUNICIPALITY_4313375": "Entre 2018 e 2025, o número de moradores de 15 a 17 anos em Nova Santa Rita diminuiu em 64, enquanto as matrículas de ensino médio nas escolas do município aumentaram em 17. Pela conta, a mudança da população corresponderia a cerca de 41 matrículas a menos. Como houve 17 a mais, ficou uma diferença de cerca de 58 matrículas que a população, sozinha, não explica. Essa diferença indica o que precisa ser investigado; ela não mede migração."
+        },
+        "territorialReading": "A população ajuda a entender uma parte da mudança, mas não encerra o diagnóstico. A diferença restante orienta investigar onde os estudantes moram e estudam, a oferta de vagas, o transporte e possíveis mudanças de registro.",
+        "mechanism": {
+          "summary": "Quando muda o número de jovens em idade de cursar o ensino médio, o número de matrículas tende a sentir parte dessa mudança. A outra parte pode estar ligada ao local de estudo, à oferta de vagas, ao transporte ou aos registros.",
+          "expectedPattern": "Se a população fosse o único fator, o número de matrículas e o número de jovens mudariam na mesma proporção. Como isso não ocorreu, outros fatores precisam ser medidos.",
+          "alternatives": [
+            "Estudantes podem morar em um município e estudar em outro.",
+            "A quantidade e a distribuição de vagas podem ter mudado.",
+            "As estimativas de população podem ter sido revistas.",
+            "A forma de registrar matrículas ou redes pode ter mudado."
+          ],
+          "boundary": "A diferença restante é apenas o que sobra da conta. Sozinha, ela não informa se houve migração, mudança de cobertura, deslocamento ou decisão da rede."
+        },
+        "planning": {
+          "question": "O que a rede precisa medir antes de planejar vagas, transporte e escolas?",
+          "implication": "Usar a diferença como sinal de investigação e cruzar moradia, escola, vagas e transporte antes de mudar a oferta.",
+          "indicators": ["moradores de 15 a 17 anos", "matrículas de ensino médio", "parte ligada à população", "diferença a investigar", "fluxos entre moradia e escola"]
+        },
+        "limit": "A diferença que sobra da conta não mostra, sozinha, por que as matrículas mudaram."
+      },
+      "comparisonNotes": {
+        "VALE_10": "Somamos as matrículas nas escolas e os moradores dos dez municípios, sem tratar local de estudo e local de moradia como a mesma coisa. Não mostramos o Rio Grande do Sul porque essa mesma conta, com os mesmos dados e regras, não está disponível para o estado.",
+        "MUNICIPALITY_4313375": "Nova Santa Rita faz parte do total do Vale. A comparação ajuda a situar o município, mas ainda não sabemos quantos estudantes moram em um município e estudam em outro. Não mostramos o Rio Grande do Sul porque essa mesma conta, com os mesmos dados e regras, não está disponível para o estado."
+      },
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_D2_VALE_HS_ENROLL_CHANGE_2018_2025", "label": "Mudança nas matrículas de ensino médio", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · escolas localizadas"},
+          {"factId": "F_D2_VALE_POP_COMPONENT_2018_2025", "label": "Parte ligada à mudança no número de jovens", "valueField": "effect_estimate", "format": "decimal1", "isChange": true, "includeEndpoints": false, "contextLabel": "Resultado da conta"},
+          {"factId": "F_D2_VALE_RELATION_COMPONENT_2018_2025", "label": "Diferença que ainda precisa ser investigada", "valueField": "effect_estimate", "format": "decimal1", "isChange": true, "includeEndpoints": false, "contextLabel": "Outros fatores possíveis"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_D2_NSR_HS_ENROLL_CHANGE_2018_2025", "label": "Mudança nas matrículas de ensino médio", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · escolas localizadas"},
+          {"factId": "F_D2_NSR_POP_COMPONENT_2018_2025", "label": "Parte ligada à mudança no número de jovens", "valueField": "effect_estimate", "format": "decimal1", "isChange": true, "includeEndpoints": false, "contextLabel": "Resultado da conta"},
+          {"factId": "F_D2_NSR_RELATION_COMPONENT_2018_2025", "label": "Diferença que ainda precisa ser investigada", "valueField": "effect_estimate", "format": "decimal1", "isChange": true, "includeEndpoints": false, "contextLabel": "Outros fatores possíveis"}
+        ]
+      }
+    },
+    {
+      "id": "trajetoria-contexto",
+      "order": 2,
+      "dossierId": "D1_CONTEXT_AND_TRAJECTORY",
+      "theme": "Permanência e contexto",
+      "evidenceClass": {
+        "kind": "contextual",
+        "label": "comparação com contextos semelhantes",
+        "explanation": "A comparação leva outros fatores em conta, mas não mostra que uma característica isolada causou o resultado."
+      },
+      "visualKind": "benchmark",
+      "theoryIndex": 0,
+      "planningAgendaId": "AG1_TRAJECTORY_CONTEXT_MONITORING",
+      "sourceIds": ["INEP_TRAJECTORY", "IBGE_DEMOGRAPHY"],
+      "publicCopy": {
+        "title": "Abandono escolar comparado com o contexto",
+        "question": "O abandono continua diferente quando comparamos territórios com condições semelhantes?",
+        "conclusions": {
+          "VALE_10": "Em 2025, o valor que divide os dez municípios do Vale ao meio foi 2,8% de abandono no ensino médio: cinco ficaram abaixo e cinco acima. No conjunto dos municípios do Rio Grande do Sul, esse ponto foi 1,5%. A formação adequada dos docentes ficou em 71,5% no Vale, acima da referência estadual de 62,1%. Mesmo assim, a análise não encontrou uma ligação clara entre formação docente e abandono.",
+          "MUNICIPALITY_4313375": "Em 2025, Nova Santa Rita registrou 3,2% de abandono no ensino médio. No conjunto dos municípios do Rio Grande do Sul, o valor que divide os municípios ao meio foi 1,5%. A formação adequada dos docentes ficou em 78,1%, acima da referência estadual de 62,1%. Quando outros fatores foram considerados, a análise não encontrou evidência suficiente para dizer que a formação docente explica o abandono."
+        },
+        "territorialReading": "Comparar territórios com condições semelhantes ajuda a evitar conclusões apressadas. Neste caso, a análise não mostrou que uma única característica do território explica o abandono.",
+        "mechanism": {
+          "summary": "Condições sociais, tamanho do município, perfil dos estudantes e condições das escolas podem acompanhar diferenças de abandono. A comparação tenta levar parte dessas diferenças em conta.",
+          "expectedPattern": "Se uma característica estivesse ligada ao abandono de forma consistente, a diferença deveria continuar aparecendo em outros anos, municípios e formas de comparação.",
+          "alternatives": [
+            "O perfil dos estudantes e das redes pode ter mudado.",
+            "Moradores podem mudar de município ou estudar fora dele.",
+            "A forma de registrar escolas e resultados pode ter mudado.",
+            "Um acontecimento específico do período pode não estar nos dados."
+          ],
+          "boundary": "O resultado ficou dentro de uma faixa ampla encontrada para contextos semelhantes. Isso não prova que o território é igual aos demais nem que um fator isolado explica o abandono."
+        },
+        "planning": {
+          "question": "Como acompanhar o abandono sem escolher uma causa antes da investigação?",
+          "implication": "Acompanhar abandono, perfil dos estudantes, formação docente e mudanças de escola em conjunto, repetindo a análise quando houver novos dados.",
+          "indicators": ["abandono no ensino médio", "formação adequada dos docentes", "perfil dos estudantes", "mudanças de escola e deslocamentos"]
+        },
+        "limit": "Os dados não mostram que a formação docente causou o nível de abandono observado."
+      },
+      "comparisonNotes": {
+        "VALE_10": "Comparamos o ponto que divide os dez municípios do Vale ao meio com o ponto que divide os municípios do Rio Grande do Sul ao meio: em cada grupo, metade fica abaixo e metade acima. A análise que considerou outros fatores não encontrou uma ligação clara.",
+        "MUNICIPALITY_4313375": "Comparamos Nova Santa Rita com o valor central do Vale e do Rio Grande do Sul. A margem de incerteza continua visível e não permite apontar uma causa."
+      },
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_D1_VALE_P3_MUNICIPAL_MEDIAN_DROPOUT_RATE_2025", "label": "Abandono no ensino médio", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor central entre os dez municípios · 2025"},
+          {"factId": "F_D1_RS_P3_MUNICIPAL_MEDIAN_DROPOUT_RATE_2025", "label": "Referência estadual de abandono", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor que divide os municípios do RS ao meio · 2025"},
+          {"factId": "F_D1_VALE_P3_MUNICIPAL_MEDIAN_TEACHER_ADEQUACY_2025", "label": "Docentes com formação adequada", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor central entre os dez municípios · 2025"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_D1_NSR_P3_MUNICIPAL_MEDIAN_DROPOUT_RATE_2025", "label": "Abandono no ensino médio", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Nova Santa Rita · 2025"},
+          {"factId": "F_D1_VALE_P3_MUNICIPAL_MEDIAN_DROPOUT_RATE_2025", "label": "Referência regional de abandono", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor central do Vale · 2025"},
+          {"factId": "F_D1_RS_P3_MUNICIPAL_MEDIAN_DROPOUT_RATE_2025", "label": "Referência estadual de abandono", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor central entre os municípios do RS · 2025"}
+        ]
+      }
+    },
+    {
+      "id": "transformacao-economica-ept",
+      "order": 3,
+      "dossierId": "D4_ECONOMIC_TRANSFORMATION_AND_EPT",
+      "theme": "Trabalho e formação técnica",
+      "evidenceClass": {
+        "kind": "distributional",
+        "label": "retrato dos empregos e dos cursos",
+        "explanation": "A comparação usa classificações oficiais de ocupações e cursos. Ela mostra conexões possíveis, mas não mede procura, chance de emprego ou se a oferta é suficiente."
+      },
+      "visualKind": "range",
+      "theoryIndex": 0,
+      "planningAgendaId": "AG4_REGIONAL_EPT_ACCESS_MAPPING",
+      "sourceIds": ["RAIS_YOUTH", "INEP_EPT", "CBO_CNCT"],
+      "publicCopy": {
+        "title": "Mudanças nos empregos e oferta de cursos técnicos",
+        "question": "Que mudanças nos empregos ajudam a decidir o que investigar na oferta de cursos técnicos?",
+        "conclusions": {
+          "VALE_10": "Entre 2019 e 2025, o maior aumento de empregos formais no Vale ocorreu em serviços de escritório e apoio administrativo: 3.619 empregos a mais. As matrículas técnicas nas escolas da região passaram de 13.474 para 13.945 entre 2023 e 2025. Pela comparação entre classificações de ocupações e cursos, 19,9% dos empregos estavam em grupos relacionados a cursos oferecidos localmente; ao considerar cursos no Vale, essa faixa chegou a 50,1%. Esses percentuais mostram conexões possíveis, não procura por curso nem garantia de emprego.",
+          "MUNICIPALITY_4313375": "Entre 2019 e 2025, o maior aumento de empregos formais em Nova Santa Rita ocorreu no comércio varejista: 695 empregos a mais. Não houve matrícula técnica registrada nas escolas do município entre 2023 e 2025. Isso não significa que moradores não estudem em outros municípios. A comparação com cursos existentes no Vale mostra possibilidades de acesso que ainda precisam ser medidas com dados de vagas, deslocamento e conclusão."
+        },
+        "territorialReading": "As mudanças nos empregos mostram quais áreas merecem investigação. A comparação com os cursos usa apenas classificações oficiais e não liga trabalhadores a estudantes nem ocupações a um curso específico.",
+        "mechanism": {
+          "summary": "Quando o perfil dos empregos muda, pode surgir necessidade de revisar a oferta de formação. Antes de decidir, é preciso saber quais cursos existem, quem consegue acessá-los e quantos estudantes concluem.",
+          "expectedPattern": "Uma conexão mais clara exigiria que a mudança nas ocupações aparecesse junto de procura, vagas, matrículas, conclusão e acesso aos cursos relacionados.",
+          "alternatives": [
+            "Pessoas podem estudar ou trabalhar fora do município.",
+            "Uma ocupação pode ser exercida por quem não fez o curso relacionado.",
+            "A mesma ocupação pode se relacionar a vários cursos, e vice-versa.",
+            "Matrícula, vaga disponível, conclusão e capacidade da escola são medidas diferentes."
+          ],
+          "boundary": "A comparação foi feita com grupos amplos de ocupações e cursos. Ela não acompanha quem concluiu um curso nem mostra onde essa pessoa trabalha."
+        },
+        "planning": {
+          "question": "O que precisa ser conhecido antes de criar, ampliar ou reduzir um curso técnico?",
+          "implication": "Mapear cursos, vagas, conclusão, deslocamento e perfil dos empregos em todo o Vale antes de decidir sobre expansão.",
+          "indicators": ["matrículas técnicas", "vagas disponíveis", "conclusões", "deslocamento para estudar", "áreas de emprego", "trajetória de quem concluiu"]
+        },
+        "limit": "A semelhança entre classificações de ocupações e cursos não prova procura por formação, chance de emprego ou falta de oferta."
+      },
+      "comparisonNotes": {
+        "VALE_10": "Mostramos a oferta nas escolas de cada município e a oferta que pode existir em outros municípios do Vale. Não mostramos o Rio Grande do Sul porque não há uma faixa estadual calculada com as mesmas regras.",
+        "MUNICIPALITY_4313375": "O zero de matrículas técnicas nas escolas de Nova Santa Rita é um dado observado, mas não informa se moradores estudam em outros municípios do Vale. Não mostramos o Rio Grande do Sul porque não há uma faixa estadual calculada com as mesmas regras."
+      },
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_D4_VALE_EPT_CHANGE_2023_2025", "label": "Mudança nas matrículas técnicas", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · 2023–2025"},
+          {"factId": "F_D4_VALE_LOCAL_CORRESPONDENCE", "label": "Empregos em grupos ligados a cursos locais", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Comparação entre classificações · 2025"},
+          {"factId": "F_D4_P5_VALE_LOCAL_ACCESSIBLE_BOUND", "label": "Faixa ao considerar cursos em outros municípios do Vale", "valueField": "interval", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Comparação entre classificações · 2025"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_D4_NSR_EPT_CHANGE_2023_2025", "label": "Matrículas técnicas locais", "valueField": "value_end", "format": "integer", "isChange": false, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · 2025"},
+          {"factId": "F_D4_NSR_LOCAL_CORRESPONDENCE", "label": "Empregos em grupos ligados a cursos locais", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Comparação entre classificações · 2025"},
+          {"factId": "F_D4_P5_VALE_LOCAL_ACCESSIBLE_BOUND", "label": "Faixa ao considerar cursos em outros municípios do Vale", "valueField": "interval", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Cursos existentes no Vale · 2025"}
+        ]
+      }
+    },
+    {
+      "id": "escolaridade-adulta-eja",
+      "order": 4,
+      "dossierId": "D5_ADULT_SCHOOLING_WORK_AND_EJA",
+      "theme": "Escolaridade adulta e EJA",
+      "evidenceClass": {
+        "kind": "monitoring",
+        "label": "mudanças observadas",
+        "explanation": "Escolaridade dos adultos, matrículas de EJA e empregos formais medem grupos diferentes. Os testes não encontraram uma ligação consistente entre eles."
+      },
+      "visualKind": "stage-change",
+      "theoryIndex": 0,
+      "planningAgendaId": "AG5_EJA_BY_STAGE_REVIEW",
+      "sourceIds": ["IBGE_ADULT_SCHOOLING", "INEP_EJA"],
+      "publicCopy": {
+        "title": "Escolaridade dos adultos e oferta de EJA",
+        "question": "Como a escolaridade dos adultos e as matrículas de EJA mudam no território?",
+        "conclusions": {
+          "VALE_10": "No Vale do Sinos, 51,7% dos adultos tinham concluído o ensino médio em 2022. Havia 10,2 matrículas de EJA para cada mil adultos, e 17,4% dos trabalhadores jovens com emprego formal não tinham concluído o ensino médio. Entre 2014 e 2025, as matrículas da EJA fundamental caíram de 6.510 para 4.178, enquanto as da EJA ensino médio subiram de 2.325 para 7.269. Os testes não encontraram uma ligação consistente entre essas medidas.",
+          "MUNICIPALITY_4313375": "Em Nova Santa Rita, 50,3% dos adultos tinham concluído o ensino médio em 2022. Havia 17,8 matrículas de EJA para cada mil adultos, e 17,3% dos trabalhadores jovens com emprego formal não tinham concluído o ensino médio. Entre 2014 e 2025, as matrículas da EJA fundamental caíram de 309 para 152, enquanto as da EJA ensino médio passaram de zero registrado para 56. Os testes não encontraram uma ligação consistente entre essas medidas."
+        },
+        "territorialReading": "Os dados medem grupos diferentes: moradores adultos, matrículas nas escolas e empregos nos estabelecimentos. Eles ajudam a dimensionar o problema, mas não mostram que são as mesmas pessoas.",
+        "mechanism": {
+          "summary": "Escolaridade, trabalho, horário, cuidado com a família, distância e oferta de turmas podem influenciar a procura e a permanência na EJA. Os dados atuais não medem todas essas barreiras.",
+          "expectedPattern": "Uma ligação mais clara exigiria que mudanças na procura, nas matrículas e nas barreiras aparecessem de forma repetida por etapa, turno e município.",
+          "alternatives": [
+            "Pessoas podem estudar em outro município.",
+            "Horário de trabalho, cuidado familiar e transporte podem dificultar o acesso.",
+            "Os motivos para voltar a estudar não aparecem nos dados atuais.",
+            "Moradores, estudantes e trabalhadores não são necessariamente as mesmas pessoas."
+          ],
+          "boundary": "Os testes não encontraram uma ligação consistente, mas isso não prova que nenhuma relação exista. A quantidade e o detalhamento dos dados ainda são limitados."
+        },
+        "planning": {
+          "question": "Que informação falta para ajustar a EJA por etapa, turno e local de oferta?",
+          "implication": "Registrar procura, turno preferido, etapa, deslocamento e motivo de não matrícula antes de revisar metas e turmas.",
+          "indicators": ["matrículas da EJA fundamental", "matrículas da EJA ensino médio", "procura registrada", "turnos", "escolaridade dos adultos"]
+        },
+        "limit": "Os dados não mostram que trabalho ou escolaridade causaram matrícula, retorno ou abandono na EJA."
+      },
+      "comparisonNotes": {
+        "VALE_10": "Mostramos EJA fundamental e ensino médio separadamente porque elas mudaram em direções diferentes. Não mostramos o Rio Grande do Sul porque não há uma referência estadual construída com os mesmos dados e regras desta leitura.",
+        "MUNICIPALITY_4313375": "A comparação com o Vale ajuda a formular perguntas sobre oferta e deslocamento, mas não mede quantas pessoas gostariam de estudar e não conseguem. Não mostramos o Rio Grande do Sul porque não há uma referência estadual construída com os mesmos dados e regras desta leitura."
+      },
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_D5_VALE_EJA_FUND_CHANGE_2014_2025", "label": "EJA fundamental", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · matrículas localizadas"},
+          {"factId": "F_D5_VALE_EJA_HS_CHANGE_2014_2025", "label": "EJA ensino médio", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · matrículas localizadas"},
+          {"factId": "F_D5_VALE_MUNICIPAL_MEDIAN_ADULT_HS_COMPLETION_SHARE_2022", "label": "Adultos com ensino médio concluído", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Valor que divide os municípios do Vale ao meio · 2022"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_D5_NSR_EJA_FUND_CHANGE_2014_2025", "label": "EJA fundamental", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · matrículas localizadas"},
+          {"factId": "F_D5_NSR_EJA_HS_CHANGE_2014_2025", "label": "EJA ensino médio", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · matrículas localizadas"},
+          {"factId": "F_D5_NSR_MUNICIPAL_MEDIAN_ADULT_HS_COMPLETION_SHARE_2022", "label": "Adultos com ensino médio concluído", "valueField": "value_start", "format": "percent1", "isChange": false, "includeEndpoints": false, "contextLabel": "Nova Santa Rita · 2022"}
+        ]
+      }
+    },
+    {
+      "id": "trabalho-juvenil-permanencia",
+      "order": 5,
+      "dossierId": "D3_YOUTH_WORK_AND_HIGH_SCHOOL",
+      "theme": "Trabalho juvenil e permanência",
+      "evidenceClass": {
+        "kind": "boundary",
+        "label": "ligação não confirmada",
+        "explanation": "Os dois dados mudaram no mesmo período, mas os testes não encontraram uma ligação consistente. Além disso, os dados de emprego e escola não acompanham os mesmos jovens."
+      },
+      "visualKind": "parallel-change",
+      "theoryIndex": 0,
+      "planningAgendaId": "AG3_YOUTH_WORK_EDUCATION_MONITORING",
+      "sourceIds": ["RAIS_YOUTH", "INEP_TRAJECTORY"],
+      "publicCopy": {
+        "title": "Emprego formal de jovens e permanência no ensino médio",
+        "question": "O aumento do emprego formal entre jovens veio acompanhado de mudança no abandono escolar?",
+        "conclusions": {
+          "VALE_10": "No Vale do Sinos, os empregos formais de jovens de 15 a 17 anos passaram de 2.483 para 4.225 entre 2019 e 2025, enquanto o abandono no ensino médio caiu de 6,6% para 2,8%. Os dois movimentos aconteceram no mesmo período, mas os testes não encontraram uma ligação consistente entre eles.",
+          "MUNICIPALITY_4313375": "Em Nova Santa Rita, os empregos formais de jovens de 15 a 17 anos passaram de 104 para 172 entre 2019 e 2025, enquanto o abandono no ensino médio caiu de 9,5% para 3,2%. Os dois movimentos aconteceram no mesmo período, mas os testes não encontraram uma ligação consistente entre eles."
+        },
+        "territorialReading": "A mudança simultânea justifica acompanhar trabalho e escola em conjunto, mas não explica a queda do abandono. A RAIS conta empregos no estabelecimento e não identifica os mesmos jovens registrados como estudantes.",
+        "mechanism": {
+          "summary": "Trabalho pode disputar tempo com a escola ou, em outras situações, apoiar renda e permanência. A literatura torna a pergunta importante, mas os dados locais não confirmaram uma ligação consistente.",
+          "expectedPattern": "Se o emprego formal estivesse ligado à permanência de forma estável, o sinal deveria se repetir com diferentes intervalos de tempo, anos e grupos de municípios.",
+          "alternatives": [
+            "O ciclo econômico e os setores que contrataram podem ter mudado.",
+            "Os jovens que conseguem emprego formal podem ter perfil diferente dos demais.",
+            "Trabalho informal e desemprego não aparecem na RAIS.",
+            "A pessoa pode morar, estudar e trabalhar em municípios diferentes."
+          ],
+          "boundary": "Os testes locais não confirmaram a ligação. A literatura ajuda a formular a hipótese, mas não muda esse resultado."
+        },
+        "planning": {
+          "question": "Como acompanhar trabalho e escola sem transformar coincidência em causa?",
+          "implication": "Acompanhar abandono, turno, emprego formal, trabalho informal quando disponível e busca ativa, sem criar meta baseada em uma ligação não confirmada.",
+          "indicators": ["abandono no ensino médio", "empregos formais de 15 a 17 anos", "turno escolar", "busca ativa"]
+        },
+        "limit": "Os dados não mostram que o aumento do emprego formal juvenil causou abandono ou permanência."
+      },
+      "comparisonNotes": {
+        "VALE_10": "A RAIS conta empregos nos estabelecimentos, enquanto a educação conta estudantes nas escolas. Os dois dados não acompanham as mesmas pessoas. Um valor estadual não resolveria essa diferença e, por isso, não é usado como comparador.",
+        "MUNICIPALITY_4313375": "O resultado municipal serve como pergunta de acompanhamento, não como explicação do abandono. Um valor estadual não faria os dados de emprego e escola acompanharem as mesmas pessoas e, por isso, não é usado como comparador."
+      },
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_D3_VALE_YOUTH_BONDS_CHANGE_2019_2025", "label": "Empregos formais de 15 a 17 anos", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · local dos estabelecimentos"},
+          {"factId": "F_D3_VALE_HS_DROPOUT_CHANGE_2019_2025", "label": "Abandono no ensino médio", "valueField": "absolute_change", "format": "percentage_points1", "isChange": true, "includeEndpoints": true, "contextLabel": "Valor que divide os dez municípios ao meio"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_D3_NSR_YOUTH_BONDS_CHANGE_2019_2025", "label": "Empregos formais de 15 a 17 anos", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · local dos estabelecimentos"},
+          {"factId": "F_D3_NSR_HS_DROPOUT_CHANGE_2019_2025", "label": "Abandono no ensino médio", "valueField": "absolute_change", "format": "percentage_points1", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita"}
+        ]
+      }
+    }
+  ],
+  "planningAgendas": [
+    {"sourceAgendaId": "AG2_DEMOGRAPHY_NETWORK_COORDINATION", "id": "coordenar-demografia-rede", "order": 1},
+    {"sourceAgendaId": "AG4_REGIONAL_EPT_ACCESS_MAPPING", "id": "mapear-acesso-ept", "order": 2},
+    {"sourceAgendaId": "AG5_EJA_BY_STAGE_REVIEW", "id": "revisar-eja-por-etapa", "order": 3},
+    {"sourceAgendaId": "AG1_TRAJECTORY_CONTEXT_MONITORING", "id": "monitorar-trajetoria-contexto", "order": 4}
+  ],
+  "rejectedCandidates": [
+    {
+      "sourceAgendaId": "AG3_YOUTH_WORK_EDUCATION_MONITORING",
+      "disposition": "EMBED_MONITORING_INSIDE_NEGATIVE_READING_WITHOUT_PUBLIC_AGENDA_CARD",
+      "reason": "A relação não foi robusta; a pergunta de monitoramento permanece dentro da leitura, sem promover uma agenda autônoma."
+    },
+    {
+      "candidateId": "P8_FINANCING_OFFER_AND_CAPACITY",
+      "disposition": "BLOCKED_NOT_MANAGER_FACING",
+      "reason": "Períodos, lentes e endogeneidade ainda não permitem uma relação alinhada; financiamento não aparece como cartão, ausência ou explicação pública."
+    }
+  ],
+  "transversalItems": [
+    {
+      "id": "ruralidade-organizacao-rede",
+      "title": "Ruralidade e organização da rede",
+      "sourceIds": ["INEP_ACCESS"],
+      "interpretation": "Matrículas e escolas rurais mudaram em ritmos diferentes. Esses números mostram onde investigar, mas a decisão depende de distância, tempo de viagem, transporte, vagas e capacidade das escolas.",
+      "question": "Distância, transporte e capacidade ajudam a compreender o acesso real?",
+      "limit": "A quantidade de escolas e matrículas não informa distância, capacidade, qualidade nem se a oferta é suficiente.",
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_T1_VALE_RURAL_ENROLL_CHANGE_2014_2025", "label": "Mudança nas matrículas rurais", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · 2014–2025"},
+          {"factId": "F_T1_VALE_RURAL_SCHOOLS_CHANGE_2014_2025", "label": "Mudança nas escolas rurais", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · 2014–2025"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_T1_NSR_RURAL_ENROLL_CHANGE_2014_2025", "label": "Mudança nas matrículas rurais", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · 2014–2025"},
+          {"factId": "F_T1_NSR_RURAL_SCHOOLS_CHANGE_2014_2025", "label": "Mudança nas escolas rurais", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · 2014–2025"}
+        ]
+      }
+    },
+    {
+      "id": "inclusao-aee",
+      "title": "Inclusão, educação especial e AEE",
+      "sourceIds": ["INEP_ACCESS"],
+      "interpretation": "O aumento registrado precisa ser lido junto com vagas, atendimento e trajetória dos estudantes para sabermos se houve melhoria real de acesso.",
+      "question": "O aumento de matrículas e escolas com AEE veio acompanhado de atendimento suficiente e adequado?",
+      "limit": "Crescimento de matrícula ou de escola ofertante não demonstra capacidade, qualidade nem efeito educacional.",
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_T1_VALE_SPECIAL_ENROLL_CHANGE_2014_2025", "label": "Mudança nas matrículas da educação especial", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · 2014–2025"},
+          {"factId": "F_T1_VALE_AEE_SCHOOLS_CHANGE_2014_2025", "label": "Mudança nas escolas com AEE", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Vale · 2014–2025"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_T1_NSR_SPECIAL_ENROLL_CHANGE_2014_2025", "label": "Mudança nas matrículas da educação especial", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · 2014–2025"},
+          {"factId": "F_T1_NSR_AEE_SCHOOLS_CHANGE_2014_2025", "label": "Mudança nas escolas com AEE", "valueField": "absolute_change", "format": "integer", "isChange": true, "includeEndpoints": true, "contextLabel": "Nova Santa Rita · 2014–2025"}
+        ]
+      }
+    },
+    {
+      "id": "contexto-social-registrado",
+      "title": "Contexto social registrado",
+      "sourceIds": ["SOCIAL_REGISTER"],
+      "interpretation": "As contagens mostram quantas pessoas aparecem no cadastro e ajudam a orientar a busca ativa, mas ainda não explicam permanência ou aprendizagem.",
+      "question": "Quais barreiras de permanência e busca ativa precisam ser investigadas com dados locais?",
+      "limit": "O cadastro não representa a proporção de toda a população, e sua relação com a educação ainda não foi testada.",
+      "evidence": {
+        "VALE_10": [
+          {"factId": "F_T1_VALE_LOW_INCOME_REGISTERED_PEOPLE_2024-12", "label": "Pessoas de baixa renda registradas", "valueField": "value_start", "format": "integer", "isChange": false, "includeEndpoints": false, "contextLabel": "Vale · dez. 2024"},
+          {"factId": "F_T1_VALE_REGISTERED_PEOPLE_0_15_2024-12", "label": "Pessoas de 0 a 15 anos registradas", "valueField": "value_start", "format": "integer", "isChange": false, "includeEndpoints": false, "contextLabel": "Vale · dez. 2024"}
+        ],
+        "MUNICIPALITY_4313375": [
+          {"factId": "F_T1_NSR_LOW_INCOME_REGISTERED_PEOPLE_2024-12", "label": "Pessoas de baixa renda registradas", "valueField": "value_start", "format": "integer", "isChange": false, "includeEndpoints": false, "contextLabel": "Nova Santa Rita · dez. 2024"},
+          {"factId": "F_T1_NSR_REGISTERED_PEOPLE_0_15_2024-12", "label": "Pessoas de 0 a 15 anos registradas", "valueField": "value_start", "format": "integer", "isChange": false, "includeEndpoints": false, "contextLabel": "Nova Santa Rita · dez. 2024"}
+        ]
+      }
+    }
+  ]
+}

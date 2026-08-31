@@ -9,12 +9,12 @@ const sourceRoot = path.join(repositoryRoot, 'src')
 const stylesRoot = path.join(sourceRoot, 'styles')
 
 /*
- * Teto total do CSS. Sobe apenas quando uma página nova entra no produto — não
- * para acomodar duplicação. O último ajuste abriu espaço para os Cenários da
- * educação municipal, que chegou com folha própria e nenhuma regra repetida das
- * demais; o arquivo tem teto individual logo abaixo para não crescer sozinho.
+ * Teto total do CSS. Sobe apenas quando páginas novas entram no produto — não
+ * para acomodar duplicação. Este baseline incorpora as superfícies analíticas de
+ * Vocações/PNE e Cenários da Educação; cada folha nova tem teto individual logo
+ * abaixo, e o total conserva menos de 0,1% de folga sobre o estado medido.
  */
-const CSS_TOTAL_SOFT_LIMIT_BYTES = 1_425_000
+const CSS_TOTAL_SOFT_LIMIT_BYTES = 1_629_000
 const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/App.css': 286_000,
   'src/styles/quick-reading-list.css': 3_000,
@@ -37,6 +37,11 @@ const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/styles/education-pages-refinements.css': 20_000,
   'src/styles/financial-pages.css': 210_000,
   'src/styles/institutional-refresh.css': 213_000,
+  'src/styles/vocacoes-pne-advanced.css': 24_000,
+  'src/styles/vocacoes-pne-internal.css': 66_000,
+  'src/styles/vocacoes-pne-narrative-page.css': 17_000,
+  'src/styles/vocacoes-pne-official.css': 6_000,
+  'src/styles/cenarios-educacao.css': 43_000,
 })
 const TYPECHECK_DEBT_ALLOWLIST = Object.freeze([
   'src/features/education/educationViewModels.ts',

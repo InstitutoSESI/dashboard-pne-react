@@ -56,6 +56,7 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 | Educação | `#educacao` com `secao` | `src/features/education/EducationPage.tsx` | `municipios/<ibge>/index.json`, `educacao/visao-geral-municipal/<ibge>.json` | `export_education_indicators.py`, `materialize_municipal_education_overview.py` | `test:education`, `test:pipeline-education-state`, `test:python` |
 | Panorama financeiro | `#financeiros-panorama` | `MunicipalFinancePanoramaPage` | `municipios/<ibge>/financeiro.json`, histórico anual da QSE e IMERS/PRE do RS | `generate_municipal_finance.py`, `generate_qse_annual.py`, `sync_icms_education_source.py` | `test:municipal-finance`, `test:icms-education-source`, `test:python` |
 | Módulos financeiros | `#financeiros`, `#financeiros-*` | `src/pages/FinancialPage.jsx` | contrato municipal, catálogos e metadados de `src/data` | exportadores de Fundeb/PNATE e geradores financeiros | `test:municipal-finance`, `test:data-sources` |
+| Cenários da Educação | `#cenarios-da-educacao` | `src/features/cenarios-educacao/CenariosEducacaoPage.tsx` | bundle e registro versionados em `src/features/cenarios-educacao/generated`, derivados de 30 entradas públicas locais e sem escrita em `public/data` | `scripts/generate-cenarios-educacao.mjs` | `test:cenarios-educacao`, `test:cenarios-educacao:e2e` |
 
 ## Contratos de dados
 
@@ -155,13 +156,26 @@ e calcular o lote integral, materializa nesse staging a allowlist ativa:
 A regionalização voltou em 2026-08-24, por fora do exportador Python. Ela é
 outra coisa que a de 2026-06: o recorte vive em `config/regions/<uf>.json` como
 configuração versionada, não em coluna de banco; a agregação é um gerador
-determinístico em Node (`scripts/generate-regioes.mjs`) que soma o que a
-plataforma já publicou por município, sem tocar no banco; e o artefato sai com
-manifesto, `contentHash`, `contentVersion` e escrita atômica, o que o legado não
-tinha. As regras de agregação foram endurecidas: contagens somam, percentuais
-nascem da divisão dos totais somados e um ano só recebe valor quando todos os
-municípios da região informaram o dado. Fluxo escolar, IDEB, SAEB e INSE ficam
-fora desta versão porque o legado os resolvia por média simples.
+determinístico em Node (`scripts/generate-regioes.mjs`) que lê o que a plataforma
+já publicou por município, sem tocar no banco nem na rede. A versão 2 do
+artefato regional publica estrutura e oferta educacional, fluxo, aprendizagem,
+organização, VAAR/FUNDEB e o catálogo completo do PNE 2026–2036 com metas e
+referências canônicas.
+
+As regras de agregação são explícitas. Contagens somam e só são publicadas para
+um ano integral; taxas regionais nascem da divisão de numeradores e denominadores
+somados, nunca da média de percentuais. Quando o contrato municipal não contém
+componentes suficientes para recompor uma taxa — fluxo escolar, IDEB, SAEB,
+INSE e a maior parte do PNE, por exemplo — o artefato publica a mediana dos
+municípios, a rotula como distribuição municipal, declara quantos resultados
+entraram e oferece a mediana estadual pelo mesmo método. `null` continua distinto
+de zero e percentuais acima de 100% não são limitados silenciosamente.
+
+A publicação é transacional: o gerador monta as dez regiões em staging, valida
+o lote completo contra schema, manifesto, identidade, `contentHash`,
+`contentVersion` e `byteSize`, preserva arquivos idênticos e só então promove.
+Falha durante a promoção restaura o conjunto anterior; lote parcial nunca é
+aceito.
 
 O total legado de matrículas também estava inflado: ele somava todas as linhas
 de etapa de ensino. Em Serra, 2025, isso dava 326.024 contra 203.983 do total

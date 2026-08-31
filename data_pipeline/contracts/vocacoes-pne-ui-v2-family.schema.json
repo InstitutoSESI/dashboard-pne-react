@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pne.local/contracts/vocacoes-pne-ui-v2-family.schema.json",
+  "title": "Família editorial UI V2 — Vocações × PNE",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "storyFamilyId",
+    "directionId",
+    "macroblockId",
+    "layer",
+    "title",
+    "summary",
+    "regionalQuestion",
+    "municipalQuestion",
+    "planningQuestion",
+    "primaryVisual",
+    "sourceRefs",
+    "territorialLenses",
+    "networkScope",
+    "materializedInputs",
+    "visiblePneGoalRefs",
+    "hiddenPneLinkJustifications",
+    "pmeGoalRefs"
+  ],
+  "properties": {
+    "storyFamilyId": {
+      "type": "string",
+      "enum": [
+        "D1_COHORT_OFFER_CAPACITY",
+        "D1_TRAJECTORY_CONDITIONS",
+        "D1_MOBILITY_HIGH_SCHOOL_OFFER",
+        "D1_RURALITY_PNATE_PLANNING",
+        "D1_SPECIAL_AEE_TERRITORY",
+        "D1_ADULT_SCHOOLING_EJA",
+        "D2_YOUTH_WORK_15_17",
+        "D2_YOUTH_WORK_18_24",
+        "D2_APPRENTICESHIP",
+        "D2_OCCUPATIONS_SECTORS",
+        "D2_EPT_TERRITORIAL_OFFER",
+        "D2_SECTOR_TRANSFORMATION_SHIFT_SHARE",
+        "D2_NORMATIVE_WORK_EDUCATION_BRIDGE"
+      ]
+    },
+    "directionId": {
+      "type": "string",
+      "enum": [
+        "TERRITORY_HELPS_UNDERSTAND_EDUCATION",
+        "TERRITORIAL_TRANSFORMATIONS_SET_EDUCATION_AGENDA"
+      ]
+    },
+    "macroblockId": {
+      "type": "string",
+      "enum": [
+        "A_DEMOGRAPHY_AND_OFFER",
+        "B_TRAJECTORY_AND_CONDITIONS",
+        "C_MOBILITY_AND_HIGH_SCHOOL",
+        "D_RURALITY_AND_TRANSPORT",
+        "E_INCLUSION_AND_ADULTS",
+        "F_YOUTH_WORK_AND_TRAINING",
+        "G_ECONOMY_EPT_AND_COORDINATION"
+      ]
+    },
+    "layer": {
+      "type": "string",
+      "enum": [
+        "PRIMARY_NARRATIVE_PATH",
+        "EXPANDED_EVIDENCE_LAYER",
+        "INTERNAL_TECHNICAL_LAYER"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "regionalQuestion": { "type": "string", "minLength": 1 },
+    "municipalQuestion": { "type": "string", "minLength": 1 },
+    "planningQuestion": { "type": "string", "minLength": 1 },
+    "primaryVisual": { "type": "string", "minLength": 1 },
+    "sourceRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "territorialLenses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "resident_population",
+          "student_residence",
+          "school_location",
+          "rural_school_location",
+          "workplace",
+          "municipal_executor"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "networkScope": { "const": "total_all_dependencies" },
+    "materializedInputs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "visiblePneGoalRefs": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[0-9]+\\.[a-z]$" },
+      "uniqueItems": true
+    },
+    "hiddenPneLinkJustifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["legalGoalRef", "reason"],
+        "properties": {
+          "legalGoalRef": { "type": "string", "pattern": "^[0-9]+\\.[a-z]$" },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "pmeGoalRefs": { "type": "array", "maxItems": 0 }
+  }
+}

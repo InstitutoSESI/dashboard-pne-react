@@ -1,0 +1,231 @@
+{
+  "schemaVersion": "vocacoes-pne-relationship-atlas-contract-v1",
+  "programId": "vocacoes-pne-relationship-atlas-v1",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "stateCode": "RS",
+    "stateMunicipalityCount": 497,
+    "regionId": "REGION_VALE_DO_SINOS",
+    "regionMunicipalityCount": 10,
+    "selectedMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "educationNetworkScope": "total_all_dependencies",
+    "publicDataWritesAllowed": false,
+    "databaseUseAllowed": false,
+    "networkUseAllowed": false,
+    "fullBuildAllowed": false,
+    "causalClaimsAllowedAtEntry": false
+  },
+  "inputs": [
+    {
+      "inputId": "AA1_PANEL",
+      "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/PAINEL_ANALITICO_ESTADUAL_AA1.csv.gz"
+    },
+    {
+      "inputId": "AA1_METRIC_CATALOG",
+      "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1/CATALOGO_METRICAS_AA1.json"
+    },
+    {
+      "inputId": "JOB5I_SERIES",
+      "path": "src/features/vocacoes-pne-internal/generated/vocacoesPneJob5iSeries.json"
+    },
+    {
+      "inputId": "JOB5I_CORE",
+      "path": "src/features/vocacoes-pne-internal/generated/vocacoesPneJob5iCore.json"
+    },
+    {
+      "inputId": "AA3_THEORY_LIBRARY_CONTRACT",
+      "path": "data_pipeline/contracts/vocacoes-pne-aa3-theory-library-v1.json"
+    },
+    {
+      "inputId": "CURRENT_OFFICIAL_ADVANCED_BUNDLE",
+      "path": "src/features/vocacoes-regiao/generated/vocacoesPneAdvancedInsightsValeDoSinos.json"
+    },
+    {
+      "inputId": "RS_REGION_REGISTRY",
+      "path": "config/regions/rs.json"
+    },
+    {
+      "inputId": "AA1_OBSERVATION_CONTRACT",
+      "path": "data_pipeline/contracts/vocacoes-pne-advanced-panel-v1.json"
+    }
+  ],
+  "signatureDispositions": [
+    "TEST_PRIMARY",
+    "TEST_SECONDARY",
+    "DESCRIPTIVE_ONLY",
+    "DENOMINATOR_OR_QA_ONLY",
+    "BLOCKED_GRAIN_SCOPE_TIME",
+    "NOT_THEORETICALLY_JUSTIFIED"
+  ],
+  "evidenceClasses": [
+    "ACCOUNTING_DECOMPOSITION",
+    "ROBUST_ASSOCIATION",
+    "CONTEXT_ADJUSTED_COMPARISON",
+    "EXPLORATORY_ASSOCIATION",
+    "PLANNING_SIGNAL",
+    "DISTRIBUTIONAL_PATTERN",
+    "DESCRIPTIVE_CONTEXT",
+    "NO_ROBUST_ASSOCIATION",
+    "NOT_COMPARABLE",
+    "INSUFFICIENT_DATA"
+  ],
+  "methodPresets": {
+    "PANEL_RS": {
+      "estimator": "municipality_and_year_fixed_effects",
+      "inference": "cluster_robust_by_municipality",
+      "minimumMunicipalities": 400,
+      "minimumPeriods": 5,
+      "robustness": [
+        "lag_1",
+        "exclude_2020_2021_when_applicable",
+        "lead_1_placebo",
+        "leave_one_region_out",
+        "influence_diagnostics"
+      ]
+    },
+    "PANEL_VALE": {
+      "estimator": "municipality_and_year_fixed_effects",
+      "inference": "exact_rademacher_wild_cluster_2_to_the_G",
+      "minimumMunicipalities": 9,
+      "minimumPeriods": 5,
+      "robustness": [
+        "lag_1",
+        "exclude_2020_2021_when_applicable",
+        "lead_1_placebo",
+        "leave_one_municipality_out",
+        "influence_diagnostics"
+      ]
+    },
+    "REPEATED_CROSS_SECTION_RS": {
+      "estimator": "pooled_ols_with_period_effects_and_hc3",
+      "inference": "hc3_and_rank_sensitivity",
+      "minimumMunicipalities": 400,
+      "minimumPeriods": 3,
+      "robustness": [
+        "spearman_sensitivity",
+        "leave_one_region_out",
+        "influence_diagnostics"
+      ]
+    },
+    "CROSS_SECTION_RS": {
+      "estimator": "spearman_and_ols_hc3",
+      "inference": "two_sided",
+      "minimumMunicipalities": 400,
+      "minimumPeriods": 1,
+      "robustness": [
+        "leave_one_region_out",
+        "influence_diagnostics",
+        "alternative_scale_control"
+      ]
+    },
+    "CROSS_SECTION_VALE": {
+      "estimator": "spearman",
+      "inference": "99999_deterministic_permutations",
+      "minimumMunicipalities": 8,
+      "minimumPeriods": 1,
+      "robustness": [
+        "10000_descriptive_bootstrap",
+        "leave_one_municipality_out",
+        "influence_diagnostics"
+      ]
+    },
+    "CHANGE_CROSS_SECTION_VALE": {
+      "estimator": "change_on_change_spearman",
+      "inference": "99999_deterministic_permutations",
+      "minimumMunicipalities": 8,
+      "minimumPeriods": 2,
+      "robustness": [
+        "leave_one_municipality_out",
+        "alternative_endpoint",
+        "influence_diagnostics"
+      ]
+    },
+    "SHORT_PANEL_VALE": {
+      "estimator": "municipality_and_year_fixed_effects",
+      "inference": "exact_rademacher_wild_cluster_2_to_the_G",
+      "minimumMunicipalities": 9,
+      "minimumPeriods": 3,
+      "robustness": [
+        "lead_1_placebo",
+        "leave_one_municipality_out",
+        "influence_diagnostics"
+      ],
+      "pandemicExclusion": "NOT_APPLICABLE_PREDECLARED"
+    },
+    "DESCRIPTIVE_IDENTITY": {
+      "estimator": "accounting_or_normative_correspondence",
+      "inference": "not_applicable",
+      "minimumMunicipalities": 1,
+      "minimumPeriods": 1,
+      "robustness": [
+        "closure_or_coverage_reconciliation"
+      ]
+    }
+  },
+  "multiplicity": {
+    "method": "BENJAMINI_HOCHBERG",
+    "fixedFamilyDenominator": true,
+    "invalidFitSelectionPlaceholder": 1.0,
+    "globalExploratoryQRequired": true,
+    "statewideAlpha": 0.05,
+    "valeLowPowerAlpha": 0.10,
+    "negativeAndUnavailableResultsRequired": true
+  },
+  "promotionGate": {
+    "minimumLeaveOneOutSignShare": 0.8,
+    "statewideMaximumQ": 0.05,
+    "valeMaximumQ": 0.10,
+    "intervalMustSupportDirection": true,
+    "pandemicSensitivityRequiredWhenApplicable": true,
+    "placeboMustBeWeaker": true,
+    "mechanismAndAlternativesRequired": true,
+    "scopeLensNetworkComparabilityRequired": true,
+    "novaSantaRitaAndValeContextRequired": true,
+    "averageEffectNeverBecomesAutomaticLocalEffect": true,
+    "causalLanguageRequiresSeparateIdentificationPass": true
+  },
+  "nominalValuePolicy": {
+    "raisRemuneration": "Use within-municipality-year schooling premium ratios or models with year fixed effects; never compare nominal BRL levels directly across years.",
+    "municipalFinance": "No nominal level comparison across years. Finance remains blocked or separate-year context while municipal-executor and total-network scopes differ.",
+    "deflatorInstalled": false,
+    "crossYearNominalLevelComparisonAllowed": false
+  },
+  "familyRegistry": [
+    {"familyId": "R01_DEMOGRAPHY_STAGE_ENROLLMENT", "lane": "demography_network", "mechanismId": "H1_DEMOGRAFIA_REDE", "entryCeiling": "ROBUST_ASSOCIATION"},
+    {"familyId": "R02_DEMOGRAPHY_OFFER_RESPONSE", "lane": "demography_network", "mechanismId": "H1_DEMOGRAFIA_REDE", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R03_TERRITORIAL_PRESSURE_TRAJECTORY", "lane": "demography_network", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "EXPLORATORY_ASSOCIATION"},
+    {"familyId": "R04_SCHOOL_CONDITIONS_TRAJECTORY", "lane": "demography_network", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "ROBUST_ASSOCIATION"},
+    {"familyId": "R05_INSE_TRAJECTORY", "lane": "demography_network", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "CONTEXT_ADJUSTED_COMPARISON"},
+    {"familyId": "R06_ADULT_SCHOOLING_TRAJECTORY", "lane": "demography_network", "mechanismId": "H4_EJA_DISTRIBUICAO", "entryCeiling": "DISTRIBUTIONAL_PATTERN"},
+    {"familyId": "R07_YOUTH_WORK_TRAJECTORY", "lane": "economy_work", "mechanismId": "H3_TRABALHO_JUVENIL_MEDIO", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R08_WORK_STUDY_COMPATIBILITY", "lane": "economy_work", "mechanismId": "A2_TRABALHO_PERMANENCIA", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R09_WORKER_SCHOOLING_EJA_EPT", "lane": "economy_work", "mechanismId": "H4_EJA_DISTRIBUICAO", "entryCeiling": "DISTRIBUTIONAL_PATTERN"},
+    {"familyId": "R10_ECONOMIC_STRUCTURE_EPT", "lane": "economy_work", "mechanismId": "A3_OCUPACOES_FORMACAO", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R11_VULNERABILITY_EDUCATION", "lane": "social_access", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "EXPLORATORY_ASSOCIATION"},
+    {"familyId": "R12_RURALITY_ACCESS", "lane": "social_access", "mechanismId": "H1_DEMOGRAFIA_REDE", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R13_AEE_CAPACITY_INCLUSION", "lane": "social_access", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "PLANNING_SIGNAL"},
+    {"familyId": "R14_EDUCATIONAL_MOBILITY_OFFER", "lane": "demography_network", "mechanismId": "A1_COORTES_REDE", "entryCeiling": "DISTRIBUTIONAL_PATTERN"},
+    {"familyId": "R15_FINANCE_CAPACITY", "lane": "social_access", "mechanismId": "H2_TRAJETORIA_PERMANENCIA", "entryCeiling": "NOT_COMPARABLE"},
+    {"familyId": "R16_PNATE_RURAL_CONTEXT", "lane": "social_access", "mechanismId": "H1_DEMOGRAFIA_REDE", "entryCeiling": "DESCRIPTIVE_CONTEXT"},
+    {"familyId": "R17_EDUCATION_WAGE_SIGNAL", "lane": "economy_work", "mechanismId": "A2_TRABALHO_PERMANENCIA", "entryCeiling": "DISTRIBUTIONAL_PATTERN"},
+    {"familyId": "R18_APPRENTICESHIP_EPT_HIGH_SCHOOL", "lane": "economy_work", "mechanismId": "A3_OCUPACOES_FORMACAO", "entryCeiling": "EXPLORATORY_ASSOCIATION"}
+  ],
+  "currentPromotionIds": [
+    "demografia-matriculas-rede",
+    "trajetoria-contexto",
+    "transformacao-economica-ept",
+    "escolaridade-adulta-eja",
+    "trabalho-juvenil-permanencia"
+  ],
+  "generation": {
+    "outputRoot": ".tmp/vocacoes-pne/relationship-atlas-v1/preregistration",
+    "deterministic": true,
+    "manifestWrittenLast": true,
+    "freezeConflictFailsClosed": true,
+    "networkUsed": false,
+    "databaseUsed": false,
+    "publicDataWritesAllowed": false,
+    "fullBuildAllowed": false
+  }
+}

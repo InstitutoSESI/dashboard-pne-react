@@ -4,19 +4,19 @@ import { LoadingState } from '../../components/LoadingState'
 import { PnePageHeader } from '../../components/PnePageHeader'
 import { loadEducationMunicipio } from '../../data/educationData.js'
 import { useMunicipioMatriz } from '../../hooks/useMunicipioMatriz.js'
-import { useVocacoesRegiao } from '../../hooks/useVocacoesRegiao'
 import { useAsyncData } from '../../utils/useAsyncData.js'
-import {
-  buildMatrizTerritorialContext,
-} from './matrizTerritorialContext.js'
-import type { MatrizTerritorialContext } from './matrizTerritorialContext.js'
 import {
   buildMatrizEducationContext,
   resolveMatrizEducationContextFact,
 } from './matrizEducationContext.js'
 import type { MatrizEducationContext } from './matrizEducationContext.js'
-import { matrizFrenteKey, resolveMatrizFrentes } from './matrizFrentes.js'
-import { resolveMatrizGoalInsight } from './matrizInsights.js'
+import {
+  matrizFrenteKey,
+  resolveMatrizFrentes,
+  resolveMatrizGoalSupport,
+} from './matrizFrentes.js'
+import type { MatrizFrenteBridge, MatrizFrenteProgram } from './matrizFrentes.js'
+import { resolveMatrizGoalInsight, resolveMatrizIndicatorScope } from './matrizInsights.js'
 import type {
   MatrizDistanceToTarget,
   MatrizDocument,
@@ -39,6 +39,50 @@ import '../../styles/matriz-page.css'
 
 function plural(value: number, singular: string, pluralText: string): string {
   return `${value} ${value === 1 ? singular : pluralText}`
+}
+
+function MatrizProgramList({
+  keyPrefix,
+  programs,
+}: {
+  keyPrefix: string
+  programs: readonly MatrizFrenteProgram[]
+}) {
+  if (programs.length === 0) return null
+  return (
+    <div className="matriz-frente__section">
+      <h5>Apoios e referências oficiais</h5>
+      <ul className="matriz-frente__programs">
+        {programs.map((program, index) => (
+          <li key={`${keyPrefix}-program-${index}`}>
+            <a href={program.url} rel="noreferrer" target="_blank">{program.name}</a>
+            <span>{program.description}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function MatrizBridgeLink({
+  bridge,
+  municipalityId,
+}: {
+  bridge: MatrizFrenteBridge | undefined
+  municipalityId: string
+}) {
+  if (!bridge) return null
+  return (
+    <div className="matriz-frente__bridge">
+      <h5>Informações relacionadas no painel</h5>
+      <a href={buildAppHash(bridge.page, {
+        ...bridge.params,
+        municipio: municipalityId,
+      })}>
+        {bridge.label}
+      </a>
+    </div>
+  )
 }
 
 const MATRIZ_DISTANCE_ORDER: readonly MatrizDistanceToTarget[] = [
@@ -170,12 +214,19 @@ function MatrizGoalActions({
 
   const goals = [...matriz.priorityGoals, ...matriz.goalsWithoutOwnCause]
   const frentes = resolveMatrizFrentes(goal.goalId)
+  const goalSupport = resolveMatrizGoalSupport(goal.goalId)
+  const indicatorScope = resolveMatrizIndicatorScope(goal)
 
   return (
     <div className="matriz-goal__actions">
       <header className="matriz-goal__actions-head">
         <h3>Caminhos para avançar</h3>
         <p>{insight.focus}</p>
+        {indicatorScope ? (
+          <p className="matriz-goal__indicator-scope">
+            <strong>Escopo do indicador:</strong> {indicatorScope}
+          </p>
+        ) : null}
       </header>
       <div className="matriz-frente-list">
         {frentes.map((frente) => {
@@ -244,36 +295,23 @@ function MatrizGoalActions({
                     ))}
                   </ul>
                 </div>
-                <div className="matriz-frente__section">
-                  <h5>Apoio federal</h5>
-                  <ul className="matriz-frente__programs">
-                    {frente.programs.map((program, index) => (
-                      <li key={`${frontKey}-program-${index}`}>
-                        {program.url ? (
-                          <a href={program.url} rel="noreferrer" target="_blank">{program.name}</a>
-                        ) : <strong>{program.name}</strong>}
-                        <span>{program.description}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {frente.bridge ? (
-                  <div className="matriz-frente__bridge">
-                    <h5>Informações relacionadas no painel</h5>
-                    <a href={buildAppHash(frente.bridge.page, {
-                      ...frente.bridge.params,
-                      municipio: matriz.municipality.ibge7,
-                    })}>
-                      {frente.bridge.label}
-                    </a>
-                  </div>
-                ) : null}
-                <p className="matriz-frente__legal">Base: {frente.legalRef}</p>
+                <MatrizProgramList keyPrefix={frontKey} programs={frente.programs} />
+                <MatrizBridgeLink bridge={frente.bridge} municipalityId={matriz.municipality.ibge7} />
+                <p className="matriz-frente__legal">{frente.legalRef}</p>
               </details>
             </article>
           )
         })}
       </div>
+      {goalSupport && (goalSupport.programs.length > 0 || goalSupport.bridge) ? (
+        <details className="matriz-goal__support">
+          <summary>Apoios e informações comuns à meta</summary>
+          <div className="matriz-goal__support-body">
+            <MatrizProgramList keyPrefix={`${goal.goalId}-shared`} programs={goalSupport.programs} />
+            <MatrizBridgeLink bridge={goalSupport.bridge} municipalityId={matriz.municipality.ibge7} />
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }
@@ -356,79 +394,12 @@ function HonestyBlocks({ matriz }: { matriz: MatrizDocument }) {
   )
 }
 
-/*
- * Bloco ponte PNE → Vocações. Aparece só quando a região do município tem
- * pacote regional publicado; sem ele, o bloco não existe — fail-closed por
- * ausência, sem seção vazia e sem erro. A linguagem é a do módulo de contexto:
- * "a região do município apresenta…", nunca "isto explica o município".
- */
-function MatrizTerritorialContextBlock({
-  territorialContext,
-}: {
-  territorialContext: MatrizTerritorialContext
-}) {
-  return (
-    <section aria-labelledby="matriz-territorio-title" className="matriz-territorio">
-      <header className="matriz-territorio__head">
-        <h2 id="matriz-territorio-title">Contexto territorial da região</h2>
-        <p>{territorialContext.intro}</p>
-      </header>
-      <ul className="matriz-territorio__list">
-        {territorialContext.readings.map((reading) => (
-          <li
-            className={reading.reading ? 'matriz-territorio__item matriz-territorio__item--with-reading' : 'matriz-territorio__item'}
-            key={reading.title}
-          >
-            {reading.reading ? (
-              <div className="matriz-territorio__reading-row">
-                <p className="matriz-territorio__reading">{reading.reading}</p>
-                {reading.correlationStrength ? (
-                  <span
-                    aria-hidden="true"
-                    className="matriz-territorio__strength"
-                    data-strength={reading.correlationStrength}
-                  >
-                    <i />
-                    <i />
-                    <i />
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="matriz-territorio__entities">
-              <strong className="matriz-territorio__entity matriz-territorio__entity--education">
-                <i aria-hidden="true" className="matriz-territorio__entity-mark" />
-                {reading.title}
-              </strong>
-              {reading.factors ? (
-                <span className="matriz-territorio__entity matriz-territorio__entity--territory">
-                  <i aria-hidden="true" className="matriz-territorio__entity-mark" />
-                  {reading.factors}
-                </span>
-              ) : null}
-            </div>
-          </li>
-        ))}
-      </ul>
-      <a className="matriz-territorio__link" href={territorialContext.link.href}>
-        {territorialContext.link.label}
-      </a>
-      <details className="matriz-territorio__method">
-        <summary>Nota metodológica — o que estas leituras não dizem</summary>
-        <p className="matriz-territorio__note">{territorialContext.readingNote}</p>
-      </details>
-    </section>
-  )
-}
-
 export function MatrizDocumentView({
   educationContext,
   matriz,
-  territorialContext = null,
 }: {
   educationContext: MatrizEducationContext | null
   matriz: MatrizDocument
-  territorialContext?: MatrizTerritorialContext | null
 }) {
   const frontCount = matriz.priorityGoals.reduce(
     (total, goal) => total + resolveMatrizFrentes(goal.goalId).length,
@@ -444,16 +415,15 @@ export function MatrizDocumentView({
           </p>
           <p className="matriz-summary__peers">{matrizPriorityPeerSummary(matriz)}</p>
           <p className="matriz-summary__method">
-            Dados públicos ajudam a escolher o que investigar; a confirmação acontece com registros e equipes da rede.
+            <strong>Como usar:</strong> para cada prioridade, defina responsável, território e público, recurso, prazo e um sinal operacional. Desagregue os registros por rede, escola e grupos relevantes e revise as escolhas a cada nova leitura.{' '}
+            <a href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2026/lei/l15388.htm" rel="noreferrer" target="_blank">
+              PNE 2026–2036, art. 13
+            </a>.
           </p>
         </div>
       </section>
 
       <MatrizPriorityOverview matriz={matriz} />
-
-      {territorialContext ? (
-        <MatrizTerritorialContextBlock territorialContext={territorialContext} />
-      ) : null}
 
       {matriz.priorityGoals.length > 0 ? (
         <div aria-label="Metas prioritárias" className="matriz-goal-list">
@@ -487,12 +457,6 @@ export function MatrizPage({
     const educationDocument = await loadEducationMunicipio(municipalityId)
     return buildMatrizEducationContext(educationDocument)
   }, [municipalityId])
-  /*
-   * O pacote regional da região do município, lido do que já está publicado. O
-   * hook devolve `null` quando não há região mapeada ou a região não está
-   * publicada — e o bloco ponte simplesmente não aparece.
-   */
-  const vocacoes = useVocacoesRegiao(municipalityId)
   const matriz = data?.matriz ?? null
 
   if (loading) {
@@ -507,17 +471,12 @@ export function MatrizPage({
     )
   }
 
-  const territorialContext = vocacoes.data
-    ? buildMatrizTerritorialContext(vocacoes.data.document, matriz.municipality.ibge7)
-    : null
-
   const scopeKey = `${matriz.municipality.ibge7}:${matriz.referenceDate}`
   return (
     <LoadedMatrizPage
       educationContext={educationContextState.data}
       key={scopeKey}
       matriz={matriz}
-      territorialContext={territorialContext}
     />
   )
 }
@@ -525,11 +484,9 @@ export function MatrizPage({
 export function LoadedMatrizPage({
   educationContext = null,
   matriz,
-  territorialContext = null,
 }: {
   educationContext?: MatrizEducationContext | null
   matriz: MatrizDocument
-  territorialContext?: MatrizTerritorialContext | null
 }) {
   return (
     <div className="page-stack matriz-page">
@@ -546,7 +503,6 @@ export function LoadedMatrizPage({
       <MatrizDocumentView
         educationContext={educationContext}
         matriz={matriz}
-        territorialContext={territorialContext}
       />
     </div>
   )

@@ -1,0 +1,209 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job2-contract-v1",
+  "jobId": "v7-job2",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "stateCode": "RS",
+    "pilotRegionSlug": "vale-do-sinos",
+    "regionRegistry": "config/regions/rs.json",
+    "municipalityRegistry": "config/municipalities/rs.json",
+    "expectedMunicipalityCount": 10,
+    "identity": "codigo_ibge_textual_7_digitos"
+  },
+  "baseline": {
+    "contractVersion": "1.4.0",
+    "r5ResearchSha256": "9852d0d106deaa3df3dcefc587a08bf3f5e14d2909d159ebe013593d55d213cd",
+    "r5IntegratedSha256": "cc7989a0d3417f0ba5f39f29283de9f61b1c734b03238e0ded252c1d59f7e9ea",
+    "r6ResearchSha256": "bee5d4b7a255631eb6dd49a8c0cb80e7ae68d2f8ff0c5ccc26e78047e31754b8",
+    "r6IntegratedSha256": "daae50bcb85294af78c3fabdfa9ce233fc42f05bc904082ec8ccb74c35118078",
+    "r7ProjectionSha256": "8f9515bf35283bb2622f823830dc1c5ff5cad4aa711158ce120edc07eab64f2c",
+    "publicationQueueSha256": "8e118bfe1e9cf7e3566bd03b783808c3168bff76f0b9332e1d834ab35cdf7274"
+  },
+  "execution": {
+    "networkAllowed": false,
+    "databaseMode": "postgresql_read_only",
+    "databaseWritesAllowed": false,
+    "supabaseAllowed": false,
+    "publicDataWritesAllowed": false,
+    "outputRoot": ".tmp/vocacoes-pne/v7-job2",
+    "outputFormat": "csv_gzip_deterministic",
+    "outputFormatReason": "O ambiente versionado não possui pyarrow nem fastparquet; os recortes são compactados com GZIP determinístico e permanecem tabulares e auditáveis."
+  },
+  "statusSemantics": {
+    "observed": "valor observado, inclusive zero",
+    "unavailable": "fonte ou recorte sem valor disponível",
+    "suppressed": "valor suprimido pela fonte",
+    "not_applicable": "indicador não aplicável ao grão",
+    "null": "ausência numérica decorrente da semântica declarada; denominador zero produz null"
+  },
+  "dictionaries": {
+    "raisAgeGroup": {
+      "2": "15_17",
+      "3": "18_24"
+    },
+    "cagedAgeGroup": {
+      "15_17": {
+        "minimumInclusive": 15,
+        "maximumInclusive": 17
+      },
+      "18_24": {
+        "minimumInclusive": 18,
+        "maximumInclusive": 24
+      }
+    },
+    "cagedAdjustment": {
+      "MOV": "movimento informado na competência",
+      "FOR": "inclusão fora do prazo, adicionada ao tipo de movimento original",
+      "EXC": "exclusão, subtraída do tipo de movimento original"
+    },
+    "territorialLens": {
+      "school_location": "matrículas e oferta segundo o município da escola",
+      "student_residence": "mobilidade segundo o município de residência",
+      "workplace_municipality": "vínculos e movimentos segundo o município do estabelecimento",
+      "resident_population": "população segundo o município de residência"
+    },
+    "evidenceClass": {
+      "observed": "medida diretamente observada na fonte",
+      "estimated_indirect": "estimativa derivada de fonte observada",
+      "preliminary": "resultado preliminar explicitamente identificado",
+      "calculated": "cálculo reproduzível sobre componentes observados"
+    }
+  },
+  "formulas": {
+    "eja": {
+      "participacao_publico_i": "publico_i / publico_regiao",
+      "participacao_matriculas_i": "matriculas_i / matriculas_regiao",
+      "diferenca_distribuicao_pp": "participacao_matriculas_i - participacao_publico_i",
+      "diferencaDistribuicaoStoredScale": "fraction_0_1",
+      "matriculas_por_mil": "1000 * matriculas_i / publico_i"
+    },
+    "regionalRate": "sum(numerator) / sum(denominator)",
+    "municipalComparisonWithoutComponents": "municipal_distribution_min_q1_median_q3_max",
+    "denominatorZero": null
+  },
+  "sources": [
+    {
+      "id": "sesi-postgresql",
+      "origin": "Banco SESI local",
+      "database": "sesi",
+      "schema": "public",
+      "tables": [
+        "rendimento_escolar",
+        "distorcao_idade_serie",
+        "alunos_turma",
+        "adequacao_docente",
+        "inse",
+        "saeb_ideb",
+        "censo",
+        "censo_escolas",
+        "eja_integrada_educacao_profissional",
+        "censo_populacao_ensino_fundamental_concluido_18_mais",
+        "censo_populacao_ensino_medio_concluido_18_mais",
+        "populacao_idade"
+      ],
+      "access": "read_only_transaction"
+    },
+    {
+      "id": "cei-postgresql",
+      "origin": "Banco CEI local",
+      "database": "cei",
+      "schema": "public",
+      "tables": [
+        "municipio",
+        "rais_vinculos",
+        "rais_vinculos_ocupacao",
+        "rais_ocupacoes_rs_25",
+        "ocupacao",
+        "cnae"
+      ],
+      "access": "read_only_transaction"
+    },
+    {
+      "id": "novo-caged-local",
+      "origin": "arquivos locais já adquiridos do Novo CAGED",
+      "pathPattern": "CEI/db/data/caged/YYYYMM/CAGED{MOV,FOR,EXC}YYYYMM.txt",
+      "periodMain": "2020-01/2025-12",
+      "partialPeriodExcluded": "2026-01/2026-06"
+    },
+    {
+      "id": "censo-escolar-cursos-local",
+      "origin": "microdados locais do Censo Escolar/Inep",
+      "pathPattern": "SESI/DB/data/censo_escolar/{suplemento_cursos_tecnicos_2023.csv,suplemento_cursos_tecnicos_2024.csv,microdados_censo_escolar_2025.zip}",
+      "period": "2023/2025"
+    },
+    {
+      "id": "correspondencia-cursos-cbo-rs-v1",
+      "origin": "ponte V1 já usada na R6",
+      "path": "data_pipeline/contracts/vocacoes-pne-course-cbo-rs-v1-projection.json",
+      "expectedSourceSha256": "e11a6d1d6acf961ca0c28d778158571bef64f108ac32f7b3a9df0e2dac21cf8f",
+      "schemaVersion": "vocacoes-pne-mapa-cursos-cbo-rs-v1",
+      "projectionSchemaVersion": "vocacoes-pne-course-cbo-rs-v1-projection",
+      "semanticLimit": "correspondencia formativa normativa; não mede aderência, suficiência ou adequação"
+    },
+    {
+      "id": "r6-research-artifact",
+      "origin": "segunda saída de pesquisa V6 versionada",
+      "path": "scripts/checks/fixtures/vocacoes-pne/segunda-saida-pesquisa-vale-do-sinos.json",
+      "expectedSha256": "bee5d4b7a255631eb6dd49a8c0cb80e7ae68d2f8ff0c5ccc26e78047e31754b8"
+    }
+  ],
+  "forbiddenSources": [
+    {
+      "database": "cei",
+      "table": "public.estoque_emprego_faixa_etaria",
+      "reason": "600834 linhas; 297492 grupos de chave duplicados; 262231 conflitos; 89395 grupos negativos"
+    }
+  ],
+  "subjobs": [
+    {
+      "id": "2A",
+      "title": "Trajetória escolar e condições auxiliares de oferta",
+      "minimumArtifacts": [
+        "2a/trajetoria_municipal.csv.gz",
+        "2a/trajetoria_comparacoes.csv.gz",
+        "2a/condicoes_oferta.csv.gz",
+        "2a/condicoes_comparacoes.csv.gz"
+      ]
+    },
+    {
+      "id": "2B",
+      "title": "Trabalho jovem",
+      "minimumArtifacts": [
+        "2b/rais_estoque_jovem_anual.csv.gz",
+        "2b/rais_cubo_jovem.csv.gz",
+        "2b/caged_jovens_mensal.csv.gz",
+        "2b/caged_jovens_cubo.csv.gz"
+      ]
+    },
+    {
+      "id": "2C",
+      "title": "EJA integrada e descompasso demanda–oferta",
+      "minimumArtifacts": [
+        "2c/eja_integrada_historica.csv.gz",
+        "2c/eja_demanda_oferta_2022.csv.gz"
+      ]
+    },
+    {
+      "id": "2D",
+      "title": "Ocupações e formação",
+      "minimumArtifacts": [
+        "2d/oferta_cursos_tecnicos.csv.gz",
+        "2d/cobertura_oferta_municipal.csv.gz",
+        "2d/ocupacoes_rais.csv.gz",
+        "2d/cursos_cbo_2025.csv.gz",
+        "2d/cobertura_ponte_2025.csv.gz"
+      ]
+    },
+    {
+      "id": "2E",
+      "title": "Demografia, rede e mobilidade",
+      "minimumArtifacts": [
+        "2e/coortes_demograficas.csv.gz",
+        "2e/rede_escolar.csv.gz",
+        "2e/cenario_mecanico_coortes.csv.gz",
+        "2e/mobilidade_educacional_2022.csv.gz",
+        "2e/contexto_v6.json"
+      ]
+    }
+  ]
+}

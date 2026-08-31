@@ -1,13 +1,15 @@
 # Matriz de Prioridades — frentes recomendadas para avançar
 
 Documento de decisão editorial. Registra a substituição da lógica de **causas
-identificadas** pela lógica de **frentes recomendadas para avançar** no piloto de
-Nova Santa Rita/RS (IBGE 4313375), decidida em 2026-08-18.
+identificadas** pela lógica de **frentes recomendadas para avançar**, iniciada no
+piloto de Nova Santa Rita/RS (IBGE 4313375) em 2026-08-18 e estendida aos 497
+municípios do RS em 2026-08-30.
 
 - Antecedente: `docs/MATRIZ_DE_PRIORIDADES.md` (construção da matriz por causas).
-- O artefato publicado (`public/data/pne2026-matriz/`) **não muda**: metas,
-  indicadores, resultados, severidade e comparação com pares seguem como estão.
-  A mudança é inteiramente na camada editorial e de interface da plataforma.
+- A publicação estadual (`public/data/pne2026-matriz/`) preserva metas,
+  indicadores, resultados, severidade, fórmulas e comparação com pares da camada
+  de pesquisa. A ampliação muda a cobertura e a orientação editorial, não a
+  metodologia analítica.
 
 ---
 
@@ -29,23 +31,27 @@ Consequências práticas:
    ligação com o indicador é direta e concreta — ex.: busca ativa entra na meta
    de **acesso 6–17** (a meta é exatamente encontrar quem está fora), não como
    pano de fundo genérico de aprendizagem.
-5. Referências legais aparecem em uma linha discreta ao pé de cada frente
-   ("Base: PNE 2026–2036 — meta 4.a e estratégia 4.10"), nunca como texto
-   normativo corrido.
-6. Dados de Nova Santa Rita entram no **caminho correspondente**, apenas quando
+5. Referências legais aparecem em uma linha discreta ao pé de cada frente,
+   sempre distinguindo a meta-base das estratégias complementares ("PNE
+   2026–2036 — base principal: meta 4.a; complemento: estratégia 4.10"), nunca
+   como texto normativo corrido.
+6. Dados do município selecionado entram no **caminho correspondente**, apenas quando
    ajudam a escolher o que investigar ou quem precisa agir. Cada meta tem no
    máximo dois caminhos. Sem dado útil, permanece a verificação concreta — nunca
    uma mensagem de ausência.
 
-## 2. O que se mantém do piloto publicado
+## 2. O que se mantém e o que foi ampliado
 
-- As **7 metas prioritárias** com valor, referência, ano e unidade.
-- A leitura de severidade ("atenção maior" / "atenção") e a comparação com as 88
-  cidades parecidas do RS — tudo vindo do artefato, sem recálculo.
+- Cada município mantém suas próprias metas prioritárias, valor, referência, ano
+  e unidade; Nova Santa Rita preserva as 7 metas originais sem alteração de bytes.
+- A leitura de severidade ("atenção maior" / "atenção") e a comparação com a
+  faixa de cidades parecidas do RS continuam vindo do artefato, sem recálculo.
 - O bloco recolhido de outras metas abaixo do esperado e o bloco "onde o
   município está bem".
 - Os cartões recolhidos por padrão, sem seleção, anotação ou exportação de plano
   na página.
+- A cobertura passa a 497 municípios, 2.904 ocorrências de metas prioritárias e
+  21 metas distintas, cada uma com dois caminhos editoriais.
 
 ## 3. O que sai
 
@@ -64,8 +70,10 @@ Cada meta apresenta uma única seção, **Caminhos para avançar**:
    de ação;
 3. em cada cartão, no máximo um fato municipal, uma verificação local e um
    resultado esperado;
-4. etapas, apoio federal, base legal e aprofundamento no painel ficam recolhidos
-   sob demanda.
+4. etapas, apoios e referências oficiais, base legal e aprofundamento no painel
+   ficam recolhidos sob demanda;
+5. apoio ou aprofundamento útil aos dois cartões aparece uma única vez, no bloco
+   comum da meta.
 
 Essa estrutura adapta a escada de evidência do Vocações — fato observado,
 mecanismo plausível e verificação — sem converter associação em explicação
@@ -80,40 +88,69 @@ Cada meta apresenta **2 caminhos**, em cartões compactos e sem modal:
 4. **Antes de agir, confira** — verificação concreta em registros ou escolas.
 5. **Resultado esperado** — 1 entrega verificável, visível antes do detalhe;
    não define prazo nem responsável.
-6. **Etapas sugeridas** — 2 ou 3 passos práticos extraídos da orientação federal.
-7. **Apoio federal** — programas e instrumentos com link oficial quando estável.
-8. **Base legal** — linha pequena e muda de cor, com meta e estratégias.
-9. **Informações relacionadas no painel** — no máximo um aprofundamento interno,
+6. **Sinal de acompanhamento** — medida operacional própria do caminho, sem
+   apenas repetir o resultado geral do indicador.
+7. **Etapas sugeridas** — 2 ou 3 passos práticos extraídos da orientação federal.
+8. **Apoios e referências oficiais** — programas, instrumentos e documentos com
+   link para a fonte responsável.
+9. **Base legal** — linha pequena com meta-base e estratégias complementares.
+10. **Informações relacionadas no painel** — no máximo um aprofundamento interno,
    preservando o município selecionado.
+
+Quando a mesma meta é calculada com indicadores diferentes entre municípios, a
+página explicita o recorte antes dos cartões — componente avaliado, etapa de
+ensino, escolas ou estudantes. Um lembrete único no topo orienta a prefeitura a
+definir responsável, território e público, recursos, prazo, desagregação e revisão
+periódica, em consonância com o plano de ações educacionais do art. 13 do PNE.
 
 No desktop, os cartões de uma meta ficam lado a lado, cada um com sua própria
 altura; no celular, empilham.
 
-## 5. As frentes do piloto (conteúdo integral em `src/features/matriz/matrizFrentes.ts`)
+## 5. Cobertura estadual (conteúdo integral em `src/features/matriz/matrizFrentes.ts`)
 
 | meta | frentes |
 |---|---|
 | 1.a Creche | Conhecer a procura por vaga · Ampliar a oferta com apoio federal |
-| 5.a Aprendizagem anos iniciais | Avaliar e recompor as aprendizagens · Apoio pedagógico da secretaria às escolas |
-| 11.c Conclusão do médio 18+ | EJA compatível com quem trabalha · EJA integrada à formação profissional |
-| 17.a Formação docente | Formar os professores na área em que atuam · Carreira que atraia e fixe professores habilitados |
-| 4.a Acesso 6–17 | Encontrar e rematricular quem está fora · Preparar a rede para eventos climáticos |
-| 4.b Conclusão do 5º ano na idade | Alfabetizar na idade certa · Acompanhar trajetórias e recompor |
+| 1.c Pré-escola | Localizar e matricular cada criança · Organizar a oferta por território |
+| 3.a Alfabetização | Transformar avaliação em resposta · Ligar formação à prática em sala |
+| 4.a Acesso 6–17 | Encontrar e rematricular quem está fora · Remover a barreira comprovada ao retorno |
+| 4.b Conclusão do 5º ano | Acompanhar individualmente a trajetória · Prevenir novas reprovações com apoio oportuno |
+| 4.c Conclusão do 9º ano | Agir cedo sobre risco de atraso · Fortalecer transição e vínculo |
+| 4.d Conclusão do médio | Confirmar a passagem ao médio · Remover barreiras de permanência |
+| 5.a Aprendizagem anos iniciais | Diagnosticar e recompor o componente avaliado · Apoiar pedagogicamente as escolas |
+| 5.b Aprendizagem anos finais | Priorizar habilidades estruturantes · Desenhar apoio com os adolescentes |
+| 5.d Aprendizagem no médio | Construir agenda entre redes · Ajustar a intensidade do apoio pedagógico |
+| 6.a Tempo integral | Expandir com equidade · Integrar currículo e condições da jornada |
+| 8.b Conforto térmico | Diagnosticar cada ambiente · Equipar com segurança e manter |
+| 11.a Alfabetização 15+ | Identificar e mobilizar o público · Garantir continuidade na EJA |
+| 11.b Conclusão do fundamental 15+ | Organizar a oferta para a vida adulta · Transformar saberes prévios em percurso de conclusão |
+| 11.c Conclusão do médio 18+ | EJA compatível com quem trabalha · Articular reconhecimento e certificação |
+| 11.d Matrículas na EJA | Converter chamada em matrícula · Estabilizar a oferta territorial |
+| 12.a Educação técnica | Mapear oferta e interesse · Formalizar arranjo regional |
+| 12.c EJA integrada à formação profissional | Desenhar percurso único · Validar acesso e utilidade |
+| 14.d Educação superior | Fortalecer polo UAB e oferta regional · Apoiar a transição ao superior |
+| 17.a Formação docente | Formar para a etapa e a área indicadas · Corrigir atribuições fora da habilitação |
 | 19.c Infraestrutura mínima | Acessibilidade dos prédios e salas · Investimento por padrões mínimos |
 
-Programas e instrumentos citados: Novo PAR, Proinfância/Novo PAC, Busca Ativa
-Escolar, Compromisso Nacional Criança Alfabetizada, PNLD, Pé-de-Meia, Pacto
-Nacional da EJA, Parfor, UAB, Mais Professores para
-o Brasil, piso nacional do magistério, PDDE, S2iD/Defesa Civil. Links só quando
-a página oficial é estável; caso contrário, o programa aparece nomeado sem link.
+As fontes oficiais revisadas incluem a Lei nº 15.388/2026 (PNE 2026–2036), Novo
+PAR, Conaquei, Retrato da Educação Infantil, Compromisso Nacional Criança
+Alfabetizada, Pacto pela Recomposição, Escola das Adolescências, Escola em Tempo
+Integral, Pacto EJA, Programa Brasil Alfabetizado, Diretrizes Operacionais da EJA,
+Encceja, PNLD EJA, PDDE Equidade, Pé-de-Meia, PNATE, Catálogo Nacional de Cursos
+Técnicos, Pronatec, UAB, Parfor, Escola Acessível, Programa Nacional de
+Infraestrutura Escolar e manuais técnicos do FNDE. O texto usa o instrumento
+apenas quando ele acrescenta uma decisão ou etapa concreta; explicações comuns
+aos dois caminhos são exibidas uma única vez no nível da meta.
 
 ## 6. Guarda-corpos testados em código
 
 O check de linguagem da matriz é reescrito para o novo contrato:
 
-- Preserva as 7 situações numéricas, a leitura de pares e os rótulos de
-  severidade.
-- Toda meta prioritária rende exatamente 2 caminhos; total de 14 no piloto.
+- Reconcilia 497 códigos IBGE canônicos, arquivos, tamanhos e hashes.
+- Preserva as 7 situações numéricas de Nova Santa Rita, a leitura de pares e os
+  rótulos de severidade usados como regressão do piloto.
+- Toda meta prioritária estadual rende exatamente 2 caminhos: 21 metas e 42
+  caminhos, com um único caminho inicial por meta.
 - Todo caminho possui exatamente 1 resultado esperado, com uma única frase e
   teto editorial de 160 caracteres, exibido antes do conteúdo expandido.
 - Proíbe no HTML renderizado: "causa" (qualquer flexão), "oficina",
@@ -124,12 +161,23 @@ O check de linguagem da matriz é reescrito para o novo contrato:
   Educação; medida sem rótulo e consequência prática não aparece.
 - Cada meta tem exatamente dois mecanismos, ligados um a um aos dois caminhos;
   cada cartão termina a análise com uma verificação local concreta.
+- Os caminhos precisam superar limites automatizados de similaridade dentro da
+  meta e entre metas; textos idênticos também são recusados em toda a camada.
+- Todo apoio publicado tem link, não se repete dentro da meta e ao menos uma
+  referência federal oficial sustenta cada meta.
+- A meta indicada como base principal na referência legal deve ser a mesma do
+  cartão; o complemento registra apenas estratégias efetivamente relacionadas.
+- Os 42 caminhos têm sinais de acompanhamento únicos; fórmulas genéricas como
+  "na próxima leitura" são recusadas.
+- Todos os recortes variáveis publicados no RS — componentes das metas 5.a, 5.b
+  e 5.d, cobertura da meta 6.a, etapas da meta 17.a e o sinal parcial da meta
+  19.c — são exercitados pelo teste estadual.
 - A página não oferece seleção, anotação nem exportação de plano de ação.
 
 ## 7. Fora de escopo (deliberado)
 
-- Demais municípios: o desenho é validado primeiro no piloto.
-- Artefato e camada de pesquisa (`SESI\PNE`): intocados.
+- Alagoas e outras UFs: esta ampliação cobre somente o registro canônico do RS.
+- Fórmulas, fontes analíticas, limiares, indicadores e metodologia: preservados.
 - Caderno de hipóteses: segue o plano de deleção já registrado, sem mudanças
   aqui. **Estado em 2026-08-24:** a deleção foi executada — o caderno não existe
   mais na plataforma e o conteúdo permanece recuperável no git

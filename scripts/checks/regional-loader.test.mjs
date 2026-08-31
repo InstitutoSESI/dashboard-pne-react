@@ -10,10 +10,16 @@
 
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 
-import { buildPublication } from '../generate-regioes.mjs'
+import {
+  buildPublication,
+  publishPublicationTransactionally,
+  validatePublicationDirectory,
+} from '../generate-regioes.mjs'
 import {
   REGIOES_DOCUMENT_SCHEMA,
   REGIOES_MANIFEST_PATH,
@@ -39,6 +45,28 @@ for (const entry of manifest.regions) {
 
 const regionsConfig = JSON.parse(await readRepositoryFile('config/regions/rs.json'))
 const municipalityRegistry = JSON.parse(await readRepositoryFile('config/municipalities/rs.json'))
+const pneCatalog = JSON.parse(await readRepositoryFile('public/data/indicadores.json'))
+  .cycles.pne_2026_2036
+
+function pneIndicator(document, key) {
+  return document.pne2026.categorias
+    .flatMap((category) => category.indicadores)
+    .find((indicator) => indicator.chave === key)
+}
+
+function valueAtYear(result, year) {
+  return result.series?.find((point) => point.ano === year)?.valor
+    ?? (result.end_year === year ? result.end_value : null)
+}
+
+function median(values) {
+  const ordered = [...values].toSorted((left, right) => left - right)
+  const middle = Math.floor(ordered.length / 2)
+  const value = ordered.length % 2 === 1
+    ? ordered[middle]
+    : (ordered[middle - 1] + ordered[middle]) / 2
+  return Math.round(value * 100) / 100
+}
 
 function createFixtureLoader(overrides = new Map()) {
   return createRegionalLoader({
@@ -77,6 +105,32 @@ test('o manifesto cobre o mapa de regiões e o universo municipal', () => {
     manifest.regions.map((entry) => entry.slug).toSorted(),
     regionsConfig.regions.map((region) => region.slug).toSorted(),
   )
+})
+
+test('cada região publica todo o catálogo PNE 2026–2036 e reconcilia o resumo', () => {
+  const catalogKeys = pneCatalog.categories
+    .flatMap((category) => category.items)
+    .map((indicator) => indicator.key)
+    .toSorted()
+  assert.equal(catalogKeys.length, 49)
+  for (const [slug, raw] of regionRawBySlug) {
+    const published = JSON.parse(raw)
+    const indicators = published.pne2026.categorias.flatMap((category) => category.indicadores)
+    assert.deepEqual(
+      indicators.map((indicator) => indicator.chave).toSorted(),
+      catalogKeys,
+      `${slug} não publicou o catálogo completo`,
+    )
+    assert.equal(published.pne2026.totalIndicadores, indicators.length)
+    assert.equal(
+      published.pne2026.totalReferencias,
+      indicators.filter((indicator) => indicator.referencia !== null).length,
+    )
+    assert.equal(
+      published.pne2026.indicadoresSemResultado,
+      indicators.filter((indicator) => indicator.resultado.valor === null).length,
+    )
+  }
 })
 
 test('cada arquivo publicado confere resumo, versão e identidade', async () => {
@@ -124,6 +178,7 @@ test('contagens regionais somam os municípios, conferidas fora do gerador', asy
 
   let manualTotal = 0
   let manualRural = 0
+  let manualSchools = 0
   for (const ibgeCode of region.municipalityIbgeCodes) {
     const municipal = JSON.parse(
       await readRepositoryFile(`public/data/educacao/municipios/${ibgeCode}.json`),
@@ -135,6 +190,8 @@ test('contagens regionais somam os municípios, conferidas fora do gerador', asy
     )
     // A ausência da série rural é zero estrutural: o município não tem escola rural.
     manualRural += rural?.valor ?? 0
+    manualSchools += municipal.blocos.rede_escolar.series.total
+      .find((point) => point.ano === 2025).valor
   }
 
   assert.equal(
@@ -144,6 +201,10 @@ test('contagens regionais somam os municípios, conferidas fora do gerador', asy
   assert.equal(
     published.matriculas.series.por_localizacao.rural.find((point) => point.ano === 2025).valor,
     manualRural,
+  )
+  assert.equal(
+    published.educacao.contagens.find((indicator) => indicator.chave === 'escolas').valor,
+    manualSchools,
   )
 })
 
@@ -177,6 +238,40 @@ test('percentuais nascem da divisão dos totais somados, não da média dos muni
     Math.round(simpleMean * 100),
     'a média simples coincidiu com o valor publicado; o teste perdeu o poder de detectar a regressão',
   )
+
+  const pneCreche = pneIndicator(published, 'creche')
+  assert.equal(pneCreche.resultado.metodo, 'regional_ratio')
+  assert.equal(pneCreche.resultado.valor, regional.valor)
+  assert.equal(pneCreche.resultado.ano, regional.ano)
+})
+
+test('medianas municipais e referências do PNE são reproduzíveis fora do gerador', async () => {
+  const region = regionsConfig.regions.find((candidate) => candidate.slug === SERRA)
+  const published = JSON.parse(regionRawBySlug.get(SERRA))
+  const adequacy = pneIndicator(published, 'adequacao_ai')
+  const values = []
+  for (const ibgeCode of region.municipalityIbgeCodes) {
+    const index = JSON.parse(await readRepositoryFile(`public/data/municipios/${ibgeCode}/index.json`))
+    const value = valueAtYear(index.pne_2026_2036.indicadores.adequacao_ai, adequacy.resultado.ano)
+    if (typeof value === 'number' && Number.isFinite(value)) values.push(value)
+  }
+  assert.equal(adequacy.resultado.metodo, 'municipal_median')
+  assert.equal(adequacy.resultado.valor, median(values))
+  assert.equal(adequacy.resultado.municipiosComDado, values.length)
+
+  const preschool = pneIndicator(published, 'pre_escola')
+  assert.deepEqual(
+    {
+      ano: preschool.referencia.ano,
+      direcao: preschool.referencia.direcao,
+      valor: preschool.referencia.valor,
+    },
+    { ano: 2028, direcao: 'at_least', valor: 100 },
+  )
+  const literacy = pneIndicator(published, 'alfabetizacao')
+  assert.equal(literacy.resultado.valor, null)
+  assert.equal(literacy.resultado.municipiosComDado, 0)
+  assert.notEqual(literacy.resultado.valor, 0)
 })
 
 test('nenhum ano publicado mistura cobertura parcial com valor', () => {
@@ -237,7 +332,7 @@ test('o leitor recusa resumo, identidade, versão e esquema divergentes', async 
   await assert.rejects(withForeignRegion.loadRegion(SERRA), /pertence a outra região/)
 
   const unknownSchema = JSON.parse(regionRawBySlug.get(SERRA))
-  unknownSchema.schemaVersion = 'regioes-2.0.0'
+  unknownSchema.schemaVersion = 'regioes-3.0.0'
   assert.throws(() => parseRegiaoDocument(unknownSchema), /schemaVersion/)
 
   const extraField = JSON.parse(regionRawBySlug.get(SERRA))
@@ -307,6 +402,54 @@ test('o leitor recusa manifesto quebrado e região não publicada', async () => 
     assert.equal(error.code, 'region_not_published')
     return true
   })
+})
+
+test('a publicação regional promove o lote inteiro, preserva idênticos e reverte falha', async (context) => {
+  const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'pne-regioes-'))
+  context.after(() => rm(temporaryRoot, { recursive: true, force: true }))
+  const outputRoot = path.join(temporaryRoot, 'output')
+  const stagingRoot = path.join(temporaryRoot, 'staging')
+  await mkdir(outputRoot, { recursive: true })
+  const legacy = new Map([
+    ['manifest.json', '{"legacy":true}\n'],
+    ['serra.json', '{"legacy":"serra"}\n'],
+    ['orphan.json', '{"legacy":"orphan"}\n'],
+  ])
+  for (const [filename, contents] of legacy) {
+    await writeFile(path.join(outputRoot, filename), contents, 'utf8')
+  }
+
+  const publication = buildPublication()
+  assert.throws(
+    () => publishPublicationTransactionally(publication, {
+      outputRoot,
+      stagingRoot,
+      afterTargetPromoted: () => {
+        throw new Error('falha injetada depois da primeira promoção')
+      },
+    }),
+    /falha injetada/,
+  )
+  assert.deepEqual((await readdir(outputRoot)).toSorted(), [...legacy.keys()].toSorted())
+  for (const [filename, contents] of legacy) {
+    assert.equal(await readFile(path.join(outputRoot, filename), 'utf8'), contents)
+  }
+
+  const firstReport = publishPublicationTransactionally(publication, { outputRoot, stagingRoot })
+  assert.equal(firstReport.removed.includes('orphan.json'), true)
+  assert.equal(validatePublicationDirectory(outputRoot).regionCount, 10)
+  const secondReport = publishPublicationTransactionally(publication, { outputRoot, stagingRoot })
+  assert.equal(secondReport.created.length, 0)
+  assert.equal(secondReport.updated.length, 0)
+  assert.equal(secondReport.removed.length, 0)
+  assert.equal(secondReport.preserved.length, 11)
+})
+
+test('a tabela de matrículas usa participação regional, sem coluna repetitiva', async () => {
+  const source = await readRepositoryFile('src/features/regional/AnaliseRegionalPage.tsx')
+  assert.match(source, /Participação no total regional/)
+  assert.doesNotMatch(source, /todos os municípios/i)
+  assert.doesNotMatch(source, /<th[^>]*>Cobertura<\/th>/i)
 })
 
 test('o painel regional não expõe o nome institucional do recorte', () => {

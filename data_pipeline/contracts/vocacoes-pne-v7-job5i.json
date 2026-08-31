@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5i-contract-v1",
+  "jobId": "v7-job5i",
+  "classification": "DATA_LOGIC",
+  "domains": [
+    "INTERNAL_VISUAL_PROTOTYPE",
+    "UI_DATA_COMPILER",
+    "FRONTEND_IMPLEMENTATION",
+    "VISUAL_QA"
+  ],
+  "scope": {
+    "state": "RS",
+    "region": "Vale do Sinos",
+    "regionEntityId": "REGION_VALE_DO_SINOS",
+    "municipalityCount": 10,
+    "fallbackMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "administrativeDependencyIsAnalyticDimension": false,
+    "administrativeDependencyIsQADimension": true,
+    "frontendAllowed": "internal_feature_flag_only",
+    "publicNarrativeAllowed": false,
+    "publicationAllowed": false,
+    "publicDataWritesAllowed": false,
+    "gate11": "CLOSED"
+  },
+  "featureFlag": {
+    "name": "VITE_ENABLE_VOCACOES_PNE_INTERNAL",
+    "enabledValue": "true",
+    "defaultEnabled": false,
+    "publicNavigationEntryAllowed": false
+  },
+  "frozenInputs": [
+    ".tmp/vocacoes-pne/v7-job5h",
+    ".tmp/vocacoes-pne/v7-job5gar",
+    ".tmp/vocacoes-pne/v7-job5gbr",
+    ".tmp/vocacoes-pne/v7-job5gcr",
+    ".tmp/vocacoes-pne/v7-job5gd"
+  ],
+  "uiSchemas": [
+    "vocacoes-pne-ui-v2-family.schema.json",
+    "vocacoes-pne-ui-v2-macroblock.schema.json",
+    "vocacoes-pne-ui-v2-variant.schema.json",
+    "vocacoes-pne-ui-v2-series.schema.json"
+  ],
+  "layers": [
+    "PRIMARY_NARRATIVE_PATH",
+    "EXPANDED_EVIDENCE_LAYER",
+    "INTERNAL_TECHNICAL_LAYER"
+  ],
+  "generation": {
+    "outputRoot": ".tmp/vocacoes-pne/v7-job5i",
+    "frontendBundles": [
+      "src/features/vocacoes-pne-internal/generated/vocacoesPneJob5iCore.json",
+      "src/features/vocacoes-pne-internal/generated/vocacoesPneJob5iSeries.json",
+      "src/features/vocacoes-pne-internal/generated/vocacoesPneJob5iTechnical.json"
+    ],
+    "deterministic": true,
+    "transactional": true,
+    "manifestLast": true,
+    "networkAllowed": false,
+    "databaseAllowed": false,
+    "publicDataWritesAllowed": false,
+    "publicationAllowed": false,
+    "gate11": "CLOSED"
+  },
+  "allowedFinalStates": [
+    "JOB_5I_READY_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5I_READY_WITH_EXPLICIT_LIMITS_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5I_STOPPED_FOR_SUBSTANTIVE_DECISION"
+  ]
+}

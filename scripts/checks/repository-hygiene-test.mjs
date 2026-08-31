@@ -11,6 +11,7 @@ const tracked = execFileSync('git', ['ls-files', '-z'], {
   encoding: 'utf8',
   maxBuffer: 16 * 1024 * 1024,
 }).split('\0').filter(Boolean)
+  .filter((path) => existsSync(resolve(repoRoot, path)))
 
 const agentsPath = resolve(repoRoot, 'AGENTS.md')
 assert.ok(existsSync(agentsPath), 'Instruções permanentes ausentes: AGENTS.md.')
@@ -502,7 +503,7 @@ const packageJson = JSON.parse(packageJsonSource)
 const expectedBuildScripts = {
   build: 'vite build',
   'build:app': 'vite build --mode app-only --outDir dist/app-only',
-  'check:fast': 'npm run typecheck && npm run lint && npm run build:app',
+  'check:fast': 'npm run typecheck && npm run lint && npm run check:vocacoes-pne-compilador && npm run build:app',
   'update:data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py',
   'update:data:skip-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --skip-build',
   'update:data:and-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --build',

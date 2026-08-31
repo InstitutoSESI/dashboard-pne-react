@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5l-final-contract-v2",
+  "jobId": "v7-job5l-final",
+  "classification": "SOURCE_REFRESH",
+  "domains": [
+    "DATA_LOGIC",
+    "OFFICIAL_SOURCE_REVERIFICATION",
+    "RAIS_CANONICAL_RECONCILIATION",
+    "BOUNDED_CONTEXT_ADJUSTED_TRAJECTORIES",
+    "FINAL_ANALYTICAL_COMPLETION"
+  ],
+  "internalOnly": true,
+  "gate11": "CLOSED",
+  "job5MAllowed": false,
+  "scope": {
+    "state": "RS",
+    "stateMunicipalityCount": 497,
+    "region": "Vale do Sinos",
+    "regionMunicipalityCount": 10,
+    "fixtureMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "rankingAllowed": false,
+    "causalClaimsAllowed": false,
+    "microLinkageAllowed": false,
+    "publicDataWritesAllowed": false,
+    "frontendWritesAllowed": false,
+    "publicationAllowed": false
+  },
+  "externalJudgment": {
+    "inputVerdict": "JOB_5L_ANALYTICALLY_USEFUL_BUT_NOT_READY_FOR_JOB_5M",
+    "source": "section_2_of_user_authorized_PROMPT_JOB5L_FINAL_SOL_MAX",
+    "separateExternalJudgmentFileFound": false,
+    "automaticApprovalAllowed": false
+  },
+  "f1": {
+    "rateSupport": [0, 100],
+    "responseTransformation": "empirical_logit_with_half_unit_continuity_correction",
+    "inverseTransformation": "logistic_times_100",
+    "predictionMethods": [
+      "ridge_empirical_logit_inverse_logistic",
+      "nearest_context_peers_convex_weighted_average"
+    ],
+    "intervalCalibration": "boundary_normalized_conformal_score",
+    "postPredictionClippingAllowed": false,
+    "historyOnlyFeatures": [
+      "lagged_outcome_value",
+      "year_centered",
+      "pandemic_caution_indicator"
+    ],
+    "contextAddsValueThreshold": "at_least_1_percent_lower_group_municipality_holdout_mae",
+    "temporalHoldoutYear": 2025,
+    "minimumTemporalCoverage": 0.8,
+    "intervalLevel": 0.9,
+    "rankingAllowed": false,
+    "causalInterpretationAllowed": false
+  },
+  "rais": {
+    "source": "MTE_PDET_RAIS_public_nonidentified_microdata",
+    "period": "2019-2025",
+    "ageGroups": ["15_17", "18_24"],
+    "unit": "active_formal_bond_at_31_12",
+    "municipalityLens": "establishment_location_workplace",
+    "legacyMunicipalityField": "MUNICIPIO",
+    "reprocessedMunicipalityField": "Municipio_Codigo",
+    "serviceLocationFieldIsCanonicalForThisSeries": false,
+    "exactReconciliationCellCountRequired": 140,
+    "deduplicateWorkersAllowed": false,
+    "uniquePersonInterpretationAllowed": false,
+    "activeApprenticeshipMeasure": "RAIS_active_apprenticeship_bond_stock_at_31_12",
+    "cagedApprenticeshipMeasure": "Caged_apprentice_admission_event_flow_during_year",
+    "activeRaisAndCagedAdmissionsInterchangeable": false,
+    "sharedLabelAllowed": false
+  },
+  "censo": {
+    "source": "IBGE_Censo_Demografico_2022_sample_microdata",
+    "executeF2AndF5OnlyWhenOfficialPackageAndWeightingAreasAreAvailable": true,
+    "requiredCurrentOfficialEvidence": [
+      "latest_announcement_or_postponement",
+      "current_calendar",
+      "official_landing_page",
+      "download_urls",
+      "package_documentation",
+      "data_and_weighting_files",
+      "observation_timestamp",
+      "response_hashes",
+      "license_and_provenance"
+    ],
+    "availabilityRequires": [
+      "sample_data_files_accessible",
+      "weighting_area_files_accessible",
+      "package_documentation_accessible"
+    ],
+    "announcementAloneCountsAsAvailability": false,
+    "fabricateMunicipalEstimatesAllowed": false,
+    "samePersonClaimsWithoutOfficialMicrodataAllowed": false
+  },
+  "eja": {
+    "fundamentalAndHighSchoolMustRemainSeparate": true,
+    "residentAdultAndLocatedEnrollmentCountsPreserved": true,
+    "regionalDistributionSharesPreserved": true,
+    "distributionDifferencePercentagePointsPreserved": true,
+    "novaSantaRitaRequiredAnchors": {
+      "fundamentalDifferencePercentagePoints": 2.6482631443935167,
+      "highSchoolDifferencePercentagePoints": -2.6050945751099364,
+      "fundamentalEnrollments2025": 152,
+      "highSchoolEnrollments2025": 56
+    },
+    "fundamentalAdultPanelCompatibility": "DEFINITION_INCOMPATIBLE_POPULATION_TOTAL_SOURCE",
+    "fundamentalFullyComparableAdultPanelClaimAllowed": false,
+    "perThousandRatesAllowed": false,
+    "coverageDemandOrDeficitLanguageAllowed": false,
+    "residentPopulationIsManifestDemand": false
+  },
+  "catalog": {
+    "maximumCandidateCountIncludingNegativeAndUnavailable": 8,
+    "requiredInsightIds": [
+      "I1_CONTEXT_ADJUSTED_EDUCATIONAL_TRAJECTORY",
+      "I2_MERGED_YOUTH_WORK_COMPOSITION",
+      "I4_FUNCTIONAL_TERRITORIAL_GRAMMAR",
+      "I5_ADULT_SCHOOLING_AND_EJA_DISTRIBUTION",
+      "NEG_F2_SAME_PERSON_STUDY_WORK_UNAVAILABLE",
+      "NEG_F5_MIGRATION_SCHOOL_SAME_PERSON_UNAVAILABLE"
+    ],
+    "i1EditorialRole": "SECONDARY_CONTEXT_FOR_TRAJECTORY",
+    "i4EditorialRole": "CROSS_CUTTING_GRAMMAR_NOT_STANDALONE_STORY",
+    "i2AndI3SeparateContractsAllowed": false,
+    "automaticApprovalAllowed": false
+  },
+  "generation": {
+    "outputRoot": ".tmp/vocacoes-pne/v7-job5l-final",
+    "sharedFileLimit": 12,
+    "deterministic": true,
+    "twoIndependentMaterializationsRequired": true,
+    "transactional": true,
+    "manifestLast": true,
+    "networkAllowedForOfficialSourceVerification": true,
+    "databaseWritesAllowed": false,
+    "publicDataWritesAllowed": false,
+    "frontendWritesAllowed": false,
+    "publicationAllowed": false,
+    "fullBuildAllowed": false
+  },
+  "packageFiles": [
+    "CHECKPOINT_JOB5L_FINAL_FOR_PRO.md",
+    "CATALOGO_INSIGHTS_FINAIS_JOB5L.json",
+    "MATRIZ_RESULTADOS_FINAIS_JOB5L.csv.gz",
+    "MATRIZ_HETEROGENEIDADE_10_MUNICIPIOS_JOB5L_FINAL.csv.gz",
+    "DOSSIE_FINAL_NOVA_SANTA_RITA_JOB5L.md",
+    "DOSSIE_FINAL_VALE_DO_SINOS_JOB5L.md",
+    "METODOS_VALIDACAO_PRECISAO_RECONCILIACAO_JOB5L_FINAL.md",
+    "FONTES_CENSO_RAIS_E_LITERATURA_JOB5L_FINAL.json",
+    "LIMITACOES_E_CLAIMS_JOB5L_FINAL.json",
+    "QA_SUMMARY_JOB5L_FINAL.json",
+    "ARTIFACT_INDEX_JOB5L_FINAL.json",
+    "MANIFEST_JOB5L_FINAL.json"
+  ],
+  "internalSupportingArtifacts": [
+    "internal/CONTRATO_JOB5L_FINAL.json",
+    "internal/EXECPLAN_JOB5L_FINAL.md",
+    "internal/CENSO_2022_STATUS_ATUAL_JOB5L_FINAL.json",
+    "internal/RESULTADOS_F1_JOB5L_FINAL.csv.gz",
+    "internal/VALIDACAO_F1_JOB5L_FINAL.csv.gz",
+    "internal/MODELOS_F1_JOB5L_FINAL.json",
+    "internal/PAINEL_RAIS_JOB5L_FINAL.csv.gz",
+    "internal/AUDITORIA_RAIS_JOB5L_FINAL.json",
+    "internal/PAINEL_EJA_JOB5L_FINAL.csv.gz",
+    "internal/PAINEL_F2_F5_JOB5L_FINAL.csv.gz",
+    "internal/PROVA_ENTRADAS_CONGELADAS_JOB5L_FINAL.json"
+  ],
+  "allowedFinalStates": [
+    "JOB_5L_FINAL_READY_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5L_FINAL_READY_WITH_EXPLICIT_LIMITS_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5L_FINAL_STOPPED_FOR_SUBSTANTIVE_DECISION"
+  ]
+}

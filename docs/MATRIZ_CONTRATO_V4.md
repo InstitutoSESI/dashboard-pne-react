@@ -2,6 +2,8 @@
 
 > Decisão registrada em 2026-08-20.
 > Publicação registrada em 2026-08-20: a coleção publicada passou a `matriz-4.0.0`, com `peerBenchmark` por sinal no piloto de Nova Santa Rita (4313375).
+> Expansão registrada em 2026-08-30: os 497 municípios canônicos do RS foram
+> republicados homogeneamente em `matriz-4.0.0`, sem alteração das fórmulas.
 
 ## Escopo da decisão
 
@@ -86,6 +88,15 @@ intermediário. `unit` deve coincidir com a unidade do sinal e `year` com seu
 campo é opcional, mas, quando presente, deve conter o objeto completo e não
 pode ser `null`.
 
+### Faixa-base e expansões do grupo de pares
+
+`peerGroup.n` conta os municípios da faixa-base e deve ser inteiro positivo. O
+mínimo de 20 se aplica a cada distribuição de indicador, não ao tamanho da
+faixa-base: no RS, a faixa de 100 mil habitantes ou mais tem 19 municípios. Uma
+comparação dessa faixa só é publicada depois de incorporar observações da faixa
+adjacente; cada uso fica registrado em `peerGroup.expansions` com `goalId`,
+`indicatorId`, `bands` e `n`, e esse `n` permanece maior ou igual a 20.
+
 ## Manifestos e ingestão
 
 O manifesto de publicação mantém o schema
@@ -99,7 +110,8 @@ transacional.
 
 O gerador continua sem produzir análise. Ele valida o documento recebido,
 reconcilia o manifesto de origem, revalida a saída em staging e só então
-promove o lote de forma atômica e com rollback.
+promove os documentos. O `manifest.json` é a última troca atômica e funciona
+como marcador de commit; qualquer falha anterior restaura os arquivos antigos.
 
 Limitação registrada (2026-08-20): o manifesto publicado declara uma única
 `matrizSchemaVersion` para toda a coleção, e o gerador impõe a homogeneidade da
@@ -125,10 +137,11 @@ deve acontecer com contrato explícito.
   sinal selecionado possui benchmark e a curadoria editorial da medida possui
   `peerUse`. A posição usa a diferença publicada, mostra `p.p.` para percentual
   e considera valores de módulo inferior a 0,05 como “na mediana”.
-- **Sinal de acompanhamento:** os 14 caminhos possuem uma frase editorial
+- **Sinal de acompanhamento:** os 42 caminhos estaduais possuem uma frase editorial
   visível depois de “Resultado esperado”. A frase nomeia um resultado público e
   a direção esperada para a leitura seguinte, sem promessa de prazo ou de
-  resultado. Por ser camada editorial, o sinal independe da versão do artefato
+  resultado. Nova Santa Rita renderiza 14 deles, correspondentes às suas sete
+  metas prioritárias. Por ser camada editorial, o sinal independe da versão do artefato
   e aparece também sobre documentos 3.0.0 — “elementos ausentes em 3.0.0”
   refere-se somente aos três elementos dirigidos pelo artefato (trajetória,
   leitura da rede e mediana por sinal).

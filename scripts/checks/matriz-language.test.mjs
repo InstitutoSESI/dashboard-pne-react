@@ -10,6 +10,31 @@ const municipalUrl = new URL(
   import.meta.url,
 )
 const matriz = JSON.parse(await readFile(municipalUrl, 'utf8'))
+const publishedManifestUrl = new URL(
+  '../../public/data/pne2026-matriz/manifest.json',
+  import.meta.url,
+)
+const publishedManifest = JSON.parse(await readFile(publishedManifestUrl, 'utf8'))
+const statewideGoalIds = new Set()
+const statewideIndicatorIdsByGoal = new Map()
+for (const municipality of publishedManifest.municipalities) {
+  const document = JSON.parse(await readFile(
+    new URL(`../../public/data/pne2026-matriz/${municipality.path}`, import.meta.url),
+    'utf8',
+  ))
+  for (const goal of document.priorityGoals) {
+    statewideGoalIds.add(goal.goalId)
+    if (!statewideIndicatorIdsByGoal.has(goal.goalId)) {
+      statewideIndicatorIdsByGoal.set(goal.goalId, new Set())
+    }
+    statewideIndicatorIdsByGoal.get(goal.goalId).add(goal.indicatorId)
+  }
+}
+const STATEWIDE_GOAL_IDS = [...statewideGoalIds].sort()
+const EXPECTED_STATEWIDE_GOAL_IDS = [
+  '1.a', '1.c', '3.a', '4.a', '4.b', '4.c', '4.d', '5.a', '5.b', '5.d', '6.a',
+  '8.b', '11.a', '11.b', '11.c', '11.d', '12.a', '12.c', '14.d', '17.a', '19.c',
+].sort()
 const educationUrl = new URL(
   '../../public/data/educacao/municipios/4313375.json',
   import.meta.url,
@@ -31,12 +56,15 @@ const { LoadedMatrizPage } = await vite.ssrLoadModule(
 )
 const {
   MATRIZ_FRENTES,
+  MATRIZ_GOAL_SUPPORT,
   matrizFrenteKey,
   resolveMatrizFrentes,
+  resolveMatrizGoalSupport,
 } = await vite.ssrLoadModule('/src/features/matriz/matrizFrentes.ts')
 const {
   MATRIZ_GOAL_INSIGHTS,
   resolveMatrizGoalInsight,
+  resolveMatrizIndicatorScope,
 } = await vite.ssrLoadModule('/src/features/matriz/matrizInsights.ts')
 const {
   buildMatrizEducationContext,
@@ -227,7 +255,7 @@ test('a página real 4.0.0 renderiza as medianas publicadas nas medidas com uso 
     .map((context) => resolveMatrizContextReadings(matriz, [context])[0])
     .filter((reading) => reading?.peerBenchmarkComparison && reading.peerUse)
 
-  assert.equal(peerReadings.length, 4)
+  assert.equal(peerReadings.length, 3)
   assert.equal((html.match(/Mediana das/gu) ?? []).length, peerReadings.length)
   for (const reading of peerReadings) {
     assert.ok(
@@ -249,53 +277,101 @@ test('a fixture 3.0.0 preservada não cria elementos nem mensagens para campos 4
   assert.equal(html.includes('comparação da medida indisponível'), false)
 })
 
-test('cada meta prioritária recebe exatamente dois caminhos ligados à leitura', () => {
+test('cada meta prioritária publicada no RS recebe exatamente dois caminhos ligados à leitura', () => {
   const expectedStartHereByGoal = {
     '1.a': 'procura-por-vaga',
-    '5.a': 'avaliar-e-recompor',
-    '11.c': 'eja-compativel-com-trabalho',
-    '17.a': 'formacao-na-area-de-atuacao',
+    '1.c': 'localizar-e-matricular-pre-escola',
+    '3.a': 'ciclo-avaliacao-alfabetizacao',
     '4.a': 'encontrar-quem-esta-fora',
     '4.b': 'alfabetizar-na-idade-certa',
+    '4.c': 'alerta-precoce-anos-finais',
+    '4.d': 'protocolo-transicao-ensino-medio',
+    '5.a': 'avaliar-e-recompor',
+    '5.b': 'recompor-habilidades-anos-finais',
+    '5.d': 'plano-interredes-aprendizagem-medio',
+    '6.a': 'planejar-expansao-tempo-integral',
+    '8.b': 'auditar-conforto-termico-escolas',
+    '11.a': 'mapear-e-chamar-alfabetizacao-adultos',
+    '11.b': 'organizar-fundamental-eja-flexivel',
+    '11.c': 'eja-compativel-com-trabalho',
+    '11.d': 'converter-chamada-em-matricula-eja',
+    '12.a': 'mapear-oferta-tecnica-e-interesse',
+    '12.c': 'desenhar-percurso-eja-ept-integrado',
+    '14.d': 'fortalecer-polo-uab-oferta-regional',
+    '17.a': 'formacao-na-area-de-atuacao',
     '19.c': 'acessibilidade-das-escolas',
   }
+  const expectedSharedSupportGoalIds = [
+    '1.c', '3.a', '4.b', '4.c', '4.d', '5.a', '5.b', '5.d', '6.a', '8.b',
+    '11.a', '11.b', '11.c', '11.d', '12.c', '14.d', '17.a', '19.c',
+  ].sort()
   const seenIds = new Set()
   let total = 0
-  let bridgeCount = 0
+  let frontBridgeCount = 0
+  let sharedBridgeCount = 0
 
-  for (const goal of matriz.priorityGoals) {
-    const fronts = MATRIZ_FRENTES[goal.goalId]
-    const insight = resolveMatrizGoalInsight(goal.goalId)
-    assert.ok(fronts, goal.goalId)
-    assert.ok(insight, goal.goalId)
-    assert.equal(fronts.length, 2, goal.goalId)
-    assert.deepEqual(resolveMatrizFrentes(goal.goalId), fronts)
+  assert.deepEqual(STATEWIDE_GOAL_IDS, EXPECTED_STATEWIDE_GOAL_IDS)
+  assert.deepEqual(Object.keys(MATRIZ_FRENTES).sort(), STATEWIDE_GOAL_IDS)
+  assert.deepEqual(Object.keys(expectedStartHereByGoal).sort(), STATEWIDE_GOAL_IDS)
+  assert.deepEqual(Object.keys(MATRIZ_GOAL_SUPPORT).sort(), expectedSharedSupportGoalIds)
+
+  for (const goalId of STATEWIDE_GOAL_IDS) {
+    const fronts = MATRIZ_FRENTES[goalId]
+    const insight = resolveMatrizGoalInsight(goalId)
+    const sharedSupport = resolveMatrizGoalSupport(goalId)
+    assert.ok(fronts, goalId)
+    assert.ok(insight, goalId)
+    assert.equal(fronts.length, 2, goalId)
+    assert.deepEqual(resolveMatrizFrentes(goalId), fronts)
+    assert.deepEqual(sharedSupport, MATRIZ_GOAL_SUPPORT[goalId] ?? null)
     const startHereFronts = fronts.filter((front) => front.startHere === true)
-    assert.equal(startHereFronts.length, 1, goal.goalId)
-    assert.equal(startHereFronts[0].id, expectedStartHereByGoal[goal.goalId], goal.goalId)
+    assert.equal(startHereFronts.length, 1, goalId)
+    assert.equal(startHereFronts[0].id, expectedStartHereByGoal[goalId], goalId)
     total += fronts.length
 
+    const programs = [
+      ...(sharedSupport?.programs ?? []),
+      ...fronts.flatMap((front) => front.programs),
+    ]
+    const programKeys = programs.map((program) => program.url)
+    assert.equal(new Set(programKeys).size, programKeys.length, `Meta ${goalId} repete apoio oficial.`)
+    assert.ok(programs.length >= 1, `Meta ${goalId} sem apoio ou referência oficial.`)
+    for (const program of programs) {
+      assert.ok(program.name.trim(), goalId)
+      assert.ok(program.description.trim(), goalId)
+      assert.ok(program.url?.startsWith('https://'), `${goalId}|${program.name} sem link oficial.`)
+    }
+
+    const bridges = [
+      ...(sharedSupport?.bridge ? [sharedSupport.bridge] : []),
+      ...fronts.flatMap((front) => front.bridge ? [front.bridge] : []),
+    ]
+    const bridgeKeys = bridges.map((bridge) => JSON.stringify([bridge.page, bridge.params]))
+    assert.equal(new Set(bridgeKeys).size, bridgeKeys.length, `Meta ${goalId} repete ponte interna.`)
+    if (sharedSupport?.bridge) sharedBridgeCount += 1
+    if (sharedSupport) {
+      assert.ok(sharedSupport.programs.length > 0 || sharedSupport.bridge, goalId)
+    }
+
     for (const front of fronts) {
-      assert.ok(front.mechanismId.trim(), `${goal.goalId}|${front.id}`)
+      assert.ok(front.mechanismId.trim(), `${goalId}|${front.id}`)
       assert.ok(
         insight.mechanisms.some((mechanism) => mechanism.id === front.mechanismId),
-        `${goal.goalId}|${front.id}`,
+        `${goalId}|${front.id}`,
       )
       assert.ok(front.steps.length >= 2 && front.steps.length <= 3, front.id)
       assert.ok(front.implementationMilestone.trim(), front.id)
       assert.ok(front.implementationMilestone.length <= 160, front.id)
       assert.match(front.implementationMilestone, /\.$/u, front.id)
-      assert.ok(front.programs.length >= 1, front.id)
-      assert.ok(front.legalRef.startsWith('PNE 2026–2036'), front.legalRef)
+      const legalBase = front.legalRef.match(
+        /^PNE 2026–2036 — base principal: meta ([0-9]+\.[a-z]); complemento: /u,
+      )
+      assert.ok(legalBase, front.legalRef)
+      assert.equal(legalBase[1], goalId, `${goalId}|${front.id} cita outra meta como base principal.`)
       assert.equal(seenIds.has(front.id), false, front.id)
       seenIds.add(front.id)
-      for (const program of front.programs) {
-        assert.ok(program.name.trim(), front.id)
-        assert.ok(program.description.trim(), front.id)
-        if (program.url) assert.ok(program.url.startsWith('https://'), program.url)
-      }
       if (front.bridge) {
-        bridgeCount += 1
+        frontBridgeCount += 1
         assert.equal(front.bridge.page, 'educacao')
         assert.ok(front.bridge.label.trim(), front.id)
         assert.ok(front.bridge.params?.secao, front.id)
@@ -305,30 +381,40 @@ test('cada meta prioritária recebe exatamente dois caminhos ligados à leitura'
     assert.deepEqual(
       fronts.map((front) => front.mechanismId).sort(),
       insight.mechanisms.map((mechanism) => mechanism.id).sort(),
-      goal.goalId,
+      goalId,
+    )
+    assert.ok(
+      programs.some((program) => (
+        program.url?.includes('gov.br')
+        || program.url?.includes('planalto.gov.br')
+        || program.url?.includes('mec.gov.br')
+        || program.url?.includes('fnde.gov.br')
+        || program.url?.includes('s2id.mi.gov.br')
+      )),
+      `Meta ${goalId} sem referência federal oficial.`,
     )
   }
 
-  assert.equal(total, 14)
-  assert.equal(seenIds.size, 14)
-  assert.equal(bridgeCount, 13)
+  assert.equal(total, 42)
+  assert.equal(seenIds.size, 42)
+  assert.equal(frontBridgeCount, 11)
+  assert.equal(sharedBridgeCount, 14)
 })
 
-test('cada meta recebe uma leitura curta com exatamente dois pontos verificáveis', () => {
-  const goalIds = matriz.priorityGoals.map((goal) => goal.goalId).sort()
-  assert.deepEqual(Object.keys(MATRIZ_GOAL_INSIGHTS).sort(), goalIds)
+test('cada meta publicada no RS recebe uma leitura curta com exatamente dois pontos verificáveis', () => {
+  assert.deepEqual(Object.keys(MATRIZ_GOAL_INSIGHTS).sort(), STATEWIDE_GOAL_IDS)
 
   let mechanismCount = 0
   const seenIds = new Set()
-  for (const goal of matriz.priorityGoals) {
-    const insight = resolveMatrizGoalInsight(goal.goalId)
-    assert.ok(insight, goal.goalId)
-    assert.ok(insight.focus.trim(), goal.goalId)
-    assert.ok(insight.focus.length <= 180, goal.goalId)
-    assert.equal(insight.mechanisms.length, 2, goal.goalId)
+  for (const goalId of STATEWIDE_GOAL_IDS) {
+    const insight = resolveMatrizGoalInsight(goalId)
+    assert.ok(insight, goalId)
+    assert.ok(insight.focus.trim(), goalId)
+    assert.ok(insight.focus.length <= 180, goalId)
+    assert.equal(insight.mechanisms.length, 2, goalId)
 
     for (const mechanism of insight.mechanisms) {
-      const key = `${goal.goalId}|${mechanism.id}`
+      const key = `${goalId}|${mechanism.id}`
       assert.equal(seenIds.has(key), false, key)
       seenIds.add(key)
       mechanismCount += 1
@@ -356,8 +442,162 @@ test('cada meta recebe uma leitura curta com exatamente dois pontos verificávei
     }
   }
 
-  assert.equal(mechanismCount, 14)
-  assert.equal(seenIds.size, 14)
+  assert.equal(mechanismCount, 42)
+  assert.equal(seenIds.size, 42)
+})
+
+test('as orientações estaduais não repetem o mesmo texto editorial', () => {
+  const seenTexts = new Map()
+  let checkedTexts = 0
+  const register = (goalId, field, text) => {
+    const normalized = text.replace(/\s+/gu, ' ').trim().toLocaleLowerCase('pt-BR')
+    assert.ok(normalized, `${goalId}|${field}`)
+    assert.equal(
+      seenTexts.has(normalized),
+      false,
+      `${goalId}|${field} repete ${seenTexts.get(normalized)}`,
+    )
+    seenTexts.set(normalized, `${goalId}|${field}`)
+    checkedTexts += 1
+  }
+
+  for (const [goalId, insight] of Object.entries(MATRIZ_GOAL_INSIGHTS)) {
+    register(goalId, 'focus', insight.focus)
+    for (const mechanism of insight.mechanisms) {
+      register(goalId, `${mechanism.id}|title`, mechanism.title)
+      register(goalId, `${mechanism.id}|explanation`, mechanism.explanation)
+      register(goalId, `${mechanism.id}|verification`, mechanism.verification)
+    }
+  }
+  for (const [goalId, fronts] of Object.entries(MATRIZ_FRENTES)) {
+    for (const front of fronts) {
+      register(goalId, `${front.id}|title`, front.title)
+      front.steps.forEach((step, index) => register(
+        goalId,
+        `${front.id}|step-${index + 1}`,
+        step,
+      ))
+      register(goalId, `${front.id}|milestone`, front.implementationMilestone)
+      register(goalId, `${front.id}|monitoring`, front.monitoringSignal)
+    }
+  }
+
+  assert.ok(checkedTexts >= 398)
+  assert.equal(seenTexts.size, checkedTexts)
+})
+
+test('a verificação decide o foco e não repete o primeiro passo de cada caminho', () => {
+  const ignored = new Set([
+    'a', 'ao', 'aos', 'as', 'com', 'da', 'das', 'de', 'do', 'dos', 'e', 'em', 'na', 'nas',
+    'no', 'nos', 'o', 'os', 'para', 'por', 'que', 'se', 'um', 'uma',
+  ])
+  const tokens = (text) => new Set(text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLocaleLowerCase('pt-BR')
+    .match(/[a-z0-9]+/gu)
+    ?.filter((token) => token.length > 2 && !ignored.has(token)) ?? [])
+  const similarity = (left, right) => {
+    const leftTokens = tokens(left)
+    const rightTokens = tokens(right)
+    const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length
+    const union = new Set([...leftTokens, ...rightTokens]).size
+    return union === 0 ? 0 : intersection / union
+  }
+
+  for (const [goalId, fronts] of Object.entries(MATRIZ_FRENTES)) {
+    const insight = resolveMatrizGoalInsight(goalId)
+    for (const front of fronts) {
+      const mechanism = insight.mechanisms.find((candidate) => candidate.id === front.mechanismId)
+      const key = matrizFrenteKey(goalId, front.id)
+      assert.ok(mechanism, key)
+      assert.ok(similarity(mechanism.verification, front.steps[0]) < 0.45, key)
+    }
+  }
+})
+
+test('os dois caminhos de cada meta preservam decisões editoriais distintas', () => {
+  const ignored = new Set([
+    'a', 'ao', 'aos', 'as', 'com', 'da', 'das', 'de', 'do', 'dos', 'e', 'em', 'na', 'nas',
+    'no', 'nos', 'o', 'os', 'para', 'por', 'que', 'se', 'um', 'uma',
+  ])
+  const tokens = (text) => new Set(text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLocaleLowerCase('pt-BR')
+    .match(/[a-z0-9]+/gu)
+    ?.filter((token) => token.length > 2 && !ignored.has(token)) ?? [])
+  const similarity = (left, right) => {
+    const leftTokens = tokens(left)
+    const rightTokens = tokens(right)
+    const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length
+    const union = new Set([...leftTokens, ...rightTokens]).size
+    return union === 0 ? 0 : intersection / union
+  }
+
+  for (const [goalId, fronts] of Object.entries(MATRIZ_FRENTES)) {
+    const actionText = (front) => [front.title, ...front.steps].join(' ')
+    const score = similarity(actionText(fronts[0]), actionText(fronts[1]))
+    assert.ok(score < 0.42, `${goalId} repete decisões entre os dois caminhos (${score.toFixed(2)}).`)
+  }
+
+  const statewideFronts = Object.entries(MATRIZ_FRENTES).flatMap(([goalId, fronts]) => (
+    fronts.map((front) => ({ front, goalId }))
+  ))
+  for (let left = 0; left < statewideFronts.length; left += 1) {
+    for (let right = left + 1; right < statewideFronts.length; right += 1) {
+      const first = statewideFronts[left]
+      const second = statewideFronts[right]
+      if (first.goalId === second.goalId) continue
+      const score = similarity(
+        [first.front.title, ...first.front.steps].join(' '),
+        [second.front.title, ...second.front.steps].join(' '),
+      )
+      assert.ok(
+        score < 0.3,
+        `${first.goalId}|${first.front.id} repete ${second.goalId}|${second.front.id} (${score.toFixed(2)}).`,
+      )
+    }
+  }
+})
+
+test('todo o conteúdo editorial estadual preserva a linguagem pública da página', () => {
+  const texts = []
+  for (const insight of Object.values(MATRIZ_GOAL_INSIGHTS)) {
+    texts.push(insight.focus)
+    for (const mechanism of insight.mechanisms) {
+      texts.push(
+        mechanism.title,
+        mechanism.explanation,
+        mechanism.verification,
+        mechanism.measure?.use,
+        mechanism.measure?.peerUse,
+        mechanism.relatedGoal?.use,
+        mechanism.educationContext?.use,
+      )
+    }
+  }
+  for (const fronts of Object.values(MATRIZ_FRENTES)) {
+    for (const front of fronts) {
+      texts.push(
+        front.title,
+        ...front.steps,
+        front.implementationMilestone,
+        front.monitoringSignal,
+        front.legalRef,
+        front.bridge?.label,
+      )
+      for (const program of front.programs) texts.push(program.name, program.description)
+    }
+  }
+  for (const support of Object.values(MATRIZ_GOAL_SUPPORT)) {
+    texts.push(support.bridge?.label)
+    for (const program of support.programs) texts.push(program.name, program.description)
+  }
+
+  for (const text of texts.filter(Boolean)) {
+    assert.doesNotMatch(text, /causa|oficina|quadrante|parceir/iu, text)
+  }
 })
 
 test('a página preserva metas, números e comparações do artefato', () => {
@@ -385,7 +625,9 @@ test('a página preserva metas, números e comparações do artefato', () => {
   assert.ok(html.includes('Duas metas apresentam as maiores diferenças frente às 88 cidades parecidas do RS: Creche, 15,8 p.p. abaixo (2025), e Aprendizagem nos anos iniciais, 10,7 p.p. abaixo (2023).'))
   assert.ok(html.includes('Referência de 14 de agosto de 2026'))
   assert.ok(html.includes('Cada meta reúne o contexto essencial, o que confirmar na rede e os caminhos para avançar.'))
-  assert.ok(html.includes('Dados públicos ajudam a escolher o que investigar; a confirmação acontece com registros e equipes da rede.'))
+  assert.ok(html.includes('Como usar:'))
+  assert.ok(html.includes('defina responsável, território e público, recurso, prazo e um sinal operacional'))
+  assert.ok(html.includes('PNE 2026–2036, art. 13'))
   assert.match(html, /<span class="matriz-severity matriz-severity--high">atenção maior<\/span>/u)
   assert.match(html, /<span class="matriz-severity matriz-severity--medium">atenção<\/span>/u)
   assert.equal((html.match(/Caminhos para avançar/gu) ?? []).length, 7)
@@ -478,16 +720,18 @@ test('cada caminho mostra o resultado esperado antes do detalhamento', () => {
   }
 })
 
-test('os 14 caminhos exibem um único sinal de acompanhamento depois do resultado esperado', () => {
+test('os 42 caminhos estaduais têm sinal único e os 14 de Nova Santa Rita são renderizados', () => {
   const html = renderMatriz()
   const frontCards = html.match(/<article\b[^>]*class="matriz-frente"[^>]*>[\s\S]*?<\/article>/gu) ?? []
   const fronts = Object.entries(MATRIZ_FRENTES).flatMap(([goalId, entries]) => (
     entries.map((front) => ({ front, goalId }))
   ))
+  const renderedGoalIds = new Set(matriz.priorityGoals.map((goal) => goal.goalId))
 
-  assert.equal(fronts.length, 14)
+  assert.equal(fronts.length, 42)
   assert.equal(frontCards.length, 14)
   assert.equal((html.match(/Sinal de acompanhamento/gu) ?? []).length, 14)
+  assert.equal(new Set(fronts.map(({ front }) => front.monitoringSignal)).size, 42)
   for (const { front, goalId } of fronts) {
     const key = matrizFrenteKey(goalId, front.id)
     assert.ok(front.monitoringSignal.trim(), key)
@@ -495,7 +739,8 @@ test('os 14 caminhos exibem um único sinal de acompanhamento depois do resultad
     assert.match(front.monitoringSignal, /\.$/u, key)
     assert.equal((front.monitoringSignal.match(/\./gu) ?? []).length, 1, key)
     assert.doesNotMatch(front.monitoringSignal, /causa/iu, key)
-    assert.ok(html.includes(front.monitoringSignal), key)
+    assert.doesNotMatch(front.monitoringSignal, /Na próxima leitura|deve avançar|deve subir|devem crescer/iu, key)
+    if (renderedGoalIds.has(goalId)) assert.ok(html.includes(front.monitoringSignal), key)
   }
   for (const card of frontCards) {
     assert.ok(card.indexOf('Resultado esperado') < card.indexOf('Sinal de acompanhamento'))
@@ -503,17 +748,43 @@ test('os 14 caminhos exibem um único sinal de acompanhamento depois do resultad
   }
 })
 
-test('as cinco medidas editoriais têm frase de uso da comparação com pares', () => {
+test('as quatro medidas editoriais complementares têm frase de uso da comparação com pares', () => {
   const contexts = Object.values(MATRIZ_GOAL_INSIGHTS)
     .flatMap((insight) => insight.mechanisms)
     .flatMap((mechanism) => mechanism.measure ? [mechanism.measure] : [])
 
-  assert.equal(contexts.length, 5)
-  assert.equal(new Set(contexts.map((context) => context.measureId)).size, 5)
+  assert.equal(contexts.length, 4)
+  assert.equal(new Set(contexts.map((context) => context.measureId)).size, 4)
   for (const context of contexts) {
     assert.ok(context.peerUse?.trim(), context.measureId)
     assert.match(context.peerUse, /\.$/u, context.measureId)
     assert.doesNotMatch(context.peerUse, /causa/iu, context.measureId)
+  }
+})
+
+test('o escopo editorial acompanha todos os indicadores variáveis publicados no RS', () => {
+  const expectedIndicators = {
+    '5.a': ['saeb_matematica_anos_iniciais', 'saeb_portugues_anos_iniciais'],
+    '5.b': ['saeb_matematica_anos_finais', 'saeb_portugues_anos_finais'],
+    '5.d': ['saeb_matematica_ensino_medio', 'saeb_portugues_ensino_medio'],
+    '6.a': ['basico_integral', 'escolas_integral'],
+    '17.a': ['adequacao_af', 'adequacao_ai', 'adequacao_em'],
+    '19.c': ['salas_acessiveis'],
+  }
+
+  for (const [goalId, expected] of Object.entries(expectedIndicators)) {
+    const published = [...(statewideIndicatorIdsByGoal.get(goalId) ?? [])].sort()
+    assert.deepEqual(published, [...expected].sort(), goalId)
+    for (const indicatorId of published) {
+      const scope = resolveMatrizIndicatorScope({ goalId, indicatorId })
+      assert.ok(scope?.trim(), `${goalId}|${indicatorId}`)
+      if (indicatorId.includes('matematica')) assert.match(scope, /Matemática/u)
+      if (indicatorId.includes('portugues')) assert.match(scope, /Língua Portuguesa/u)
+      if (indicatorId === 'adequacao_ai') assert.match(scope, /anos iniciais/u)
+      if (indicatorId === 'adequacao_af') assert.match(scope, /anos finais/u)
+      if (indicatorId === 'adequacao_em') assert.match(scope, /ensino médio/u)
+      if (indicatorId === 'salas_acessiveis') assert.match(scope, /sinal parcial/u)
+    }
   }
 })
 
@@ -564,8 +835,8 @@ test('o contexto municipal fica centralizado na leitura da meta e preserva seus 
     }
   }
 
-  assert.equal(measureContexts, 5)
-  assert.equal(relatedGoalContexts, 2)
+  assert.equal(measureContexts, 4)
+  assert.equal(relatedGoalContexts, 1)
   assert.equal(educationContexts, 1)
   assert.equal((html.match(/Caminhos para avançar/gu) ?? []).length, 7)
   assert.equal((html.match(/Antes de agir, confira:/gu) ?? []).length, 14)
@@ -584,8 +855,14 @@ test('o contexto municipal fica centralizado na leitura da meta e preserva seus 
 test('as pontes internas aprofundam a frente sem perder o município selecionado', () => {
   const html = renderMatriz()
   const bridgeLinks = html.match(/<a href="#[^"]*municipio=4313375[^"]*">[^<]+<\/a>/gu) ?? []
+  const expectedBridgeCount = matriz.priorityGoals.reduce((total, goal) => {
+    const frontBridges = resolveMatrizFrentes(goal.goalId).filter((front) => front.bridge).length
+    const sharedBridge = resolveMatrizGoalSupport(goal.goalId)?.bridge ? 1 : 0
+    return total + frontBridges + sharedBridge
+  }, 0)
 
-  assert.equal(bridgeLinks.length, 13)
+  assert.equal(bridgeLinks.length, expectedBridgeCount)
+  assert.equal(expectedBridgeCount, 8)
   assert.ok(bridgeLinks.every((link) => link.includes('#educacao?')))
   assert.ok(html.includes('Informações relacionadas no painel'))
   assert.ok(html.includes('Infraestrutura escolar no município'))
@@ -612,7 +889,11 @@ test('a página mantém linguagem expositiva e não oferece plano de ação nem 
   assert.ok(html.includes('Como avançar e onde buscar apoio'))
   assert.ok(html.includes('Etapas sugeridas'))
   assert.ok(html.includes('Resultado esperado'))
+  assert.ok(html.includes('Apoios e referências oficiais'))
+  assert.ok(html.includes('Apoios e informações comuns à meta'))
   assert.ok(html.includes('Informações relacionadas no painel'))
+  assert.equal(html.includes('<h5>Apoio federal</h5>'), false)
+  assert.equal(html.includes('Base: PNE 2026–2036'), false)
 })
 
 test('o contexto educacional usa o recorte validado mais recente e falha sem inventar zero', () => {
@@ -644,15 +925,16 @@ test('o contexto educacional usa o recorte validado mais recente e falha sem inv
 })
 
 test('a leitura da EJA não converte perfil econômico em demanda comprovada', () => {
-  const html = renderMatriz()
+  const editorial = JSON.stringify({
+    insights: [MATRIZ_GOAL_INSIGHTS['12.a'], MATRIZ_GOAL_INSIGHTS['12.c']],
+    fronts: [MATRIZ_FRENTES['12.a'], MATRIZ_FRENTES['12.c']],
+  })
 
-  assert.ok(html.includes('não define qual curso oferecer nem comprova demanda profissional'))
-  assert.ok(html.includes('validar sua utilidade com estudantes, instituições formadoras e empregadores'))
-  assert.equal(html.includes('demanda real na região'), false)
-  assert.equal(html.includes('aumentam a procura'), false)
-  assert.equal(html.includes('cursos vinculados às demandas da região'), false)
-  assert.equal(html.includes('840 matrículas'), false)
-  assert.equal(html.includes('8 das 21 escolas'), false)
+  assert.ok(editorial.includes('informações econômicas, sem presumir procura'))
+  assert.ok(editorial.includes('não substituem a escuta dos estudantes nem a capacidade real de oferta'))
+  assert.equal(editorial.includes('demanda real na região'), false)
+  assert.equal(editorial.includes('aumentam a procura'), false)
+  assert.equal(editorial.includes('cursos vinculados às demandas da região'), false)
 })
 
 test('o HTML não expõe campos, identificadores nem linguagem antiga', () => {
@@ -693,12 +975,18 @@ test('a exportação gera linhas públicas na ordem das metas selecionadas', () 
     assert.equal(row.frente, front.title)
     assert.equal(row.pontoDeAtencao, mechanism.explanation)
     assert.equal(row.comoAvancar, front.steps.join('\n'))
+    const expectedPrograms = [
+      ...(resolveMatrizGoalSupport(goalId)?.programs ?? []),
+      ...front.programs,
+    ]
+    for (const program of expectedPrograms) assert.ok(row.apoioFederal.includes(program.name), program.name)
     assert.equal(row.estado, estado)
     assert.equal(row.anotacao, anotacao)
   }
 
   const headers = workbook.sheets[0].data[0].map((cell) => cell.value)
   assert.equal(headers[2], 'Atenção')
+  assert.equal(headers[7], 'Apoios e referências oficiais')
   assert.deepEqual(headers.slice(-3), ['Estado', 'Anotação', 'Data de referência'])
 
   const serialized = JSON.stringify(workbook)

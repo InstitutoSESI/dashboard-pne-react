@@ -15,7 +15,7 @@ export const REGIOES_MANIFEST_PATH = '/data/regioes/manifest.json'
 export const REGIOES_REGION_PATH = '/data/regioes/{regionSlug}.json'
 
 export const REGIOES_MANIFEST_SCHEMA = 'regioes-manifest-v1'
-export const REGIOES_DOCUMENT_SCHEMA = 'regioes-1.0.0'
+export const REGIOES_DOCUMENT_SCHEMA = 'regioes-2.0.0'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -51,6 +51,8 @@ const DOCUMENT_FIELDS = new Set([
   'pagina',
   'atendimento',
   'matriculas',
+  'educacao',
+  'pne2026',
   'metodologia',
   'fontes',
   'contentVersion',
@@ -85,6 +87,76 @@ const ENROLLMENT_FIELDS = new Set([
   'series',
 ])
 const ENROLLMENT_BREAKDOWN_KEYS = ['por_etapa', 'por_dependencia', 'por_localizacao']
+const EDUCATION_FIELDS = new Set(['label', 'descricao', 'contagens', 'qualidade', 'vaar'])
+const EDUCATION_COUNT_FIELDS = new Set([
+  'chave',
+  'titulo',
+  'grupo',
+  'ano',
+  'valor',
+  'municipiosComDado',
+])
+const EDUCATION_COUNT_GROUPS = new Set(['rede', 'oferta', 'educacao_indigena', 'sistema_s'])
+const QUALITY_CATEGORY_FIELDS = new Set(['chave', 'label', 'indicadores'])
+const DISTRIBUTION_FIELDS = new Set([
+  'chave',
+  'titulo',
+  'unidade',
+  'ano',
+  'valor',
+  'valorEstado',
+  'minimoMunicipal',
+  'maximoMunicipal',
+  'municipiosComDado',
+  'municipiosEstadoComDado',
+])
+const DISTRIBUTION_UNITS = new Set(['percent', 'index', 'score', 'decimal'])
+const VAAR_FIELDS = new Set(['label', 'descricao', 'ano', 'indicadores'])
+const VAAR_INDICATOR_FIELDS = new Set([
+  'chave',
+  'titulo',
+  'valor',
+  'valorEstado',
+  'municipiosComDado',
+  'municipiosEstadoComDado',
+])
+const PNE_FIELDS = new Set([
+  'cicloId',
+  'label',
+  'descricao',
+  'totalIndicadores',
+  'totalReferencias',
+  'referenciasAvaliadas',
+  'referenciasAtingidas',
+  'indicadoresSemResultado',
+  'categorias',
+])
+const PNE_CATEGORY_FIELDS = new Set(['chave', 'label', 'indicadores'])
+const PNE_INDICATOR_FIELDS = new Set([
+  'chave',
+  'titulo',
+  'descricao',
+  'unidade',
+  'acompanhaReferencia',
+  'referencia',
+  'resultado',
+])
+const PNE_REFERENCE_FIELDS = new Set(['tipo', 'label', 'valor', 'ano', 'direcao'])
+const PNE_REFERENCE_TYPES = new Set(['legal', 'monitoring', 'published'])
+const PNE_DIRECTIONS = new Set(['at_least', 'at_most'])
+const PNE_RESULT_FIELDS = new Set([
+  'metodo',
+  'ano',
+  'valor',
+  'valorEstado',
+  'municipiosComDado',
+  'municipiosEstadoComDado',
+  'minimoMunicipal',
+  'maximoMunicipal',
+  'municipiosNaReferencia',
+  'distanciaReferencia',
+])
+const PNE_METHODS = new Set(['regional_ratio', 'municipal_median'])
 const SOURCE_FIELDS = new Set(['nome', 'uso'])
 
 /** Erro de carga do painel regional, sempre com estágio e código. */
@@ -274,6 +346,367 @@ function parseCountSeries(candidate, label, { withPercent = false } = {}) {
   )
 }
 
+function readNonNegativeInteger(value, field, label) {
+  const number = readInteger(value, field, label)
+  invariant(number >= 0, `${label}: "${field}" não pode ser negativo.`)
+  return number
+}
+
+function parseDistributionIndicator(candidate, label, totalMunicipalities) {
+  assertExactFields(candidate, DISTRIBUTION_FIELDS, label)
+  const unit = readText(candidate, 'unidade', label)
+  invariant(DISTRIBUTION_UNITS.has(unit), `${label}: unidade inválida.`)
+  const year = readNullableInteger(candidate, 'ano', label)
+  const value = readNullableNumber(candidate, 'valor', label)
+  const stateValue = readNullableNumber(candidate, 'valorEstado', label)
+  const minimum = readNullableNumber(candidate, 'minimoMunicipal', label)
+  const maximum = readNullableNumber(candidate, 'maximoMunicipal', label)
+  const municipalitiesWithData = readNonNegativeInteger(candidate, 'municipiosComDado', label)
+  const stateMunicipalitiesWithData = readNonNegativeInteger(
+    candidate,
+    'municipiosEstadoComDado',
+    label,
+  )
+  invariant(
+    municipalitiesWithData <= totalMunicipalities,
+    `${label}: municipiosComDado excede a região.`,
+  )
+  invariant(
+    stateMunicipalitiesWithData >= municipalitiesWithData,
+    `${label}: a cobertura estadual não pode ser menor que a regional.`,
+  )
+  invariant(
+    (value === null) === (municipalitiesWithData === 0),
+    `${label}: valor e municipiosComDado são incoerentes.`,
+  )
+  invariant(
+    (stateValue === null) === (stateMunicipalitiesWithData === 0),
+    `${label}: valorEstado e municipiosEstadoComDado são incoerentes.`,
+  )
+  invariant(
+    value === null
+      ? minimum === null && maximum === null
+      : minimum !== null && maximum !== null && minimum <= value && value <= maximum,
+    `${label}: intervalo municipal incompatível com o resultado regional.`,
+  )
+  invariant(
+    year !== null || (value === null && stateValue === null),
+    `${label}: resultado sem ano de referência.`,
+  )
+  return Object.freeze({
+    chave: readText(candidate, 'chave', label),
+    titulo: readText(candidate, 'titulo', label),
+    unidade: unit,
+    ano: year,
+    valor: value,
+    valorEstado: stateValue,
+    minimoMunicipal: minimum,
+    maximoMunicipal: maximum,
+    municipiosComDado: municipalitiesWithData,
+    municipiosEstadoComDado: stateMunicipalitiesWithData,
+  })
+}
+
+function parseEducationBlock(candidate, totalMunicipalities, label) {
+  assertExactFields(candidate, EDUCATION_FIELDS, label)
+  invariant(Array.isArray(candidate.contagens) && candidate.contagens.length > 0, `${label}: contagens vazias.`)
+  const countKeys = new Set()
+  const counts = Object.freeze(candidate.contagens.map((rawIndicator, index) => {
+    const indicatorLabel = `${label}: contagem na posição ${index + 1}`
+    assertExactFields(rawIndicator, EDUCATION_COUNT_FIELDS, indicatorLabel)
+    const key = readText(rawIndicator, 'chave', indicatorLabel)
+    invariant(!countKeys.has(key), `${indicatorLabel}: chave duplicada ${key}.`)
+    countKeys.add(key)
+    const group = readText(rawIndicator, 'grupo', indicatorLabel)
+    invariant(EDUCATION_COUNT_GROUPS.has(group), `${indicatorLabel}: grupo inválido.`)
+    const year = readNullableInteger(rawIndicator, 'ano', indicatorLabel)
+    const value = readNullableNumber(rawIndicator, 'valor', indicatorLabel)
+    const municipalitiesWithData = readNonNegativeInteger(
+      rawIndicator,
+      'municipiosComDado',
+      indicatorLabel,
+    )
+    invariant(
+      municipalitiesWithData <= totalMunicipalities,
+      `${indicatorLabel}: municipiosComDado excede a região.`,
+    )
+    invariant(
+      value === null
+        ? year === null && municipalitiesWithData === 0
+        : year !== null && municipalitiesWithData === totalMunicipalities,
+      `${indicatorLabel}: contagem regional incompleta ou incoerente.`,
+    )
+    return Object.freeze({
+      chave: key,
+      titulo: readText(rawIndicator, 'titulo', indicatorLabel),
+      grupo: group,
+      ano: year,
+      valor: value,
+      municipiosComDado: municipalitiesWithData,
+    })
+  }))
+
+  invariant(Array.isArray(candidate.qualidade) && candidate.qualidade.length > 0, `${label}: qualidade vazia.`)
+  const categoryKeys = new Set()
+  const indicatorKeys = new Set()
+  const quality = Object.freeze(candidate.qualidade.map((rawCategory, categoryIndex) => {
+    const categoryLabel = `${label}: qualidade na posição ${categoryIndex + 1}`
+    assertExactFields(rawCategory, QUALITY_CATEGORY_FIELDS, categoryLabel)
+    const key = readText(rawCategory, 'chave', categoryLabel)
+    invariant(!categoryKeys.has(key), `${categoryLabel}: chave duplicada ${key}.`)
+    categoryKeys.add(key)
+    invariant(
+      Array.isArray(rawCategory.indicadores) && rawCategory.indicadores.length > 0,
+      `${categoryLabel}: indicadores vazios.`,
+    )
+    const parsedIndicators = rawCategory.indicadores.map((rawIndicator, indicatorIndex) => {
+      const indicatorLabel = `${categoryLabel}: indicador na posição ${indicatorIndex + 1}`
+      const parsed = parseDistributionIndicator(rawIndicator, indicatorLabel, totalMunicipalities)
+      invariant(!indicatorKeys.has(parsed.chave), `${indicatorLabel}: chave duplicada ${parsed.chave}.`)
+      indicatorKeys.add(parsed.chave)
+      return parsed
+    })
+    return Object.freeze({
+      chave: key,
+      label: readText(rawCategory, 'label', categoryLabel),
+      indicadores: Object.freeze(parsedIndicators),
+    })
+  }))
+
+  assertExactFields(candidate.vaar, VAAR_FIELDS, `${label}: vaar`)
+  const vaarYear = readNullableInteger(candidate.vaar, 'ano', `${label}: vaar`)
+  invariant(
+    Array.isArray(candidate.vaar.indicadores) && candidate.vaar.indicadores.length > 0,
+    `${label}: vaar.indicadores deve ser lista não vazia.`,
+  )
+  const vaarKeys = new Set()
+  const vaarIndicators = Object.freeze(candidate.vaar.indicadores.map((rawIndicator, index) => {
+    const indicatorLabel = `${label}: VAAR na posição ${index + 1}`
+    assertExactFields(rawIndicator, VAAR_INDICATOR_FIELDS, indicatorLabel)
+    const key = readText(rawIndicator, 'chave', indicatorLabel)
+    invariant(!vaarKeys.has(key), `${indicatorLabel}: chave duplicada ${key}.`)
+    vaarKeys.add(key)
+    const value = readNullableInteger(rawIndicator, 'valor', indicatorLabel)
+    const stateValue = readNullableInteger(rawIndicator, 'valorEstado', indicatorLabel)
+    const municipalitiesWithData = readNonNegativeInteger(
+      rawIndicator,
+      'municipiosComDado',
+      indicatorLabel,
+    )
+    const stateMunicipalitiesWithData = readNonNegativeInteger(
+      rawIndicator,
+      'municipiosEstadoComDado',
+      indicatorLabel,
+    )
+    invariant(
+      municipalitiesWithData <= totalMunicipalities
+        && stateMunicipalitiesWithData >= municipalitiesWithData,
+      `${indicatorLabel}: cobertura municipal incoerente.`,
+    )
+    invariant(
+      value === null
+        ? municipalitiesWithData === 0
+        : value >= 0 && value <= municipalitiesWithData,
+      `${indicatorLabel}: valor regional incoerente.`,
+    )
+    invariant(
+      stateValue === null
+        ? stateMunicipalitiesWithData === 0
+        : stateValue >= 0 && stateValue <= stateMunicipalitiesWithData,
+      `${indicatorLabel}: valor estadual incoerente.`,
+    )
+    return Object.freeze({
+      chave: key,
+      titulo: readText(rawIndicator, 'titulo', indicatorLabel),
+      valor: value,
+      valorEstado: stateValue,
+      municipiosComDado: municipalitiesWithData,
+      municipiosEstadoComDado: stateMunicipalitiesWithData,
+    })
+  }))
+  invariant(
+    vaarYear !== null || vaarIndicators.every((indicator) => indicator.valor === null),
+    `${label}: VAAR tem resultados sem ano.`,
+  )
+
+  return Object.freeze({
+    label: readText(candidate, 'label', label),
+    descricao: readText(candidate, 'descricao', label),
+    contagens: counts,
+    qualidade: quality,
+    vaar: Object.freeze({
+      label: readText(candidate.vaar, 'label', `${label}: vaar`),
+      descricao: readText(candidate.vaar, 'descricao', `${label}: vaar`),
+      ano: vaarYear,
+      indicadores: vaarIndicators,
+    }),
+  })
+}
+
+function parsePneReference(candidate, label) {
+  if (candidate === null) return null
+  assertExactFields(candidate, PNE_REFERENCE_FIELDS, label)
+  const type = readText(candidate, 'tipo', label)
+  const direction = readText(candidate, 'direcao', label)
+  const value = readNullableNumber(candidate, 'valor', label)
+  invariant(PNE_REFERENCE_TYPES.has(type), `${label}: tipo inválido.`)
+  invariant(PNE_DIRECTIONS.has(direction), `${label}: direção inválida.`)
+  invariant(value !== null, `${label}: valor deve ser número finito.`)
+  return Object.freeze({
+    tipo: type,
+    label: readText(candidate, 'label', label),
+    valor: value,
+    ano: readNullableInteger(candidate, 'ano', label),
+    direcao: direction,
+  })
+}
+
+function parsePneResult(candidate, reference, totalMunicipalities, label) {
+  assertExactFields(candidate, PNE_RESULT_FIELDS, label)
+  const method = readText(candidate, 'metodo', label)
+  invariant(PNE_METHODS.has(method), `${label}: método inválido.`)
+  const year = readNullableInteger(candidate, 'ano', label)
+  const value = readNullableNumber(candidate, 'valor', label)
+  const stateValue = readNullableNumber(candidate, 'valorEstado', label)
+  const municipalitiesWithData = readNonNegativeInteger(candidate, 'municipiosComDado', label)
+  const stateMunicipalitiesWithData = readNonNegativeInteger(
+    candidate,
+    'municipiosEstadoComDado',
+    label,
+  )
+  const minimum = readNullableNumber(candidate, 'minimoMunicipal', label)
+  const maximum = readNullableNumber(candidate, 'maximoMunicipal', label)
+  const municipalitiesAtReference = readNullableInteger(candidate, 'municipiosNaReferencia', label)
+  const distance = readNullableNumber(candidate, 'distanciaReferencia', label)
+  invariant(
+    municipalitiesWithData <= totalMunicipalities
+      && stateMunicipalitiesWithData >= municipalitiesWithData,
+    `${label}: cobertura municipal incoerente.`,
+  )
+  invariant(value === null || municipalitiesWithData > 0, `${label}: valor regional sem dado municipal.`)
+  invariant(stateValue === null || stateMunicipalitiesWithData > 0, `${label}: valor estadual sem dado municipal.`)
+  if (method === 'municipal_median') {
+    invariant(
+      (value === null) === (municipalitiesWithData === 0)
+        && (stateValue === null) === (stateMunicipalitiesWithData === 0),
+      `${label}: mediana e coberturas são incoerentes.`,
+    )
+  }
+  invariant(
+    municipalitiesWithData === 0
+      ? minimum === null && maximum === null
+      : minimum !== null
+        && maximum !== null
+        && minimum <= maximum
+        && (value === null || (minimum <= value && value <= maximum)),
+    `${label}: intervalo municipal incompatível com o resultado.`,
+  )
+  invariant(year !== null || value === null, `${label}: resultado regional sem ano.`)
+  invariant(
+    reference === null
+      ? municipalitiesAtReference === null && distance === null
+      : (municipalitiesWithData === 0
+          ? municipalitiesAtReference === null
+          : Number.isInteger(municipalitiesAtReference)
+            && municipalitiesAtReference >= 0
+            && municipalitiesAtReference <= municipalitiesWithData)
+        && (value === null ? distance === null : distance !== null),
+    `${label}: comparação com a referência incoerente.`,
+  )
+  return Object.freeze({
+    metodo: method,
+    ano: year,
+    valor: value,
+    valorEstado: stateValue,
+    municipiosComDado: municipalitiesWithData,
+    municipiosEstadoComDado: stateMunicipalitiesWithData,
+    minimoMunicipal: minimum,
+    maximoMunicipal: maximum,
+    municipiosNaReferencia: municipalitiesAtReference,
+    distanciaReferencia: distance,
+  })
+}
+
+function parsePneBlock(candidate, totalMunicipalities, label) {
+  assertExactFields(candidate, PNE_FIELDS, label)
+  invariant(candidate.cicloId === 'pne_2026_2036', `${label}: cicloId inválido.`)
+  invariant(Array.isArray(candidate.categorias) && candidate.categorias.length > 0, `${label}: categorias vazias.`)
+  const categoryKeys = new Set()
+  const indicatorKeys = new Set()
+  const categories = Object.freeze(candidate.categorias.map((rawCategory, categoryIndex) => {
+    const categoryLabel = `${label}: categoria na posição ${categoryIndex + 1}`
+    assertExactFields(rawCategory, PNE_CATEGORY_FIELDS, categoryLabel)
+    const categoryKey = readText(rawCategory, 'chave', categoryLabel)
+    invariant(!categoryKeys.has(categoryKey), `${categoryLabel}: chave duplicada ${categoryKey}.`)
+    categoryKeys.add(categoryKey)
+    invariant(
+      Array.isArray(rawCategory.indicadores) && rawCategory.indicadores.length > 0,
+      `${categoryLabel}: indicadores vazios.`,
+    )
+    const parsedIndicators = rawCategory.indicadores.map((rawIndicator, indicatorIndex) => {
+      const indicatorLabel = `${categoryLabel}: indicador na posição ${indicatorIndex + 1}`
+      assertExactFields(rawIndicator, PNE_INDICATOR_FIELDS, indicatorLabel)
+      const key = readText(rawIndicator, 'chave', indicatorLabel)
+      invariant(!indicatorKeys.has(key), `${indicatorLabel}: chave duplicada ${key}.`)
+      indicatorKeys.add(key)
+      invariant(rawIndicator.unidade === 'percent', `${indicatorLabel}: unidade inválida.`)
+      invariant(typeof rawIndicator.acompanhaReferencia === 'boolean', `${indicatorLabel}: acompanhaReferencia inválido.`)
+      const reference = parsePneReference(rawIndicator.referencia, `${indicatorLabel}: referencia`)
+      invariant(
+        rawIndicator.acompanhaReferencia === (reference !== null),
+        `${indicatorLabel}: acompanhaReferencia diverge da referência.`,
+      )
+      return Object.freeze({
+        chave: key,
+        titulo: readText(rawIndicator, 'titulo', indicatorLabel),
+        descricao: readText(rawIndicator, 'descricao', indicatorLabel),
+        unidade: 'percent',
+        acompanhaReferencia: rawIndicator.acompanhaReferencia,
+        referencia: reference,
+        resultado: parsePneResult(
+          rawIndicator.resultado,
+          reference,
+          totalMunicipalities,
+          `${indicatorLabel}: resultado`,
+        ),
+      })
+    })
+    return Object.freeze({
+      chave: categoryKey,
+      label: readText(rawCategory, 'label', categoryLabel),
+      indicadores: Object.freeze(parsedIndicators),
+    })
+  }))
+
+  const indicators = categories.flatMap((category) => category.indicadores)
+  const references = indicators.filter((indicator) => indicator.referencia !== null)
+  const evaluated = references.filter((indicator) => indicator.resultado.valor !== null)
+  const met = evaluated.filter((indicator) => indicator.resultado.distanciaReferencia >= 0)
+  const withoutResult = indicators.filter((indicator) => indicator.resultado.valor === null)
+  const summary = {
+    totalIndicadores: readNonNegativeInteger(candidate, 'totalIndicadores', label),
+    totalReferencias: readNonNegativeInteger(candidate, 'totalReferencias', label),
+    referenciasAvaliadas: readNonNegativeInteger(candidate, 'referenciasAvaliadas', label),
+    referenciasAtingidas: readNonNegativeInteger(candidate, 'referenciasAtingidas', label),
+    indicadoresSemResultado: readNonNegativeInteger(candidate, 'indicadoresSemResultado', label),
+  }
+  invariant(
+    summary.totalIndicadores === indicators.length
+      && summary.totalReferencias === references.length
+      && summary.referenciasAvaliadas === evaluated.length
+      && summary.referenciasAtingidas === met.length
+      && summary.indicadoresSemResultado === withoutResult.length,
+    `${label}: resumo não reconcilia com os indicadores.`,
+  )
+  return Object.freeze({
+    cicloId: 'pne_2026_2036',
+    label: readText(candidate, 'label', label),
+    descricao: readText(candidate, 'descricao', label),
+    ...summary,
+    categorias: categories,
+  })
+}
+
 export function parseRegiaoDocument(candidate) {
   const label = 'Painel regional inválido'
   assertExactFields(candidate, DOCUMENT_FIELDS, label)
@@ -409,6 +842,9 @@ export function parseRegiaoDocument(candidate) {
     `${label}: matriculas.ultimoAno e totalUltimoAno devem refletir o último ano com valor.`,
   )
 
+  const education = parseEducationBlock(candidate.educacao, totalMunicipalities, `${label}: educacao`)
+  const pne2026 = parsePneBlock(candidate.pne2026, totalMunicipalities, `${label}: pne2026`)
+
   invariant(
     Array.isArray(candidate.metodologia) && candidate.metodologia.length > 0,
     `${label}: metodologia deve ser lista não vazia.`,
@@ -456,6 +892,8 @@ export function parseRegiaoDocument(candidate) {
       totalUltimoAno: enrollmentLastTotal,
       series: Object.freeze(enrollmentSeries),
     }),
+    educacao: education,
+    pne2026,
     metodologia: Object.freeze([...candidate.metodologia]),
     fontes: sources,
   })

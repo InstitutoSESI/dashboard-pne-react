@@ -10,7 +10,7 @@ Esta é uma plataforma municipal de acompanhamento educacional voltada principal
 
 - O código IBGE textual com sete dígitos é a única identidade municipal.
 - `config/states/rs.json` e `config/states/al.json` são as configurações estaduais ativas.
-- `config/municipalities/rs.json` e `config/municipalities/al.json` são os registros municipais canônicos.
+- `config/municipalities/rs.json` e `config/municipalities/al.json` contêm, para cada UF, o registro municipal canônico.
 - Slugs são metadados públicos de rota, nunca identidade. A compatibilidade dos 182 slugs em `config/compatibility/education-municipality-routes/rs.json` é um contrato ativo.
 - Nomes servem somente para apresentação e validação.
 - `public/data/municipios_index.json` é uma projeção publicada, não uma fonte canônica de identidade.

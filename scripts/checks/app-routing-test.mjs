@@ -118,6 +118,11 @@ const ROUTE_CASES = [
   ['#regiao', 'analise-regional'],
   ['#vocacoes-da-regiao', 'vocacoes-regiao'],
   ['#vocacoes-da-regiao?municipio=nova-santa-rita', 'vocacoes-regiao'],
+  ['#cenarios-da-educacao', 'cenarios-educacao'],
+  ['#cenarios-educacao?municipio=nova-santa-rita', 'cenarios-educacao'],
+  ['#cenarios', 'cenarios-educacao'],
+  ['#cenarios-da-educacao-dados', 'cenarios-educacao-dados'],
+  ['#cenarios-da-educacao-metodo', 'cenarios-educacao-dados'],
   ['#/Analise-Regional', 'analise-regional'],
   ['#financeiros', FINANCIAL_PAGE_KEYS.overview],
   ['#financeiros-panorama', FINANCIAL_PAGE_KEYS.panorama],
@@ -189,6 +194,14 @@ test('o registro preserva o mapa de hashes anterior e declara cada acréscimo', 
     // Rodada 5: os dois apelidos curtos que a divulgação da Fase A usa.
     vocacoes: 'vocacoes-regiao',
     vocacoesregiao: 'vocacoes-regiao',
+    // Foresight educacional: futuro regional e lente piloto de Nova Santa Rita.
+    cenariosdaeducacao: 'cenarios-educacao',
+    cenarioseducacao: 'cenarios-educacao',
+    cenarios: 'cenarios-educacao',
+    // Resumo executivo separado da consulta completa de dados e critérios.
+    cenariosdaeducacaodados: 'cenarios-educacao-dados',
+    cenarioseducacaodados: 'cenarios-educacao-dados',
+    cenariosdaeducacaometodo: 'cenarios-educacao-dados',
   }
 
   const actual = buildHashPageMap()
@@ -224,7 +237,7 @@ test('Panorama educacional permanece apenas no grupo canônico de indicadores', 
  * registro como condição do item: uma UF sem mapa regional não vê o item, e o
  * grupo desaparece junto quando sobra vazio.
  */
-test('o grupo Análise Regional reúne o panorama e o Vocações, cada um com seu gate', () => {
+test('o grupo Análise Regional reúne panorama, Vocações e Cenários, cada um com seu gate', () => {
   const group = NAV_GROUPS.find((candidate) => candidate.id === 'analise-regional')
   assert.ok(group)
   assert.deepEqual(
@@ -232,15 +245,19 @@ test('o grupo Análise Regional reúne o panorama e o Vocações, cada um com se
     [
       ['analise-regional', 'analise-regional', 'regional'],
       ['vocacoes-regiao', 'vocacoes-da-regiao', 'vocacoes'],
+      ['cenarios-educacao', 'cenarios-da-educacao', 'education-scenarios'],
     ],
   )
   assert.equal(getOwnerGroupId('analise-regional'), 'analise-regional')
   assert.equal(getOwnerGroupId('vocacoes-regiao'), 'analise-regional')
+  assert.equal(getOwnerGroupId('cenarios-educacao'), 'analise-regional')
+  assert.equal(getOwnerGroupId('cenarios-educacao-dados'), 'analise-regional')
 
   const header = readFileSync(new URL('../../src/components/Header.jsx', import.meta.url), 'utf8')
   assert.match(header, /item\.condition === 'regional' && !REGIONAL_ANALYSIS_AVAILABLE/)
   assert.match(header, /\.filter\(\(block\) => block\.items\.length > 0\)/)
   assert.match(header, /withVocacoesItem\(block, vocacoesVisible\)/)
+  assert.match(header, /withCenariosEducacaoItem\(block, cenariosEducacaoVisible\)/)
 })
 
 test('preserva acesso direto ao detalhe de alfabetizacao no ciclo encerrado', () => {
@@ -405,6 +422,8 @@ test('cada página analítica pertence a exatamente um produto declarado', () =>
   assert.equal(resolvePageProduct('relatorio-tecnico-municipal'), 'educacao')
   assert.equal(resolvePageProduct('analise-regional'), 'educacao')
   assert.equal(resolvePageProduct('vocacoes-regiao'), 'educacao')
+  assert.equal(resolvePageProduct('cenarios-educacao'), 'educacao')
+  assert.equal(resolvePageProduct('cenarios-educacao-dados'), 'educacao')
   for (const pageKey of Object.values(FINANCIAL_PAGE_KEYS)) {
     assert.equal(resolvePageProduct(pageKey), 'financiamento')
   }

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5a-contract-v1",
+  "jobId": "v7-job5a",
+  "classification": "DATA_LOGIC",
+  "authorization": {
+    "source": "external_product_owner_decision_after_preregistration_freeze",
+    "verdict": "APROVADO PARA EXECUÇÃO DO JOB 5A",
+    "frozenYamlFieldMustRemainFalse": true
+  },
+  "scope": {
+    "state": "RS",
+    "region": "Vale do Sinos",
+    "municipalityCount": 10,
+    "mandatoryMunicipalityId": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "administrativeDependencyIsAnalyticDimension": false,
+    "administrativeDependencyIsQADimension": true,
+    "destinationAvailable": false,
+    "publicNarrativeAllowed": false,
+    "interfaceAllowed": false,
+    "publicationAllowed": false
+  },
+  "h2": {
+    "periods": {
+      "performance": [2018, 2025],
+      "ageGradeDistortion": [2019, 2025],
+      "mainSnapshot": 2025,
+      "recentPersistence": [2023, 2025]
+    },
+    "stages": [
+      "fundamental_anos_iniciais",
+      "fundamental_anos_finais",
+      "fundamental",
+      "medio"
+    ],
+    "metrics": [
+      "approval_rate_percent",
+      "failure_rate_percent",
+      "dropout_rate_percent",
+      "age_grade_distortion_rate_percent"
+    ],
+    "frozenPeerIds": ["4307609", "4314803", "4303905"],
+    "officialTotalPriority": true,
+    "componentRateReconstruction": "only_when_numerators_and_denominators_exist",
+    "simpleMeanAllowed": false,
+    "performanceClosureTolerance": 1e-9,
+    "directionTolerance": 1e-12,
+    "passPattern": {
+      "recentTransitionsRequired": 2,
+      "requiresPersistentDirection": true,
+      "requiresDifferentDirectionFromAtLeastOneFrozenPeer": true,
+      "requiresPerformanceFamilyClosure": true,
+      "isolatedSnapshotCanPass": false,
+      "denominatorlessIsolatedFactCanPass": false
+    },
+    "auxiliaryConditionsUsed": false
+  },
+  "a4": {
+    "referenceYear": 2022,
+    "universes": ["total", "fundamental", "medio"],
+    "shareFormula": "students_outside_municipality / students_total * 100",
+    "simpleMeanAllowed": false,
+    "destinationAvailable": false,
+    "forbiddenFields": [
+      "destination_municipality",
+      "route",
+      "corridor",
+      "receiving_school",
+      "vacancy",
+      "capacity",
+      "responsible_administrative_dependency"
+    ]
+  },
+  "a3OptionalYouthContext": {
+    "createsCandidate": false,
+    "cagedMeasureType": "flow",
+    "raisMeasureType": "stock",
+    "referenceYear": 2025,
+    "ageGroups": ["15_17", "18_24"],
+    "selectionRule": "top_10_by_absolute_balance_then_event_volume_per_age_group_and_apprentice_status",
+    "useRequires": [
+      "age_group",
+      "occupation_subgroup",
+      "sector",
+      "municipality",
+      "related_course_or_axis_in_same_municipality",
+      "concrete_training_articulation_question"
+    ]
+  },
+  "missingness": {
+    "allowed": ["observed", "null", "unavailable", "suppressed", "not_applicable"],
+    "zeroDenominator": null,
+    "rounding": "presentation_or_final_serialization_only",
+    "smallDenominatorRule": "SMALL_DENOMINATOR_RULE_UNAVAILABLE"
+  },
+  "outputs": [
+    "input_inventory.json",
+    "external_authorization.json",
+    "total_network_qa.csv.gz",
+    "h2_factual_matrix.csv.gz",
+    "h2_internal_synthesis.json",
+    "nova_santa_rita_h2.json",
+    "a4_factual_matrix.csv.gz",
+    "a4_internal_synthesis.json",
+    "nova_santa_rita_a4.json",
+    "a3_optional_youth_context.json",
+    "c1_c12_evidence.csv.gz",
+    "external_review_package.json",
+    "limitations.json",
+    "schemas.json",
+    "output_inventory.json",
+    "manifest.json"
+  ]
+}

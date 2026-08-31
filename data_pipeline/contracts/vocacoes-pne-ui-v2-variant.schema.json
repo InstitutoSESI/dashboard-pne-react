@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pne.local/contracts/vocacoes-pne-ui-v2-variant.schema.json",
+  "title": "Variante territorial UI V2 — Vocações × PNE",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "variantId",
+    "storyFamilyId",
+    "variantScope",
+    "entityId",
+    "municipalityIbgeCode",
+    "municipalityName",
+    "localFactIds",
+    "seriesIds",
+    "distributionIds",
+    "evidenceIds",
+    "availabilityState",
+    "zeroState",
+    "sourceRefs"
+  ],
+  "properties": {
+    "variantId": { "type": "string", "minLength": 1 },
+    "storyFamilyId": { "type": "string", "minLength": 1 },
+    "variantScope": { "type": "string", "enum": ["region", "municipality"] },
+    "entityId": { "type": "string", "minLength": 1 },
+    "municipalityIbgeCode": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9]{7}$" },
+        { "type": "null" }
+      ]
+    },
+    "municipalityName": {
+      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+    },
+    "localFactIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "seriesIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "distributionIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "availabilityState": {
+      "type": "string",
+      "enum": ["observed", "observed_zero", "unavailable", "not_applicable", "suppressed"]
+    },
+    "zeroState": {
+      "type": "string",
+      "enum": ["not_zero", "observed_zero", "mixed", "not_applicable"]
+    },
+    "sourceRefs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "variantScope": { "const": "region" } } },
+      "then": {
+        "properties": {
+          "entityId": { "const": "REGION_VALE_DO_SINOS" },
+          "municipalityIbgeCode": { "type": "null" },
+          "municipalityName": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "variantScope": { "const": "municipality" } } },
+      "then": {
+        "properties": {
+          "entityId": { "pattern": "^[0-9]{7}$" },
+          "municipalityIbgeCode": { "type": "string", "pattern": "^[0-9]{7}$" },
+          "municipalityName": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  ]
+}

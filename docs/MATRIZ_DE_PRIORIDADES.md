@@ -10,6 +10,11 @@
 > **Estado em 2026-08-24:** a deleção descrita aqui foi executada. O caderno não existe
 > mais na plataforma. As menções abaixo descrevem o estado anterior à substituição e são
 > mantidas como registro histórico da decisão.
+>
+> **Estado em 2026-08-30:** a coleção `matriz-4.0.0` cobre os 497 municípios
+> canônicos do RS. O manifesto público reconcilia 497 arquivos, e a orientação
+> editorial cobre as 21 metas prioritárias distintas com 42 caminhos. Nova Santa
+> Rita permanece byte a byte igual ao artefato publicado anteriormente.
 
 Documento de decisão e de orientação. Registra a substituição do **caderno de hipóteses**
 pela **matriz de prioridades** como camada de apoio à decisão municipal do PNE 2026–2036,
@@ -83,11 +88,12 @@ Combina duas leituras, ambas calculadas na camada de pesquisa e publicadas pront
    `much_worse_than_peers` (abaixo do P25 do grupo, na direção ruim) /
    `worse_than_peers` (entre P25 e mediana) / `in_line_with_peers` / `better_than_peers`.
 
-**Grupo de pares**: municípios do mesmo estado, mesma faixa de porte populacional
-(cortes do IBGE: até 5 mil, 5–20 mil, 20–100 mil, 100 mil+), mínimo de 20 municípios no
-grupo; se a faixa não alcançar 20, expandir para a faixa vizinha e registrar a expansão no
-artefato. A definição do grupo (critério, n, período) é publicada no manifesto — sem ela a
-carta não pode alegar comparação.
+**Grupo de pares**: municípios do mesmo estado e da mesma faixa de porte
+populacional (cortes do IBGE: até 5 mil, 5–20 mil, 20–100 mil, 100 mil+). O `n`
+do `peerGroup` descreve a faixa-base e pode ser menor que 20. Para cada indicador,
+a mediana exige pelo menos 20 observações elegíveis; quando necessário, o pipeline
+expande para faixa adjacente e registra em `peerGroup.expansions` as faixas e o `n`
+efetivamente usados. A definição completa é publicada no manifesto.
 
 **Leitura numérica opcional**: o contrato v3 publica a mediana somente quando as
 observações do indicador usam a mesma unidade e o mesmo ano do resultado municipal.
@@ -181,10 +187,17 @@ Recorte do documento municipal vigente:
 
 ```jsonc
 {
-  "schemaVersion": "matriz-3.0.0",
+  "schemaVersion": "matriz-4.0.0",
   "municipality": { "ibge7": "4313375", "name": "…", "uf": "RS" },
   "referenceDate": "2026-08-14",
-  "peerGroup": { "criteria": "uf+pop_band", "band": "20k_100k", "n": 88, "populationPeriod": "2025" },
+  "peerGroup": {
+    "criteria": "uf+pop_band",
+    "band": "20k_100k",
+    "n": 88,
+    "populationPeriod": "2025",
+    "releaseId": "…",
+    "expansions": []
+  },
   "priorityGoals": [
     {
       "goalId": "1.a",
@@ -222,13 +235,19 @@ Regras de publicação:
 - O gerador da plataforma valida vocabulários fechados, teto de cartas, presença de
   `placementRationale` em toda carta e consistência quadrante×severidade×governabilidade.
 
-### Pré-requisito de dados
+### Coleção estadual materializada
 
-O desvio frente aos pares exige rodar a extração de sinais para **todos os municípios do
-grupo**, não só o piloto. O harness estadual de auditoria (`.tmp/caderno-audit`, RS
-completo) já demonstrou a viabilidade; falta materializar a distribuição por medida e
-faixa de porte como etapa do pipeline. Sem a distribuição publicada no manifesto, o
-gerador recusa o artefato.
+O pré-requisito foi concluído em 2026-08-30. A camada de pesquisa percorre uma
+única vez as fontes normalizadas, calcula as distribuições por faixa, gera as 497
+matrizes em staging, valida 995 arquivos e só então promove a coleção completa.
+A plataforma repete a validação contra o registro municipal e o contrato canônico;
+o `manifest.json` é promovido por último como marcador de commit do lote.
+
+Publicação controlada a partir da coleção já validada, sem rede nem banco:
+
+```powershell
+npm run generate:pne-matriz:collection -- --collection <diretorio-da-colecao-rs>
+```
 
 ---
 

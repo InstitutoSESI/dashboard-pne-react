@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5b-contract-v1",
+  "jobId": "v7-job5b",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "frontId": "H2_TRAJETORIA_MUNICIPAL_V2",
+    "state": "RS",
+    "region": "Vale do Sinos",
+    "municipalityCount": 10,
+    "mandatoryMunicipalityId": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "administrativeDependencyIsAnalyticDimension": false,
+    "administrativeDependencyIsQADimension": true,
+    "publicNarrativeAllowed": false,
+    "interfaceAllowed": false,
+    "publicationAllowed": false
+  },
+  "externalJudgment": {
+    "source": "user_supplied_job5b_post_judgment_brief",
+    "sha256": "003bddf2d3143e92577762e84a400a8ea16f756d46ab30eef058e55ed433b7de",
+    "blockers": [
+      "age_grade_distortion_incorrectly_required_performance_family_closure",
+      "approval_failure_dropout_not_integrated_at_family_grain",
+      "small_denominator_stability_not_verified",
+      "planning_questions_not_grounded_in_observed_combination"
+    ]
+  },
+  "stabilityAudit": {
+    "declaredBeforeCorrectedResultReading": true,
+    "acceptedGrain": [
+      "municipality_ibge_code",
+      "year",
+      "stage",
+      "indicator",
+      "network_scope"
+    ],
+    "acceptedNetworkScope": "total_all_dependencies",
+    "approximateEnrollmentOrPopulationSubstituteAllowed": false,
+    "missingExactDenominatorStatus": "STABILITY_NOT_VERIFIABLE",
+    "missingSmallDenominatorRuleStatus": "SMALL_DENOMINATOR_RULE_UNAVAILABLE",
+    "automaticApprovalWhenNotVerifiable": false
+  },
+  "family": {
+    "indicators": [
+      "approval_rate_percent",
+      "failure_rate_percent",
+      "dropout_rate_percent"
+    ],
+    "grain": [
+      "municipality_ibge_code",
+      "stage",
+      "recent_period",
+      "performance_family"
+    ],
+    "recentPeriod": [2023, 2025],
+    "closureTargetPercent": 100.0,
+    "closureTolerance": 1e-09,
+    "sameStudentInferenceAllowed": false,
+    "causalInterpretationAllowed": false
+  },
+  "distortion": {
+    "indicator": "age_grade_distortion_rate_percent",
+    "performanceFamilyClosureStatus": "NOT_APPLICABLE",
+    "recentPeriod": [2023, 2025],
+    "minimumTransitions": 2,
+    "requiresPersistentDirection": true,
+    "requiresDifferentDirectionFromAtLeastOneFrozenPeer": true,
+    "frozenPeerIds": ["4307609", "4314803", "4303905"]
+  },
+  "comparison": {
+    "allowedAnalyticComparator": "frozen_peers",
+    "valeAggregateRate": "unavailable_missing_compatible_numerators_denominators",
+    "rsAggregateRate": "unavailable_missing_compatible_numerators_denominators",
+    "municipalDistributionMedianRole": "context_only_not_aggregate_rate",
+    "directionVersusValeOrRsAllowed": false
+  },
+  "resultStates": [
+    "PASS_RULE_MET_FOR_EXTERNAL_JUDGMENT",
+    "PASS_RULE_NOT_MET",
+    "NOT_EVALUABLE_DUE_TO_DATA_OR_QA_LIMIT"
+  ],
+  "outputs": [
+    "h2_family_level_matrix.csv.gz",
+    "h2_distortion_corrected_matrix.csv.gz",
+    "h2_stability_qa.json",
+    "nova_santa_rita_h2_corrected.json",
+    "h2_corrected_internal_synthesis.json",
+    "h2_corrected_c1_c12_evidence.csv.gz",
+    "external_review_package_job5b.json",
+    "limitations_job5b.json",
+    "output_inventory_job5b.json",
+    "manifest_job5b.json"
+  ]
+}

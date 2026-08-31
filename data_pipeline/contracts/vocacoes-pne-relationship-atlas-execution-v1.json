@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "vocacoes-pne-relationship-atlas-execution-v1",
+  "programId": "vocacoes-pne-relationship-atlas-v1",
+  "classification": "DATA_LOGIC",
+  "state": "FROZEN_BEFORE_MODEL_EXECUTION",
+  "parentFreeze": {
+    "path": ".tmp/vocacoes-pne/relationship-atlas-v1/preregistration",
+    "artifactSetDigestSha256": "6f0994b2cc3b563e0709cc8cd04f4d14382ef9ec2ddc089feeae88f9bf2e8a81",
+    "hypothesisMatrixSha256": "3dc0b9d75d175280da009b7972980606d4d8ae05e2b71713892cdcf08054fe12",
+    "inputSetDigestSha256": "8cc1b7104bf31031fde157ace08b373d8de96391796ae90f74d7b700a8ca7d7a",
+    "postResultAdjustmentAllowed": false
+  },
+  "releaseGate": {
+    "validationCommand": "uv run python data_pipeline/scripts/run_vocacoes_pne_relationship_atlas.py --check",
+    "expectedState": "PRETEST_UNIVERSE_AND_HYPOTHESES_FROZEN",
+    "expectedArtifactSetDigestSha256": "6f0994b2cc3b563e0709cc8cd04f4d14382ef9ec2ddc089feeae88f9bf2e8a81",
+    "failClosedOnAnyMismatch": true,
+    "eachLaneMustRecordVerifiedDigest": true,
+    "eachLaneMustRecordExecutionContractSha256": true
+  },
+  "lanes": [
+    {
+      "lane": "demography_network",
+      "expectedHypothesisCount": 45,
+      "ownedOutputRoot": ".tmp/vocacoes-pne/relationship-atlas-v1/results/demography_network"
+    },
+    {
+      "lane": "economy_work",
+      "expectedHypothesisCount": 31,
+      "ownedOutputRoot": ".tmp/vocacoes-pne/relationship-atlas-v1/results/economy_work"
+    },
+    {
+      "lane": "social_access",
+      "expectedHypothesisCount": 22,
+      "ownedOutputRoot": ".tmp/vocacoes-pne/relationship-atlas-v1/results/social_access"
+    }
+  ],
+  "feasibilityRules": {
+    "evaluateBeforeFit": true,
+    "minimumMunicipalitiesAndPeriodsComeFromFrozenMethodPreset": true,
+    "availabilityStatesAllowedAsNumeric": [
+      "observed",
+      "observed_zero"
+    ],
+    "availabilityStatesNeverCoercedToZero": [
+      "unavailable",
+      "suppressed",
+      "not_applicable"
+    ],
+    "denominatorZeroProducesNull": true,
+    "constantExposureOrOutcome": "INFEASIBLE_P_EQUALS_ONE",
+    "insufficientMunicipalities": "INFEASIBLE_P_EQUALS_ONE",
+    "insufficientPeriods": "INFEASIBLE_P_EQUALS_ONE",
+    "requiredRobustnessInfeasible": "DEMOTE_TO_INSUFFICIENT_DATA_P_EQUALS_ONE",
+    "invalidFitPValueForMultiplicity": 1.0,
+    "shortPanelVale": {
+      "effectiveWindow": "2023-2025",
+      "minimumPeriodsForPrimaryFit": 3,
+      "leadOnePlaceboRequired": true,
+      "minimumPeriodsAfterLeadShift": 3,
+      "expectedConsequence": "If the lead-one placebo has fewer than three periods, the hypothesis is retained as descriptive evidence only, receives p=1 in every multiplicity denominator and cannot be promoted. No post-freeze relaxation is allowed."
+    }
+  },
+  "inferenceProtocol": {
+    "twoSidedTests": true,
+    "panelRs": {
+      "estimator": "municipality_and_year_fixed_effects",
+      "inference": "cluster_robust_by_municipality",
+      "requiredDiagnostics": [
+        "lag_1",
+        "lead_1_placebo",
+        "leave_one_region_out",
+        "influence_diagnostics"
+      ]
+    },
+    "panelVale": {
+      "estimator": "municipality_and_year_fixed_effects",
+      "inference": "exact_rademacher_wild_cluster_2_to_the_G",
+      "attainablePValueFloorMustBeReported": true,
+      "requiredDiagnostics": [
+        "lag_1",
+        "lead_1_placebo",
+        "leave_one_municipality_out",
+        "influence_diagnostics"
+      ]
+    },
+    "crossSectionVale": {
+      "estimator": "spearman",
+      "permutationDraws": 99999,
+      "deterministicSeed": 4313375,
+      "bootstrapIsDescriptiveOnly": true,
+      "bootstrapDraws": 10000,
+      "leaveOneMunicipalityOutRequired": true
+    },
+    "shortPanelVale": {
+      "inheritsPanelVale": true,
+      "pandemicExclusion": "NOT_APPLICABLE_PREDECLARED",
+      "leadOneFeasibilityRule": "feasibilityRules.shortPanelVale"
+    }
+  },
+  "multiplicityProtocol": {
+    "method": "BENJAMINI_HOCHBERG",
+    "familyDenominatorFrozen": true,
+    "familyIdField": "multiplicityFamily",
+    "invalidBlockedDescriptiveOrInfeasiblePValue": 1.0,
+    "statewideMaximumQ": 0.05,
+    "valeMaximumQ": 0.1,
+    "globalExploratoryQAcrossAll98Required": true,
+    "negativeNullUnavailableAndInvalidResultsMustRemainInResults": true
+  },
+  "lensProtocol": {
+    "variableLensSource": "ANALYTIC_VARIABLES.json#territorialLens",
+    "signatureLensSources": [
+      "territorialLens",
+      "networkScope",
+      "coverageScope"
+    ],
+    "eachResultMustRecordExposureAndOutcomeLens": true,
+    "differentLensesRequireState": "EXPLICIT_CROSS_LENS_ECOLOGICAL_COMPARISON",
+    "sameLensState": "SAME_LENS_AGGREGATE_COMPARISON",
+    "crossLensNeverMeansSamePeopleLinked": true,
+    "workplaceResidentSchoolExecutorLensesNeverInterchangeable": true,
+    "promotionRequiresExplicitScopeLensNetworkAudit": true
+  },
+  "nominalValueProtocol": {
+    "deflatorInstalled": false,
+    "crossYearNominalLevelComparisonAllowed": false,
+    "raisRemunerationAllowedTransformation": "within_municipality_year_schooling_premium_ratio_with_year_fixed_effects",
+    "municipalFinanceRelationalFitAllowed": false,
+    "financeReason": "municipal_executor scope does not equal total_all_dependencies education scope; forecasts, commitments, liquidation and payment are not interchangeable",
+    "financeFamilyResult": "BLOCKED_NOT_COMPARABLE_P_EQUALS_ONE"
+  },
+  "resultContract": {
+    "exactlyOneRecordPerFrozenHypothesis": true,
+    "expectedTotalRecordCount": 98,
+    "requiredFields": [
+      "hypothesisId",
+      "familyId",
+      "lane",
+      "methodPreset",
+      "status",
+      "evidenceClass",
+      "nObservations",
+      "nMunicipalities",
+      "nPeriods",
+      "estimate",
+      "intervalLow",
+      "intervalHigh",
+      "pValueRaw",
+      "pValueForMultiplicity",
+      "qValueFamily",
+      "qValueGlobal",
+      "expectedDirection",
+      "observedDirection",
+      "leaveOneOutSignShare",
+      "placeboState",
+      "pandemicSensitivityState",
+      "exposureLens",
+      "outcomeLens",
+      "lensComparisonState",
+      "causalClaimAllowed",
+      "promotionEligible",
+      "limitation"
+    ],
+    "causalClaimAllowedAlways": false,
+    "missingNumericResultRepresentation": null,
+    "noRoundingBeforeFinalSerialization": true
+  },
+  "promotionGate": {
+    "minimumLeaveOneOutSignShare": 0.8,
+    "intervalMustSupportDirection": true,
+    "placeboMustBeWeaker": true,
+    "pandemicSensitivityRequiredWhenApplicable": true,
+    "permutationAgreementRequiredForVale": true,
+    "attainablePValueFloorReportedForVale": true,
+    "mechanismAndAlternativesRequired": true,
+    "novaSantaRitaAndValeContextRequired": true,
+    "averageEffectNeverBecomesAutomaticLocalEffect": true,
+    "causalLanguageRequiresSeparateIdentificationPass": true,
+    "infeasibleBlockedDescriptiveAndNotComparableNeverPromoted": true
+  },
+  "operationalConstraints": {
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "nameJoinAllowed": false,
+    "networkUsed": false,
+    "databaseUsed": false,
+    "publicDataWritten": false,
+    "fullBuildUsed": false,
+    "sourceRefreshUsed": false
+  }
+}

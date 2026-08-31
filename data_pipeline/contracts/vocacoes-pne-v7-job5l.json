@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job5l-contract-v1",
+  "jobId": "v7-job5l",
+  "classification": "SOURCE_REFRESH",
+  "domains": [
+    "DATA_LOGIC",
+    "DEEP_ANALYTICAL_LAB",
+    "OFFICIAL_SOURCE_ACQUISITION",
+    "CONTEXT_ADJUSTED_TRAJECTORIES",
+    "SAME_PERSON_CENSUS_WHEN_AVAILABLE",
+    "YOUTH_WORK_COMPOSITION",
+    "FUNCTIONAL_TERRITORIAL_BALANCE",
+    "LITERATURE_GROUNDED_INSIGHT_CONTRACTS"
+  ],
+  "internalOnly": true,
+  "gate11": "CLOSED",
+  "job5MAllowed": false,
+  "scope": {
+    "state": "RS",
+    "stateMunicipalityCount": 497,
+    "region": "Vale do Sinos",
+    "regionMunicipalityCount": 10,
+    "fixtureMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "networkScope": "total_all_dependencies",
+    "administrativeDependencyAnalyticDimension": false,
+    "administrativeDependencyQADimension": true,
+    "rankingAllowed": false,
+    "causalClaimsAllowed": false,
+    "microLinkageAllowed": false,
+    "publicDataWritesAllowed": false,
+    "frontendWritesAllowed": false,
+    "publicationAllowed": false
+  },
+  "territorialLenses": [
+    "resident_population",
+    "student_residence",
+    "school_location",
+    "rural_school_location",
+    "workplace",
+    "municipal_executor",
+    "person_residence_same_record"
+  ],
+  "samePersonRule": {
+    "personResidenceSameRecordAllowedOnlyInsideOneOfficialMicrodataset": true,
+    "crossSourceMicroLinkageAllowed": false,
+    "raisBondsAreUniquePeople": false,
+    "cagedEventsAreUniquePeople": false
+  },
+  "fronts": {
+    "F1": {
+      "question": "A trajetória educacional observada está dentro ou fora do intervalo observado em contextos semelhantes?",
+      "universe": "497_RS_municipalities_total_network",
+      "outcomes": [
+        "approval_rate_percent",
+        "failure_rate_percent",
+        "dropout_rate_percent",
+        "age_grade_distortion_rate_percent"
+      ],
+      "stages": [
+        "fundamental_anos_iniciais",
+        "fundamental_anos_finais",
+        "medio"
+      ],
+      "candidateMethods": [
+        "ridge_context_model",
+        "nearest_context_peers"
+      ],
+      "selectionRule": "method_selected_per_stage_outcome_by_group_municipality_holdout_mae_then_temporal_validation; complex_method_rejected_when_not_better_or_not_interpretable",
+      "validation": [
+        "deterministic_group_municipality_holdout",
+        "temporal_holdout_2025",
+        "split_conformal_prediction_interval",
+        "interval_coverage",
+        "mean_absolute_error",
+        "sensitivity_excluding_2020_2021"
+      ],
+      "allowedStates": [
+        "WITHIN_EXPECTED_INTERVAL",
+        "ABOVE_EXPECTED_INTERVAL",
+        "BELOW_EXPECTED_INTERVAL",
+        "NOT_EVALUABLE"
+      ],
+      "forbiddenTerms": [
+        "efeito",
+        "valor agregado",
+        "causado por"
+      ]
+    },
+    "F2": {
+      "conditionalOfficialSource": "IBGE_Censo_Demografico_2022_sample_microdata",
+      "stateWhenUnavailable": "WAITING_OFFICIAL_RELEASE",
+      "weightedPrecisionRequired": true,
+      "municipalEstimatesMayBeFabricated": false
+    },
+    "F3": {
+      "officialSource": "MTE_PDET_RAIS_public_nonidentified_microdata",
+      "period": "2019-2025",
+      "ageGroups": ["15_17", "18_24"],
+      "lens": "workplace",
+      "unit": "active_formal_bond_at_31_12",
+      "dimensions": [
+        "schooling",
+        "nominal_remuneration",
+        "contracted_hours",
+        "bond_type",
+        "apprenticeship",
+        "bond_tenure",
+        "occupation",
+        "sector",
+        "establishment_size"
+      ],
+      "realRemunerationRule": "requires_separate_official_deflator_contract; otherwise not_materialized"
+    },
+    "F4": {
+      "universe": "Vale_do_Sinos_and_10_municipalities",
+      "syntheticIndexAllowed": false,
+      "requiredFields": [
+        "municipal_count",
+        "regional_total",
+        "municipal_share",
+        "difference_to_reference_share_pp",
+        "ratio_to_reference_share",
+        "lens",
+        "period"
+      ]
+    },
+    "F5": {
+      "dependsOn": "F2",
+      "stateWhenF2Unavailable": "WAITING_OFFICIAL_RELEASE",
+      "causalClaimsAllowed": false
+    },
+    "F6": {
+      "preferredSource": "IBGE_Censo_Demografico_2022_sample_microdata",
+      "fallback": "frozen_aggregate_adult_schooling_and_EJA_panels_with_explicit_limits",
+      "residentPopulationIsManifestDemand": false
+    },
+    "F7": {
+      "allowedSourceClasses": [
+        "official_documentation",
+        "primary_academic_article"
+      ],
+      "blogsAllowed": false,
+      "promotionalReportsAllowed": false,
+      "localNumberInferenceFromLiteratureAllowed": false
+    }
+  },
+  "frozenInputs": {
+    "job5JRoot": ".tmp/vocacoes-pne/v7-job5j",
+    "job5JTreeDigestSha256": "f31b230fb9268ca57c15f1e322ef9317d841288f7408a9638b0042343a5fb57c",
+    "job5KRoot": ".tmp/vocacoes-pne/v7-job5k",
+    "job5KTreeDigestSha256": "75e5b1ce06d77de7a6e99a6e4f64b040110d8961ea857efc0f5a2e89cbcc52ff",
+    "publicDataTreeDigestSha256": "4a52e3891163cb3427c5c01f2ef5414c5fe7855dd491a9a125b509899dcc23e1",
+    "pne2026ContractSha256": "d1013ee77f57a5139b89d275639fdfea579599509e00e8a9c8b4b69f7ebbf9dd",
+    "municipalityRegistrySha256": "06b5c0eb6f025cf618549fc10fd004c6de628488d59dd35b239207b1ca42e9dd",
+    "regionRegistrySha256": "9892fc8fca0b1fc349c4cd49edf455760121adfd5c1113e5e224f547c1e90542"
+  },
+  "generation": {
+    "outputRoot": ".tmp/vocacoes-pne/v7-job5l",
+    "sharedFileLimit": 12,
+    "deterministic": true,
+    "twoIndependentMaterializationsRequired": true,
+    "transactional": true,
+    "manifestLast": true,
+    "networkAllowedForOfficialAcquisitionAndLiterature": true,
+    "databaseAllowedReadOnly": true,
+    "publicDataWritesAllowed": false,
+    "frontendWritesAllowed": false,
+    "publicationAllowed": false,
+    "fullBuildAllowed": false
+  },
+  "packageFiles": [
+    "CHECKPOINT_JOB5L_FOR_PRO.md",
+    "CATALOGO_INSIGHTS_APROFUNDADOS_JOB5L.json",
+    "MATRIZ_RESULTADOS_AJUSTADOS_E_DIRETOS_JOB5L.csv.gz",
+    "MATRIZ_HETEROGENEIDADE_10_MUNICIPIOS_JOB5L.csv.gz",
+    "DOSSIE_APROFUNDADO_NOVA_SANTA_RITA_JOB5L.md",
+    "DOSSIE_APROFUNDADO_VALE_DO_SINOS_JOB5L.md",
+    "METODOS_VALIDACAO_E_PRECISAO_JOB5L.md",
+    "LITERATURA_E_MECANISMOS_JOB5L.json",
+    "LIMITACOES_E_CLAIMS_JOB5L.json",
+    "QA_SUMMARY_JOB5L.json",
+    "ARTIFACT_INDEX_JOB5L.json",
+    "MANIFEST_JOB5L.json"
+  ],
+  "allowedFinalStates": [
+    "JOB_5L_READY_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5L_READY_WITH_EXPLICIT_LIMITS_FOR_EXTERNAL_JUDGMENT",
+    "JOB_5L_STOPPED_FOR_SUBSTANTIVE_DECISION"
+  ]
+}

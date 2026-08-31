@@ -47,6 +47,15 @@
   padding-left: var(--space-3);
 }
 
+.matriz-summary__method strong {
+  color: var(--text-strong);
+}
+
+.matriz-summary__method a {
+  color: var(--green-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
 .matriz-panorama {
   display: grid;
   gap: var(--space-4);
@@ -129,6 +138,7 @@
 .matriz-priority-card:focus-visible,
 .matriz-goal:focus-visible,
 .matriz-frente__more summary:focus-visible,
+.matriz-goal__support summary:focus-visible,
 .matriz-frente__bridge a:focus-visible {
   outline: 3px solid var(--focus-ring-color);
   outline-offset: 2px;
@@ -248,6 +258,18 @@
   max-width: 90ch;
 }
 
+.matriz-goal__actions-head .matriz-goal__indicator-scope {
+  background: var(--surface-muted);
+  border-left: 3px solid var(--green-primary);
+  color: var(--text-body);
+  font-size: var(--type-micro-size);
+  padding: var(--space-2) var(--space-3);
+}
+
+.matriz-goal__indicator-scope strong {
+  color: var(--text-strong);
+}
+
 .matriz-frente-list {
   align-items: start;
   display: grid;
@@ -355,6 +377,36 @@
 }
 
 .matriz-frente__more > :not(summary) {
+  margin-top: var(--space-4);
+}
+
+.matriz-goal__support {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.matriz-goal__support summary {
+  color: var(--green-primary);
+  cursor: pointer;
+  font-size: var(--type-support-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+.matriz-goal__support summary:hover {
+  color: var(--text-strong);
+}
+
+.matriz-goal__support summary::marker {
+  color: var(--green-primary);
+}
+
+.matriz-goal__support-body {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   margin-top: var(--space-4);
 }
 
@@ -571,144 +623,4 @@
   .matriz-frente-list {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* Bloco ponte PNE → Vocações (Rodada 4 do V2). Contexto territorial da região,
- * lido do pacote regional publicado. Some inteiro quando não há região. */
-.matriz-territorio {
-  --matriz-education-color: #0e7b54;
-  --matriz-territory-color: #3d6fd1;
-
-  background: var(--surface-card);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-4) var(--space-5);
-}
-
-.matriz-territorio__head h2 {
-  color: var(--text-strong);
-  font-size: var(--type-compact-title-size);
-  font-weight: var(--font-weight-semibold);
-  margin: 0;
-}
-
-.matriz-territorio__head p {
-  color: var(--text-body);
-  font-size: var(--type-micro-size);
-  margin: var(--space-1) 0 0;
-}
-
-.matriz-territorio__list {
-  display: flex;
-  flex-direction: column;
-  list-style: none;
-  margin: var(--space-3) 0 0;
-  padding: 0;
-}
-
-.matriz-territorio__item {
-  border-top: 1px solid var(--border-faint);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-3) 0;
-}
-
-.matriz-territorio__reading-row {
-  align-items: center;
-  display: flex;
-  gap: var(--space-3);
-}
-
-.matriz-territorio__reading {
-  color: var(--text-strong);
-  flex: 1;
-  font-size: var(--type-support-size);
-  margin: 0;
-}
-
-.matriz-territorio__strength {
-  display: inline-flex;
-  flex: none;
-  gap: 2px;
-}
-
-.matriz-territorio__strength i {
-  background: var(--border-faint);
-  border-radius: 2px;
-  height: 9px;
-  width: 9px;
-}
-
-.matriz-territorio__strength[data-strength='fraca'] i:first-child,
-.matriz-territorio__strength[data-strength='moderada'] i:nth-child(-n + 2),
-.matriz-territorio__strength[data-strength='forte'] i {
-  background: var(--text-body);
-}
-
-.matriz-territorio__entities {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-}
-
-.matriz-territorio__entity {
-  align-items: center;
-  display: inline-flex;
-  font-size: var(--type-micro-size);
-  gap: var(--space-1);
-}
-
-.matriz-territorio__entity--education {
-  color: var(--matriz-education-color);
-  font-weight: var(--font-weight-semibold);
-}
-
-.matriz-territorio__entity--territory {
-  color: var(--matriz-territory-color);
-}
-
-.matriz-territorio__entity-mark {
-  background: currentColor;
-  border-radius: 50%;
-  flex: none;
-  height: 7px;
-  width: 7px;
-}
-
-.matriz-territorio__link {
-  color: var(--matriz-territory-color);
-  display: inline-block;
-  font-size: var(--type-micro-size);
-  font-weight: var(--font-weight-semibold);
-}
-
-.matriz-territorio__method {
-  border-top: 1px solid var(--border-faint);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-}
-
-.matriz-territorio__method summary {
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: var(--type-micro-size);
-  font-weight: var(--font-weight-semibold);
-}
-
-.matriz-territorio__method summary:hover {
-  color: var(--text-body);
-}
-
-.matriz-territorio__method summary:focus-visible {
-  outline: 3px solid var(--focus-ring-color);
-  outline-offset: 2px;
-}
-
-.matriz-territorio__note {
-  color: var(--text-muted);
-  font-size: var(--type-micro-size);
-  margin: var(--space-2) 0 0;
 }

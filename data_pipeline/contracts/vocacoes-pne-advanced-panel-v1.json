@@ -1,0 +1,310 @@
+{
+  "schemaVersion": "vocacoes-pne-advanced-panel-contract-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA1",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "state": "RS",
+    "panelScopeLabel": "RS_ALIGNED_WITH_VALE_DEEP_DIVES",
+    "stateMunicipalityCount": 497,
+    "regionId": "REGION_VALE_DO_SINOS",
+    "regionMunicipalityCount": 10,
+    "selectedMunicipalityIbgeCode": "4313375",
+    "municipalityIdentity": "textual_ibge_code_7_digits",
+    "rankingAllowed": false,
+    "causalClaimsAllowed": false,
+    "publicDataWritesAllowed": false,
+    "databaseUseAllowed": false,
+    "networkUseAllowed": false
+  },
+  "observationContract": {
+    "requiredFields": [
+      "family_id",
+      "municipality_ibge_code",
+      "municipality_name",
+      "year_or_reference_period",
+      "stage_or_population_group",
+      "metric_id",
+      "dimension_id",
+      "raw_value",
+      "unit",
+      "availability_state",
+      "source_availability_state",
+      "unavailability_reason",
+      "universe",
+      "territorial_lens",
+      "network_scope",
+      "coverage_scope",
+      "coverage_reason",
+      "reference_scope",
+      "aggregation_guard",
+      "source_ref",
+      "source_period",
+      "method_state"
+    ],
+    "uniqueKey": [
+      "family_id",
+      "municipality_ibge_code",
+      "year_or_reference_period",
+      "stage_or_population_group",
+      "metric_id",
+      "dimension_id",
+      "universe",
+      "territorial_lens",
+      "network_scope",
+      "coverage_scope",
+      "reference_scope"
+    ],
+    "availabilityStates": [
+      "observed",
+      "observed_zero",
+      "unavailable",
+      "suppressed",
+      "not_applicable"
+    ],
+    "observedStatesRequireNumericValue": true,
+    "nonObservedStatesRequireNullValue": true,
+    "denominatorZeroProducesNull": true,
+    "roundingStage": "presentation_or_final_serialization_only",
+    "allowedTerritorialLenses": [
+      "resident_population",
+      "school_location",
+      "student_residence",
+      "rural_school_location",
+      "workplace",
+      "establishment_location_workplace",
+      "registered_residence_or_source_declared_municipality",
+      "municipal_executor"
+    ],
+    "allowedNetworkScopes": [
+      "total_all_dependencies",
+      "not_applicable",
+      "not_applicable_financial_executor"
+    ],
+    "allowedCoverageScopes": [
+      "RS_497",
+      "VALE_10"
+    ],
+    "allowedCoverageReasons": [
+      "STATEWIDE_SOURCE_AVAILABLE",
+      "FROZEN_ANALYTICAL_SOURCE_RESTRICTED_TO_VALE_10"
+    ],
+    "allowedUnavailabilityReasons": [
+      "VALUE_AVAILABLE",
+      "SOURCE_DECLARED_UNAVAILABLE",
+      "SOURCE_VALUE_MISSING",
+      "REFERENCE_COMPONENT_UNAVAILABLE_ZERO_BASE",
+      "SOURCE_SUPPRESSED",
+      "SOURCE_NOT_APPLICABLE",
+      "DENOMINATOR_ZERO"
+    ],
+    "allowedReferenceScopes": [
+      "NO_EXTERNAL_REFERENCE",
+      "RS_SAME_VERSION_COMPONENT_BENCHMARK"
+    ],
+    "allowedAggregationGuards": [
+      "WITHIN_DECLARED_COVERAGE_ONLY",
+      "DO_NOT_AGGREGATE_AS_RS_TOTAL"
+    ],
+    "rowEmissionPolicy": "SOURCE_OBSERVATION_SPARSE",
+    "absentRowMeaning": "row_absent_outside_source_or_grain",
+    "absenceNeverImplies": [
+      "observed_zero",
+      "unavailable",
+      "suppressed",
+      "not_applicable"
+    ],
+    "sourceToOutputReconciliationRequired": true,
+    "temporalAuditRequired": true,
+    "temporalAuditStates": [
+      "SINGLE_PERIOD_SNAPSHOT",
+      "CONTIGUOUS_ANNUAL_SERIES",
+      "OFFICIAL_NON_ANNUAL_SOURCE_SCHEDULE",
+      "ENDPOINT_ONLY_SOURCE_DESIGN",
+      "INTERVAL_DECOMPOSITION",
+      "REFERENCE_MONTH_SNAPSHOT"
+    ]
+  },
+  "families": [
+    {
+      "familyId": "F1_EDUCATIONAL_TRAJECTORY_AND_CONDITIONS",
+      "coverageClass": "STATEWIDE",
+      "requiredMunicipalityCount": 497,
+      "territorialLenses": ["school_location"],
+      "contents": [
+        "approval_failure_dropout_and_age_grade_distortion",
+        "teacher_adequacy",
+        "socioeconomic_school_context_inse"
+      ]
+    },
+    {
+      "familyId": "F2_DEMOGRAPHY_ENROLLMENT_AND_OFFER",
+      "coverageClass": "STATEWIDE",
+      "requiredMunicipalityCount": 497,
+      "territorialLenses": ["resident_population", "school_location"],
+      "contents": [
+        "population_by_planning_age_group",
+        "enrollments_by_stage",
+        "full_time_and_rural_enrollments",
+        "school_and_internet_enabled_school_counts"
+      ]
+    },
+    {
+      "familyId": "F3_YOUTH_WORK_AND_APPRENTICESHIP",
+      "coverageClass": "PARTIAL_VALE_DEEP_DIVE",
+      "requiredMunicipalityCount": 10,
+      "partialCoverageReason": "The frozen reconciled RAIS materialization was contracted for the ten Vale do Sinos municipalities; AA1 does not reprocess multi-gigabyte source microdata or expand its authorized grain.",
+      "territorialLenses": ["establishment_location_workplace"],
+      "contents": [
+        "active_formal_bond_stock_at_31_12",
+        "schooling_bond_hours_tenure_size_and_pay_composition",
+        "occupation_and_sector_concentration"
+      ]
+    },
+    {
+      "familyId": "F4_OCCUPATIONS_SECTORS_AND_EPT",
+      "coverageClass": "PARTIAL_VALE_WITH_STATE_REFERENCE",
+      "requiredMunicipalityCount": 10,
+      "partialCoverageReason": "Municipal occupation, sector and EPT panels are frozen for the Vale; the shift-share source preserves same-version RS reference totals without pretending to be a 497-municipality panel.",
+      "territorialLenses": ["workplace", "school_location"],
+      "contents": [
+        "technical_enrollment_offer",
+        "occupation_and_sector_endpoint_stocks",
+        "sector_shift_share_accounting_components"
+      ],
+      "referenceFence": {
+        "appliesOnlyToMetricPrefix": "labor.shift_share.",
+        "rowReferenceScope": "RS_SAME_VERSION_COMPONENT_BENCHMARK",
+        "rowAggregationGuard": "DO_NOT_AGGREGATE_AS_RS_TOTAL",
+        "stateTotalsEmittedAsMunicipalRows": false
+      }
+    },
+    {
+      "familyId": "F5_ADULT_SCHOOLING_AND_EJA",
+      "coverageClass": "MIXED_STATEWIDE_AND_VALE",
+      "requiredMunicipalityCount": 497,
+      "deepDiveMunicipalityCount": 10,
+      "partialCoverageReason": "Adult schooling is statewide for 2022; stage-separated EJA history is a frozen Vale deep dive and remains on the school-location lens.",
+      "territorialLenses": ["resident_population", "school_location"],
+      "contents": [
+        "adult_completion_counts_and_shares",
+        "stage_separated_eja_enrollment_history"
+      ]
+    },
+    {
+      "familyId": "F6_VULNERABILITY_RURALITY_INCLUSION_AND_FINANCE",
+      "coverageClass": "MIXED_STATEWIDE_AND_VALE",
+      "requiredMunicipalityCount": 497,
+      "deepDiveMunicipalityCount": 10,
+      "partialCoverageReason": "Municipal finance is statewide; vulnerability, rural school and AEE panels retain the ten-municipality frozen Vale scope.",
+      "territorialLenses": [
+        "municipal_executor",
+        "registered_residence_or_source_declared_municipality",
+        "rural_school_location",
+        "school_location"
+      ],
+      "contents": [
+        "education_budget_execution_and_financing_capacity",
+        "registered_vulnerability_context",
+        "rural_school_offer",
+        "special_education_and_aee"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "sourceId": "JOB5L_FROZEN_STATE_CONTEXT",
+      "root": ".tmp/vocacoes-pne/v7-job5l/sources/database",
+      "manifest": "manifest.json",
+      "role": "statewide_education_demography_school_conditions_and_adult_schooling",
+      "expectedMunicipalityCount": 497
+    },
+    {
+      "sourceId": "JOB5L_FINAL_RAIS_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5l-final/internal/PAINEL_RAIS_JOB5L_FINAL.csv.gz",
+      "role": "reconciled_youth_formal_bond_composition",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GCR_EPT_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gcr/PAINEL_EPT_OFERTA_TOTAL_V1_1.csv.gz",
+      "role": "technical_education_offer",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GCR_OCCUPATIONS_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gcr/PAINEL_OCUPACOES_RAIS_ESTOQUE_V1.csv.gz",
+      "role": "occupation_endpoint_stock",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GCR_SECTORS_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gcr/PAINEL_SETORES_RAIS_ESTOQUE_V1.csv.gz",
+      "role": "sector_endpoint_stock",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GCR_SHIFT_SHARE_VALE_RS",
+      "path": ".tmp/vocacoes-pne/v7-job5gcr/PAINEL_SHIFT_SHARE_SETORIAL_V1_1.csv.gz",
+      "role": "accounting_decomposition_with_same_version_rs_reference",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GBR_EJA_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gbr/PAINEL_EJA_HISTORICA_2014_2025_V1_1.csv.gz",
+      "role": "stage_separated_eja_history",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GBR_RURAL_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gbr/PAINEL_EDUCACAO_RURAL_TERRITORIO_V1_1.csv.gz",
+      "role": "rural_school_offer",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GBR_AEE_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gbr/PAINEL_EDUCACAO_ESPECIAL_AEE_V1_1.csv.gz",
+      "role": "special_education_and_aee",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "JOB5GBR_VULNERABILITY_VALE",
+      "path": ".tmp/vocacoes-pne/v7-job5gbr/PAINEL_VULNERABILIDADE_EDUCACIONAL_V1_1.csv.gz",
+      "role": "registered_vulnerability_context",
+      "expectedMunicipalityCount": 10
+    },
+    {
+      "sourceId": "MUNICIPAL_FINANCE_EXPORT_RS",
+      "root": "data_pipeline/export/municipal_finance/municipios",
+      "filePattern": "<ibge_code>/financeiro.json",
+      "role": "statewide_financing_and_execution_context",
+      "expectedMunicipalityCount": 497
+    }
+  ],
+  "generation": {
+    "outputRoot": ".tmp/vocacoes-pne/advanced-analytics-v1/aa1",
+    "deterministic": true,
+    "twoIndependentMaterializationsRequired": true,
+    "twoIndependentOperatingSystemProcessesRequired": true,
+    "distinctPythonHashSeedsRequired": true,
+    "networkGuardRequired": true,
+    "databaseGuardRequired": true,
+    "transactional": true,
+    "manifestLast": true,
+    "databaseUsed": false,
+    "networkUsed": false,
+    "publicDataWritesAllowed": false,
+    "fullBuildAllowed": false
+  },
+  "packageFiles": [
+    "PAINEL_ANALITICO_ESTADUAL_AA1.csv.gz",
+    "CATALOGO_METRICAS_AA1.json",
+    "COBERTURA_FAMILIAS_AA1.json",
+    "RECONCILIACAO_GRAO_AA1.json",
+    "AUDITORIA_TEMPORAL_AA1.json",
+    "AA2_ENTRY_GATE_AA1.json",
+    "SOURCE_INVENTORY_AA1.json",
+    "QA_SUMMARY_AA1.json",
+    "MANIFEST_AA1.json"
+  ]
+}

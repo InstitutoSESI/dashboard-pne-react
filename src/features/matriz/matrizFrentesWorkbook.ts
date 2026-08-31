@@ -4,7 +4,11 @@ import {
   serializeMatrizPlan,
   type MatrizPlanEntry,
 } from '../../domain/matrizFrontsStorage.js'
-import { matrizFrenteKey, resolveMatrizFrentes } from './matrizFrentes.js'
+import {
+  matrizFrenteKey,
+  resolveMatrizFrentes,
+  resolveMatrizGoalSupport,
+} from './matrizFrentes.js'
 import { resolveMatrizGoalInsight } from './matrizInsights.js'
 import type { MatrizDocument } from './matrizTypes.js'
 import {
@@ -48,7 +52,7 @@ const COLUMNS: readonly {
   { key: 'frente', header: 'Frente', width: 36 },
   { key: 'pontoDeAtencao', header: 'Ponto de atenção', width: 52 },
   { key: 'comoAvancar', header: 'Como avançar', width: 52 },
-  { key: 'apoioFederal', header: 'Apoio federal', width: 52 },
+  { key: 'apoioFederal', header: 'Apoios e referências oficiais', width: 52 },
   { key: 'baseLegal', header: 'Base legal', width: 34 },
   { key: 'estado', header: 'Estado', width: 18 },
   { key: 'anotacao', header: 'Anotação', width: 52 },
@@ -79,6 +83,7 @@ export function buildMatrizFrentesWorkbook(
 
   for (const goal of matriz.priorityGoals) {
     const insight = resolveMatrizGoalInsight(goal.goalId)
+    const sharedPrograms = resolveMatrizGoalSupport(goal.goalId)?.programs ?? []
     for (const frente of resolveMatrizFrentes(goal.goalId)) {
       const entry = selected.get(matrizFrenteKey(goal.goalId, frente.id))
       if (!entry) continue
@@ -93,7 +98,10 @@ export function buildMatrizFrentesWorkbook(
         frente: frente.title,
         pontoDeAtencao: mechanism?.explanation ?? '',
         comoAvancar: frente.steps.join('\n'),
-        apoioFederal: frente.programs
+        apoioFederal: [...sharedPrograms, ...frente.programs]
+          .filter((program, index, programs) => programs.findIndex((candidate) => (
+            candidate.url === program.url
+          )) === index)
           .map((program) => `${program.name} — ${program.description}`)
           .join('\n'),
         baseLegal: frente.legalRef,

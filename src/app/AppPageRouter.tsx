@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { resolvePageProduct } from '../config/analyticsProducts'
 import { isProductEnabled } from '../config/publicationConfig'
+import { VOCACOES_PNE_INTERNAL_ENABLED } from '../config/vocacoesPneInternalFlag'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { FINANCIAL_PAGE_KEYS } from '../data/financialPageKeys'
 import { EDUCATION_SECTION_KEYS, resolveEducationSection } from '../data/educationIndicatorCatalog'
@@ -21,6 +22,7 @@ import {
 import { useMunicipioData } from '../hooks/useMunicipioData'
 import { isVocacoesPublished, useVocacoesPublication } from '../hooks/useVocacoesRegiao'
 import { resolveRegionForMunicipality } from '../config/regionsConfig'
+import { isCenariosEducacaoRegionSupported } from '../config/cenariosEducacaoConfig'
 import { Home } from '../pages/Home'
 import { ProductUnavailablePage } from '../pages/ProductUnavailablePage'
 import type { AppPageKey } from '../types/app'
@@ -33,6 +35,8 @@ import { PageLoadBoundary } from './PageLoadBoundary'
 
 const LazyAnaliseRegionalPage = lazy(() => import('../features/regional/AnaliseRegionalPage').then((module) => ({ default: module.AnaliseRegionalPage })))
 const LazyVocacoesRegiaoPage = lazy(() => import('../features/vocacoes-regiao/VocacoesRegiaoPage').then((module) => ({ default: module.VocacoesRegiaoPage })))
+const LazyCenariosEducacaoPage = lazy(() => import('../features/cenarios-educacao/CenariosEducacaoPage').then((module) => ({ default: module.CenariosEducacaoPage })))
+const LazyCenariosEducacaoDadosPage = lazy(() => import('../features/cenarios-educacao/CenariosEducacaoPage').then((module) => ({ default: module.CenariosEducacaoDadosPage })))
 const LazyCyclePage = lazy(() => import('../pages/CyclePage').then((module) => ({ default: module.CyclePage })))
 const LazyDiagnostico = lazy(() => import('../pages/Diagnostico').then((module) => ({ default: module.Diagnostico })))
 const LazyEducationPage = lazy(() => import('../features/education/EducationPage').then((module) => ({ default: module.EducationPage })))
@@ -41,6 +45,7 @@ const LazyPriorityMatrixPage = lazy(() => import('../pages/PriorityMatrixPage').
 const LazyMunicipalFinancePanoramaPage = lazy(() => import('../features/municipal-finance/MunicipalFinancePanoramaPage').then((module) => ({ default: module.MunicipalFinancePanoramaPage })))
 const LazyPneLegalGoalsPage = lazy(() => import('../pages/PneLegalGoalsPage').then((module) => ({ default: module.PneLegalGoalsPage })))
 const LazyPneOverviewPage = lazy(() => import('../pages/PneOverviewPage').then((module) => ({ default: module.PneOverviewPage })))
+const LazyVocacoesPneInternalPage = lazy(() => import('../features/vocacoes-pne-internal/VocacoesPneInternalPage').then((module) => ({ default: module.VocacoesPneInternalPage })))
 
 interface AppPageRouterProps {
   activePage: AppPageKey
@@ -88,6 +93,7 @@ export function AppPageRouter({
   } = useMunicipality()
   const isEducationDataPage = activePage === 'educacao'
     || activePage === 'relatorio-tecnico-municipal'
+  const isVocacoesPneInternalRoute = activePage === 'vocacoes-pne-internal'
   const isLegacyTechnicalReportRoute = activePage === 'educacao'
     && resolveEducationSection({
       requestedSection: navigationContext.params.get('secao'),
@@ -114,7 +120,7 @@ export function AppPageRouter({
     data: municipioData,
     error: municipioError,
     loading: municipioLoading,
-  } = useMunicipioData(effectiveMunicipalityId)
+  } = useMunicipioData(isVocacoesPneInternalRoute ? null : effectiveMunicipalityId)
   const loadedMunicipalityId = typeof municipioData?.id_municipio === 'string'
     ? municipioData.id_municipio
     : null
@@ -145,8 +151,11 @@ export function AppPageRouter({
    * vazia é montada e nenhum cenário municipal é reaproveitado como regional.
    */
   const isVocacoesRoute = activePage === 'vocacoes-regiao'
+  const isCenariosEducacaoRoute = activePage === 'cenarios-educacao'
+    || activePage === 'cenarios-educacao-dados'
   const vocacoesPublication = useVocacoesPublication()
   const activeRegion = resolveRegionForMunicipality(effectiveMunicipalityId)
+  const cenariosEducacaoAvailable = isCenariosEducacaoRegionSupported(activeRegion?.slug)
   const vocacoesAvailable = isVocacoesPublished(vocacoesPublication, activeRegion?.slug ?? null)
   const vocacoesBlocked = isVocacoesRoute
     && selectionReady
@@ -159,6 +168,18 @@ export function AppPageRouter({
       municipio: effectiveMunicipality?.slug ?? null,
     })
   }, [effectiveMunicipality?.slug, vocacoesBlocked])
+
+  useEffect(() => {
+    if (!isCenariosEducacaoRoute || !selectionReady || cenariosEducacaoAvailable) return
+    replaceHashContext('analise-regional', {
+      municipio: effectiveMunicipality?.slug ?? null,
+    })
+  }, [
+    cenariosEducacaoAvailable,
+    effectiveMunicipality?.slug,
+    isCenariosEducacaoRoute,
+    selectionReady,
+  ])
 
   useLayoutEffect(() => {
     if (!selectionReady || !shouldSyncMunicipalityUrl || isLegacyTechnicalReportRoute) {
@@ -238,6 +259,17 @@ export function AppPageRouter({
     return <LoadingState message="Preparando município..." />
   }
 
+  if (isVocacoesPneInternalRoute) {
+    if (!VOCACOES_PNE_INTERNAL_ENABLED) {
+      return <Home onNavigate={onNavigate} />
+    }
+    return (
+      <LazyPageBoundary page={activePage}>
+        <LazyVocacoesPneInternalPage />
+      </LazyPageBoundary>
+    )
+  }
+
   if (activeProduct !== null && !isProductEnabled(activeProduct)) {
     return <ProductUnavailablePage product={activeProduct} />
   }
@@ -264,6 +296,19 @@ export function AppPageRouter({
           key={activeRegion?.slug ?? effectiveMunicipalityId}
           municipalityId={effectiveMunicipalityId}
         />
+      </LazyPageBoundary>
+    )
+  }
+
+  if (isCenariosEducacaoRoute) {
+    if (!cenariosEducacaoAvailable) {
+      return <LoadingState message="Preparando os cenários da região..." />
+    }
+    return (
+      <LazyPageBoundary page={activePage}>
+        {activePage === 'cenarios-educacao-dados'
+          ? <LazyCenariosEducacaoDadosPage municipalityId={effectiveMunicipalityId} />
+          : <LazyCenariosEducacaoPage municipalityId={effectiveMunicipalityId} />}
       </LazyPageBoundary>
     )
   }

@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "descricao": "Corpus de exemplos do contrato v1.1.0 (Rodada 1 do V6, revisado pelo parecer adversarial). Aprovados devem passar com zero violações de linguagem e de contrato; reprovados devem produzir ao menos as violações esperadas. Os números dos aprovados são ilustrativos (retirados do plano V6 ou qualitativos) e serão recalculados na Etapa 6 antes de qualquer publicação real.",
+  "version": "1.2.0",
+  "descricao": "Corpus de exemplos do contrato Vocações × PNE, iniciado na Rodada 1 e migrado na Rodada 6 para future_basis estruturada. Aprovados devem passar com zero violações de linguagem e de contrato; reprovados devem produzir ao menos as violações esperadas. Os números destes exemplos são ilustrativos; os artefatos das saídas usam fatos recalculados e rastreáveis.",
   "aprovados": [
     {
       "id": "vds-em-demografia",
@@ -106,7 +106,15 @@
       "internal": {
         "transformation_class": "tendencia_sustentada",
         "mechanism_id": "M1-envelhecimento-rede",
-        "future_basis": "Série observada de nascimentos; as gerações futuras das etapas escolares já nasceram.",
+        "future_basis": {
+          "basisType": "observed_series",
+          "seriesIds": ["nascidos-vivos-por-residencia-da-mae", "populacao-de-0-a-14-anos"],
+          "observedPeriod": { "start": 2010, "end": 2025 },
+          "supportsTrend": true,
+          "scenarioId": null,
+          "futureNumericValues": [],
+          "claimBoundary": "A série observada sustenta somente a direção da tendência, sem número futuro."
+        },
         "sensitivity_check": "ok",
         "publication_decision": "publicada"
       }
@@ -130,7 +138,15 @@
       "internal": {
         "transformation_class": "tendencia_sustentada",
         "mechanism_id": "M4-escolaridade-do-emprego",
-        "future_basis": "Tendência sustentada da escolaridade dos vínculos formais em série observada (RAIS).",
+        "future_basis": {
+          "basisType": "observed_series",
+          "seriesIds": ["vinculos-formais-de-pessoas-com-ensino-medio-completo-por-cem-vinculos-formais"],
+          "observedPeriod": { "start": 2014, "end": 2023 },
+          "supportsTrend": true,
+          "scenarioId": null,
+          "futureNumericValues": [],
+          "claimBoundary": "A série observada sustenta somente a direção da tendência, sem número futuro."
+        },
         "sensitivity_check": "ok",
         "publication_decision": "publicada"
       }
@@ -175,7 +191,7 @@
         "monitoring_indicators": ["Matrículas de educação profissional"],
         "horizon": "próximos anos",
         "sources": ["RAIS"],
-        "internal": { "transformation_class": "tendencia_sustentada", "mechanism_id": "M4-ocupacoes", "future_basis": "Série observada de ocupações (RAIS).", "sensitivity_check": "ok", "publication_decision": "publicada" }
+        "internal": { "transformation_class": "tendencia_sustentada", "mechanism_id": "M4-ocupacoes", "future_basis": { "basisType": "observed_series", "seriesIds": ["ocupacoes-por-cbo"], "observedPeriod": { "start": 2014, "end": 2023 }, "supportsTrend": true, "scenarioId": null, "futureNumericValues": [], "claimBoundary": "A série observada sustenta somente a direção da tendência, sem número futuro." }, "sensitivity_check": "ok", "publication_decision": "publicada" }
       }
     },
     {

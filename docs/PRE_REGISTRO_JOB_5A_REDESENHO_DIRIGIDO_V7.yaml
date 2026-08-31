@@ -1,0 +1,250 @@
+schema_version: vocacoes-pne-v7-job5a-preregistration-v1
+job_id: v7-job5a
+version: "1.0.0"
+created_on: "2026-08-28"
+status: FROZEN_PRE_RESULT
+classification: DATA_LOGIC
+frozen_before_any_new_result: true
+post_result_adjustment: false
+execution_authorized_by_job4b: false
+freeze_rule: >-
+  Any change after the first Job 5A result requires a new version, date,
+  justification, impact statement and POST_RESULT_ADJUSTMENT marker.
+
+canonical_scope:
+  network_scope: total_all_dependencies
+  historical_analytical_grain: municipality_year_stage
+  snapshot_analytical_grain: municipality_stage_reference_year
+  administrative_dependency_is_analytic_dimension: false
+  administrative_dependency_is_QA_dimension: true
+  retrospective_preregistration_edit: false
+  municipality_identity: textual_ibge_code_7_digits
+  region_universe: canonical_10_municipality_FIERGS_Vale_do_Sinos
+  mandatory_case:
+    municipality_id: "4313375"
+    municipality_name: Nova Santa Rita
+  aggregation:
+    counts: sum_compatible_administrative_dependencies
+    rates_priority: official_total_record
+    rates_fallback: sum_numerators_divided_by_sum_denominators
+    forbidden: [simple_mean_of_dependency_rates, sum_of_percentages, undeclared_weighted_mean]
+  missingness: preserve_observed_zero_null_unavailable_suppressed_not_applicable
+  zero_denominator: null
+  rounding: presentation_or_final_serialization_only
+  inference_language: ecological_non_causal
+  public_narrative_allowed: false
+  interface_allowed: false
+  publication_allowed: false
+
+fronts:
+  - front_id: H2_TRAJETORIA_MUNICIPAL_V2
+    candidate_id: H2_TRAJETORIA_MUNICIPAL_V2
+    question: >-
+      Em quais municípios e etapas a trajetória escolar melhorou, permaneceu
+      crítica ou seguiu direção diferente da região, considerando a rede total
+      do município?
+    main_unit: municipality_year_stage
+    network_scope: total_all_dependencies
+    administrative_dependency_is_analytic_dimension: false
+    educational_lens: school_location_all_administrative_dependencies
+    outcomes:
+      - approval_rate
+      - failure_rate
+      - dropout_rate
+      - age_grade_distortion_rate
+    periods:
+      performance: "2018-2025"
+      age_grade_distortion: "2019-2025"
+      main_snapshot: "2025"
+      recent_persistence: "2023-2025"
+      shorter_period_rule: declare_before_execution
+    stages:
+      - early_years_elementary
+      - final_years_elementary
+      - total_elementary_when_compatible
+      - high_school
+    comparisons:
+      - selected_municipality
+      - Vale_do_Sinos
+      - RS
+      - Nova_Santa_Rita
+      - id: "4307609"
+        name: Estância Velha
+      - id: "4314803"
+        name: Portão
+      - id: "4303905"
+        name: Campo Bom
+    aggregation:
+      use_official_total_record_first: true
+      recompute_rate_from_components_when_needed: true
+      simple_mean_of_dependencies_or_municipalities: false
+      preserve_missingness_states: true
+    procedure:
+      - identify_observed_trajectory_by_municipality_and_stage
+      - verify_recent_direction
+      - verify_persistence_for_at_least_two_recent_years_when_possible
+      - compare_municipality_region_state_and_approved_peers
+      - identify_different_direction_or_materially_different_intensity
+      - use_school_conditions_only_as_auxiliary_factors
+      - do_not_use_conditions_regression_as_automatic_gate
+      - do_not_require_administrative_dependency_pattern
+      - do_not_attribute_result_to_municipal_or_state_network
+      - do_not_infer_cause
+    possible_auxiliary_conditions:
+      - students_per_class
+      - teacher_adequacy
+      - INSE
+      - schools_with_broadband
+      - other_materialized_compatible_conditions
+    auxiliary_condition_entry_rules:
+      - available_for_total_all_dependencies
+      - compatible_period
+      - compatible_stage
+      - reproducible_municipal_fact
+      - adds_concrete_question
+      - not_selected_only_by_p_value
+      - not_presented_as_cause
+    absence_of_auxiliary_condition_blocks_main_story: false
+    pass_rules:
+      all_required:
+        - municipal_pattern_by_stage
+        - relevance_in_more_than_one_year
+        - useful_difference_from_Vale_RS_or_peers
+        - clearly_identified_public
+        - monitoring_indicator
+        - specific_planning_question
+        - useful_without_administrative_dependency_stratification
+        - public_language_possible_without_coefficient_p_value_or_causality
+      insufficient_alone:
+        - isolated_2025_rate
+        - ranking_position
+        - statistical_relation_without_municipal_consequence
+        - generic_monitoring_recommendation
+        - responsibility_claim_based_on_specific_administrative_dependency
+    nova_santa_rita_required_reconstruction:
+      outcomes: [approval, failure, dropout, age_grade_distortion]
+      stages: [final_years_elementary, high_school]
+      views: [recent_evolution, Vale_comparison, RS_comparison, peer_comparison]
+      auxiliary_conditions: only_when_compatible_municipal_series_exists
+      dependency_attribution_allowed: false
+
+  - front_id: A4_MOBILIDADE_COORDENACAO
+    candidate_id: A4_MOBILIDADE_COORDENACAO
+    question: >-
+      Que decisões educacionais exigem coordenação quando uma parcela relevante
+      dos residentes estuda fora do município?
+    main_unit: municipality_of_residence_stage_2022
+    network_scope: total_all_dependencies
+    administrative_dependency_is_analytic_dimension: false
+    universes:
+      - all_resident_students
+      - elementary_school
+      - high_school
+    comparisons:
+      - ten_Vale_do_Sinos_municipalities
+      - Vale_do_Sinos
+      - RS
+      - Nova_Santa_Rita
+    minimum_facts:
+      - total_resident_students
+      - residents_studying_outside_municipality
+      - share_studying_outside_municipality
+      - municipality_minus_region_difference
+      - municipality_minus_state_difference
+      - concentration_by_stage
+    reference_year: 2022
+    destination_available: false
+    forbidden_inferences:
+      - destination_municipality
+      - route
+      - corridor
+      - receiving_school
+      - vacancy
+      - capacity
+      - administrative_dependency_attribution
+      - mechanical_combination_with_localized_supply
+      - studying_outside_is_a_problem_by_itself
+    allowed_responsibility_contexts:
+      - transport
+      - transition_between_stages
+      - territorial_articulation
+      - municipal_monitoring
+      - regional_coordination
+      - dialogue_with_state
+    pass_rule:
+      requires:
+        - concrete_coordination_question
+        - identified_public
+        - identified_stage
+        - identified_municipalities
+        - monitoring_indicator
+        - contextual_responsibility
+        - decision_delta_beyond_generic_outside_study_fact
+      destination_absence_limits_claim: true
+      destination_absence_can_be_main_card_content: false
+
+  - front_id: A3_OPTIONAL_YOUTH_CONTEXT
+    creates_new_candidate: false
+    parent_candidate_id: A3_OCUPACOES_FORMACAO
+    objective: >-
+      Testar se fatos de trabalho juvenil tornam a agenda de A3 mais específica,
+      sem recriar H3 ou A2.
+    sources:
+      CAGED:
+        age_groups: ["15-17", "18-24"]
+        dimensions: [CBO, CNAE, apprentice]
+        measures: [admissions, dismissals, balance]
+        measure_type: flow
+      RAIS:
+        role: A3_occupational_stock
+        measure_type: stock
+      professional_education:
+        network_scope: total_all_dependencies
+        lens: observed_total_school_supply_in_municipality
+    rules:
+      - do_not_transport_H3_coefficients
+      - do_not_mix_RAIS_and_CAGED
+      - do_not_infer_first_job
+      - do_not_infer_same_people
+      - do_not_infer_course_causes_employment
+      - do_not_transform_apprentice_into_vacancy
+      - do_not_create_youth_work_card
+      - do_not_change_A3_approval_by_post_result_selection
+      - context_may_enrich_A3_or_be_silently_discarded
+    use_rule:
+      all_required:
+        - age_group
+        - occupation_or_subgroup
+        - sector
+        - municipality
+        - related_course_or_axis
+        - concrete_training_articulation_question
+
+execution_order:
+  - validate_total_all_dependencies_reconstruction
+  - execute_H2_TRAJETORIA_MUNICIPAL_V2
+  - execute_A4_MOBILIDADE_COORDENACAO
+  - test_optional_A3_youth_context
+  - produce_factual_package
+  - stop_for_external_judgment
+
+stop_rule:
+  required_reviewer: GPT-5.6 Pro
+  automatic_editorial_authoring: false
+  automatic_interface_work: false
+  automatic_publication: false
+
+references:
+  scope_decision: docs/DECISAO_ESCOPO_REDE_TOTAL_JOB_4B_V7.md
+  final_judgment: docs/DECISAO_JULGAMENTO_EXTERNO_FINAL_JOB_4B_V7.md
+  final_matrix: docs/MATRIZ_DECISAO_FINAL_CANDIDATAS_JOB_4B_V7.csv
+  provisional_portfolio: docs/ADITIVO_PROVISORIO_PORTFOLIO_3_MAIS_2_V7.md
+  execution_plan: docs/PLANO_JOB_5A_REDESENHO_DIRIGIDO_V7.md
+  historical_preregistration: docs/PRE_REGISTRO_ANALITICO_JOB_3_V7.yaml
+
+change_log:
+  - version: "1.0.0"
+    date: "2026-08-28"
+    kind: PRE_RESULT_FREEZE
+    justification: Directed redesign registered before any Job 5A result.
+    impact: Defines the complete allowed search space, pass rules and stop gate.

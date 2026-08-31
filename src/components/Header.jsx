@@ -8,6 +8,7 @@ import {
 import { resolvePageProduct } from '../config/analyticsProducts'
 import { ANALYTICS_AVAILABLE, isProductEnabled } from '../config/publicationConfig'
 import { REGIONAL_ANALYSIS_AVAILABLE, resolveRegionForMunicipality } from '../config/regionsConfig'
+import { isCenariosEducacaoRegionSupported } from '../config/cenariosEducacaoConfig'
 import { ACTIVE_STATE_CONFIG, PLATFORM_LABEL } from '../config/stateConfig'
 import { useMunicipality } from '../context/MunicipalityContext'
 import { EDUCATION_SECTION_CATALOG } from '../data/educationIndicatorCatalog'
@@ -101,6 +102,11 @@ function withVocacoesItem(block, isVisible) {
   return { ...block, items: block.items.filter((item) => item.condition !== 'vocacoes') }
 }
 
+function withCenariosEducacaoItem(block, isVisible) {
+  if (isVisible || !block.items.some((item) => item.condition === 'education-scenarios')) return block
+  return { ...block, items: block.items.filter((item) => item.condition !== 'education-scenarios') }
+}
+
 const PANEL_LABEL = PLATFORM_LABEL
 const PANEL_FULL_LABEL = `${PANEL_LABEL} · Inteligência Analítica Municipal`
 const SIDEBAR_NAVIGATION_ID = 'app-sidebar-navigation'
@@ -117,6 +123,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
   const vocacoesPublication = useVocacoesPublication()
   const selectedRegion = resolveRegionForMunicipality(selectedMunicipalityId)
   const vocacoesVisible = isVocacoesPublished(vocacoesPublication, selectedRegion?.slug ?? null)
+  const cenariosEducacaoVisible = isCenariosEducacaoRegionSupported(selectedRegion?.slug)
 
   const ownerGroup = getOwnerGroup(activePage)
 
@@ -243,6 +250,7 @@ export function Header({ activeEducationSection, activePage, onNavigate }) {
             <>
               {NAV_BLOCKS
                 .map((block) => withVocacoesItem(block, vocacoesVisible))
+                .map((block) => withCenariosEducacaoItem(block, cenariosEducacaoVisible))
                 .filter((block) => block.items.length > 0)
                 .map((item) => (
                 <SidebarAccordionGroup
@@ -326,5 +334,6 @@ function getOwnerGroup(activePage) {
 function getActiveItemKey(groupId, activePage, activeEducationSection) {
   if (groupId === 'educacao') return activePage === 'educacao' ? activeEducationSection : null
   if (groupId === 'financeiros' && activePage === 'financeiros') return FINANCIAL_PAGE_KEYS.overview
+  if (groupId === 'analise-regional' && activePage === 'cenarios-educacao-dados') return 'cenarios-educacao'
   return activePage
 }

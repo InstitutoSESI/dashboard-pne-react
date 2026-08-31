@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "vocacoes-pne-aa3-opus-reconciliation-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA3",
+  "classification": "DATA_LOGIC",
+  "initialAudit": {
+    "model": "claude-opus-5",
+    "reasoningEffort": "max",
+    "verdict": "AT_RISK",
+    "confidence": 0.72,
+    "resultPath": ".tmp/codex-analytics-program/aa3-opus-results/opus-result.json",
+    "resultSha256": "dbd2014b271c6401ca6b385ba40ce3173623bc14b99983ccf5177541e38db8ca"
+  },
+  "auditedCheckpoint": {
+    "contractSha256": "1c85786be21bcb0a762eecf4b406bf7dca769f29c5e4b993c56e6b469a736e60",
+    "artifactSetDigestSha256": "4c3005d88bc23920a94865f5077b79bb70da832bebd5bce59a420afb406f8fca",
+    "fullTreeDigestSha256": "1cfb463767943b053cf8a019587275915c5d412d7096b53ee13e20870219a186",
+    "reportSha256": "e555cc3ff24aa2748cc913ceeea01714a85602c829cf93f7af02c4892639fce0"
+  },
+  "acceptedFindings": [
+    {
+      "findingId": "AA3_OPUS_PUBLIC_SENTINEL_FORMALIZATION",
+      "severity": "high",
+      "decision": "ACCEPTED",
+      "action": "Preservar os digests e eventos observados, registrar caminhos, hashes, timestamps e rotas canônicas dos geradores; reformular o gate como ausência de escrita pelo AA3, invariância dentro de cada materialização e igualdade entre os dois candidatos; não fixar como insumo analítico um estado global que continua sujeito a publicações paralelas. O AA4 deverá capturar seu próprio baseline explícito depois de cessarem as publicações concorrentes, sem rebaseline automático."
+    },
+    {
+      "findingId": "AA3_OPUS_P4_P6_NON_AFFIRMATIVE_CEILINGS",
+      "severity": "medium",
+      "decision": "ACCEPTED",
+      "action": "Renomear os tetos para formas não afirmativas, vincular explicitamente os resultados descritivos AA2 e declarar que o estado NO_ROBUST_ASSOCIATION permanece o resultado empírico."
+    },
+    {
+      "findingId": "AA3_OPUS_SEVEN_TO_EIGHT_RECONCILIATION",
+      "severity": "medium",
+      "decision": "ACCEPTED",
+      "action": "Publicar o mapeamento dos sete mecanismos Job5L para os oito registros AA3 e distinguir mecanismo teórico, identidade contábil e fronteira interpretativa."
+    },
+    {
+      "findingId": "AA3_OPUS_NAMED_QA_INVARIANTS",
+      "severity": "low",
+      "decision": "ACCEPTED",
+      "action": "Adicionar controles nomeados para classificação DATA_LOGIC, IBGE textual de sete dígitos, total_all_dependencies, completude não vazia e mapeamento da fonte."
+    },
+    {
+      "findingId": "AA3_OPUS_UNUSED_REFERENCE_RESTRICTION",
+      "severity": "medium",
+      "decision": "ACCEPTED_AS_PREVENTIVE_GUARD",
+      "action": "Marcar as três referências não usadas como NOT_USABLE_FOR_P3_P7_P8 e validar a proibição."
+    },
+    {
+      "findingId": "AA3_OPUS_P5_NOMENCLATURAL_BOUNDARY",
+      "severity": "medium",
+      "decision": "ACCEPTED_AS_PREVENTIVE_GUARD",
+      "action": "Explicitar que a ponte é nomenclatural e descritiva no CBO de dois dígitos e proibir demanda, empregabilidade, egressos e validação da ponte."
+    }
+  ],
+  "clarifications": [
+    {
+      "findingId": "AA3_OPUS_MANIFEST_LAST_AND_CANDIDATE_DIFFERENCE",
+      "decision": "CLARIFIED_WITH_EXISTING_IMPLEMENTATION_AND_NEW_QA",
+      "evidence": "A implementação já grava o manifesto após os quatro artefatos, declara manifestLast=true e compara somente o conjunto não manifesto porque cada candidato registra seu PYTHONHASHSEED. O manifesto final normaliza a evidência comum; a nova auditoria receberá esses campos literais."
+    },
+    {
+      "findingId": "AA3_OPUS_GZIP_DETERMINISM",
+      "decision": "CLARIFIED_WITH_EXISTING_IMPLEMENTATION",
+      "evidence": "write_csv_gzip usa mtime=0; os processos 303 e 404 produziram o mesmo SHA-256 do CSV.GZ. Será adicionado teste literal do cabeçalho gzip."
+    },
+    {
+      "findingId": "AA3_OPUS_FULL_TEXT_REVIEW",
+      "decision": "ACCEPTED_AS_LIMITATION_NOT_FILLED_BY_UNAUTHORIZED_RESEARCH",
+      "evidence": "A etapa está contratualmente limitada à fonte literária local congelada. Sem autorização de pesquisa externa, o AA3 não pode realizar conferência nova de texto integral; por isso toda atribuição permanece com transferência estrita e sem efeito ou número local."
+    }
+  ],
+  "rejectedFindings": [],
+  "subsequentExternalPublication": {
+    "observedAfterInitialAudit": true,
+    "root": "public/data/pne2026-matriz",
+    "municipalityFileCount": 497,
+    "rootDigestSha256": "d4afe5a330d2bf1d329c00e413c98e82041f7755e26dd0c52f2a1d83f8ddde50",
+    "manifestPath": "public/data/pne2026-matriz/manifest.json",
+    "manifestSha256": "1decd593e34ba393359684edf4101532f66d5992a2d053e08a368592fcd0fea4",
+    "manifestSchemaVersion": "pne2026-matriz-manifest-v3",
+    "generatorVersion": "pne2026-matriz-generator-v5",
+    "lastWriteTimeUtc": "2026-08-30T21:35:50Z",
+    "resultingPublicDataTreeDigestSha256": "7efdf16f57a8e8da0c26fd27daa8e1331a427fa4376d8929c568ff471a0dafdd",
+    "canonicalGeneratorScript": "scripts/generate-pne-matriz-collection.mjs",
+    "canonicalPackageCommand": "npm run generate:pne-matriz:collection",
+    "exactExternalInvocationObserved": false,
+    "aa3Authorship": false,
+    "analyticalInputImpact": "NONE"
+  },
+  "status": "CORRECTIONS_ACCEPTED_PENDING_REMATERIALIZATION_AND_REAUDIT",
+  "aa4Allowed": false
+}

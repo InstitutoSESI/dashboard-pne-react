@@ -1,0 +1,117 @@
+schema_version: vocacoes-pne-v7-job3-entry-gate-v1
+job_id: v7-job3
+recorded_on: "2026-08-28"
+classification: DATA_LOGIC
+scope:
+  state: RS
+  pilot_region: vale-do-sinos
+  municipality_count: 10
+  mandatory_case_ibge_code: "4313375"
+  identity_rule: textual_ibge_code_7_digits
+job2_evidence:
+  execution_state: .tmp/vocacoes-pne/v7-job2/execution_state.json
+  operational_manifest: .tmp/vocacoes-pne/v7-job2/manifest.json
+  operational_manifest_sha256: 28ca53d020af6eb8168eef15af2a7752034c149ada942b4323756e55ef8f8d85
+  release_manifest: data_pipeline/manifests/vocacoes-pne-v7-job2-release.json
+  artifact_count: 20
+  artifact_row_count: 840105
+  job2_overall_status: READY
+job2_overall_status: READY
+subjobs:
+  2A:
+    status: READY
+    usable_outputs:
+      - .tmp/vocacoes-pne/v7-job2/2a/trajetoria_municipal.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2a/trajetoria_comparacoes.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2a/condicoes_oferta.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2a/condicoes_comparacoes.csv.gz
+    blocking_issues:
+      - Water, library and sports-court components are unavailable in the consumed 2025 cut and remain null.
+      - Some conditions lack reconstructible numerators and denominators; municipal distributions cannot become simple regional averages.
+      - Source-specific temporal coverage prevents unrestricted synchronous joins.
+  2B:
+    status: READY
+    usable_outputs:
+      - .tmp/vocacoes-pne/v7-job2/2b/rais_estoque_jovem_anual.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2b/rais_cubo_jovem.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2b/caged_jovens_mensal.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2b/caged_jovens_cubo.csv.gz
+    blocking_issues:
+      - Formal employment only; unemployment and informality are outside the sources.
+      - RAIS stock and CAGED flows are distinct measures and may not be merged as one series.
+      - First employment is not identifiable; 2026 is partial and excluded.
+      - Fifty-two hyperfine CAGED cells contain preserved negative adjustments.
+  2C:
+    status: READY
+    usable_outputs:
+      - .tmp/vocacoes-pne/v7-job2/2c/eja_integrada_historica.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2c/eja_demanda_oferta_2022.csv.gz
+    blocking_issues:
+      - The demand-distribution comparison is a 2022 snapshot only.
+      - Potential public is resident-based while enrollment is school-location-based.
+      - Enrollment is not capacity, unique persons, intention, reach or individual attendance.
+  2D:
+    status: READY
+    usable_outputs:
+      - .tmp/vocacoes-pne/v7-job2/2d/oferta_cursos_tecnicos.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2d/cobertura_oferta_municipal.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2d/ocupacoes_rais.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2d/cursos_cbo_2025.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2d/cobertura_ponte_2025.csv.gz
+    blocking_issues:
+      - Five regional courses and 1281 enrollments are unmapped in 2025.
+      - The normative course-CBO bridge does not measure empirical adequacy or employability.
+      - Detailed course supply spans 2023-2025 only; RAIS occupations span 2019-2025.
+      - School-location supply and workplace-location employment do not identify individual trajectories.
+  2E:
+    status: READY
+    usable_outputs:
+      - .tmp/vocacoes-pne/v7-job2/2e/coortes_demograficas.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2e/rede_escolar.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2e/cenario_mecanico_coortes.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2e/mobilidade_educacional_2022.csv.gz
+      - .tmp/vocacoes-pne/v7-job2/2e/contexto_v6.json
+    blocking_issues:
+      - The network panel is aggregated and does not provide every requested network, class and urban-rural cut.
+      - Population and enrollment use resident and school-location lenses respectively.
+      - Mobility is preliminary, has no destination and is limited to 2022.
+      - The mechanical cohort artifact is not a forecast and is excluded from future municipal claims.
+      - Birth observations end in 2024.
+candidate_authorization:
+  H1_DEMOGRAFIA_REDE:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2E, 2A]
+    authorized_scope: Observed 2014-2025 cohort, enrollment and network changes; compatible decompositions, municipal contributions, RS comparison where the source supports it, and leave-one-out tests.
+    limits: Missing complete network-by-stage class and urban-rural panels; lenses must remain separate; no projection.
+  H2_TRAJETORIA_PERMANENCIA:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2A]
+    authorized_scope: Approval, failure, dropout and age-grade distortion by compatible stage/network/year, with at most four pre-registered condition families.
+    limits: Variable temporal coverage, unavailable components and non-reconstructible denominators constrain models and regional rates.
+  H3_TRABALHO_JUVENIL_MEDIO:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2A, 2B, 2E]
+    authorized_scope: Ecological comparison of observed secondary-school outcomes and formal youth-work measures, keeping RAIS stock and CAGED flows separate and testing lags 0-2 when coverage permits.
+    limits: Formal work only; no same-person, first-employment or causal inference; no 2026.
+  H4_EJA_DISTRIBUICAO:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2C]
+    authorized_scope: Separate 2022 fundamental and secondary snapshots using canonical distribution formulas, plus the distinct 2014-2025 integrated-EJA context.
+    limits: Mixed territorial lenses and single-year potential public; no coverage, demand, reach, sufficiency or individual-service claims.
+  A1_COORTES_REDE:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2E]
+    authorized_scope: Observed demographic transformation and observed network response, including municipalities moving against the regional direction.
+    limits: No future enrollment numbers, municipal scenarios, extrapolation or school opening/closing recommendations.
+  A2_TRABALHO_PERMANENCIA:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2A, 2B]
+    authorized_scope: Formal-work transformation as the starting point, followed by compatible ecological education indicators and non-redundancy review against H3.
+    limits: Formal work only; distinct workplace and school lenses; no causal or individual transition claim.
+  A3_OCUPACOES_FORMACAO:
+    state: AUTHORIZED_WITH_LIMITS
+    source_subjobs: [2D]
+    authorized_scope: Observed 2023-2025 technical-course supply, 2019-2025 occupations and the reproducible normative course-CBO bridge, with explicit zero and missingness semantics.
+    limits: Bridge coverage is incomplete; correspondence is not adequacy; course enrollments are not entrants, graduates, vacancies or capacity.
+global_blocks: []
+decision: PROCEED_WITH_ALL_SEVEN_CANDIDATES_UNDER_RECORDED_LIMITS

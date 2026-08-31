@@ -96,6 +96,8 @@ const MUNICIPALITY_FIELDS = new Set(['ibge7', 'name', 'uf'])
 const SOURCE_DIAGNOSTIC_FIELDS = new Set(['builderVersion', 'catalogSha256', 'diagnosticCsvSha256'])
 const SOURCE_WORKBOOK_FIELDS = new Set(['schemaVersion', 'sha256'])
 const PEER_GROUP_FIELDS = new Set(['criteria', 'band', 'n', 'populationPeriod', 'releaseId', 'expansions'])
+const PEER_EXPANSION_FIELDS = new Set(['bands', 'goalId', 'indicatorId', 'n'])
+const PEER_BANDS = new Set(['ate_5k', '5k_20k', '20k_100k', '100k_mais'])
 const CURATION_FIELDS = new Set(['sha256', 'version'])
 const SUMMARY_FIELDS = new Set(['goalsOnTrack', 'goalsWithoutData'])
 const PRIORITY_GOAL_FIELDS = new Set([
@@ -239,11 +241,28 @@ function validateSha256(value, label) {
 function validatePeerGroup(candidate, label) {
   validateExactFields(candidate, PEER_GROUP_FIELDS, label)
   validateTextFields(candidate, ['criteria', 'band', 'populationPeriod', 'releaseId'], label)
-  validateNonEmptyText(candidate.criteria, `${label}.criteria`)
-  validateNonEmptyText(candidate.band, `${label}.band`)
-  invariant(Number.isInteger(candidate.n) && candidate.n >= 20, `${label}.n deve ser inteiro maior ou igual a 20.`)
+  invariant(candidate.criteria === 'uf+pop_band', `${label}.criteria fora do contrato.`)
+  invariant(PEER_BANDS.has(candidate.band), `${label}.band fora do contrato.`)
+  invariant(Number.isInteger(candidate.n) && candidate.n > 0, `${label}.n deve ser inteiro positivo.`)
   validateSha256(candidate.releaseId, `${label}.releaseId`)
-  validateTextList(candidate.expansions, `${label}.expansions`)
+  invariant(Array.isArray(candidate.expansions), `${label}.expansions deve ser lista.`)
+  const relations = new Set()
+  candidate.expansions.forEach((item, index) => {
+    const itemLabel = `${label}.expansions[${index}]`
+    validateExactFields(item, PEER_EXPANSION_FIELDS, itemLabel)
+    validateTextFields(item, ['goalId', 'indicatorId'], itemLabel)
+    validateTextList(item.bands, `${itemLabel}.bands`, { nonEmpty: true })
+    invariant(item.bands.length >= 2, `${itemLabel}.bands deve registrar a expansão.`)
+    item.bands.forEach((band, bandIndex) => {
+      invariant(PEER_BANDS.has(band), `${itemLabel}.bands[${bandIndex}] fora do contrato.`)
+    })
+    invariant(new Set(item.bands).size === item.bands.length, `${itemLabel}.bands não pode repetir faixas.`)
+    invariant(item.bands[0] === candidate.band, `${itemLabel}.bands deve iniciar pela faixa-base.`)
+    invariant(Number.isInteger(item.n) && item.n >= 20, `${itemLabel}.n deve ser inteiro maior ou igual a 20.`)
+    const relation = `${item.goalId}/${item.indicatorId}`
+    invariant(!relations.has(relation), `${label}.expansions repete ${relation}.`)
+    relations.add(relation)
+  })
 }
 
 function samePeerGroup(left, right) {
@@ -253,7 +272,14 @@ function samePeerGroup(left, right) {
     && left.populationPeriod === right.populationPeriod
     && left.releaseId === right.releaseId
     && left.expansions.length === right.expansions.length
-    && left.expansions.every((item, index) => item === right.expansions[index])
+    && left.expansions.every((item, index) => {
+      const other = right.expansions[index]
+      return item.goalId === other.goalId
+        && item.indicatorId === other.indicatorId
+        && item.n === other.n
+        && item.bands.length === other.bands.length
+        && item.bands.every((band, bandIndex) => band === other.bands[bandIndex])
+    })
 }
 
 function validatePeerBenchmark(candidate, subject, label, { expectedN = null } = {}) {

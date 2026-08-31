@@ -280,6 +280,71 @@ Validação dedicada:
 npm run test:pipeline-profiling
 ```
 
+## Cenários da Educação — auditoria pública local
+
+O bundle exploratório do Vale do Sinos é gerado somente a partir de dados públicos já
+presentes no repositório. O fluxo lê, para os dez municípios canônicos da região, os
+arquivos `details.json`, `financeiro.json` e a matriz PNE municipal, além dos artefatos
+de Vocações usados apenas como referências diagnósticas. Ele não consulta banco, não
+acessa rede e não escreve em `public/data`.
+
+```powershell
+npm run generate:cenarios-educacao
+npm run check:cenarios-educacao
+npm run test:cenarios-educacao
+npm run test:cenarios-educacao:e2e
+```
+
+O gerador trabalha em staging, valida antes de promover e preserva os arquivos quando
+o conteúdo é idêntico. O `--check` recalcula o artefato e falha se o bundle ou o
+registro versionado estiverem obsoletos.
+
+O gate exige cobertura local de `10/10` municípios nas três famílias de entrada,
+resolução das referências diagnósticas, maturidade e teto de afirmação dos quatro
+transversais, distância de Hamming mínima entre os cenários e ausência de trechos
+longos copiados da análise de Vocações. Clima, tecnologia e contexto fiscal possuem
+evidência observada; regulação permanece uma lacuna explícita enquanto não existir
+fonte pública local adequada.
+
+A publicação continua sendo um modelo exploratório auditado por dados públicos. Ela
+não equivale a previsão, probabilidade, ranking de futuros ou aprovação institucional.
+O inventário, as fórmulas e a política de aquisição local-first estão documentados em
+[`docs/cenarios-educacao/INVENTARIO_TRANSVERSAIS_DADOS_PUBLICOS.md`](cenarios-educacao/INVENTARIO_TRANSVERSAIS_DADOS_PUBLICOS.md)
+e o limite editorial em
+[`docs/cenarios-educacao/MANIFESTO_REDESIGN_DADOS_PUBLICOS.md`](cenarios-educacao/MANIFESTO_REDESIGN_DADOS_PUBLICOS.md).
+
+## Panorama regional do RS
+
+O panorama regional é derivado exclusivamente dos artefatos municipais já
+publicados e do mapa `config/regions/rs.json`. Ele não consulta banco, não acessa
+rede e não altera fontes ou fórmulas municipais. Depois de uma atualização
+autorizada que mude Educação, o catálogo ou resultados do PNE 2026–2036, gere o
+lote regional uma única vez:
+
+```powershell
+npm run generate:regioes
+```
+
+O comando gera as dez regiões em
+`data_pipeline/.staging/regioes/<run-id>/candidate`, valida o lote integral e
+promove `public/data/regioes` somente depois de manifesto, schema, identidades,
+hashes, tamanhos e versões de conteúdo conferirem. Arquivos idênticos não são
+reescritos. Uma falha de promoção aciona rollback de todos os JSONs gerenciados;
+falha do próprio rollback preserva o staging para recuperação manual e encerra
+com código diferente de zero.
+
+Validação sem escrita e suíte dedicada:
+
+```powershell
+npm run check:regioes
+npm run test:regional
+```
+
+`check:regioes` recalcula o lote em memória e acusa qualquer divergência.
+`test:regional` confere as 10 regiões e os 497 municípios, reproduz somas, razões
+e medianas fora do gerador, exige o catálogo PNE completo e exercita staging,
+no-op, promoção e rollback. Nenhum desses comandos executa build completo.
+
 ## Build da aplicação, preview e deploy
 
 Desenvolvimento visual e validação leve usam:

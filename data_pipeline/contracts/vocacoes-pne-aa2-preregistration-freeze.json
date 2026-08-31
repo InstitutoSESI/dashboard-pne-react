@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "vocacoes-pne-aa2-preregistration-freeze-v1",
+  "programId": "vocacoes-pne-advanced-analytics-v1",
+  "stage": "AA2",
+  "classification": "DATA_LOGIC",
+  "state": "FROZEN_PRE_RESULT",
+  "registeredAt": "2026-08-30T00:00:00-03:00",
+  "firstResultInspected": false,
+  "postResultAdjustment": false,
+  "registrationMethod": "external_non_recursive_sha256_registration",
+  "preregistration": {
+    "path": "docs/PRE_REGISTRO_AA2_AVANCO_ANALITICO_VOCACOES_PNE.json",
+    "version": "1.0.3",
+    "byteSize": 46433,
+    "sha256": "aa931e75a8530bf0f9c22c48b937ef0b92b40210240da012bdb33ed16ff24a25",
+    "supersedesPreResultSha256": "828f0b85815f0808e2ee677a7a429539559a0b712d27db6341f1343a31d27012",
+    "originalPreResultSha256": "f4af4d28cede63a69cdf9df8db95fc72fd353b2de6b4af4f300c4ca873a54f32"
+  },
+  "availabilityProbe": {
+    "path": ".tmp/vocacoes-pne/advanced-analytics-v1/aa2-prereg/AVAILABILITY_PROBE_AA2.json",
+    "byteSize": 18243,
+    "sha256": "070911de9c63c324318679e9cd91e7c065965ad1e934f3d518ad7ce219f3625c",
+    "selectorCount": 27,
+    "failureCount": 0,
+    "state": "FROZEN_PRE_RESULT_PROBE",
+    "coefficientOrRawValueInspected": false
+  },
+  "inputEvidence": {
+    "aa1PanelSha256": "d6cadfec911863b93699b826da6ef340687db5c0f77350319a9eeefa0dfb652f",
+    "aa1GateSha256": "8baef0754bd6e7b5caa5428e9cf16d8ae3c01d3eace4de68d24d1e42ba286f02",
+    "aa1ArtifactSetDigestSha256": "b5209061aff00ecae4b279165f3fd380b9324bcc845d1ad279a31a42f8bd3366",
+    "p5AuxiliaryBridgeSha256": "cf60bb4cb49bbe15a35af728b83783418e67fc76c215838521ef14992047f867",
+    "publicDataTreeDigestSha256": "4a52e3891163cb3427c5c01f2ef5414c5fe7855dd491a9a125b509899dcc23e1"
+  },
+  "independentReviewBeforeFreeze": {
+    "provider": "Claude Opus 5 through guarded opus-verifier",
+    "verdict": "AT_RISK",
+    "confidence": 0.78,
+    "resultPath": ".tmp/codex-analytics-program/aa2-opus-prereg/opus-result.json",
+    "resultSha256": "b4056873863a8399837302934fa5ac8b9aba58f8eb892bfe1c96646396b105bc",
+    "boundedAddendumResultPath": ".tmp/codex-analytics-program/aa2-opus-prereg-r2/opus-result.json",
+    "boundedAddendumResultSha256": "5e1a96c5c92d52b807acd2379fcfbe350a1229396f52ac31e0ff914d93a86548",
+    "boundedAddendumVerdict": "AT_RISK",
+    "fourItemClosureResultPath": ".tmp/codex-analytics-program/aa2-opus-prereg-r3/opus-result.json",
+    "fourItemClosureResultSha256": "177e0866bcbbf0ec1e50958a48fe013da58b4ac3208420b05c8bf29c41711811",
+    "fourItemClosureVerdict": "AT_RISK",
+    "acceptedFinalCorrections": [
+      "P4_P7_G_FIXED_TO_9_OR_10_WITH_NO_FALLBACK",
+      "TWO_SIDED_ABSOLUTE_STUDENTIZED_T_GRID_DEFINED",
+      "BH_ALPHA_FIXED_FOR_ALL_FAMILIES",
+      "VALE_AND_NSR_COVERAGE_TIERS_DEFINED",
+      "P6_B_AND_PVALUE_ESTIMATOR_FIXED",
+      "RELATIVE_P2_CLOSURE_TOLERANCE",
+      "DUAL_LENS_FIXED_DISCLOSURE",
+      "POST_FREEZE_AND_RUNTIME_FAILURE_POLICY"
+    ],
+    "factualFindingsRejectedWithRepositoryEvidence": [
+      "P2 ordered terminal rule absent",
+      "total_all_dependencies absent",
+      "textual IBGE identity absent",
+      "five-state availability taxonomy absent",
+      "P1 and P5 claim ceilings absent",
+      "P1 and P2 absent from the 27-selector probe",
+      "P4 and P7 exact sign enumeration could reach 450-497 clusters despite both questions being fixed to VALE_10"
+    ],
+    "highImpactFindingsReconciledBeforeFreeze": true
+  },
+  "gateRule": "AA2 result generation must fail before reading raw_value unless preregistration, availability probe and every input digest equal this registration and the AA1 entry gate passes."
+}

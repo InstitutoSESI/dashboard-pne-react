@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "vocacoes-pne-v7-job3-contract-v1",
+  "jobId": "v7-job3",
+  "classification": "DATA_LOGIC",
+  "scope": {
+    "stateCode": "RS",
+    "pilotRegionSlug": "vale-do-sinos",
+    "expectedMunicipalityCount": 10,
+    "expectedStateMunicipalityCount": 497,
+    "mandatoryCaseIbgeCode": "4313375",
+    "identity": "codigo_ibge_textual_7_digitos"
+  },
+  "entryGate": "docs/GATE_ENTRADA_JOB_3_V7.yaml",
+  "preregistration": {
+    "path": "docs/PRE_REGISTRO_ANALITICO_JOB_3_V7.yaml",
+    "version": "1.0.0",
+    "status": "FROZEN_PRE_RESULT",
+    "postResultAdjustment": false
+  },
+  "inputs": {
+    "job2Root": ".tmp/vocacoes-pne/v7-job2",
+    "job2ManifestSha256": "28ca53d020af6eb8168eef15af2a7752034c149ada942b4323756e55ef8f8d85",
+    "job2ExpectedArtifactCount": 20,
+    "databaseMode": "postgresql_read_only",
+    "networkAllowed": false,
+    "databaseWritesAllowed": false,
+    "publicDataWritesAllowed": false,
+    "forbiddenTable": "public.estoque_emprego_faixa_etaria"
+  },
+  "output": {
+    "root": ".tmp/vocacoes-pne/v7-job3",
+    "format": "deterministic_json_and_csv_gzip",
+    "transactional": true,
+    "manifestLast": true,
+    "public": false
+  },
+  "candidates": [
+    "H1_DEMOGRAFIA_REDE",
+    "H2_TRAJETORIA_PERMANENCIA",
+    "H3_TRABALHO_JUVENIL_MEDIO",
+    "H4_EJA_DISTRIBUICAO",
+    "A1_COORTES_REDE",
+    "A2_TRABALHO_PERMANENCIA",
+    "A3_OCUPACOES_FORMACAO"
+  ],
+  "candidateFinalStatuses": [
+    "ANALYTICALLY_ELIGIBLE",
+    "REVIEW_REQUIRED",
+    "RETAINED",
+    "BLOCKED_WITH_EVIDENCE"
+  ],
+  "authorizationStatuses": [
+    "AUTHORIZED",
+    "AUTHORIZED_WITH_LIMITS",
+    "REVIEW_REQUIRED",
+    "BLOCKED_WITH_EVIDENCE"
+  ],
+  "robustnessFields": [
+    "temporal_stability",
+    "territorial_stability",
+    "dominant_municipality",
+    "leave_one_out",
+    "state_comparison",
+    "pandemic_sensitivity"
+  ],
+  "checks": {
+    "required": ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12"],
+    "C9RequiredState": "PENDING_EDITORIAL"
+  },
+  "formulas": {
+    "mEqualsPTimesR": {
+      "relation": "M / P",
+      "populationComponent": "(P1 - P0) * (R0 + R1) / 2",
+      "relationComponent": "(R1 - R0) * (P0 + P1) / 2",
+      "closure": "populationComponent + relationComponent = M1 - M0"
+    },
+    "eja": {
+      "participacao_publico_i": "publico_i / publico_regiao",
+      "participacao_matriculas_i": "matriculas_i / matriculas_regiao",
+      "diferenca_distribuicao_pp": "participacao_matriculas_i - participacao_publico_i",
+      "diferencaDistribuicaoStoredScale": "fraction_0_1",
+      "matriculas_por_mil": "1000 * matriculas_i / publico_i",
+      "denominatorZero": null
+    },
+    "benjaminiHochberg": "monotone step-up adjusted p-values within declared candidate family"
+  },
+  "models": {
+    "maximumSpecificationsPerOutcome": 3,
+    "municipalityFixedEffects": true,
+    "yearFixedEffects": true,
+    "clusteredErrors": "municipality",
+    "allowedLags": [0, 1, 2],
+    "causalInterpretationAllowed": false,
+    "selectionBySignificanceAllowed": false
+  },
+  "statusSemantics": {
+    "observed": "valor observado, inclusive zero",
+    "unavailable": "fonte ou recorte sem valor disponível",
+    "suppressed": "valor suprimido pela fonte",
+    "not_applicable": "indicador não aplicável ao grão",
+    "null": "ausência numérica conforme a semântica declarada"
+  },
+  "territorialLenses": {
+    "resident_population": "população segundo município de residência",
+    "school_location": "matrículas, rede e oferta segundo município da escola",
+    "workplace_municipality": "vínculos e movimentos segundo município do estabelecimento"
+  },
+  "prohibitedClaims": [
+    "causalidade entre trabalho ou condição escolar e resultado educacional",
+    "identificação das mesmas pessoas entre bases agregadas",
+    "tendência observada como projeção",
+    "cenário municipal futuro de matrículas",
+    "adequação ou empregabilidade derivada da ponte curso-CBO",
+    "matrícula de curso como ingresso, conclusão, vaga ou capacidade",
+    "EJA como cobertura, demanda, alcance, atendimento ou suficiência"
+  ]
+}

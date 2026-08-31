@@ -1,4 +1,9 @@
 import { FINANCIAL_PAGE_KEYS } from '../data/financialPageKeys.js'
+import {
+  VOCACOES_PNE_INTERNAL_ENABLED,
+  VOCACOES_PNE_INTERNAL_ROUTE,
+  resolveVocacoesPneInternalPage,
+} from '../config/vocacoesPneInternalFlag.js'
 import type { AppPageKey, FinancialPageKey } from '../types/app'
 import type { LocationLike, ParsedAppLocation, ParsedHash } from '../types/navigation'
 import { normalizeRouteValue, parseAppHash, parseAppLocation } from './appHash.js'
@@ -19,6 +24,10 @@ export function isFinancialPage(page: AppPageKey): page is FinancialPageKey {
 }
 
 export function resolveActivePage({ params, route }: Pick<ParsedHash, 'params' | 'route'>): AppPageKey {
+  if (route === VOCACOES_PNE_INTERNAL_ROUTE) {
+    return resolveVocacoesPneInternalPage(route, VOCACOES_PNE_INTERNAL_ENABLED) ?? 'home'
+  }
+
   if (route === 'financeiros') {
     const requestedModule = params.get('modulo') ?? params.get('module')
     const normalizedModule = normalizeRouteValue(requestedModule)

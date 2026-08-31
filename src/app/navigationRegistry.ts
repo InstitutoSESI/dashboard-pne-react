@@ -32,7 +32,7 @@ export type NavGroupIconName = 'Target' | 'GraduationCap' | 'Landmark' | 'FileTe
 
 export type NavDynamicItemSource = 'education-sections' | 'financial-modules'
 
-export type NavItemCondition = 'regional' | 'vocacoes'
+export type NavItemCondition = 'regional' | 'vocacoes' | 'education-scenarios'
 
 export interface NavPage {
   /** Chave canonica da pagina, a mesma do roteador. */
@@ -145,6 +145,22 @@ export const NAV_PAGES: readonly NavPage[] = Object.freeze([
     aliases: ['vocacoes', 'vocacoes-regiao'],
     glyph: 'vocacoes-regiao',
     crumb: 'Análise Regional / Vocações da Região',
+  }),
+  page({
+    key: 'cenarios-educacao',
+    label: 'Cenários da Educação',
+    route: 'cenarios-da-educacao',
+    aliases: ['cenarios-educacao', 'cenarios'],
+    glyph: 'cenarios-educacao',
+    crumb: 'Análise Regional / Cenários da Educação',
+  }),
+  page({
+    key: 'cenarios-educacao-dados',
+    label: 'Dados e critérios dos cenários',
+    route: 'cenarios-da-educacao-dados',
+    aliases: ['cenarios-educacao-dados', 'cenarios-da-educacao-metodo'],
+    glyph: 'cenarios-educacao',
+    crumb: 'Análise Regional / Cenários da Educação / Dados e critérios',
   }),
   page({
     key: 'educacao',
@@ -269,46 +285,6 @@ const itemFromPage = (
 }
 
 export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
-  /*
-   * Relatórios reúne as leituras fechadas sobre o município — o que se lê de
-   * ponta a ponta, não o que se consulta indicador a indicador. Por isso mistura
-   * páginas de produtos diferentes (PNE e educação): o grupo é uma decisão
-   * editorial, e a visibilidade continua sendo decidida item a item.
-   */
-  Object.freeze({
-    id: 'relatorios',
-    label: 'Relatórios',
-    icon: 'FileText',
-    items: Object.freeze([
-      itemFromPage('diagnostico', { label: 'Diagnóstico Municipal' }),
-      itemFromPage('matriz-prioridades'),
-      itemFromPage('relatorio-tecnico-municipal'),
-    ]),
-    dynamicItems: null,
-    ownedPages: Object.freeze([
-      'diagnostico',
-      'matriz-prioridades',
-      'relatorio-tecnico-municipal',
-    ]),
-  } satisfies NavGroup),
-  /*
-   * Análise Regional lê o município pelo território a que ele pertence. O
-   * Panorama da Região depende do mapa regional da UF ativa, e o Vocações da
-   * Região depende do manifesto público da região. Cada item carrega o próprio
-   * gate, e o grupo desaparece quando nenhum deles se sustenta: numa UF sem
-   * mapa e sem região publicada, não há menu.
-   */
-  Object.freeze({
-    id: 'analise-regional',
-    label: 'Análise Regional',
-    icon: 'Compass',
-    items: Object.freeze([
-      itemFromPage('analise-regional', { condition: 'regional' }),
-      itemFromPage('vocacoes-regiao', { condition: 'vocacoes' }),
-    ]),
-    dynamicItems: null,
-    ownedPages: Object.freeze(['analise-regional', 'vocacoes-regiao']),
-  } satisfies NavGroup),
   Object.freeze({
     id: 'pne',
     label: 'PNE',
@@ -348,6 +324,52 @@ export const NAV_GROUPS: readonly NavGroup[] = Object.freeze([
       FINANCIAL_PAGE_KEYS.fundeb,
       FINANCIAL_PAGE_KEYS.vaar,
       FINANCIAL_PAGE_KEYS.pnate,
+    ]),
+  } satisfies NavGroup),
+  /*
+   * Relatórios reúne as leituras fechadas sobre o município — o que se lê de
+   * ponta a ponta, não o que se consulta indicador a indicador. Por isso mistura
+   * páginas de produtos diferentes (PNE e educação): o grupo é uma decisão
+   * editorial, e a visibilidade continua sendo decidida item a item.
+   */
+  Object.freeze({
+    id: 'relatorios',
+    label: 'Relatórios',
+    icon: 'FileText',
+    items: Object.freeze([
+      itemFromPage('diagnostico', { label: 'Diagnóstico Municipal' }),
+      itemFromPage('matriz-prioridades'),
+      itemFromPage('relatorio-tecnico-municipal'),
+    ]),
+    dynamicItems: null,
+    ownedPages: Object.freeze([
+      'diagnostico',
+      'matriz-prioridades',
+      'relatorio-tecnico-municipal',
+    ]),
+  } satisfies NavGroup),
+  /*
+   * Análise Regional lê o município pelo território a que ele pertence. O
+   * Panorama da Região depende do mapa regional da UF ativa, e o Vocações da
+   * Região depende do manifesto público da região. Cada item carrega o próprio
+   * gate, e o grupo desaparece quando nenhum deles se sustenta: numa UF sem
+   * mapa e sem região publicada, não há menu.
+   */
+  Object.freeze({
+    id: 'analise-regional',
+    label: 'Análise Regional',
+    icon: 'Compass',
+    items: Object.freeze([
+      itemFromPage('analise-regional', { condition: 'regional' }),
+      itemFromPage('vocacoes-regiao', { condition: 'vocacoes' }),
+      itemFromPage('cenarios-educacao', { condition: 'education-scenarios' }),
+    ]),
+    dynamicItems: null,
+    ownedPages: Object.freeze([
+      'analise-regional',
+      'vocacoes-regiao',
+      'cenarios-educacao',
+      'cenarios-educacao-dados',
     ]),
   } satisfies NavGroup),
 ])

@@ -19,6 +19,7 @@ import {
   Rows3,
   Scale,
   ScanSearch,
+  Telescope,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -42,6 +43,7 @@ export type NavGlyphName =
   | 'matriz-prioridades'
   | 'relatorio-tecnico-municipal'
   | 'vocacoes-regiao'
+  | 'cenarios-educacao'
   | 'analise-regional'
   | 'financeiros'
   | 'financeiros-panorama'
@@ -74,6 +76,8 @@ const GLYPH_ICONS: Record<NavGlyphName, LucideIcon> = {
   'relatorio-tecnico-municipal': FileChartColumn,
   // Caminhos que se abrem a partir de um mesmo no -- as vocacoes e cenarios da regiao.
   'vocacoes-regiao': Waypoints,
+  // Telescópio -- futuros alternativos usados para testar decisões educacionais.
+  'cenarios-educacao': Telescope,
   // Mapa com marcadores -- os municipios vizinhos que formam a regiao.
   'analise-regional': MapPinned,
   // Grade -- a visao geral, o quadro de todas as areas.
