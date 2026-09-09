@@ -27,9 +27,9 @@ Nunca converta código IBGE com `int`, `float`, `Number` ou `parseInt`; não fa�
 - Nenhuma fórmula, fonte, ano, indicador, schema ou metodologia pode ser alterada em tarefa visual ou de infraestrutura.
 - Não edite manualmente `public/data`; dados publicados devem ser produzidos pelo fluxo controlado correspondente.
 
-## 4. Classificação obrigatória da tarefa
+## 4. Escopo da tarefa
 
-Antes de modificar arquivos, classifique a tarefa e registre a classificação no andamento como uma destas categorias:
+Use as categorias abaixo para escolher os fluxos e verificações pertinentes. Registre a classificação quando cruzar domínios ou quando ela esclarecer limites de dados/publicação:
 
 - `UI_ONLY`;
 - `DATA_PRESENTATION`;
@@ -125,11 +125,11 @@ Execute o teste focado e, quando aplicável, typecheck e lint.
 
 ### Encerramento da implementação
 
-Execute a suíte do domínio, `npm run check:fast` e `git diff --check`.
+Para mudanças de implementação, execute a suíte do domínio afetado, `npm run check:fast` e `git diff --check`. Para documentação apenas, confira texto, links e comandos e execute `git diff --check`; não rode build nem testes de dados por ritual.
 
 ### Antes do commit
 
-Execute `npm run check:hygiene`, a validação específica e os testes focados finais. Isso não autoriza criar o commit.
+Execute `npm run check:hygiene` e a validação específica do escopo. Reutilize os testes já aprovados se seus insumos não mudaram. Isso não autoriza criar o commit.
 
 ### Antes do merge em main
 
