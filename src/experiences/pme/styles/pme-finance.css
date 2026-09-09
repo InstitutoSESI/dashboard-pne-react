@@ -1,0 +1,29 @@
+.pme-app .pme-finance-values {
+  margin: .85rem 0;
+}
+
+.pme-app .pme-finance-value {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 5;
+  row-gap: .5rem;
+}
+
+.pme-app .pme-finance-value > :is(h2, strong, p, small) { margin: 0; }
+
+.pme-app .pme-finance-disclosure ul {
+  margin-top: .4rem;
+}
+
+@media (max-width: 640px) {
+  .pme-app .pme-finance-values { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media screen and (max-width: 760px) {
+  .pme-app[data-page=financiamento] table { min-width: 680px; }
+}
+
+@media print {
+  .pme-app .pme-finance-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pme-app .pme-finance-value { display: block; break-inside: avoid; }
+}

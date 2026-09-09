@@ -502,7 +502,8 @@ assert.doesNotMatch(
 const packageJson = JSON.parse(packageJsonSource)
 const expectedBuildScripts = {
   build: 'vite build',
-  'build:app': 'vite build --mode app-only --outDir dist/app-only',
+  'build:app': 'node scripts/run-state-vite.mjs build RS atual --mode app-only --outDir dist/app-only',
+  'build:app:rs-pme': 'node scripts/run-state-vite.mjs build RS pme --mode app-only --outDir dist/app-only-rs-pme',
   'check:fast': 'npm run typecheck && npm run lint && npm run check:vocacoes-pne-compilador && npm run build:app',
   'update:data': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py',
   'update:data:skip-build': 'uv run --project data_pipeline --frozen python data_pipeline/scripts/update_static_data.py --skip-build',

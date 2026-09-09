@@ -2,12 +2,13 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { normalizePlatformExperience } from './lib/experience-build-profile.mjs'
 
 const ALLOWED_COMMANDS = new Set(['serve', 'build', 'preview'])
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 
 export function parseStateViteArguments(argv) {
-  const [command, rawState, ...viteArguments] = argv
+  const [command, rawState, rawExperienceOrViteArgument, ...remainingViteArguments] = argv
   if (!ALLOWED_COMMANDS.has(command)) {
     throw new Error('Comando Vite inválido; use serve, build ou preview.')
   }
@@ -15,11 +16,18 @@ export function parseStateViteArguments(argv) {
   if (!/^[A-Z]{2}$/.test(stateCode)) {
     throw new Error('UF inválida; informe exatamente duas letras.')
   }
-  return { command, stateCode, viteArguments }
+  const hasExplicitExperience = !String(rawExperienceOrViteArgument ?? '').startsWith('--')
+  const experience = normalizePlatformExperience(
+    hasExplicitExperience ? rawExperienceOrViteArgument : undefined,
+  )
+  const viteArguments = hasExplicitExperience
+    ? remainingViteArguments
+    : [rawExperienceOrViteArgument, ...remainingViteArguments]
+  return { command, stateCode, experience, viteArguments }
 }
 
 export function runStateVite(argv = process.argv.slice(2)) {
-  const { command, stateCode, viteArguments } = parseStateViteArguments(argv)
+  const { command, stateCode, experience, viteArguments } = parseStateViteArguments(argv)
   const viteEntry = path.join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js')
   if (!existsSync(viteEntry)) {
     throw new Error('Vite não instalado. Execute npm ci antes deste comando.')
@@ -29,7 +37,11 @@ export function runStateVite(argv = process.argv.slice(2)) {
     [viteEntry, command, ...viteArguments],
     {
       cwd: repoRoot,
-      env: { ...process.env, PLATFORM_STATE: stateCode },
+      env: {
+        ...process.env,
+        PLATFORM_STATE: stateCode,
+        PLATFORM_EXPERIENCE: experience,
+      },
       stdio: 'inherit',
     },
   )

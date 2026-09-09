@@ -62,6 +62,17 @@ interface MunicipalTechnicalReportProps {
   higherEducation: HigherEducationViewModel | null
   higherEducationError?: string | null
   higherEducationLoading?: boolean
+  linkOverrides?: {
+    educationHref?: (section: string) => string
+    financialHref?: (page: string) => string
+  }
+  wording?: {
+    introduction: string
+    financeSource: string
+    financeDescription: string
+    financeNote: string
+    attendanceSource: string
+  }
   municipalityId: string
   municipalityName: string
   municipalityPopulation?: unknown
@@ -473,6 +484,8 @@ export function MunicipalTechnicalReport({
   higherEducation,
   higherEducationError,
   higherEducationLoading,
+  linkOverrides,
+  wording,
   municipalityId,
   municipalityName,
   municipalityPopulation,
@@ -587,8 +600,10 @@ export function MunicipalTechnicalReport({
       block: 'start',
     })
   }
-  const educationLink = (section: string) => buildAppHash('educacao', { municipio: municipalitySlug || undefined, secao: section })
-  const financialLink = (page: string) => buildAppHash(page, { municipio: municipalitySlug || undefined })
+  const educationLink = linkOverrides?.educationHref
+    ?? ((section: string) => buildAppHash('educacao', { municipio: municipalitySlug || undefined, secao: section }))
+  const financialLink = linkOverrides?.financialHref
+    ?? ((page: string) => buildAppHash(page, { municipio: municipalitySlug || undefined }))
   const traceabilityRows = [
     ['2–4 e 8–11', 'Matrículas por etapa, modalidade, rede e localização', 'INEP — Censo Escolar', overview?.reference.year, 'matrículas'],
     ['2–4', 'Atendimento estimado por faixa etária', 'INEP — Censo Escolar e base populacional do diagnóstico', earlyChildhoodAttendanceItems[0]?.currentYear ?? elementaryAttendanceItems[0]?.currentYear ?? highSchoolAttendanceItems[0]?.currentYear, '% estimado'],
@@ -614,7 +629,7 @@ export function MunicipalTechnicalReport({
             <span className="eyebrow">Documento técnico municipal · Ano-base {mainPeriod}</span>
             <h1>Relatório Técnico Municipal</h1>
             <span className="municipal-technical-report__hero-subject">{municipalityName} · {ACTIVE_STATE_CONFIG.stateName}</span>
-            <p>As seções exigidas para o diagnóstico educacional do município, geradas a partir das bases públicas oficiais — prontas para leitura, impressão e entrega, sem preenchimento manual.</p>
+            <p>{wording?.introduction ?? 'As seções exigidas para o diagnóstico educacional do município, geradas a partir das bases públicas oficiais — prontas para leitura, impressão e entrega, sem preenchimento manual.'}</p>
           </div>
           <div className="municipal-technical-report__hero-actions">
             <button
@@ -831,8 +846,8 @@ export function MunicipalTechnicalReport({
           <IndicatorTable caption="Climatização e acessibilidade das salas de aula" items={classroomInfrastructureItems} />
           <ReportNote>Climatização e acessibilidade usam como denominador as salas de aula utilizadas. A acessibilidade das salas é um recorte parcial e não resume todas as condições de acessibilidade da escola.</ReportNote>
         </ReportSection>
-        <ReportSection coverage="partial" model="coverage" number={15} section={MUNICIPAL_REPORT_SECTIONS[14]} metadata="Módulos financeiros da plataforma · Períodos conforme cada fonte">
-          <p>Os cálculos financeiros permanecem nos módulos homologados de Financiamento, evitando duplicação de regras no relatório educacional.</p>
+        <ReportSection coverage="partial" model="coverage" number={15} section={MUNICIPAL_REPORT_SECTIONS[14]} metadata={wording?.financeSource ?? 'Módulos financeiros da plataforma · Períodos conforme cada fonte'}>
+          <p>{wording?.financeDescription ?? 'Os cálculos financeiros permanecem nos módulos homologados de Financiamento, evitando duplicação de regras no relatório educacional.'}</p>
           <div className="municipal-technical-report__links">
             <a href={financialLink(FINANCIAL_PAGE_KEYS.panorama)}>Abrir Panorama financeiro</a>
             <a href={financialLink(FINANCIAL_PAGE_KEYS.application)}>Aplicação constitucional e execução das despesas</a>
@@ -840,12 +855,12 @@ export function MunicipalTechnicalReport({
             <a href={financialLink(FINANCIAL_PAGE_KEYS.vaar)}>VAAR</a>
             <a href={financialLink(FINANCIAL_PAGE_KEYS.pnate)}>PNATE</a>
           </div>
-          <ReportNote>Os valores devem ser consultados nos módulos financeiros, que preservam as fontes e metodologias próprias de cada medida.</ReportNote>
+          <ReportNote>{wording?.financeNote ?? 'Os valores devem ser consultados nos módulos financeiros, que preservam as fontes e metodologias próprias de cada medida.'}</ReportNote>
         </ReportSection>
       </ReportChapter>
 
       <ReportChapter chapter={MUNICIPAL_REPORT_CHAPTERS[4]}>
-        <ReportSection coverage="partial" model="coverage" number={16} section={MUNICIPAL_REPORT_SECTIONS[15]} metadata="INEP — Censo Escolar e IBGE — estimativas populacionais · Períodos conforme o módulo">
+        <ReportSection coverage="partial" model="coverage" number={16} section={MUNICIPAL_REPORT_SECTIONS[15]} metadata={wording?.attendanceSource ?? 'INEP — Censo Escolar e IBGE — estimativas populacionais · Períodos conforme o módulo'}>
           <p>Os cenários combinam séries observadas, população e trajetórias futuras, distinguindo dado histórico de projeção.</p>
           <a className="platform-navigation-button" href={educationLink('demanda')}>Abrir Cenários de atendimento escolar</a>
         </ReportSection>

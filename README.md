@@ -140,8 +140,10 @@ são:
 ```powershell
 npm run dev:rs       # http://127.0.0.1:5187
 npm run dev:al       # http://127.0.0.1:5188
+npm run dev:rs-pme   # http://127.0.0.1:5189
 npm run build:rs     # dist/rs
 npm run build:al     # dist/al
+npm run build:rs-pme # dist/rs-pme
 ```
 
 O catálogo de identidade preservado na raiz AL continua sendo validado pelos
@@ -258,9 +260,13 @@ Saídas de build, caches, relatórios, screenshots, logs e arquivos de inspeçã
 
 ## Publicação
 
-Crie dois projetos de hospedagem sobre o mesmo repositório. O projeto RS executa
-`npm run build:cloudflare:rs`; o projeto AL executa
-`npm run build:cloudflare:al`; ambos publicam `dist`. Os comandos fixam a UF e
-impedem fallback cruzado. Consulte o guia de
-[hospedagem multestado](docs/HOSPEDAGEM_MULTIESTADO.md). A aplicação usa
-navegação por hash e carrega os JSONs por caminhos absolutos sob `/data`.
+RS atual e AL são publicações independentes. Há também uma preparação versionada
+para uma publicação PME isolada do RS, proposta como `painel-sesi-rs-pme` e ainda
+sem projeto externo provisionado. A configuração proposta usa
+`npm run build:cloudflare:rs-pme` e a saída `dist` quando conta, projeto,
+domínio, branch de produção e autorização forem definidos. A ficha não configura
+nem aciona o provedor: [config/hosting/rs-pme-pages.json](config/hosting/rs-pme-pages.json).
+
+Os comandos de build fixam UF e experiência e impedem fallback cruzado. Consulte
+o guia de [hospedagem multestado](docs/HOSPEDAGEM_MULTIESTADO.md). A aplicação
+usa navegação por hash e carrega os JSONs por caminhos absolutos sob `/data`.

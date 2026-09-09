@@ -42,6 +42,14 @@ const CSS_FILE_SOFT_LIMIT_BYTES = Object.freeze({
   'src/styles/vocacoes-pne-narrative-page.css': 17_000,
   'src/styles/vocacoes-pne-official.css': 6_000,
   'src/styles/cenarios-educacao.css': 43_000,
+  'src/experiences/pme/styles/pme.css': 19_500,
+  'src/experiences/pme/styles/pme-technical-report.css': 7_000,
+  'src/experiences/pme/styles/pme-shell.css': 7_000,
+  'src/experiences/pme/styles/pme-evidence.css': 6_000,
+  'src/experiences/pme/styles/pme-history.css': 7_000,
+  'src/experiences/pme/styles/pme-finance.css': 1_000,
+  'src/experiences/pme/styles/pme-introduction.css': 5_000,
+  'src/experiences/pme/styles/pme-context.css': 6_000,
 })
 const TYPECHECK_DEBT_ALLOWLIST = Object.freeze([
   'src/features/education/educationViewModels.ts',
