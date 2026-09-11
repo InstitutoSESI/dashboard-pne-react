@@ -1,0 +1,64 @@
+.pme-app .pme-history { margin: 1rem 0 0; color: var(--text); font-variant-numeric: tabular-nums; }
+.pme-app .pme-history__intro, .pme-app .pme-history-chart__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.pme-app .pme-history__intro { margin-bottom: .6rem; padding-bottom: .55rem; border-bottom: 1px solid var(--border-faint); }
+.pme-app .pme-history__intro h4, .pme-app .pme-history-chart__heading h5 { margin: 0; color: var(--green-brand-dark); font-family: var(--font-serif); font-size: 1rem; line-height: 1.25; }
+.pme-app .pme-history__intro p, .pme-app .pme-history-chart__heading p, .pme-app .pme-history__note, .pme-app .pme-history__sources { margin: .2rem 0 0; color: var(--text-body); font-size: .84rem; line-height: 1.4; }
+.pme-app .pme-history__table-toggle { flex: 0 0 auto; min-height: 44px; padding: .32rem .6rem; border: 1px solid var(--classy-sage); border-radius: 4px; background: var(--surface-card); color: var(--green-deep); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
+.pme-app .pme-history__table-toggle:hover { background: var(--green-soft); }
+.pme-app .pme-history__table-toggle:focus-visible, .pme-app .pme-history-chart__point:focus-visible { outline: 3px solid color-mix(in srgb, var(--green-primary) 35%, transparent); outline-offset: 3px; }
+.pme-app .pme-history__note { margin: 0 0 .6rem; padding-left: .65rem; border-left: 3px solid var(--classy-sage); }
+
+.pme-app .pme-history__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 15rem); gap: .75rem; align-items: start; }
+.pme-app .pme-history__layout--chart-only { grid-template-columns: minmax(0, 1fr); }
+.pme-app .pme-history-chart { min-width: 0; margin: 0; padding: .75rem; border: 1px solid var(--border-card); border-radius: 5px; background: var(--surface-card); }
+.pme-app .pme-history-chart__heading { margin-bottom: .5rem; }
+.pme-app .pme-history-chart__key { display: inline-flex; align-items: center; gap: .35rem; color: var(--text-body); font-size: .75rem; white-space: nowrap; }
+.pme-app .pme-history-chart__key i { width: 1rem; border-top: 3px solid var(--green-primary); border-radius: 99px; }
+.pme-app .pme-history-chart__surface { position: relative; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.pme-app .pme-history-chart svg { display: block; max-width: none; overflow: visible; }
+.pme-app .pme-history-chart__print-svg { display: none; }
+.pme-app .pme-history-chart__grid line { stroke: var(--border-faint); stroke-width: 1; }
+.pme-app .pme-history-chart__grid text, .pme-app .pme-history-chart__year { fill: var(--text-body); font-family: var(--font-sans); font-size: 13px; }
+.pme-app .pme-history-chart__grid text { text-anchor: end; }
+.pme-app .pme-history-chart__year { text-anchor: middle; }
+.pme-app .pme-history-chart__axis { stroke: var(--classy-sage); stroke-width: 1.25; }
+.pme-app .pme-history-chart__line { fill: none; stroke: var(--green-primary); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+.pme-app .pme-history-chart__point { fill: var(--surface-card); stroke: var(--green-primary); stroke-width: 2.5; cursor: pointer; }
+.pme-app .pme-history-chart__point:hover, .pme-app .pme-history-chart__point.is-active { fill: var(--green-primary); stroke: var(--green-deep); }
+.pme-app .pme-history-chart__tooltip { position: absolute; z-index: 2; min-width: 5.6rem; padding: .4rem .55rem; border: 1px solid var(--classy-sage); border-radius: 4px; background: var(--green-brand-dark); color: white; box-shadow: 0 6px 14px #10382f24; pointer-events: none; transform: translate(-50%, calc(-100% - .5rem)); }
+.pme-app .pme-history-chart__tooltip span, .pme-app .pme-history-chart__tooltip strong { display: block; }
+.pme-app .pme-history-chart__tooltip span { color: #d6e9e0; font-size: .72rem; }
+.pme-app .pme-history-chart__tooltip strong { margin-top: .05rem; font-size: .94rem; }
+.pme-app .pme-history-chart__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.pme-app .pme-history__table-panel { max-height: 310px; overflow: auto; border: 1px solid var(--border-card); border-radius: 5px; background: var(--surface-card); }
+.pme-app .pme-history__table-panel.is-hidden { display: none; }
+.pme-app .pme-history__table-panel table { width: 100%; margin: 0; border-collapse: collapse; font-size: .82rem; line-height: 1.2; }
+.pme-app .pme-history__table-panel caption { padding: .4rem .7rem .25rem; color: var(--green-brand-dark); font-family: var(--font-serif); font-size: .94rem; font-weight: 600; text-align: left; }
+.pme-app .pme-history__table-panel th, .pme-app .pme-history__table-panel td { padding: .2rem .7rem; border-top: 1px solid var(--border-faint); text-align: left; }
+.pme-app .pme-history__table-panel thead th { position: sticky; top: 0; background: var(--green-soft); color: var(--green-brand-dark); font-size: .75rem; }
+.pme-app .pme-history__table-panel td { text-align: right; }
+
+@media (max-width: 680px) {
+  .pme-app .pme-history__intro, .pme-app .pme-history-chart__heading { align-items: stretch; flex-direction: column; }
+  .pme-app .pme-history__table-toggle { align-self: flex-start; }
+  .pme-app .pme-history__layout { display: block; }
+  .pme-app .pme-history__table-panel { margin-top: .7rem; }
+  .pme-app .pme-history-chart { padding: .65rem; }
+  .pme-app .pme-history-chart__key { padding-top: 0; }
+}
+
+@media print {
+  .pme-app .pme-history { break-inside: avoid; }
+  .pme-app .pme-history__table-toggle, .pme-app .pme-history-chart__key, .pme-app .pme-history-chart__tooltip { display: none; }
+  .pme-app .pme-history__layout { grid-template-columns: minmax(0, 1fr) 130pt; gap: 9pt; }
+  .pme-app .pme-history-chart { padding: 8pt; border-color: #98b0a9; }
+  .pme-app .pme-history-chart__screen-svg { display: none !important; }
+  .pme-app .pme-history-chart__surface { overflow: visible; }
+  .pme-app svg.pme-history-chart__print-svg { display: block; width: 100%; max-width: 500px; height: auto; overflow: visible; }
+  .pme-app .pme-history-chart__print-svg .pme-history-chart__grid text, .pme-app .pme-history-chart__print-svg .pme-history-chart__year { font-size: 16px; }
+  .pme-app .pme-history__table-panel, .pme-app .pme-history__table-panel.is-hidden { display: block !important; max-height: none; overflow: visible; }
+  .pme-app .pme-history__table-panel table { font-size: 8.5pt; }
+  .pme-app .pme-history__table-panel :is(th, td) { padding: 4pt 5pt; }
+  .pme-app .pme-history__table-panel thead { display: table-header-group; }
+}

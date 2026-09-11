@@ -227,15 +227,20 @@ test('comandos explícitos de hospedagem fixam a UF sem depender do shell', () =
   const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
   assert.equal(
     packageJson.scripts['build:cloudflare:rs'],
-    'node scripts/run-state-vite.mjs build RS --outDir dist',
+    'node scripts/run-state-vite.mjs build RS atual --outDir dist',
   )
   assert.equal(
     packageJson.scripts['build:cloudflare:al'],
-    'node scripts/run-state-vite.mjs build AL --outDir dist',
+    'node scripts/run-state-vite.mjs build AL atual --outDir dist',
   )
   assert.deepEqual(
-    parseStateViteArguments(['build', 'al', '--outDir', 'dist']),
-    { command: 'build', stateCode: 'AL', viteArguments: ['--outDir', 'dist'] },
+    parseStateViteArguments(['build', 'al', 'atual', '--outDir', 'dist']),
+    {
+      command: 'build',
+      stateCode: 'AL',
+      experience: 'atual',
+      viteArguments: ['--outDir', 'dist'],
+    },
   )
   assert.throws(() => parseStateViteArguments(['build', 'RS;AL']), /UF inválida/)
 })

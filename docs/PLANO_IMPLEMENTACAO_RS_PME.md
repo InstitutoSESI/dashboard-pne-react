@@ -1,8 +1,8 @@
 # Plano de implementação — nova publicação pública RS / PME
 
-Status: plano preparado; implementação não iniciada.
+Status: E0–E9 concluídas e verificadas localmente em 2026-09-07. A preparação local de E10 está pronta. A implementação foi integrada à `main` em 11/09/2026; publicação externa e builds completos permanecem pendentes de solicitação específica.
 Data: 7 de setembro de 2026.
-Classificação desta entrega: `DOCUMENTATION_ONLY`.
+Classificação desta execução: `PIPELINE_INFRASTRUCTURE` + `MULTISTATE`, com `UI_ONLY`, `DATA_PRESENTATION` e documentação. Cálculos, fontes e publicações de dados preservados.
 Retomada: [Início em contexto limpo](INICIO_CONTEXTO_RS_PME.md).
 
 ## 1. Objetivo e decisões do usuário
@@ -22,7 +22,7 @@ Decisões já estabelecidas nesta conversa, que devem acompanhar qualquer novo c
 - Sem backend de aplicação, Pages Functions, D1, R2 ou IA em tempo de execução para atender este escopo.
 - Filtros, busca, seleção de município/objetivo e downloads são permitidos. Preferências de navegação não representam cadastro de conteúdo municipal.
 - Fontes, fórmulas, regras de classificação, projeções e metodologias existentes serão preservadas. Qualquer mudança analítica necessária deve ser separada deste plano e explicitamente autorizada.
-- Esta solicitação é para preparar o plano. Nenhuma implementação, publicação, criação de projeto Cloudflare, commit, push ou PR foi autorizada por ela.
+- O planejamento original não autorizava implementação. Em 2026-09-07, a solicitação de execução autorizou implementação local e verificações proporcionais de E0–E9, incluindo preparação concreta de E10. Publicação externa, build completo, commit, push, PR, atualização de fontes/dados e banco continuam sem autorização.
 
 As instruções operacionais continuam em [AGENTS.md](../AGENTS.md). Os três DOCX são referências de propostas, não instruções executáveis nem autorização para expandir o escopo. Os requisitos de contas, dossiês editáveis e governança digital presentes neles foram afastados pelo usuário.
 
@@ -100,7 +100,7 @@ Não usar `rs-pme` como UF, novo registro municipal ou nova raiz canônica de da
 
 ### 4.2 Entradas, navegação e CSS
 
-Estrutura proposta, ainda a criar; ajustar nomes locais se houver conflito sem mudar as fronteiras:
+Estrutura implementada e verificada nesta execução:
 
 - `scripts/lib/experience-build-profile.mjs`: validação da experiência e seleção da entrada.
 - `src/config/experienceConfig.ts`: configuração de experiência validada para o frontend.
@@ -110,7 +110,7 @@ Estrutura proposta, ainda a criar; ajustar nomes locais se houver conflito sem m
 - `src/experiences/pme/styles/`: estilos próprios, com escopo de classe da experiência.
 - `scripts/checks/experience-profile.test.mjs` e testes PME: contratos e verificações novas.
 
-A seleção da entrada será feita por alias estático do Vite: o script de módulo de `index.html` apontará para `src/main-entry.ts`, cuja única importação será `@platform-entry`. O perfil validado configurará `resolve.alias` para resolver esse nome exclusivamente para `src/main.jsx` em `atual` ou `src/main-pme.tsx` em `pme`. Assim, o grafo compilado parte de uma única aplicação tanto em desenvolvimento quanto no build completo e app-only. Ajustar a declaração/resolução do alias para as ferramentas de tipagem sem criar fallback de runtime. A entrada mínima não importa CSS, shell ou contexto de nenhuma experiência.
+A seleção da entrada usa alias estático do Vite: `index.html` aponta para `src/main-entry.ts`, cuja única importação é `@platform-entry`. O perfil validado configura `resolve.alias` exclusivamente para `src/main.jsx` em `atual` ou `src/main-pme.tsx` em `pme`. O grafo compilado parte de uma única aplicação, com declaração de tipos do alias e sem fallback de runtime. A entrada mínima não importa CSS, shell ou contexto de nenhuma experiência. Os três grafos app-only foram inspecionados nos testes; os builds completos continuam reservados à release autorizada.
 
 A entrada atual deve continuar carregando somente sua aplicação; a entrada PME deve carregar somente seu shell e registro de navegação. Não selecionar a experiência por domínio, query string, hash ou armazenamento do navegador. Não importar os dois aplicativos para escolher um em runtime. Os testes precisam verificar o alvo real do alias, o módulo efetivamente carregado e o isolamento dos dois builds app-only; conferir apenas a variável de configuração não basta.
 
@@ -120,14 +120,14 @@ Preservar rotas hash e aliases atuais. A experiência PME terá registro própri
 
 ### 4.3 Comandos e saídas
 
-Comandos existentes continuam com sua finalidade. Os comandos abaixo são PROPOSTOS e ainda não existem:
+Comandos existentes continuam com sua finalidade. Os comandos abaixo estão implementados em `package.json`; os que produzem release completa ainda não foram executados:
 
-| Comando a criar | Finalidade / saída |
+| Comando implementado | Finalidade / saída |
 | --- | --- |
-| `npm run dev:rs-pme` | Desenvolvimento RS/PME; porta sugerida 5189, verificar disponibilidade. |
+| `npm run dev:rs-pme` | Desenvolvimento RS/PME; porta 5189. |
 | `npm run build:app:rs-pme` | Validação leve sem copiar dados; `dist/app-only-rs-pme`. |
 | `npm run build:rs-pme` | Release local RS/PME; `dist/rs-pme`. |
-| `npm run preview:rs-pme` | Servir release local existente; porta sugerida 4189. |
+| `npm run preview:rs-pme` | Servir release local existente; porta 4189. |
 | `npm run build:cloudflare:rs-pme` | Fixar RS/PME e gerar `dist` no ambiente isolado do novo projeto Pages. |
 | `npm run test:experience-profile` | Validação da matriz UF × experiência, CLI e seleção de entrada. |
 | `npm run test:rs-pme` | Suíte focada de contratos de apresentação, rotas, catálogos e exportação PME. |
@@ -209,21 +209,21 @@ Comparações de regressão verificam conteúdo e proveniência. Não prometer P
 
 ## 6. Etapas de implementação
 
-Todas as etapas estão PENDENTES. Atualizar este quadro e registrar evidências à medida que forem concluídas; não marcar pronto com base apenas na existência de telas ou comandos.
+Estado por etapa abaixo. Atualizar o quadro com evidências; a existência de telas ou comandos, isoladamente, não comprova aceite.
 
 | Etapa | Dependência | Escopo principal | Saída |
 | --- | --- | --- | --- |
-| E0 | Nenhuma | Inventário e baseline | Estado inicial, acoplamentos e casos de referência registrados. |
-| E1 | E0 | Publicação dupla | Seleção de experiência e builds isolados. |
-| E2 | E1 | Shell e navegação PME | Percurso público navegável com identidade municipal preservada. |
-| E3 | E1 | Contratos de apresentação e catálogos | Adaptadores, cobertura e relações rastreáveis. |
-| E4 | E2 + E3 | Panorama dos objetivos | 19 campos, metas, filtros e lacunas. |
-| E5 | E2 + E3 | Agenda de Análise | Leituras existentes adaptadas sem decisão municipal automática. |
-| E6 | E4 + E5 | Fichas e financiamento | Evidências, limites, perguntas e apoios integrados. |
-| E7 | E4 + E5 + E6 | Entrada municipal | Síntese e destaques com origem e regras explícitas. |
-| E8 | E5 + E6 + E7 | Relatórios | Três novos artefatos e acesso ao relatório atual. |
-| E9 | E1–E8 | Aceite integrado | Regressão, acessibilidade, desempenho e impressão verificados. |
-| E10 | E9 + autorização de publicação | Pages e operação | Novo endereço publicado, smoke test e rollback documentados. |
+| E0 — concluída | Nenhuma | Inventário e baseline | Estado inicial, acoplamentos e casos de referência registrados no log. |
+| E1 — concluída localmente | E0 | Publicação dupla | Seleção estática de experiência e builds app-only isolados verificados. |
+| E2 — concluída localmente | E1 | Shell e navegação PME | URLs próprias, filtros, teclado e troca municipal verificados. |
+| E3 — concluída localmente | E1 | Contratos de apresentação e catálogos | Estados, permissões, comparabilidade e proveniência testados. |
+| E4 — concluída localmente | E2 + E3 | Panorama dos objetivos | 19 campos e 73 metas, incluindo ausência de indicador. |
+| E5 — concluída localmente | E2 + E3 | Agenda de Análise | Classificações publicadas, limites, perguntas e critério visível. |
+| E6 — concluída localmente | E4 + E5 | Fichas e financiamento | Séries, recortes da Matriz, hipóteses, instrumentos e financeiro integrados. |
+| E7 — concluída localmente | E4 + E5 + E6 | Entrada municipal | Síntese, destaques e leituras históricas rastreáveis. |
+| E8 — concluída localmente | E5 + E6 + E7 | Relatórios | Três materiais PDF/XLSX e Relatório Técnico Municipal preservado. |
+| E9 — concluída localmente | E1–E8 | Aceite integrado | Regressões, acessibilidade, impressão, exportações e documentação verificadas; evidências abaixo. |
+| E10 — preparação local pronta | E9 + autorização de publicação | Pages e operação | Ficha concreta e gate de paridade prontos; projeto/domínio/deploy e smoke remoto pendentes. |
 
 ### E0 — Retomada e baseline
 
@@ -379,7 +379,7 @@ Aceite: dois endereços RS operacionais e independentes; publicação antiga pre
 | Antes de commit autorizado | `check:hygiene` e validação de escopo | Reutilizar resultados ainda válidos. |
 | Release autorizada | Builds completos pertinentes e smoke test | Paridade de dados RS e validação do novo endereço. |
 
-Testes E2E precisam de aplicação ativa. Os comandos `dev:rs`, `dev:al` e o futuro `dev:rs-pme` devem usar portas distintas. Conferir como cada script atual aceita endereço base; não presumir que um E2E da experiência atual serve ao PME.
+Os comandos `dev:rs`, `dev:al` e `dev:rs-pme` usam respectivamente as portas 5187, 5188 e 5189. `test:rs-pme:e2e` reutiliza o servidor PME em 5189 ou inicia um Vite temporário em 5197; `PME_E2E_BASE_URL` fixa outro endereço local. O runner encerra apenas o servidor que iniciou. Os E2E atuais continuam com seus próprios contratos de endereço.
 
 Não executar atualização de dados, banco, build completo, `validate:details` integral ou toda a suíte Python em edição visual. Os cálculos, aquisição e publicação Python não mudam neste plano. Se surgir mudança real nesses domínios, reclassificar e executar testes específicos antes de qualquer fluxo integrado autorizado.
 
@@ -410,6 +410,74 @@ Ao interromper ou mudar de contexto, atualizar a tabela da seção 6 e acrescent
 
 ### Registro de execução
 
+#### Aceite local de 2026-09-07
+
+Classificação: `PIPELINE_INFRASTRUCTURE` + `MULTISTATE`, com `UI_ONLY`, `DATA_PRESENTATION` e documentação. Nenhuma fórmula, fonte, schema analítico, metodologia ou publicação de dados foi alterada. O objetivo implementado é uma segunda experiência pública de consulta do RS, isolada por entrada de build e reutilizando as publicações oficiais existentes.
+
+| Requisito | Resultado local e evidência |
+| --- | --- |
+| R01 | CLI fixa UF/experiência; rejeita AL/PME e perfis inválidos. Teste de isolamento compila e inspeciona RS atual, RS PME e AL atual em memória. Ficha Pages preparada; os dois endereços RS só serão atestados em E10. |
+| R02 | Shell próprio, seis destinos principais, transparência e contexto por IBGE textual na URL. E2E verifica link direto, recarga, voltar/avançar, filtros e troca rápida Nova Santa Rita → Porto Alegre sem resultado atrasado de outro município. |
+| R03 | 19 objetivos e 73 metas do contrato 1.9.0. Objetivos sem observação continuam presentes; cobertura de relações difere de disponibilidade. Títulos e perguntas editoriais estão identificados como tais. |
+| R04 | Agenda reproduz classificações/leituras autorizadas e mostra o critério de até quatro destaques, limites, perguntas e caminhos da meta correspondente. Nenhuma classificação vira decisão municipal ou causa confirmada. |
+| R05 | Fichas integram metas, fontes, períodos, universos, comparações compatíveis, séries anuais publicadas e recortes/hipóteses da Matriz. Comparações estadual e entre pares são validadas independentemente por ano, unidade e universo. |
+| R06 | Entrada municipal combina cobertura, situações da Agenda, leituras históricas existentes e lacunas. Espera ou falha do diagnóstico não vira contagem zero; não se calcula ranking ou tendência nova. |
+| R07 | Dez leituras financeiras existentes preservam valor, exercício, etapa e fonte. Instrumentos vêm da Matriz e de catálogos existentes, com condições, versão e verificação atual não confirmada; não há inferência de elegibilidade ou soma de previsões com execução. |
+| R08 | Síntese, caderno e agenda compartilham o mesmo modelo de tela/impressão/XLSX. Três downloads reais validados por ZIP/XML, oito abas, IBGE textual, números brutos, estados distintos e ausência de fórmulas executáveis. Relatório Técnico Municipal preservado com links opcionais do PME. |
+| R09 | Transparência expõe critérios, fontes, períodos, universos, versões/hash e diferenças entre domínios. Matriz não publicada, manifesto inválido e diagnóstico com erro têm estados independentes. Fontes das séries não recebem identificador de release inventado. |
+| R10 | E2E, testes de domínio, grafos de build, teclado/foco, 320–1440 px, texto a 200%, downloads e PDFs verificados. Requisições observadas são GET no mesmo origin e limitadas aos municípios selecionados; não há upload, conta, contribuição, armazenamento de trabalho ou IA. |
+
+Testes e verificações executados, reutilizando resultados cujos insumos permaneceram iguais:
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm run test:rs-pme` | 34 testes: perfil (7), apresentação (7), rotas (5), relatório técnico (3), isolamento real (1), relatórios/financeiro (5), séries (4), preparação/paridade de release (2). |
+| `npm run test:rs-pme:e2e` | 7 cenários integrados; inclui ausência/integridade da Matriz, diagnóstico com falha, seletor/URL, estados, financeiro, relatórios, fontes carregadas e reflow. |
+| `test:state-publication`, `test:multistate-hosting` | 11 e 8 testes aprovados. |
+| `test:app-routing`, `test:municipality-identity` | 20 e 18 testes aprovados; contrato dos 182 slugs RS preservado. |
+| `test:diagnostic`, `test:matriz` | 27 e 49 testes aprovados, incluindo cobertura e validação fail-closed dos loaders existentes. |
+| `test:education`, `test:municipal-finance`, `test:data-sources` | 71, 38 e 15 testes aprovados. |
+| `check:pne-contract` | Artefatos legais byte a byte e 9 testes de paridade aprovados. |
+| `test:ui-architecture`, `check:hygiene` | Aprovados; orçamento CSS global preservado, limites individuais para os dois novos arquivos de estilos. |
+| `check:fast`, `build:app:rs-pme` | Typecheck, lint, projeção congelada de Vocações e builds app-only aprovados. |
+| Python focado | `data_pipeline/tests/test_update_build_decoupling.py`: 18 aprovados usando o runtime local já existente; expectativas atualizadas para os comandos explícitos e o gate de compilador já vigente. |
+| Smoke no navegador RS atual/AL atual | Aceguá (`4300034`) e Maceió (`2704302`): seleção e 19 seções do relatório técnico renderizadas; nenhum módulo PME ou erro de página não tratado. |
+| `git diff --check` | Aprovado; nenhum conteúdo preparado no índice para commit. |
+| Documentação | 61 links locais e 62 comandos npm conferidos nos seis documentos de implementação/operação; nenhum destino ou script ausente. |
+
+Evidências visuais ficam em `.tmp/rs-pme` (ignoradas): capturas desktop, tablet e mobile, PDFs e XLSX reais. Caderno de Nova Santa Rita/objetivo 1: 12 páginas, 111.828 bytes; agenda municipal: 34 páginas, 287.507 bytes. Inspeção visual e extração de texto verificaram fontes, identificação municipal, tabelas longas com cabeçalho repetido, ausência de texto de carregamento e palavras dentro da página. Os relatórios aguardam os módulos e as séries terminarem antes de liberar a exportação.
+
+Fontes consumidas: registro canônico RS; contrato legal e política de apresentação existentes; diagnóstico público vigente; Matriz opcional; índice municipal para séries; documentos/catálogo financeiros e catálogos de instrumentos já publicados. A curadoria de instrumentos conserva a data registrada na fonte (inclusive `2026-07-19` quando pertinente) e não declara verificação externa nova. O contrato contém 19 objetivos/73 metas; 39 metas têm relação pública neste modelo. Casos municipais verificados: Nova Santa Rita, 41 relações observadas; Porto Alegre, 49.
+
+Referências de integridade preservadas:
+
+- Diagnóstico/release: `fadcfff3fb2df31a2b967989d8a45023dde03d2f6db76a40cfbee77715e7d9fc`.
+- Contrato PNE 1.9.0: `c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5`.
+- Política de apresentação 1.7.0: `c330fb98c727dbb461b809a5f178f92ac73661ee3fe4e9c73cfb9b38ea9f1d3b`.
+- `git diff --name-only -- public/data state-publications data_pipeline/data`: vazio. Não foi feita varredura ou regeneração geral de dados para a tarefa visual.
+
+Arquivos criados: 29 arquivos em `src/experiences/pme` (aplicação, páginas, adaptadores, séries, relatórios e estilos); entradas `src/main-entry.ts`/`src/main-pme.tsx`, configuração/tipagem de experiência; perfil de build; testes PME/perfil e gate `scripts/checks/rs-experience-data-parity.mjs`; ficha `config/hosting/rs-pme-pages.json`. Arquivos alterados: `index.html`, `vite.config.js`, `package.json`, CLI estadual, adaptação opcional de links no relatório técnico compartilhado, verificações de hospedagem/higiene/arquitetura UI/desacoplamento de build e documentação canônica. Nenhum arquivo foi removido ou movido; `AGENTS.md` e os três DOCX são conteúdo preexistente transportado com o worktree, não novas alterações de produto.
+
+Cuidados de reprodução neste checkout Windows:
+
+- Dependências Node locais foram reutilizadas por junction. O cache Vite é separado por UF/experiência; o servidor permite a raiz do repositório e o diretório real de dependências para servir fontes, sem liberar a pasta pai inteira. Não houve instalação pela rede.
+- `.gitattributes` fixa LF em fixtures/saídas textuais cujos hashes já eram contratuais. Nove arquivos tinham apenas CRLF introduzido pelo novo checkout; seus bytes foram reconciliados com o conteúdo de `HEAD`, sem regeneração ou mudança semântica. Git pode ainda indicá-los como modificados por normalização de EOL, embora o diff de conteúdo esteja vazio.
+- O teste existente da Matriz depende de `.tmp/matriz/artefato/matriz-manifest.json`. Foi recuperada somente a cópia idêntica já existente no checkout original, hash `3d355221c1f2c4fe05214875260280255af40979d56ac824993154f1f136f782`, sem gerar ou publicar Matriz. Preservar esse apoio ignorado na retomada.
+
+Limites e pendências: E10 externa ainda não executada. A [ficha do Pages](../config/hosting/rs-pme-pages.json) contém repositório verificado, nome proposto `painel-sesi-rs-pme`, comando e saída concretos; conta, projeto real, domínio, branch de produção e deploy ficam `null`. O gate de paridade foi testado com diretórios temporários, incluindo divergência e falha; comparar os artefatos RS reais exige a release completa autorizada. O bundle inicial PME ficou em aproximadamente 633 kB (156 kB gzip), com aviso Vite acima de 500 kB; financeiro, relatório técnico e XLSX são carregados sob demanda. No smoke de AL, o aplicativo atual registrou 404 do manifesto regional opcional de Vocações; esse consumidor e a publicação AL não foram modificados nesta tarefa, e o relatório técnico continuou funcional.
+
+Não executados: atualizações de dados/fontes, banco, suíte Python integral, `validate:details` integral, builds completos e deploy. Os cálculos e pipelines de aquisição/materialização não mudaram; essas suítes/ações não seriam proporcionais nem autorizadas. Rede usada somente em loopback para os servidores locais e testes; nenhum serviço externo foi chamado. Não houve commit, push ou PR.
+
+Estado Git de entrega: worktree `C:/Users/rnbirck/PROJETOS/DASHBOARDS/PNE-REACT-RS-PME`, branch `codex/rs-pme`, base `909e858a5`, alterações locais sem commit e índice sem conteúdo staged. O checkout original `PNE-REACT` permaneceu em `main`, no mesmo commit, com `AGENTS.md` e os cinco documentos preexistentes preservados. Retomar a partir deste worktree e deste registro; não reaplicar E1–E9 em `main` nem sobrescrever os documentos de planejamento antigos do checkout original.
+
+#### Histórico da implementação e do planejamento
+
+- E1: perfil `PLATFORM_EXPERIENCE` e alias estático implementados, defaults/CLI RS/AL preservados com experiência explícita. Comandos RS/PME de desenvolvimento, app-only, release e Pages preparados. Testes de perfil, publicação estadual e hospedagem multestado aprovados; teste com três grafos reais Vite app-only em memória confirma isolamento RS atual/RS PME/AL atual, sem cópia de dados. Builds `build:app` e `build:app:rs-pme` aprovados durante a integração; release completo não executado.
+- E2–E8 em integração: shell PME, URL própria com código IBGE, panorama legal, Agenda, fichas, financiamento, transparência, síntese municipal e três modelos exportáveis implementados em `src/experiences/pme`. Relatório Técnico Municipal reutilizado com adaptação opcional de links e composição de dados preservada. Testes de rotas PME (5), composição do relatório e Educação (71) aprovados. Os testes de apresentação estão sendo ampliados durante revisão semântica, especialmente para comparações incompatíveis e independência dos módulos.
+- Inspeção visual inicial: Chromium em `http://127.0.0.1:5189/#inicio?municipio=4313375`, 1440×1000, renderizou a entrada municipal sem erro de JavaScript. Artefato local ignorado `.tmp/rs-pme/municipal-home.png`. Isto não encerra o aceite: ainda faltam suíte E2E integrada, exportação real, impressão longa, larguras menores, regressões finais e documentação operacional. Nenhum requisito foi considerado concluído apenas por estar navegável.
+- 2026-09-07, E0: criado worktree `C:/Users/rnbirck/PROJETOS/DASHBOARDS/PNE-REACT-RS-PME`, branch `codex/rs-pme`, a partir de `909e858a5`. A `main` original permanece na mesma branch, com `AGENTS.md` modificado e os cinco documentos não rastreados preservados. Plano, retomada e DOCX foram copiados para caminhos ausentes e conferidos por SHA-256; as instruções locais foram transportadas. Dependências Node locais reutilizadas por junction, sem instalação/rede.
+- E0: leitura do plano e documentação canônica; inspeção dirigida de Nova Santa Rita (`4313375`) e Porto Alegre (`4314902`), confirmados no registro canônico. Diagnóstico ativo `fadcfff3fb2df31a2b967989d8a45023dde03d2f6db76a40cfbee77715e7d9fc`; respectivamente 41 e 49 relações com observação no modelo público. Contrato 1.9.0 preservado: 19 objetivos, 73 metas; não há catálogo autônomo de títulos oficiais de objetivos. Usar identificação numérica e temas editoriais explicitamente identificados.
+- E0: baseline de rotas (20 testes), identidade municipal (18 testes) e arquitetura UI aprovados. Os loaders já distinguem Matriz não publicada (`municipality_not_published`) de ponteiro/manifesto/payload inválido. O contexto e as páginas existentes possuem acoplamentos de hash/CSS: o PME terá contexto de URL próprio; detalhes neutros serão reutilizados com fronteira explícita. Nenhum dado público alterado, banco/rede/build completo não utilizados.
 - 2026-09-07: plano e instrução de retomada preparados. E0–E10 pendentes. Nenhuma implementação ou publicação executada.
 - Validação do planejamento: revisão independente de arquitetura/escopo, conferência de 48 links locais, nomes dos comandos existentes e distinção dos comandos propostos, hashes das cópias DOCX e verificação de whitespace. `git diff --check` aprovado; sem testes de aplicação, banco, aquisição de fontes ou build, por se tratar somente de documentação.
 
@@ -459,3 +527,65 @@ Antes da criação deste plano, o checkout já continha `AGENTS.md` modificado e
 Abrir um novo contexto não exige apagar arquivos, limpar o checkout ou reverter alterações. Na mesma pasta, os dois documentos permanecem acessíveis. Em um worktree/checkout novo, arquivos não versionados não aparecem automaticamente. Antes de transferir, confirmar os caminhos absolutos de origem/destino, consultar o estado Git do destino e comparar existência e hash/conteúdo de cada arquivo. Copiar somente para caminho ausente; arquivo idêntico pode ser reutilizado. Se houver conteúdo divergente, interromper a cópia desse arquivo e reconciliar sua origem sem sobrescrever trabalho existente. Respeitar as instruções locais aplicáveis antes de começar. Não fazer commit para resolver isso sem solicitação.
 
 O [texto de início](INICIO_CONTEXTO_RS_PME.md) é autocontido quanto ao objetivo e às restrições e aponta para este plano. Ele não cria tarefa, branch ou publicação automaticamente.
+
+## 12. Rodada adicional de UX/UI — 07/09/2026
+
+Classificação: `UI_ONLY` + `DATA_PRESENTATION`. A solicitação posterior do usuário prioriza a leitura municipal, aproxima o menu, seletor, cards e gráficos da experiência anterior e substitui a exposição de detalhes internos prevista nas primeiras etapas deste plano.
+
+| Página | Revisão aplicada |
+| --- | --- |
+| Panorama municipal e entrada sem seleção | Menu lateral institucional, seletor no topo, três contagens úteis, destaques em duas colunas e melhor distribuição das leituras históricas e lacunas. |
+| Objetivos do PNE | Todos os 19 objetivos e as 73 metas preservados; cards compactos e explicação simples da cobertura. |
+| Ficha do objetivo | Texto legal e evidências com largura disponível; valor e período em destaque; método, comparações, perguntas e instrumentos organizados. Os dados de apoio da Matriz reutilizam seus rótulos públicos, sem protocolos ou dimensões internas. |
+| Agenda de Análise | Situação, cuidados e perguntas mais fáceis de localizar; caminhos associados à meta e critérios descritos em linguagem municipal. |
+| Evidências | Filtros e busca na mesma barra; códigos internos retirados; gráfico com escala, anos, pontos acessíveis por teclado e valores ao foco; tabela anual compacta ao lado no desktop. |
+| Financiamento | Cards em duas colunas, números alinhados, fontes e etapas com nomes legíveis. Previsão, execução, exercícios e ressalvas continuam distintos. |
+| Relatórios | Três escolhas diretas de material, cabeçalho compacto, resultados antes dos cuidados de leitura, tabela de apoio com cinco colunas e oito abas de XLSX com nomes públicos. |
+| Relatório Técnico Municipal | Um único título, controles com espaçamento, tabelas curtas adaptáveis no celular e apenas uma versão do anexo por meio de apresentação. A impressão oculta controles e navegação. |
+| Fontes e critérios | Fontes, períodos, disponibilidade, comparabilidade e orientações de consulta em linguagem pública. |
+
+As fontes oficiais já consumidas — diagnóstico PNE, Matriz municipal, séries educacionais e dados financeiros — permanecem as mesmas. Nenhuma fórmula, ano, classificação, identidade, schema, valor bruto ou regra de disponibilidade foi alterada. O código IBGE continua textual nas rotas e na identificação do XLSX. As publicações de origem continuam com sua proveniência; tela, PDF e planilha não expõem identificadores de indicadores, campos de cálculo, protocolos, hashes ou caminhos internos. A troca do vocábulo “snapshot” por “levantamento” é apenas de apresentação.
+
+Arquivos revisados nesta rodada: componentes e apresentações em `src/experiences/pme`, suas folhas de estilo, testes de relatórios/E2E e este registro. Foram criadas as folhas `pme-shell.css`, `pme-evidence.css`, `pme-history.css` e `pme-finance.css`. O componente compartilhado `MunicipalTechnicalReport.tsx` recebeu textos opcionais usados apenas pelo PME; os padrões de RS atual e AL atual foram preservados. Nenhum arquivo de fonte ou dado foi removido. Os limites anteriores de CSS total, CSS principal e relatório técnico foram mantidos; foram acrescentados tetos individuais para as folhas novas.
+
+Verificação proporcional:
+
+- `npm run test:rs-pme`: 35 testes aprovados, incluindo valores brutos, zero/nulo, exportação real de XLSX e isolamento dos três perfis no Vite.
+- `npm run test:education`: 71 testes aprovados dos consumidores compartilhados.
+- `npm run test:rs-pme:e2e`: 8 testes aprovados, incluindo as nove páginas, navegação, troca de município, falhas independentes, gráfico, materiais e responsividade.
+- `npm run check:fast`, `npm run build:app:rs-pme`, `npm run check:hygiene`, arquitetura de UI e `git diff --check` aprovados. Ajustes finais de impressão tiveram nova inspeção visual e build app-only do PME.
+- Revisão visual em desktop e celular, texto a 200%, detalhes das 19 fichas e gráficos em 1440/1920 px. Na amostra de Nova Santa Rita, o caderno do Objetivo 1 ficou com 10 páginas após retirar espaços indevidos entre blocos; Agenda e Relatório Técnico foram conferidos sem conteúdo fora das páginas. A tabela anual permanece no PDF mesmo quando oculta na tela.
+
+Capturas, PDFs e resultados de inspeção estão em `.tmp/rs-pme`, como evidências locais ignoradas pelo Git. O aviso de tamanho de chunk do Vite permanece informativo; seus limites não foram desativados.
+
+O trabalho permanece sem commit, push ou PR em `codex/rs-pme`, no worktree `PNE-REACT-RS-PME`. O checkout original foi preservado. Não houve alteração de `public/data` ou fontes brutas, acesso a banco, aquisição por rede externa, atualização de dados ou build completo. Suítes Python de aquisição/cálculo e gates integrais de publicação não se aplicam a esta rodada. A publicação externa da etapa E10 continua fora deste escopo.
+
+## 13. Segunda rodada de UX/UI: apresentação e compactação — 07/09/2026
+
+Classificação: `UI_ONLY` + `DATA_PRESENTATION`. A revisão atende ao pedido de uma home de apresentação, gráficos menores e melhor distribuição dos cards nas dez páginas do PME, com uso do skill de frontend-design.
+
+- Nova página **Início** em `#apresentacao`, também exibida quando a URL não especifica página: apresenta a finalidade da plataforma, o conteúdo disponível e a entrada por município. A seleção conduz ao Panorama municipal; os links existentes em `#inicio` continuam válidos e o município permanece identificado pelo código IBGE textual.
+- Evidências com uma área verde restrita ao valor, largura definida e texto em coluna própria. Cabeçalhos, metadados e espaçamentos ficaram menores; valores indisponíveis mantêm sua indicação específica e zero observado continua visível.
+- Gráficos com altura de 232 px nas larguras verificadas, sem ampliação dos eixos em telas largas. A tabela de 2015–2025 cabe ao lado no desktop. A impressão usa proporção própria, preserva todos os pontos e mostra a tabela anual completa.
+- Perguntas e hipóteses distribuídas lado a lado, sem repetir perguntas idênticas. Agenda com leitura, perguntas e caminhos em três colunas; instrumentos organizados em linhas com colunas proporcionais ao conteúdo. Condições, fontes e cuidados de interpretação foram preservados.
+- Panorama, objetivos, financiamento, relatórios, fontes e Relatório Técnico Municipal receberam distribuição mais compacta. Cards financeiros alinham seus blocos em quatro colunas nas telas maiores, duas nas intermediárias e uma no celular. O relatório técnico concentra identificação e resumos e permite rolagem local das tabelas largas.
+
+Arquivos: criada `src/experiences/pme/PmeIntroduction.tsx` e as folhas `pme-introduction.css` e `pme-context.css`; revisados o aplicativo, rotas, componentes, apresentação, estilos e testes PME. A antiga entrada `PmeWelcome` foi substituída pela apresentação após conferência de ausência de consumidores. Nenhum componente compartilhado recebeu nova alteração nesta segunda rodada. Os limites anteriores de CSS total, folha principal e relatório técnico foram mantidos.
+
+Verificação final: 35 testes PME e 8 testes E2E aprovados; `check:fast` (typecheck, lint, compilador e build app-only), `build:app:rs-pme`, arquitetura de UI, higiene e `git diff --check` aprovados. A auditoria visual produziu 40 capturas das dez páginas em 320, 768, 1440 e 1920 px, sem transbordamento horizontal da página ou erros de JavaScript; também verificou texto a 200%, navegação e impressão. Na amostra de Nova Santa Rita, o caderno do Objetivo 1 ficou com 8 páginas, a Agenda com 32 e o Relatório Técnico com 33, sem texto fora das páginas; todos os anos do gráfico, inclusive 2025, foram conferidos no PDF. Evidências locais ignoradas em `.tmp/rs-pme/compact`.
+
+Fontes oficiais, fórmulas, valores, anos, classificações e publicações permanecem inalterados. Os 71 testes de Educação aprovados na rodada anterior foram reutilizados, pois esta rodada não alterou seus componentes compartilhados. Suítes Python de dados e gates integrais de publicação não se aplicam ao escopo visual. Não houve banco, rede externa, atualização de dados ou build completo. O trabalho permanece local e sem commit, push ou PR em `codex/rs-pme`; o checkout original está preservado e a publicação externa E10 segue fora do escopo.
+
+## Preparação de commit — 9 de setembro de 2026
+
+O usuário autorizou o commit da implementação RS PME para posterior publicação. A alteração preexistente de `AGENTS.md` permanece fora desse commit. Os três DOCX de referência acompanham o plano para preservar seus links e contexto metodológico.
+
+Verificação: 35 testes PME, 8 E2E, 8 de hospedagem multiestado, 20 de roteamento, 71 de Educação e 18 testes Python de separação entre update e build aprovados; `check:fast`, arquitetura de UI, higiene e `git diff --check` aprovados. O E2E inicialmente falhou porque o servidor escutava em localhost enquanto o teste consultava 127.0.0.1; seu inicializador agora fixa esse host e a porta estrita, e a suíte completa passou. O lint do arquivo corrigido também passou.
+
+Foram preservados fontes, fórmulas e dados públicos. Não houve atualização de dados, acesso a banco, rede externa, build completo, push ou deploy nesta preparação. Suítes integrais de cálculo e atualização de fontes não se aplicam ao commit da experiência de apresentação. A publicação E10 e o envio da branch ao remoto continuam pendentes.
+
+## Integração em main — 11 de setembro de 2026
+
+O usuário solicitou atualizar a `main` dos projetos no GitHub. A integração preserva a implementação RS PME e os registros de aceite desta branch, incluindo as orientações atuais de `AGENTS.md`. Os conflitos com as cópias iniciais do plano foram resolvidos usando os registros de implementação concluída.
+
+Verificação: 35 testes PME, higiene e `check:fast` aprovados. O código integrado coincide com o código verificado; as diferenças adicionais são documentais. As verificações anteriores de E2E, Educação, roteamento e hospedagem registradas acima continuam aplicáveis aos mesmos arquivos. Esta integração não provisiona Cloudflare Pages, não executa deploy e não atualiza fontes ou dados públicos.

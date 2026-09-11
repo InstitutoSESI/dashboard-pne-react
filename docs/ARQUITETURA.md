@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-O produto é uma aplicação React entregue como site estático. `src/main.jsx` monta `App.tsx`; a navegação usa hash e parâmetros preservados por `src/app` e `src/hooks`. O Vite gera `dist`, incluindo os ativos de `public`.
+O produto é uma aplicação React entregue como site estático. `src/main-entry.ts` importa o alias estático `@platform-entry`: o perfil atual seleciona `src/main.jsx`/`App.tsx`, e RS/PME seleciona `src/main-pme.tsx`. A navegação atual usa hash e parâmetros preservados por `src/app` e `src/hooks`; o PME possui registro próprio em `src/experiences/pme/pmeRoutes.ts`. O build completo inclui os ativos da publicação estadual; o modo app-only omite dados públicos.
 
 ```text
 navegador
@@ -56,6 +56,7 @@ As rotas são resolvidas em `src/app/appRoutes.ts`. O município selecionado é 
 | Educação | `#educacao` com `secao` | `src/features/education/EducationPage.tsx` | `municipios/<ibge>/index.json`, `educacao/visao-geral-municipal/<ibge>.json` | `export_education_indicators.py`, `materialize_municipal_education_overview.py` | `test:education`, `test:pipeline-education-state`, `test:python` |
 | Panorama financeiro | `#financeiros-panorama` | `MunicipalFinancePanoramaPage` | `municipios/<ibge>/financeiro.json`, histórico anual da QSE e IMERS/PRE do RS | `generate_municipal_finance.py`, `generate_qse_annual.py`, `sync_icms_education_source.py` | `test:municipal-finance`, `test:icms-education-source`, `test:python` |
 | Módulos financeiros | `#financeiros`, `#financeiros-*` | `src/pages/FinancialPage.jsx` | contrato municipal, catálogos e metadados de `src/data` | exportadores de Fundeb/PNATE e geradores financeiros | `test:municipal-finance`, `test:data-sources` |
+| Experiência PME RS | hash próprio do perfil `pme` | `src/experiences/pme` | diagnóstico PNE, Matriz opcional, índice municipal e financeiro já publicados | sem gerador novo; somente adaptadores de apresentação | `test:rs-pme`, `test:rs-pme:e2e` |
 | Cenários da Educação | `#cenarios-da-educacao` | `src/features/cenarios-educacao/CenariosEducacaoPage.tsx` | bundle e registro versionados em `src/features/cenarios-educacao/generated`, derivados de 30 entradas públicas locais e sem escrita em `public/data` | `scripts/generate-cenarios-educacao.mjs` | `test:cenarios-educacao`, `test:cenarios-educacao:e2e` |
 
 ## Contratos de dados
@@ -373,3 +374,25 @@ pessoais não podem entrar em `public`, `dist` ou arquivos versionados.
 A Etapa 5B2 alterou somente o mecanismo de geração e publicação da Educação
 principal. Nenhuma fonte real foi consultada e nenhum arquivo público foi
 regenerado ou promovido durante sua implementação e validação.
+
+## Experiência PME do RS
+
+O perfil `RS/pme` é uma experiência estática separada que lê a mesma raiz
+publicada do RS sob `/data`; não cria backend, autenticação, armazenamento,
+serviço de IA nem publicação de dados própria. A experiência atual do RS e o
+PME podem coexistir porque a seleção de experiência é fixa na CLI de build, sem
+alterar a raiz estadual. AL mantém sua própria raiz e não recebe esse perfil.
+
+O panorama conserva os 19 objetivos e 73 metas legais. Contextos da Matriz são
+opcionais e independentes do diagnóstico: ausência e erro do módulo permanecem
+estados distintos. Séries municipais já publicadas entram somente como contexto
+bruto, por identificador canônico e sem substituir a observação do diagnóstico;
+uma incompatibilidade temporal ou de unidade é explicitada. Caminhos financeiros
+descrevem condições a conferir, jamais elegibilidade, saldo, repasse ou vigência
+confirmados.
+
+Impressão e PDF dependem do navegador. A exportação XLSX contém oito planilhas;
+cada uma mantém as versões e fontes do domínio de origem, sem criar uma versão
+analítica comum. A preparação de hospedagem PME está documentada em
+`config/hosting/rs-pme-pages.json`; ela é inventário operacional, não uma
+configuração executada pelo provedor.

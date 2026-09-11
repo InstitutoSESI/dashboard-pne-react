@@ -107,21 +107,23 @@ candidato para `config/states` ou `config/municipalities` isoladamente. Toda
 republicação analítica deve manter contratos e dados de AL validados como um lote
 completo.
 
-Para desenvolvimento e release dos dois produtos:
+Para desenvolvimento e build local dos três perfis já definidos:
 
 ```powershell
 npm run dev:rs
 npm run dev:al
+npm run dev:rs-pme
 npm run build:rs
 npm run build:al
+npm run build:rs-pme
 ```
 
-No Cloudflare Pages, use dois projetos sobre o mesmo repositório. O RS executa
-`npm run build:cloudflare:rs`, o AL executa
-`npm run build:cloudflare:al`, e ambos publicam `dist`. Os comandos fixam a UF
-sem depender de sintaxe de variável de ambiente do shell. Veja
-`docs/HOSPEDAGEM_MULTIESTADO.md`. Aquisição, banco e atualização de dados não
-fazem parte do build da hospedagem.
+RS atual e AL possuem projetos de hospedagem independentes. A preparação PME
+propõe um terceiro projeto, ainda não provisionado, com
+`npm run build:cloudflare:rs-pme` e saída `dist`. Os comandos fixam UF e
+experiência sem depender de variável de ambiente do shell. Veja
+`docs/HOSPEDAGEM_MULTIESTADO.md` e `config/hosting/rs-pme-pages.json`.
+Aquisição, banco e atualização de dados não fazem parte do build da hospedagem.
 
 ## Atualização de dados
 
@@ -359,12 +361,21 @@ npm run build:app
 `public/data`. `check:fast` continua composto por typecheck, lint e esse build
 leve.
 
+O PME possui o equivalente `npm run build:app:rs-pme`, em
+`dist/app-only-rs-pme`; ele é adequado para desenvolvimento visual, não para
+release. Os três servidores de desenvolvimento são `5187` (RS atual), `5188`
+(AL atual) e `5189` (RS PME). Os caches de desenvolvimento ficam separados por
+UF/experiência em `.tmp/vite`. Quando um worktree reutiliza `node_modules` por
+junction/symlink, o Vite permite também o diretório real dessas dependências
+para servir as fontes locais; a pasta pai dos checkouts não é liberada.
+
 O pacote de release completo é uma ação explícita:
 
 ```powershell
 npm run build
 npm run build:rs
 npm run build:al
+npm run build:rs-pme
 ```
 
 Esse comando desativa a cópia genérica do Vite, valida o perfil selecionado,
@@ -374,6 +385,37 @@ não atualiza dados nem constrói o pacote: ele serve o `dist` existente. Para
 validar uma release localmente, gere antes um build completo atual. O deploy
 continua responsável por executar `npm run build` quando necessário; os paths
 públicos sob `/data`, base, assets e hospedagem permanecem compatíveis.
+
+### Preparação de release do PME
+
+Não há projeto Pages, conta, domínio, branch de produção ou deploy PME
+confirmados neste repositório. Antes de qualquer criação externa, confirme esses
+campos e a autorização de deploy na ficha
+`config/hosting/rs-pme-pages.json`. O nome proposto é
+`painel-sesi-rs-pme`; o repositório remoto planejado é
+`https://github.com/rnbirck/dashboard-pne-react.git`, a branch local é
+`codex/rs-pme` e nenhum push é implícito.
+
+Depois dessa confirmação, o gate de release do PME deve executar os testes
+unitários e E2E do perfil (`npm run test:rs-pme` e
+`npm run test:rs-pme:e2e`), além do gate de paridade quando houver builds
+completos disponíveis:
+
+```powershell
+node scripts/checks/rs-experience-data-parity.mjs dist/rs/data dist/rs-pme/data
+```
+
+Esse comando não deve ser executado sem os dois artefatos completos e não cria
+dados. O teste E2E inicia o servidor necessário ou usa `PME_E2E_BASE_URL`
+na própria execução. O build completo do deploy é
+`npm run build:cloudflare:rs-pme`; ele não atualiza `public/data`.
+
+No smoke test autorizado, valide somente o projeto PME: abertura do perfil,
+município, diagnóstico, estado de ausência/erro da Matriz, contexto bruto de
+série, condições financeiras, impressão/PDF no navegador e XLSX de oito
+planilhas. Registre o commit, manifests e identificador do deploy. Um rollback
+reverte somente esse projeto para um deploy PME anterior conhecido; não republique
+RS atual, AL ou dados como parte desse rollback.
 
 ## Conteúdo municipal compartilhado
 

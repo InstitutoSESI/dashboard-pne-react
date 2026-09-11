@@ -149,11 +149,14 @@ def test_package_scripts_keep_update_and_build_responsibilities_separate():
         "update_static_data.py --education-only --build"
     )
     assert scripts["check:fast"] == (
-        "npm run typecheck && npm run lint && npm run build:app"
+        "npm run typecheck && npm run lint && npm run check:vocacoes-pne-compilador && npm run build:app"
     )
     assert scripts["build"] == "vite build"
     assert scripts["build:app"] == (
-        "vite build --mode app-only --outDir dist/app-only"
+        "node scripts/run-state-vite.mjs build RS atual --mode app-only --outDir dist/app-only"
+    )
+    assert scripts["build:app:rs-pme"] == (
+        "node scripts/run-state-vite.mjs build RS pme --mode app-only --outDir dist/app-only-rs-pme"
     )
 
     vite = (REPO_ROOT / "vite.config.js").read_text(encoding="utf-8")
