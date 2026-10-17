@@ -156,7 +156,7 @@ META_MEDIO_CONCLUIDO_18_29 = _contract_reference_value(
     "medio_concluido_18_29"
 )
 
-META_ALFABETIZACAO = _contract_milestone_value("alfabetizacao", -1)
+META_ALFABETIZACAO = _contract_reference_value("alfabetizacao")
 
 META_SAEB_ADEQUADO = {
     "anos_iniciais": _contract_reference_value(
@@ -1171,26 +1171,8 @@ def _calc_subsequente_expansao(municipio):
     return _fixed_baseline_result(series, META_SUBSEQUENTE_EXPANSAO)
 
 def _calc_alfabetizacao(municipio):
-    precomputed = _build_precomputed_result(
-        municipio,
-        "alfabetizacao",
-        meta=META_ALFABETIZACAO,
-        meta_label="Meta PNE 2036",
-        target_start_year=2019,
-        target_end_year=TARGET_END_YEAR,
-    )
-    if precomputed is not None:
-        return precomputed
-
-    return _build_value_result(
-        load_taxa_alfabetizacao_data,
-        municipio,
-        value_column="taxa_alfabetizacao",
-        meta=META_ALFABETIZACAO,
-        meta_label="Meta PNE 2036",
-        target_start_year=2019,
-        target_end_year=TARGET_END_YEAR,
-    )
+    from src.pne_child_literacy_cycle import build_cycle_result
+    return build_cycle_result(municipio, meta=META_ALFABETIZACAO)
 
 def _calc_alfabetizacao_pop_15_mais(municipio):
     result = _build_ratio_result(

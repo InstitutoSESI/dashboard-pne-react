@@ -133,7 +133,8 @@ def load_censo_populacao_ensino_fundamental_concluido_18_29_data():
 
 
 def load_censo_populacao_ensino_fundamental_concluido_15_29_data():
-    return load_dataset("censo_populacao_ensino_fundamental_concluido_15_29_data")
+    from src.pne_census_attainment import load_attainment_frame
+    return load_attainment_frame("fundamental_concluido_15_29")
 
 
 def load_censo_populacao_ensino_fundamental_concluido_15_mais_data():
@@ -141,11 +142,13 @@ def load_censo_populacao_ensino_fundamental_concluido_15_mais_data():
 
 
 def load_censo_populacao_ensino_medio_concluido_18_mais_data():
-    return load_dataset("censo_populacao_ensino_medio_concluido_18_mais_data")
+    from src.pne_census_attainment import load_attainment_frame
+    return load_attainment_frame("medio_concluido_18_mais")
 
 
 def load_censo_populacao_ensino_medio_concluido_18_29_data():
-    return load_dataset("censo_populacao_ensino_medio_concluido_18_29_data")
+    from src.pne_census_attainment import load_attainment_frame
+    return load_attainment_frame("medio_concluido_18_29")
 
 
 def load_taxa_alfabetizacao_data(*, cycle=None):

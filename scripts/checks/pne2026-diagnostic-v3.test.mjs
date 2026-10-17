@@ -115,7 +115,7 @@ function normalizedView(viewModel) {
 test('V3 parser accepts only the pinned schema, versions, hashes, and allowlist', () => {
   const parsed = parsePne2026PublicDiagnosticV3(v3)
   assert.equal(parsed.schemaVersion, 'pne2026-public-diagnostic-v4')
-  assert.equal(parsed.contractVersion, '1.9.0')
+  assert.equal(parsed.contractVersion, '1.10.0')
   assert.equal(parsed.contractHash, PNE_2026_CONTRACT_HASH)
   assert.equal(parsed.presentationPolicyVersion, '1.7.0')
   assert.equal(

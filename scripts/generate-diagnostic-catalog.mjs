@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const contractPath = new URL('../contracts/pne2026-goal-indicator-contract.json', import.meta.url)
 const policyPath = new URL('../contracts/pne2026-diagnostic-presentation-policy.json', import.meta.url)
@@ -632,10 +633,23 @@ export function projectDiagnosticArtifacts({
 
 function run() {
   const check = process.argv.includes('--check')
+  const outputIndex = process.argv.indexOf('--output-root')
+  const outputRoot = outputIndex < 0 ? null : process.argv[outputIndex + 1]
+  assert(outputIndex < 0 || (outputRoot && !outputRoot.startsWith('--')), '--output-root exige um diretório')
+  const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
+  const destination = (url) => outputRoot
+    ? pathToFileURL(path.resolve(outputRoot, path.relative(repositoryRoot, fileURLToPath(url))))
+    : url
+  if (outputRoot) {
+    const publicRoot = path.resolve(repositoryRoot, 'public/data')
+    const relative = path.relative(publicRoot, path.resolve(outputRoot))
+    assert(relative.startsWith('..') || path.isAbsolute(relative), 'Staging deve ficar fora de public/data')
+  }
   const contract = readJson(contractPath)
   const policy = readJson(policyPath)
   const indicatorCatalog = readJson(indicatorCatalogPath)
-  const publicIndicatorCatalog = readJson(publicIndicatorCatalogPath, {
+  const stagedCatalog = destination(publicIndicatorCatalogPath)
+  const publicIndicatorCatalog = readJson(fs.existsSync(stagedCatalog) ? stagedCatalog : publicIndicatorCatalogPath, {
     recoverTrailingOutput: !check,
   })
   const projected = projectDiagnosticArtifacts({
@@ -653,7 +667,7 @@ function run() {
       generatedContractDocumentationPath,
       `${renderPneContractDocumentation(contract)}\n`,
     ],
-  ]
+  ].map(([url, contents]) => [destination(url), contents])
   const stale = outputs.filter(([path, contents]) => (
     !fs.existsSync(path) || fs.readFileSync(path, 'utf8') !== contents
   ))

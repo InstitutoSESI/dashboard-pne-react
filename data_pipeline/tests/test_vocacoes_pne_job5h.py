@@ -235,7 +235,7 @@ def test_pne_links_are_legal_and_pme_is_not_materialized() -> None:
     }
     assert used_refs <= EXPECTED_PNE_ALLOWLIST
     assert used_refs <= set(canonical["goals"])
-    assert links["canonicalContract"]["contractVersion"] == "1.9.0"
+    assert links["canonicalContract"]["contractVersion"] == "1.10.0"
     assert set(links["usedLegalRefs"]) == used_refs
     assert pme["pme_link_state"] == "not_materialized"
     assert pme["pme_goal_links"] == []

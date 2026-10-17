@@ -37,6 +37,7 @@ from src.pne_goal_11b_census import (  # noqa: E402
     ratio_result as goal_11b_ratio_result,
     state_ratio as goal_11b_state_ratio,
 )
+from src.pne_census_attainment import component as attainment_component  # noqa: E402
 from src.child_literacy import (  # noqa: E402
     current_results as child_literacy_current_results,
     load_snapshot as load_child_literacy_snapshot,
@@ -175,7 +176,16 @@ CONSOLIDATED_ROUND_RELATION_IDS = frozenset(
         "relation.15.b.docentes_tempo_integral_faculdades",
     }
 )
-PACKAGE_RELATION_IDS = frozenset(MACRO_RELATION_IDS) | CONSOLIDATED_ROUND_RELATION_IDS
+RECONCILED_CORE_RELATION_IDS = frozenset({
+    "relation.11.b.fundamental_concluido_15_29",
+    "relation.11.c.medio_concluido_18_29",
+    "relation.11.c.medio_concluido_18_mais",
+    "relation.12.a.medio_tecnico_articulado_percentual",
+    "relation.12.a.medio_tecnico_participacao_publica",
+    "relation.12.b.subsequente_expansao",
+})
+PACKAGE_RELATION_IDS = (frozenset(MACRO_RELATION_IDS)
+                        | CONSOLIDATED_ROUND_RELATION_IDS | RECONCILED_CORE_RELATION_IDS)
 TRACKING_ROUND_RELATION_IDS = frozenset(
     {
         "relation.4.a.basico_15_17",
@@ -1670,6 +1680,34 @@ def _consolidated_round_results() -> tuple[
     }
 
 
+def _reconciled_core_results() -> dict[str, dict[str, dict[str, Any]]]:
+    """Recalcula as relações corrigidas; nunca preserva silenciosamente a fórmula antiga."""
+    rows, _manifest = load_goal_11b_snapshot(
+        snapshot_dir=_source_snapshot_dir("pne_goal_11b_census_2022"),
+        state_code=STATE_CODE,
+    )
+    technical, _audit = _methodology_results()
+    by_municipality = {row["municipalityId"]: dict(technical.get(row["municipalityId"], {})) for row in rows}
+    for key, goal in (("fundamental_concluido_15_29", "11.b"),
+                      ("medio_concluido_18_29", "11.c"),
+                      ("medio_concluido_18_mais", "11.c")):
+        relation_id = f"relation.{goal}.{key}"
+        relation = _RELATION_BY_ID[relation_id]
+        reference = CONTRACT["goals"][goal]["legalReferences"]
+        reference = next(item for item in reference if item["referenceId"] == relation["referenceId"])
+        target = float(reference["milestones"][-1]["value"])
+        components = [{"attainment": attainment_component(row, key)} for row in rows]
+        aggregate = goal_11b_state_ratio(components, "attainment", expected_municipalities=EXPECTED_MUNICIPALITIES)
+        for row, components_row in zip(rows, components):
+            value = {**goal_11b_ratio_result(components_row["attainment"]), "year": row["year"]}
+            by_municipality[row["municipalityId"]][relation_id] = _consolidated_result_payload(
+                value, target=target,
+                reading="Conclusão escolar com numerador e denominador do mesmo universo censitário de 2022.",
+                state=aggregate,
+            )
+    return by_municipality
+
+
 def prepare_staging() -> dict[str, Any]:
     payloads: list[dict[str, Any]] = []
     municipal_files: dict[str, bytes] = {}
@@ -1701,6 +1739,7 @@ def prepare_staging() -> dict[str, Any]:
         data_root=SOURCE_DATA_ROOT / "pne_macro_sources",
     )
     consolidated_results, consolidated_audit = _consolidated_round_results()
+    reconciled_results = _reconciled_core_results()
     source_digest = hashlib.sha256()
     _update_aggregate_digest(
         source_digest,
@@ -1744,6 +1783,7 @@ def prepare_staging() -> dict[str, Any]:
         }
     for snapshot_name in (
         "pne_child_literacy",
+        "pne_goal_11b_census_2022",
         "pne_goal_11d_eja",
         "pne_goal_14_census_2022",
         "pne_goal_15b",
@@ -1845,6 +1885,7 @@ def prepare_staging() -> dict[str, Any]:
                     f"{municipality_id}: identidade divergente em materialização."
                 )
             package_results = dict(consolidated_results[municipality_id])
+            package_results.update(reconciled_results[municipality_id])
             macro_results = build_macro_round_results(
                 municipality_id=municipality_id,
                 munic_records=munic_records,
@@ -1928,12 +1969,14 @@ def prepare_staging() -> dict[str, Any]:
             active_relation_ids = set(active_by_relation)
             active_preserved_relation_ids = (
                 active_relation_ids
+                - PACKAGE_RELATION_IDS
                 - TRACKING_ROUND_RELATION_IDS
                 - PROJECTION_MIGRATION_RELATION_IDS
                 - bootstrap_relation_ids
             )
             output_preserved_relation_ids = (
                 set(output_by_relation)
+                - PACKAGE_RELATION_IDS
                 - TRACKING_ROUND_RELATION_IDS
                 - PROJECTION_MIGRATION_RELATION_IDS
             )

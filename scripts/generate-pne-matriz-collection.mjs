@@ -413,7 +413,7 @@ function promoteStagedTree(stageRoot, manifest) {
   removeManagedTree(backupRoot, '.pne2026-matriz-backup-')
 }
 
-export function ingestMatrizCollection(collectionRootInput) {
+export function ingestMatrizCollection(collectionRootInput, { outputDir = null } = {}) {
   const collectionRoot = path.resolve(collectionRootInput)
   const { byId, raw: registryRaw } = readCanonicalRegistry()
   const contractRaw = fs.readFileSync(CONTRACT_PATH)
@@ -454,6 +454,18 @@ export function ingestMatrizCollection(collectionRootInput) {
     }
     fs.writeFileSync(path.join(stageRoot, 'manifest.json'), manifestContents)
     validateStagedPublication(stageRoot, publicManifest)
+    if (outputDir) {
+      const target = path.resolve(outputDir)
+      const publicRelative = path.relative(path.join(REPO_ROOT, 'public/data'), target)
+      invariant(publicRelative.startsWith('..') || path.isAbsolute(publicRelative), 'staging deve ficar fora de public/data.')
+      invariant(!fs.existsSync(target), `staging já existe: ${target}.`)
+      fs.cpSync(stageRoot, target, { recursive: true })
+      validateStagedPublication(target, publicManifest)
+      removeManagedTree(stageRoot, '.pne2026-matriz-staging-')
+      return { changed: changed + 1, preserved, promoted: false, staged: true,
+        outputDir: target, collectionManifestSha256: sha256(rawCollectionManifest),
+        manifest: publicManifest }
+    }
     const existingManifest = fs.existsSync(PUBLIC_MANIFEST_PATH)
       ? fs.readFileSync(PUBLIC_MANIFEST_PATH)
       : null
@@ -488,18 +500,21 @@ function parseArguments(argv) {
       'Informe a coleção: node scripts/generate-pne-matriz-collection.mjs --collection <diretório>.',
     )
   }
-  return path.resolve(argv[index + 1])
+  const outputIndex = argv.indexOf('--output-dir')
+  invariant(outputIndex < 0 || (argv[outputIndex + 1] && !argv[outputIndex + 1].startsWith('--')), '--output-dir exige um diretório.')
+  return { collectionRoot: path.resolve(argv[index + 1]),
+    outputDir: outputIndex < 0 ? null : path.resolve(argv[outputIndex + 1]) }
 }
 
 function run() {
-  const collectionRoot = parseArguments(process.argv.slice(2))
-  const result = ingestMatrizCollection(collectionRoot)
+  const { collectionRoot, outputDir } = parseArguments(process.argv.slice(2))
+  const result = ingestMatrizCollection(collectionRoot, { outputDir })
   console.log([
-    `Coleção publicada: ${result.manifest.municipalities.length} municípios`,
+    `Coleção ${result.staged ? 'validada em staging' : 'publicada'}: ${result.manifest.municipalities.length} municípios`,
     `Manifesto da coleção sha256: ${result.collectionManifestSha256}`,
-    `Promoção: ${result.promoted ? 'concluída' : 'dispensada (conteúdo idêntico)'}`,
+    `Promoção: ${result.promoted ? 'concluída' : result.staged ? 'pendente' : 'dispensada (conteúdo idêntico)'}`,
     `Arquivos alterados: ${result.changed} | preservados por conteúdo: ${result.preserved}`,
-    `Destino: ${path.relative(REPO_ROOT, PUBLIC_ROOT)}`,
+    `Destino: ${path.relative(REPO_ROOT, result.outputDir || PUBLIC_ROOT)}`,
   ].join('\n'))
 }
 

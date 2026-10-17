@@ -605,7 +605,7 @@ test('a página preserva metas, números e comparações do artefato', () => {
   const situations = [
     '35,1% hoje · referência 60%',
     '43,5% hoje · referência 70%',
-    '57,2% hoje · referência 100%',
+    '60% hoje · referência 100%',
     '65,8% hoje · referência 100%',
     '91,1% hoje · referência 100%',
     '92,2% hoje · referência 100%',
@@ -614,7 +614,7 @@ test('a página preserva metas, números e comparações do artefato', () => {
   const peerBenchmarks = [
     'Cidades parecidas do RS (88, 2025): mediana 50,9% · município 15,8 p.p. abaixo',
     'Cidades parecidas do RS (88, 2023): mediana 54,2% · município 10,7 p.p. abaixo',
-    'Cidades parecidas do RS (88, 2022): mediana 57,4% · município 0,2 p.p. abaixo',
+    'Cidades parecidas do RS (88, 2022): mediana 61,1% · município 1,1 p.p. abaixo',
     'Cidades parecidas do RS (88, 2025): mediana 66,2% · município 0,4 p.p. abaixo',
     'Cidades parecidas do RS (88, 2025): mediana 95% · município 3,9 p.p. abaixo',
     'Cidades parecidas do RS (88, 2025): mediana 94,6% · município 2,4 p.p. abaixo',
@@ -623,7 +623,7 @@ test('a página preserva metas, números e comparações do artefato', () => {
 
   assert.ok(html.includes('7 metas prioritárias · 14 caminhos para avançar'))
   assert.ok(html.includes('Duas metas apresentam as maiores diferenças frente às 88 cidades parecidas do RS: Creche, 15,8 p.p. abaixo (2025), e Aprendizagem nos anos iniciais, 10,7 p.p. abaixo (2023).'))
-  assert.ok(html.includes('Referência de 14 de agosto de 2026'))
+  assert.ok(html.includes('Referência de 29 de setembro de 2026'))
   assert.ok(html.includes('Cada meta reúne o contexto essencial, o que confirmar na rede e os caminhos para avançar.'))
   assert.ok(html.includes('Como usar:'))
   assert.ok(html.includes('defina responsável, território e público, recurso, prazo e um sinal operacional'))

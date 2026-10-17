@@ -17,7 +17,7 @@ const relation = (relationId) => contract.relations.find(
 )
 
 test('consolidated relations expose the intended legal and monitoring modes', () => {
-  assert.equal(contract.contractVersion, '1.9.0')
+  assert.equal(contract.contractVersion, '1.10.0')
   assert.equal(contract.relations.length, 59)
   assert.equal(relation('relation.3.a.alfabetizacao').mode, 'progress')
   assert.equal(relation('relation.3.a.alfabetizacao').canProjection, false)

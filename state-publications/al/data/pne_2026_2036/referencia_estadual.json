@@ -939,15 +939,14 @@
       "denominator_definition": "População total de 15 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
-      "comparison_status": "unavailable",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -962,7 +961,7 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "fundamental_concluido_15_mais": {
       "indicator_id": "fundamental_concluido_15_mais",
@@ -1003,11 +1002,10 @@
       "denominator_definition": "População total de 18 anos ou mais.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
@@ -1026,7 +1024,7 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "medio_concluido_18_29": {
       "indicator_id": "medio_concluido_18_29",
@@ -1035,11 +1033,10 @@
       "denominator_definition": "População total de 18 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
@@ -1058,7 +1055,7 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "medio_tecnico_participacao_publica": {
       "indicator_id": "medio_tecnico_participacao_publica",
@@ -1179,15 +1176,17 @@
     },
     "alfabetizacao": {
       "indicator_id": "alfabetizacao",
-      "aggregation_method": "not_available",
-      "numerator_definition": "Não habilitado.",
-      "denominator_definition": "Não habilitado.",
-      "filters": {},
-      "source": "Sem fonte estadual comparável habilitada",
-      "source_type": "methodology_pending",
+      "aggregation_method": "official_state_result",
+      "numerator_definition": "Componente não publicado; usar percentual oficial.",
+      "denominator_definition": "Estudantes avaliados do 2º ano na rede municipal.",
+      "filters": {
+        "rede": "municipal"
+      },
+      "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+      "source_type": "official_state_percentage",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
-      "comparison_status": "methodology_pending",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -1202,7 +1201,8 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Fonte municipal sem série estadual comparável no pipeline."
+      "notes": "Resultado estadual oficial da rede municipal; não é média municipal.",
+      "allow_projection": false
     },
     "idade_regular_quinto": {
       "indicator_id": "idade_regular_quinto",
@@ -7901,15 +7901,14 @@
       "denominator_definition": "População total de 15 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
-      "comparison_status": "unavailable",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -7924,8 +7923,26 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
-      "series": []
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
+      "series": [
+        {
+          "indicator_id": "fundamental_concluido_15_29",
+          "year": 2022,
+          "value": 75.46583278229875,
+          "numerator": 572920.0,
+          "denominator": 759178.0,
+          "aggregation_method": "ratio_of_sums",
+          "municipalities_valid": 102,
+          "municipalities_expected": 102,
+          "municipal_coverage_percent": 100.0,
+          "denominator_coverage_percent": 100.0,
+          "comparison_status": "comparable",
+          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
+          "source_type": "census_raw_count_reconstruction",
+          "methodology_version": "pne2026-al-reference-v1"
+        }
+      ]
     },
     "fundamental_concluido_15_mais": {
       "indicator_id": "fundamental_concluido_15_mais",
@@ -7967,11 +7984,10 @@
       "denominator_definition": "População total de 18 anos ou mais.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
@@ -7990,31 +8006,14 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
       "series": [
         {
           "indicator_id": "medio_concluido_18_mais",
-          "year": 2010,
-          "value": null,
-          "numerator": null,
-          "denominator": null,
-          "aggregation_method": "ratio_of_sums",
-          "municipalities_valid": 0,
-          "municipalities_expected": 102,
-          "municipal_coverage_percent": 0.0,
-          "denominator_coverage_percent": null,
-          "comparison_status": "unavailable",
-          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado. Sem par numerador/denominador válido no ano. Pares válidos em 0 de 102 municípios.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
-          "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-al-reference-v1"
-        },
-        {
-          "indicator_id": "medio_concluido_18_mais",
           "year": 2022,
-          "value": 40.40655890320036,
+          "value": 41.460491547723024,
           "numerator": 937515.0,
-          "denominator": 2320205.0,
+          "denominator": 2261225.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 102,
           "municipalities_expected": 102,
@@ -8022,7 +8021,7 @@
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
           "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
           "source_type": "census_raw_count_reconstruction",
           "methodology_version": "pne2026-al-reference-v1"
         }
@@ -8035,11 +8034,10 @@
       "denominator_definition": "População total de 18 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
@@ -8058,31 +8056,14 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
       "series": [
         {
           "indicator_id": "medio_concluido_18_29",
-          "year": 2010,
-          "value": null,
-          "numerator": null,
-          "denominator": null,
-          "aggregation_method": "ratio_of_sums",
-          "municipalities_valid": 0,
-          "municipalities_expected": 102,
-          "municipal_coverage_percent": 0.0,
-          "denominator_coverage_percent": null,
-          "comparison_status": "unavailable",
-          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado. Sem par numerador/denominador válido no ano. Pares válidos em 0 de 102 municípios.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
-          "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-al-reference-v1"
-        },
-        {
-          "indicator_id": "medio_concluido_18_29",
           "year": 2022,
-          "value": 52.30660488494463,
+          "value": 55.15419523667561,
           "numerator": 333010.0,
-          "denominator": 636650.0,
+          "denominator": 603780.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 102,
           "municipalities_expected": 102,
@@ -8090,7 +8071,7 @@
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
           "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
           "source_type": "census_raw_count_reconstruction",
           "methodology_version": "pne2026-al-reference-v1"
         }
@@ -8219,15 +8200,17 @@
     },
     "alfabetizacao": {
       "indicator_id": "alfabetizacao",
-      "aggregation_method": "not_available",
-      "numerator_definition": "Não habilitado.",
-      "denominator_definition": "Não habilitado.",
-      "filters": {},
-      "source": "Sem fonte estadual comparável habilitada",
-      "source_type": "methodology_pending",
+      "aggregation_method": "official_state_result",
+      "numerator_definition": "Componente não publicado; usar percentual oficial.",
+      "denominator_definition": "Estudantes avaliados do 2º ano na rede municipal.",
+      "filters": {
+        "rede": "municipal"
+      },
+      "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+      "source_type": "official_state_percentage",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
       "methodology_version": "pne2026-al-reference-v1",
-      "comparison_status": "methodology_pending",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -8242,8 +8225,61 @@
         "methodologyVersion": "pne2026-al-reference-v1",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Fonte municipal sem série estadual comparável no pipeline.",
-      "series": []
+      "notes": "Resultado estadual oficial da rede municipal; não é média municipal.",
+      "allow_projection": false,
+      "series": [
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2023,
+          "value": 44.13,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 102,
+          "municipalities_expected": 102,
+          "municipal_coverage_percent": 100.0,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-al-reference-v1"
+        },
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2024,
+          "value": 49.05,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 102,
+          "municipalities_expected": 102,
+          "municipal_coverage_percent": 100.0,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-al-reference-v1"
+        },
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2025,
+          "value": 64.37,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 102,
+          "municipalities_expected": 102,
+          "municipal_coverage_percent": 100.0,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-al-reference-v1"
+        }
+      ]
     },
     "idade_regular_quinto": {
       "indicator_id": "idade_regular_quinto",
@@ -9121,7 +9157,7 @@
       "projection_status": "not_applicable",
       "method": "observed_series_only",
       "source": "Série observada; indicador aproximado sem trajetória ou projeção",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "pos_graduacao": {
@@ -11022,7 +11058,7 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "fundamental_concluido_15_mais": {
@@ -11038,7 +11074,7 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "medio_concluido_18_29": {
@@ -11046,7 +11082,7 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "medio_tecnico_participacao_publica": {
@@ -11054,7 +11090,7 @@
       "projection_status": "unavailable",
       "method": "aggregate_state_persistence_baseline",
       "source": "Série estadual agregada; último par observado mantido; sem média municipal",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "reason": "insufficient_or_stale_annual_history",
       "validation": {
         "minimumComparableObservations": 5,
@@ -11069,7 +11105,7 @@
       "projection_status": "unavailable",
       "method": "aggregate_state_persistence_baseline",
       "source": "Série estadual agregada; último par observado mantido; sem média municipal",
-      "methodology_version": "pne2026-al-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "reason": "insufficient_or_stale_annual_history",
       "validation": {
         "minimumComparableObservations": 5,
@@ -11111,17 +11147,10 @@
     },
     "alfabetizacao": {
       "available": false,
-      "projection_status": "unavailable",
-      "method": "aggregate_state_persistence_baseline",
-      "source": "Série estadual agregada; último par observado mantido; sem média municipal",
-      "methodology_version": "pne2026-al-reference-v1",
-      "reason": "insufficient_or_stale_annual_history",
-      "validation": {
-        "minimumComparableObservations": 5,
-        "requiredObservationIntervalYears": 1,
-        "requireLatestYear": 2025,
-        "observationCount": 0
-      },
+      "projection_status": "not_applicable",
+      "method": "observed_series_only",
+      "source": "Série observada; indicador aproximado sem trajetória ou projeção",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "idade_regular_quinto": {

@@ -31,9 +31,9 @@ import {
 
 const MUNICIPALITY_ID = '4313375'
 const MUNICIPAL_PATH = PNE_2026_MATRIZ_MUNICIPAL_PATH.replace('{municipalityId}', MUNICIPALITY_ID)
-const EXPECTED_INPUT_SHA256 = 'c32b53bb6ce89421720e74890c637ebcc8fa2659074e2d201002963d8c1f46a6'
-const EXPECTED_OUTPUT_SHA256 = '7afbb731c506605b2fa98fd3405f263358ef592ef8542e5c74ccfa58315f7267'
-const EXPECTED_OUTPUT_BYTE_SIZE = 513354
+const EXPECTED_INPUT_SHA256 = 'eec6fb0f1e7429d88b3568dc0a34019d279d1c500fafd7a71e23a180b516c9d5'
+const EXPECTED_OUTPUT_SHA256 = '101576c7da78b907483cfae5924b60158e6c27b75ba553b475a9141ede15264f'
+const EXPECTED_OUTPUT_BYTE_SIZE = 513355
 const manifestRaw = await readFile(new URL('../../public/data/pne2026-matriz/manifest.json', import.meta.url))
 const municipalRaw = await readFile(
   new URL(`../../public/data/pne2026-matriz/municipios/${MUNICIPALITY_ID}.json`, import.meta.url),

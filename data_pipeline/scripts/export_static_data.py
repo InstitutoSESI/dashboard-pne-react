@@ -389,6 +389,13 @@ def _serialize_result(
 ) -> dict[str, Any]:
     fields = (
         "available",
+        "data_status",
+        "reason_code",
+        "dataStatus",
+        "reasonCode",
+        "base_year",
+        "numerator",
+        "denominator",
         "start_year",
         "end_year",
         "start_value",

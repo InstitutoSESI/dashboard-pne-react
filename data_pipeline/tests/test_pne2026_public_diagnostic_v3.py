@@ -372,7 +372,7 @@ class Pne2026PublicDiagnosticV3Test(unittest.TestCase):
 
     def test_schema_hashes_and_summary_are_canonical(self):
         self.assertEqual(self.acegua["schemaVersion"], PUBLIC_V3_SCHEMA_VERSION)
-        self.assertEqual(self.acegua["contractVersion"], "1.9.0")
+        self.assertEqual(self.acegua["contractVersion"], "1.10.0")
         self.assertEqual(self.acegua["contractHash"], CONTRACT_HASH)
         self.assertEqual(self.acegua["presentationPolicyVersion"], "1.7.0")
         self.assertEqual(

@@ -53,7 +53,7 @@ test('canonical contract validates and has stable cardinalities and modes', () =
   assert.equal(PNE_2026_GOAL_INDICATOR_CONTRACT.relations.length, 59)
   assert.equal(Object.keys(PNE_2026_GOAL_INDICATOR_CONTRACT.sources).length, 17)
   assert.equal(Object.keys(PNE_2026_GOAL_INDICATOR_CONTRACT.formulas).length, 59)
-  assert.equal(PNE_2026_GOAL_INDICATOR_CONTRACT.contractVersion, '1.9.0')
+  assert.equal(PNE_2026_GOAL_INDICATOR_CONTRACT.contractVersion, '1.10.0')
 
   const modes = Object.groupBy(
     PNE_2026_GOAL_INDICATOR_CONTRACT.relations,

@@ -24,7 +24,7 @@ from src.pne.goal_indicator_contract import (  # noqa: E402
 class Pne2026GoalIndicatorContractTests(unittest.TestCase):
     def test_contract_cardinalities_and_validation(self):
         self.assertIs(validate_contract(CONTRACT), CONTRACT)
-        self.assertEqual(CONTRACT["contractVersion"], "1.9.0")
+        self.assertEqual(CONTRACT["contractVersion"], "1.10.0")
         self.assertEqual(len(CONTRACT["goals"]), 73)
         self.assertEqual(len(CONTRACT["indicators"]), 59)
         self.assertEqual(len(CONTRACT["relations"]), 59)
@@ -207,7 +207,7 @@ class Pne2026GoalIndicatorContractTests(unittest.TestCase):
         self.assertEqual(stable_contract_json(), stable_contract_json())
         self.assertEqual(
             contract_hash(),
-            "c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5",
+            "7af42e902776fbe19bb8bbe7a67745bf44fd7f1f939f0b03761d805b58d8a002",
         )
 
 

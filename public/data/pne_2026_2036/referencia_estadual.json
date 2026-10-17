@@ -216,13 +216,13 @@
     "medio_tecnico_articulado_percentual": {
       "indicator_id": "medio_tecnico_articulado_percentual",
       "aggregation_method": "ratio_of_sums",
-      "numerator_definition": "Matrículas em cursos técnicos integrados ao ensino médio.",
+      "numerator_definition": "Matrículas em cursos técnicos integrados ou concomitantes ao ensino médio.",
       "denominator_definition": "Matrículas totais do ensino médio.",
       "filters": {},
       "source": "INEP — Sinopse Estatística da Educação Básica.",
       "source_type": "derived_from_raw_counts",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -235,12 +235,12 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+      "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
       "loader_key": "medio_tecnico_articulado",
-      "numerator_column": "mat_integrado_total",
+      "numerator_column": "mat_articulado_total",
       "denominator_column": "mat_medio",
       "denominator_aggregation": "sum",
       "allowed_years": [
@@ -939,14 +939,13 @@
       "denominator_definition": "População total de 15 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -959,10 +958,10 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "medio_concluido_18_mais": {
       "indicator_id": "medio_concluido_18_mais",
@@ -971,14 +970,13 @@
       "denominator_definition": "População total de 18 anos ou mais.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -991,10 +989,10 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "medio_concluido_18_29": {
       "indicator_id": "medio_concluido_18_29",
@@ -1003,14 +1001,13 @@
       "denominator_definition": "População total de 18 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -1023,28 +1020,29 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua."
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação."
     },
     "medio_tecnico_participacao_publica": {
       "indicator_id": "medio_tecnico_participacao_publica",
-      "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-      "numerator_definition": "Expansão positiva acumulada das matrículas públicas de EPT de nível médio.",
-      "denominator_definition": "Expansão positiva acumulada pública + privada de EPT de nível médio.",
+      "aggregation_method": "state_net_expansion_from_2025",
+      "numerator_definition": "Total estadual público atual menos total estadual público em 2025.",
+      "denominator_definition": "Total estadual de EPT atual menos total estadual de EPT em 2025.",
       "filters": {
-        "ano_base": 2015,
-        "segmentos": [
-          "publica",
-          "privada"
+        "ano_base": 2025,
+        "dependencias_publicas": [
+          "federal",
+          "estadual",
+          "municipal"
         ]
       },
       "source": "INEP Censo Escolar — EPT de nível médio",
       "source_type": "state_series_growth",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "comparable",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "unavailable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -1056,24 +1054,24 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Agrega primeiro os totais estaduais de EPT e só então calcula as expansões; quedas não são contabilizadas como expansão."
+      "notes": "Agrega primeiro os totais estaduais de EPT e calcula diferenças líquidas contra a base fixa de 2025."
     },
     "subsequente_expansao": {
       "indicator_id": "subsequente_expansao",
-      "aggregation_method": "state_total_growth_from_2015",
-      "numerator_definition": "Total estadual atual de matrículas técnicas subsequentes.",
-      "denominator_definition": "Total estadual de matrículas técnicas subsequentes em 2015.",
+      "aggregation_method": "state_total_growth_from_2025",
+      "numerator_definition": "Total estadual atual de matrículas técnicas subsequentes menos o total de 2025.",
+      "denominator_definition": "Total estadual de matrículas técnicas subsequentes em 2025.",
       "filters": {
-        "ano_base": 2015
+        "ano_base": 2025
       },
       "source": "INEP Censo Escolar — EPT de nível médio",
       "source_type": "state_series_growth",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "comparable",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "unavailable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -1085,10 +1083,10 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Base estadual fixa em 2015; base zero gera valor nulo. A cobertura da base e do ano corrente é registrada para validar comparabilidade."
+      "notes": "Base estadual fixa em 2025; base zero gera valor nulo. A cobertura da base e do ano corrente é registrada para validar comparabilidade."
     },
     "aee": {
       "indicator_id": "aee",
@@ -1146,15 +1144,17 @@
     },
     "alfabetizacao": {
       "indicator_id": "alfabetizacao",
-      "aggregation_method": "not_available",
-      "numerator_definition": "Não habilitado.",
-      "denominator_definition": "Não habilitado.",
-      "filters": {},
-      "source": "Sem fonte estadual comparável habilitada",
-      "source_type": "methodology_pending",
+      "aggregation_method": "official_state_result",
+      "numerator_definition": "Componente não publicado; usar percentual oficial.",
+      "denominator_definition": "Estudantes avaliados do 2º ano na rede municipal.",
+      "filters": {
+        "rede": "municipal"
+      },
+      "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+      "source_type": "official_state_percentage",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "methodology_pending",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -1166,10 +1166,11 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Fonte municipal sem série estadual comparável no pipeline."
+      "notes": "Resultado estadual oficial da rede municipal; não é média municipal.",
+      "allow_projection": false
     },
     "idade_regular_quinto": {
       "indicator_id": "idade_regular_quinto",
@@ -2969,13 +2970,13 @@
     "medio_tecnico_articulado_percentual": {
       "indicator_id": "medio_tecnico_articulado_percentual",
       "aggregation_method": "ratio_of_sums",
-      "numerator_definition": "Matrículas em cursos técnicos integrados ao ensino médio.",
+      "numerator_definition": "Matrículas em cursos técnicos integrados ou concomitantes ao ensino médio.",
       "denominator_definition": "Matrículas totais do ensino médio.",
       "filters": {},
       "source": "INEP — Sinopse Estatística da Educação Básica.",
       "source_type": "derived_from_raw_counts",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -2988,12 +2989,12 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+      "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
       "loader_key": "medio_tecnico_articulado",
-      "numerator_column": "mat_integrado_total",
+      "numerator_column": "mat_articulado_total",
       "denominator_column": "mat_medio",
       "denominator_aggregation": "sum",
       "allowed_years": [
@@ -3015,8 +3016,8 @@
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2015,
-          "value": 5.442367601246106,
-          "numerator": 20964.0,
+          "value": 10.758047767393562,
+          "numerator": 41440.0,
           "denominator": 385200.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3024,16 +3025,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2016,
-          "value": 6.232392791664804,
-          "numerator": 22300.0,
+          "value": 13.515628493493717,
+          "numerator": 48360.0,
           "denominator": 357808.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3041,16 +3042,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2017,
-          "value": 6.727995006285292,
-          "numerator": 23389.0,
+          "value": 12.565693525142606,
+          "numerator": 43683.0,
           "denominator": 347637.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3058,16 +3059,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2018,
-          "value": 7.400647804416311,
-          "numerator": 25019.0,
+          "value": 14.959549199118513,
+          "numerator": 50573.0,
           "denominator": 338065.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3075,16 +3076,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2019,
-          "value": 7.995540146137725,
-          "numerator": 26820.0,
+          "value": 14.109952092345209,
+          "numerator": 47330.0,
           "denominator": 335437.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3092,16 +3093,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2020,
-          "value": 8.432804954065375,
-          "numerator": 28951.0,
+          "value": 15.731371281101266,
+          "numerator": 54008.0,
           "denominator": 343314.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3109,16 +3110,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2021,
-          "value": 8.106812794669176,
-          "numerator": 28079.0,
+          "value": 20.380641119288146,
+          "numerator": 70591.0,
           "denominator": 346363.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3126,16 +3127,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2022,
-          "value": 8.563782581542878,
-          "numerator": 31265.0,
+          "value": 20.81274446428767,
+          "numerator": 75984.0,
           "denominator": 365084.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3143,16 +3144,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2023,
-          "value": 9.643154619640665,
-          "numerator": 33690.0,
+          "value": 28.71478989143222,
+          "numerator": 100320.0,
           "denominator": 349367.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3160,16 +3161,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2024,
-          "value": 9.981703782425969,
-          "numerator": 33061.0,
+          "value": 28.82439254142312,
+          "numerator": 95471.0,
           "denominator": 331216.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3177,16 +3178,16 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         },
         {
           "indicator_id": "medio_tecnico_articulado_percentual",
           "year": 2025,
-          "value": 10.461011084769655,
-          "numerator": 32653.0,
+          "value": 29.599538668546167,
+          "numerator": 92392.0,
           "denominator": 312140.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
@@ -3194,10 +3195,10 @@
           "municipal_coverage_percent": 100.0,
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
-          "notes": "Indicador principal da Meta 12.a calculado somente com matrículas integradas. Matrículas concomitantes e o total articulado permanecem restritos aos dados complementares.",
+          "notes": "Soma integrada + concomitante antes da razão. O agregado não identifica estudantes únicos; a referência de 50% é apenas de acompanhamento.",
           "source": "INEP — Sinopse Estatística da Educação Básica.",
           "source_type": "derived_from_raw_counts",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         }
       ]
     },
@@ -8073,14 +8074,13 @@
       "denominator_definition": "População total de 15 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -8093,34 +8093,17 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
       "series": [
         {
           "indicator_id": "fundamental_concluido_15_29",
-          "year": 2010,
-          "value": null,
-          "numerator": null,
-          "denominator": null,
-          "aggregation_method": "ratio_of_sums",
-          "municipalities_valid": 0,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 0.0,
-          "denominator_coverage_percent": null,
-          "comparison_status": "unavailable",
-          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado. Sem par numerador/denominador válido no ano. Pares válidos em 0 de 497 municípios.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
-          "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "fundamental_concluido_15_29",
           "year": 2022,
-          "value": 77.75952743837973,
+          "value": 83.31687751113657,
           "numerator": 1838736.0,
-          "denominator": 2364644.0,
+          "denominator": 2206919.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
           "municipalities_expected": 497,
@@ -8128,9 +8111,9 @@
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
           "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
           "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         }
       ]
     },
@@ -8141,14 +8124,13 @@
       "denominator_definition": "População total de 18 anos ou mais.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -8161,34 +8143,17 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
       "series": [
         {
           "indicator_id": "medio_concluido_18_mais",
-          "year": 2010,
-          "value": null,
-          "numerator": null,
-          "denominator": null,
-          "aggregation_method": "ratio_of_sums",
-          "municipalities_valid": 0,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 0.0,
-          "denominator_coverage_percent": null,
-          "comparison_status": "unavailable",
-          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado. Sem par numerador/denominador válido no ano. Pares válidos em 0 de 497 municípios.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
-          "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_concluido_18_mais",
           "year": 2022,
-          "value": 49.60470931094852,
+          "value": 50.735732395312134,
           "numerator": 4351275.0,
-          "denominator": 8771899.0,
+          "denominator": 8576352.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
           "municipalities_expected": 497,
@@ -8196,9 +8161,9 @@
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
           "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
           "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         }
       ]
     },
@@ -8209,14 +8174,13 @@
       "denominator_definition": "População total de 18 a 29 anos.",
       "filters": {
         "anos": [
-          2010,
           2022
         ]
       },
-      "source": "IBGE Censo Demográfico + população por idade oficial",
+      "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
       "source_type": "census_raw_count_reconstruction",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
@@ -8229,34 +8193,17 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Somente os snapshots de 2010 e 2022 são válidos; não interpolar, projetar nem criar série anual contínua.",
+      "notes": "Numerador e denominador do mesmo recorte censitário; sem interpolação.",
       "series": [
         {
           "indicator_id": "medio_concluido_18_29",
-          "year": 2010,
-          "value": null,
-          "numerator": null,
-          "denominator": null,
-          "aggregation_method": "ratio_of_sums",
-          "municipalities_valid": 0,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 0.0,
-          "denominator_coverage_percent": null,
-          "comparison_status": "unavailable",
-          "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado. Sem par numerador/denominador válido no ano. Pares válidos em 0 de 497 municípios.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
-          "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_concluido_18_29",
           "year": 2022,
-          "value": 59.87927255751311,
+          "value": 64.12612647489057,
           "numerator": 1159519.0,
-          "denominator": 1936428.0,
+          "denominator": 1808185.0,
           "aggregation_method": "ratio_of_sums",
           "municipalities_valid": 497,
           "municipalities_expected": 497,
@@ -8264,29 +8211,30 @@
           "denominator_coverage_percent": 100.0,
           "comparison_status": "comparable",
           "notes": "Snapshot censitário de 2010/2022; nenhum ano intermediário foi interpolado ou projetado.",
-          "source": "IBGE Censo Demográfico + população por idade oficial",
+          "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
           "source_type": "census_raw_count_reconstruction",
-          "methodology_version": "pne2026-rs-reference-v1"
+          "methodology_version": "pne2026-rs-reference-v3"
         }
       ]
     },
     "medio_tecnico_participacao_publica": {
       "indicator_id": "medio_tecnico_participacao_publica",
-      "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-      "numerator_definition": "Expansão positiva acumulada das matrículas públicas de EPT de nível médio.",
-      "denominator_definition": "Expansão positiva acumulada pública + privada de EPT de nível médio.",
+      "aggregation_method": "state_net_expansion_from_2025",
+      "numerator_definition": "Total estadual público atual menos total estadual público em 2025.",
+      "denominator_definition": "Total estadual de EPT atual menos total estadual de EPT em 2025.",
       "filters": {
-        "ano_base": 2015,
-        "segmentos": [
-          "publica",
-          "privada"
+        "ano_base": 2025,
+        "dependencias_publicas": [
+          "federal",
+          "estadual",
+          "municipal"
         ]
       },
       "source": "INEP Censo Escolar — EPT de nível médio",
       "source_type": "state_series_growth",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "comparable",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "unavailable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -8298,213 +8246,25 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Agrega primeiro os totais estaduais de EPT e só então calcula as expansões; quedas não são contabilizadas como expansão.",
-      "series": [
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2015,
-          "value": null,
-          "numerator": 0.0,
-          "denominator": 0.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "unavailable",
-          "notes": "2015 é o ano-base; não há expansão acumulada no próprio ano.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2016,
-          "value": null,
-          "numerator": 0.0,
-          "denominator": 0.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "unavailable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva. Expansão total acumulada não positiva; valor nulo.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2017,
-          "value": 100.0,
-          "numerator": 2659.0,
-          "denominator": 2659.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2018,
-          "value": 36.22615803814714,
-          "numerator": 2659.0,
-          "denominator": 7340.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2019,
-          "value": 30.739884393063583,
-          "numerator": 2659.0,
-          "denominator": 8650.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2020,
-          "value": 61.76526900248899,
-          "numerator": 9678.0,
-          "denominator": 15669.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2021,
-          "value": 31.12197318069267,
-          "numerator": 9678.0,
-          "denominator": 31097.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2022,
-          "value": 25.366288365266165,
-          "numerator": 9678.0,
-          "denominator": 38153.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2023,
-          "value": 15.921953145564622,
-          "numerator": 9678.0,
-          "denominator": 60784.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2024,
-          "value": 15.921953145564622,
-          "numerator": 9678.0,
-          "denominator": 60784.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "medio_tecnico_participacao_publica",
-          "year": 2025,
-          "value": 18.16624233398985,
-          "numerator": 11345.0,
-          "denominator": 62451.0,
-          "aggregation_method": "state_aggregate_positive_expansions_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "A expansão foi calculada sobre a série estadual agregada; não houve soma de expansões municipais. Quedas anuais foram excluídas do cálculo da expansão positiva.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        }
-      ]
+      "notes": "Agrega primeiro os totais estaduais de EPT e calcula diferenças líquidas contra a base fixa de 2025.",
+      "series": []
     },
     "subsequente_expansao": {
       "indicator_id": "subsequente_expansao",
-      "aggregation_method": "state_total_growth_from_2015",
-      "numerator_definition": "Total estadual atual de matrículas técnicas subsequentes.",
-      "denominator_definition": "Total estadual de matrículas técnicas subsequentes em 2015.",
+      "aggregation_method": "state_total_growth_from_2025",
+      "numerator_definition": "Total estadual atual de matrículas técnicas subsequentes menos o total de 2025.",
+      "denominator_definition": "Total estadual de matrículas técnicas subsequentes em 2025.",
       "filters": {
-        "ano_base": 2015
+        "ano_base": 2025
       },
       "source": "INEP Censo Escolar — EPT de nível médio",
       "source_type": "state_series_growth",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "comparable",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "unavailable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -8516,199 +8276,11 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Base estadual fixa em 2015; base zero gera valor nulo. A cobertura da base e do ano corrente é registrada para validar comparabilidade.",
-      "series": [
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2015,
-          "value": 0.0,
-          "numerator": 77564.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2016,
-          "value": -16.615955855809396,
-          "numerator": 64676.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2017,
-          "value": -17.910370790572948,
-          "numerator": 63672.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2018,
-          "value": -21.347532360373368,
-          "numerator": 61006.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2019,
-          "value": -19.34531483677995,
-          "numerator": 62559.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2020,
-          "value": -26.944200917951623,
-          "numerator": 56665.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2021,
-          "value": -37.18477644267959,
-          "numerator": 48722.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2022,
-          "value": -38.192976122943634,
-          "numerator": 47940.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2023,
-          "value": -43.29714816151823,
-          "numerator": 43981.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2024,
-          "value": -45.55979578154814,
-          "numerator": 42226.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        },
-        {
-          "indicator_id": "subsequente_expansao",
-          "year": 2025,
-          "value": -41.83512969934505,
-          "numerator": 45115.0,
-          "denominator": 77564.0,
-          "aggregation_method": "state_total_growth_from_2015",
-          "municipalities_valid": 497,
-          "municipalities_expected": 497,
-          "municipal_coverage_percent": 100.0,
-          "denominator_coverage_percent": 100.0,
-          "comparison_status": "comparable",
-          "notes": "Total estadual atual e total estadual de 2015 foram usados; não foram somadas expansões municipais.",
-          "source": "INEP Censo Escolar — EPT de nível médio",
-          "source_type": "state_series_growth",
-          "methodology_version": "pne2026-rs-reference-v1"
-        }
-      ]
+      "notes": "Base estadual fixa em 2025; base zero gera valor nulo. A cobertura da base e do ano corrente é registrada para validar comparabilidade.",
+      "series": []
     },
     "aee": {
       "indicator_id": "aee",
@@ -8768,15 +8340,17 @@
     },
     "alfabetizacao": {
       "indicator_id": "alfabetizacao",
-      "aggregation_method": "not_available",
-      "numerator_definition": "Não habilitado.",
-      "denominator_definition": "Não habilitado.",
-      "filters": {},
-      "source": "Sem fonte estadual comparável habilitada",
-      "source_type": "methodology_pending",
+      "aggregation_method": "official_state_result",
+      "numerator_definition": "Componente não publicado; usar percentual oficial.",
+      "denominator_definition": "Estudantes avaliados do 2º ano na rede municipal.",
+      "filters": {
+        "rede": "municipal"
+      },
+      "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+      "source_type": "official_state_percentage",
       "null_policy": "Nulos não são zero; somente pares válidos entram na razão. Denominador zero produz valor nulo.",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "comparison_status": "methodology_pending",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "comparison_status": "comparable",
       "unit": "percent",
       "compatibility": {
         "indicatorRule": "same_indicator_id_required",
@@ -8788,11 +8362,64 @@
         "universeStatus": "curated_equivalent",
         "administrativeDependenceStatus": "registry_filters_required",
         "aggregationRuleStatus": "curated_equivalent",
-        "methodologyVersion": "pne2026-rs-reference-v1",
+        "methodologyVersion": "pne2026-rs-reference-v3",
         "territorialBasisStatus": "curated_equivalent"
       },
-      "notes": "Fonte municipal sem série estadual comparável no pipeline.",
-      "series": []
+      "notes": "Resultado estadual oficial da rede municipal; não é média municipal.",
+      "allow_projection": false,
+      "series": [
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2023,
+          "value": 63.55,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 456,
+          "municipalities_expected": 497,
+          "municipal_coverage_percent": 91.75050301810865,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-rs-reference-v3"
+        },
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2024,
+          "value": 44.23,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 441,
+          "municipalities_expected": 497,
+          "municipal_coverage_percent": 88.73239436619718,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-rs-reference-v3"
+        },
+        {
+          "indicator_id": "alfabetizacao",
+          "year": 2025,
+          "value": 52.13,
+          "numerator": null,
+          "denominator": null,
+          "aggregation_method": "official_state_result",
+          "municipalities_valid": 463,
+          "municipalities_expected": 497,
+          "municipal_coverage_percent": 93.158953722334,
+          "denominator_coverage_percent": null,
+          "comparison_status": "comparable",
+          "notes": "Resultado estadual oficial da rede municipal; não é média municipal. Cobertura municipal informa resultados municipais disponíveis; não estima a participação dos estudantes no agregado estadual.",
+          "source": "Inep — Indicador Criança Alfabetizada, rede municipal",
+          "source_type": "official_state_percentage",
+          "methodology_version": "pne2026-rs-reference-v3"
+        }
+      ]
     },
     "idade_regular_quinto": {
       "indicator_id": "idade_regular_quinto",
@@ -9681,7 +9308,7 @@
       "projection_status": "not_applicable",
       "method": "observed_series_only",
       "source": "Série observada; indicador aproximado sem trajetória ou projeção",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "pos_graduacao": {
@@ -11425,7 +11052,7 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "medio_concluido_18_mais": {
@@ -11433,7 +11060,7 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "medio_concluido_18_29": {
@@ -11441,180 +11068,38 @@
       "projection_status": "not_applicable",
       "method": "census_snapshots_only",
       "source": "Série estadual — sem interpolação ou projeção censitária",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "medio_tecnico_participacao_publica": {
-      "available": true,
-      "projection_status": "available",
-      "method": "aggregate_state_series_forecast",
-      "source": "Série estadual agregada; sem média municipal",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "series": [
-        {
-          "year": 2026,
-          "value": 14.440401020254246,
-          "numerator": 11011.599999999977,
-          "denominator": 76255.5,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2027,
-          "value": 13.38021026213147,
-          "numerator": 11345.0,
-          "denominator": 84789.40000000224,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2028,
-          "value": 12.513916674613874,
-          "numerator": 11678.400000000023,
-          "denominator": 93323.30000000075,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2029,
-          "value": 11.792784407975219,
-          "numerator": 12011.800000000047,
-          "denominator": 101857.19999999925,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2030,
-          "value": 11.18314791681567,
-          "numerator": 12345.20000000007,
-          "denominator": 110391.10000000149,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2031,
-          "value": 10.66100483498001,
-          "numerator": 12678.599999999977,
-          "denominator": 118925.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2032,
-          "value": 10.208781026668026,
-          "numerator": 13012.0,
-          "denominator": 127458.90000000224,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2033,
-          "value": 9.813313646016518,
-          "numerator": 13345.400000000023,
-          "denominator": 135992.80000000075,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2034,
-          "value": 9.464548765037959,
-          "numerator": 13678.800000000047,
-          "denominator": 144526.69999999925,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2035,
-          "value": 9.154674684406002,
-          "numerator": 14012.20000000007,
-          "denominator": 153060.6000000015,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2036,
-          "value": 8.877529866424895,
-          "numerator": 14345.599999999977,
-          "denominator": 161594.5,
-          "comparison_status": "comparable"
-        }
-      ]
+      "available": false,
+      "projection_status": "unavailable",
+      "method": "aggregate_state_persistence_baseline",
+      "source": "Série estadual agregada; último par observado mantido; sem média municipal",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "reason": "insufficient_or_stale_annual_history",
+      "validation": {
+        "minimumComparableObservations": 5,
+        "requiredObservationIntervalYears": 1,
+        "requireLatestYear": 2025,
+        "observationCount": 0
+      },
+      "series": []
     },
     "subsequente_expansao": {
-      "available": true,
-      "projection_status": "available",
-      "method": "aggregate_state_series_forecast",
-      "source": "Série estadual agregada; sem média municipal",
-      "methodology_version": "pne2026-rs-reference-v1",
-      "series": [
-        {
-          "year": 2026,
-          "value": 53.785776906812316,
-          "numerator": 41718.39999999991,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2027,
-          "value": 52.119024289618416,
-          "numerator": 40425.59999999963,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2028,
-          "value": 50.45227167242511,
-          "numerator": 39132.799999999814,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2029,
-          "value": 48.78551905523181,
-          "numerator": 37840.0,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2030,
-          "value": 47.1187664380379,
-          "numerator": 36547.19999999972,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2031,
-          "value": 45.4520138208446,
-          "numerator": 35254.39999999991,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2032,
-          "value": 43.7852612036507,
-          "numerator": 33961.59999999963,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2033,
-          "value": 42.118508586457395,
-          "numerator": 32668.799999999814,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2034,
-          "value": 40.45175596926409,
-          "numerator": 31376.0,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2035,
-          "value": 38.78500335207019,
-          "numerator": 30083.19999999972,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        },
-        {
-          "year": 2036,
-          "value": 37.11825073487689,
-          "numerator": 28790.399999999907,
-          "denominator": 77564.0,
-          "comparison_status": "comparable"
-        }
-      ]
+      "available": false,
+      "projection_status": "unavailable",
+      "method": "aggregate_state_persistence_baseline",
+      "source": "Série estadual agregada; último par observado mantido; sem média municipal",
+      "methodology_version": "pne2026-rs-reference-v3",
+      "reason": "insufficient_or_stale_annual_history",
+      "validation": {
+        "minimumComparableObservations": 5,
+        "requiredObservationIntervalYears": 1,
+        "requireLatestYear": 2025,
+        "observationCount": 0
+      },
+      "series": []
     },
     "aee": {
       "available": false,
@@ -11634,10 +11119,10 @@
     },
     "alfabetizacao": {
       "available": false,
-      "projection_status": "unavailable",
-      "method": "aggregate_state_series_forecast",
-      "source": "Série estadual agregada; sem média municipal",
-      "methodology_version": "pne2026-rs-reference-v1",
+      "projection_status": "not_applicable",
+      "method": "observed_series_only",
+      "source": "Série observada; indicador aproximado sem trajetória ou projeção",
+      "methodology_version": "pne2026-rs-reference-v3",
       "series": []
     },
     "idade_regular_quinto": {

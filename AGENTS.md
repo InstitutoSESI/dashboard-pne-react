@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Estas instruções se aplicam a todo o repositório. Instruções específicas do usuário têm precedência. Antes de trabalhar, consulte também [README.md](README.md), [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e [docs/OPERACAO.md](docs/OPERACAO.md) conforme o escopo.
+Estas instruções se aplicam a todo o repositório. Instruções específicas do usuário têm precedência. Use [README.md](README.md) para entrada e ambiente, [docs/ARQUITETURA.md](docs/ARQUITETURA.md) para fronteiras entre componentes e [docs/OPERACAO.md](docs/OPERACAO.md) para execução e publicação; leia o trecho pertinente à tarefa.
 
 ## 1. Propósito da plataforma
 
@@ -133,7 +133,7 @@ Execute `npm run check:hygiene` e a validação específica do escopo. Reutilize
 
 ### Antes do merge em main
 
-Execute o gate completo uma única vez, quando o escopo justificar. Não rode centenas de testes após cada pequena alteração. Na entrega, explique quais suítes não têm relação com o escopo e por que não foram executadas.
+Execute o gate completo uma única vez, quando o escopo justificar. Não rode centenas de testes após cada pequena alteração. Na entrega, informe os checks executados e lacunas materiais de validação.
 
 Não trate avisos de análise estática como erros automaticamente: preserve entradas dinâmicas, contratos, tipos compartilhados e símbolos exercitados por testes. Nunca apague nem enfraqueça teste ou script de validação para fazer uma suíte passar.
 
@@ -164,15 +164,4 @@ Um arquivo só pode ser apagado após prova positiva de ausência de consumidor 
 
 ## 12. Formato da entrega
 
-Toda tarefa de dados deve terminar informando:
-
-- objetivo;
-- fontes;
-- fórmulas preservadas ou alteradas;
-- arquivos alterados, criados, removidos ou movidos;
-- efeito sobre dados públicos;
-- testes executados;
-- hashes ou contagens relevantes;
-- estado do Git;
-- pendências;
-- confirmação de uso ou não de banco, rede e build completo.
+Informe o resultado, as mudanças, a verificação e as pendências materiais. Em tarefas de dados, acrescente fontes, fórmulas alteradas, efeito sobre dados públicos e evidências de cobertura ou reconciliação. Inclua hashes, contagens, operações externas e estado do Git quando necessários para rastrear a entrega; não repita um checklist sem efeito na decisão.

@@ -3,8 +3,8 @@
 > Arquivo gerado por `scripts/generate-diagnostic-catalog.mjs`. Não edite manualmente.
 
 - Fonte canônica: `contracts/pne2026-goal-indicator-contract.json`
-- Versão do contrato: `1.9.0`
-- Hash normalizado SHA-256: `c9f4baaee43a7f105863a07bcac69d2f56a90095b75d0c7bcde25ca533fedab5`
+- Versão do contrato: `1.10.0`
+- Hash normalizado SHA-256: `7af42e902776fbe19bb8bbe7a67745bf44fd7f1f939f0b03761d805b58d8a002`
 - Metas legais: 73
 - Indicadores e fórmulas: 59
 - Relações: 59 (27 progresso, 15 acompanhamento, 15 complementares e 2 ocultas)
@@ -43,8 +43,8 @@
 | 11.b | fundamental_concluido_15_29 | progress | legal | 100 percent (2036) | 2036 | 100 * (concluintes_15_17 + concluintes_18_24 + concluintes_25_29) / (total_15_17 + total_18_24 + total_25_29) |
 | 11.b | fundamental_concluido_15_mais | progress | legal | 85 percent (2036) | 2036 | 100 * (concluintes_15_17 + concluintes_18_mais) / (total_15_17 + total_18_mais) |
 | 11.b | fundamental_concluido_18_mais | hidden | — | — | não se aplica | pne2026.fundamental_concluido_18_mais |
-| 11.c | medio_concluido_18_29 | progress | legal | 100 percent (2036) | 2036 | pne2026.medio_concluido_18_29 |
-| 11.c | medio_concluido_18_mais | progress | legal | 75 percent (2036) | 2036 | pne2026.medio_concluido_18_mais |
+| 11.c | medio_concluido_18_29 | progress | legal | 100 percent (2036) | 2036 | 100 × (médio completo e superior incompleto + superior completo) / população total do mesmo recorte censitário. |
+| 11.c | medio_concluido_18_mais | progress | legal | 75 percent (2036) | 2036 | 100 × (médio completo e superior incompleto + superior completo) / população total do mesmo recorte censitário. |
 | 11.d | eja_atendimento_18_mais | progress | legal | 10 percent (2031); 20 percent (2036) | 2031, 2036 | 100 × matrículas_EJA_18_mais / população_18_mais_sem_básica_concluída |
 | 12.a | medio_tecnico_articulado_percentual | tracking | monitoring | 50 percent | sem prazo legal | 100 * sum(mat_integrado_total + mat_concomitante_total) / sum(mat_medio) |
 | 12.a | medio_tecnico_participacao_publica | progress | legal | 50 percent (2036) | 2036 | 100 * (publica_atual - publica_2025) / (total_atual - total_2025) |

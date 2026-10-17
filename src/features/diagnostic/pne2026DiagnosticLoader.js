@@ -16,7 +16,7 @@ export const PNE_2026_DIAGNOSTIC_V3_RELEASE_MUNICIPAL_PATH =
 const POINTER_SCHEMA = 'pne2026-diagnostic-release-pointer-v1'
 const RELEASE_MANIFEST_SCHEMA =
   'pne2026-public-diagnostic-v3-release-manifest-v3'
-const CONTRACT_VERSION = '1.9.0'
+const CONTRACT_VERSION = '1.10.0'
 const PRESENTATION_POLICY_VERSION = '1.7.0'
 const MUNICIPAL_FILE_PATTERN = 'municipios/{municipalityId}.json'
 const SHA256_PATTERN = /^[a-f0-9]{64}$/

@@ -126,7 +126,7 @@ class PneConsolidatedIndicatorRoundTests(unittest.TestCase):
             .read_text(encoding="utf-8")
         )
         relations = {row["relationId"]: row for row in contract["relations"]}
-        self.assertEqual(contract["contractVersion"], "1.9.0")
+        self.assertEqual(contract["contractVersion"], "1.10.0")
         self.assertEqual(len(contract["relations"]), 59)
         self.assertEqual(
             {

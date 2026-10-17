@@ -8,6 +8,8 @@ municipais em nenhuma etapa.
 
 from __future__ import annotations
 
+from collections import Counter
+
 import math
 from typing import Any, Callable, Mapping
 
@@ -339,7 +341,6 @@ BLOCKED_REASONS: dict[str, str] = {
         "Comparação bloqueada até município e RS usarem a mesma razão de numerador "
         "e denominador."
     ),
-    "alfabetizacao": "Fonte municipal sem série estadual comparável no pipeline.",
     "idade_regular_quinto": "Indicador de idade regular não será reconstruído por média municipal.",
     "idade_regular_nono": "Indicador de idade regular não será reconstruído por média municipal.",
     "idade_regular_medio": "Indicador de idade regular não será reconstruído por média municipal.",
@@ -463,6 +464,23 @@ def build_registry(
                 "projetar nem criar série anual contínua."
             ),
         )
+
+    for key in ("fundamental_concluido_15_29", "medio_concluido_18_29", "medio_concluido_18_mais"):
+        registry[key].update({
+            "filters": {"anos": [2022]},
+            "source": "IBGE — Censo Demográfico 2022, SIDRA 10061 (mesmo universo)",
+            "notes": "Numerador e denominador do mesmo recorte censitário de 2022; sem interpolação.",
+        })
+    registry["alfabetizacao"] = _metadata(
+        "alfabetizacao", aggregation_method="official_state_result",
+        numerator_definition="Componente não publicado; usar percentual oficial.",
+        denominator_definition="Estudantes avaliados do 2º ano na rede municipal.",
+        filters={"rede": "municipal"},
+        source="Inep — Indicador Criança Alfabetizada, rede municipal",
+        source_type="official_state_percentage",
+        notes="Resultado estadual oficial; nunca a média dos percentuais municipais.",
+    )
+    registry["alfabetizacao"]["allow_projection"] = False
 
     registry["medio_tecnico_participacao_publica"] = _metadata(
         "medio_tecnico_participacao_publica",
@@ -844,6 +862,29 @@ def _build_census_records(
             "interpolado ou projetado."
         ),
     )
+
+
+def build_child_literacy_records(state_code):
+    from src.child_literacy import load_snapshot
+    municipal, state_rows, _manifest = load_snapshot(state_code=state_code)
+    expected = len(municipal)
+    valid_by_year = Counter(
+        point["year"] for row in municipal for point in row["series"]
+        if point["dataStatus"] == "available"
+    )
+    return [{
+        "indicator_id": "alfabetizacao", "year": row["year"], "value": row["value"],
+        "numerator": None, "denominator": None,
+        "aggregation_method": "official_state_result",
+        "municipalities_valid": valid_by_year[row["year"]],
+        "municipalities_expected": expected,
+        "municipal_coverage_percent": 100 * valid_by_year[row["year"]] / expected,
+        "denominator_coverage_percent": None,
+        "comparison_status": COMPARABLE,
+        "notes": ("Resultado estadual oficial da rede municipal; não é média municipal. "
+                  "Cobertura municipal informa resultados municipais disponíveis; "
+                  "não estima a participação dos estudantes no agregado estadual."),
+    } for row in state_rows if row["dataStatus"] == "available"]
 
 
 def _prepare_ept_state(frame: pd.DataFrame) -> dict[int, dict[str, Any]]:
@@ -1481,7 +1522,9 @@ def build_state_reference(state_code: str = STATE_CODE) -> dict[str, Any]:
         if indicator_id in BLOCKED_REASONS:
             indicators[indicator_id] = {**metadata, "series": []}
             continue
-        if indicator_id in RATIO_CONFIGS:
+        if indicator_id == "alfabetizacao":
+            records = build_child_literacy_records(state.state_code)
+        elif indicator_id in RATIO_CONFIGS:
             config = RATIO_CONFIGS[indicator_id]
             frame = frames.get(config["loader_key"], pd.DataFrame())
             if config.get("allowed_years"):
